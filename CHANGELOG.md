@@ -17,6 +17,8 @@ extracted it and made the engine generic.
 
 ### Added
 
+- Published on npm as two packages: `lutrin` is the command (`npx lutrin`),
+  `@lutrin/core` is the compiler behind it, usable as a library.
 - Markdown (DSL) compiler → PowerPoint `.pptx` and standalone HTML, both
   outputs built from the **same** geometric scene.
 - Layout inference from the content, placement into regions and

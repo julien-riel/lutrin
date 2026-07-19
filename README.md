@@ -34,21 +34,34 @@ Four entry points, one compiler (`packages/core`):
 
 ## Getting started
 
-The package is not published on npm yet: start from a clone.
-Node ≥ 22 is required.
+Node ≥ 22 is required. Nothing else — write a `deck.md` and run:
+
+```bash
+npx lutrin build deck.md -o deck.pptx     # PowerPoint
+npx lutrin build deck.md -o deck.html     # standalone HTML
+npx lutrin preview deck.md                # local server, reloads on save
+```
+
+Install it once if you use it often:
+
+```bash
+npm install -g lutrin
+```
+
+To see what the DSL can actually do, start from the demo — it covers every
+layout and every block type:
 
 ```bash
 git clone https://github.com/julien-riel/lutrin.git
 cd lutrin
 npm install
-
-npx lutrin build examples/demo.deck.md -o demo.pptx    # PowerPoint
-npx lutrin build examples/demo.deck.md -o demo.html    # standalone HTML
+npx lutrin build examples/demo.deck.md -o demo.pptx
 ```
 
-`examples/demo.deck.md` covers every layout and every block type: it is the
-best starting point to see what the DSL can do. To call `lutrin` from
-anywhere: `npm link -w lutrin`.
+Two packages are published: [`lutrin`](https://www.npmjs.com/package/lutrin)
+is the command, and [`@lutrin/core`](https://www.npmjs.com/package/@lutrin/core)
+is the compiler behind it — depend on the latter to call the compiler from your
+own code.
 
 The DSL — inferred layouts, `:::metric` / `:::warning` directives,
 ` ```chart ` charts, Mermaid, LaTeX, Lucide icons, animations, notes — is

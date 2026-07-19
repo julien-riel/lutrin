@@ -2,22 +2,31 @@
 
 The engine behind [Lutrin](../../README.md): enriched Markdown (a DSL) →
 PowerPoint `.pptx` or standalone HTML, with the page layout decided by the
-engine. It provides the `lutrin` CLI, and serves as a library for the editor
-hosts (VS Code extension, Obsidian plugin).
+engine. It carries the CLI implementation and serves as a library for the
+editor hosts (VS Code extension, Obsidian plugin). The command itself is
+published separately as [`lutrin`](https://www.npmjs.com/package/lutrin), a
+thin entry point that depends on this package.
 
 Neither output format is privileged: both renderers consume the **same**
 geometric **scene**, in pixels on a 1280 × 720 grid.
 
 ## Installation
 
-The package is not published on npm yet. From a clone of the repository:
+To use the compiler as a library:
 
 ```bash
-npm install                 # at the root of the monorepo
-npx lutrin --help
-
-npm link -w lutrin          # to call "lutrin" from anywhere
+npm install @lutrin/core
 ```
+
+```js
+import { compileHtml } from '@lutrin/core';
+import { parseDeck } from '@lutrin/core/parse';
+import { validateDeck } from '@lutrin/core/validate';
+```
+
+For the command line, install [`lutrin`](https://www.npmjs.com/package/lutrin)
+instead — or just `npx lutrin`. From a clone of the repository,
+`npm link -w lutrin` puts the command on your PATH.
 
 Node ≥ 22 (`engines.node`). The sources are executed as they are (ESM) — no
 build step.
