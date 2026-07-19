@@ -42,9 +42,15 @@ const HOSTS = [
   ['packages', 'obsidian-plugin', 'package.json'],
 ];
 
+/** The thin entry point published as the unscoped `lutrin` name, so that
+ *  `npx lutrin` works without knowing the scope. It carries no code of its
+ *  own — only a bin that imports `@lutrin/core/cli`. */
+const CLI = read('packages', 'lutrin', 'package.json');
+
 const ALL = [
   ['root', ROOT_PKG],
   ['@lutrin/core', CORE],
+  ['lutrin', CLI],
   ...HOSTS.map((seg) => [seg[1], read(...seg)]),
 ];
 
@@ -65,6 +71,41 @@ test('@lutrin/core bounds its tarball: neither test/ nor goldens published', () 
   assert.ok(
     CORE.files.includes('design'),
     'design/ must be published: layout.mjs reads the official layouts from it',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// the `lutrin` entry point
+// ---------------------------------------------------------------------------
+
+test('one package, and only one, owns the `lutrin` command', () => {
+  // Both packages declared `bin: { lutrin }` when the entry point was added,
+  // and npm linked the core's — so `npm link` in the repository silently
+  // shipped a different binary from the published one. The command belongs to
+  // the entry point; the core is a library.
+  assert.equal(CLI.bin?.lutrin, 'bin.mjs', 'the `lutrin` package must own the command');
+  assert.ok(!CORE.bin, '@lutrin/core must not declare a bin: the `lutrin` package owns it');
+});
+
+test('the `lutrin` entry point pins @lutrin/core to the exact matching version', () => {
+  // A range would let `npx lutrin` pull a core the bin has never been run
+  // against. They are released together, from one repository, so the pin is
+  // exact — and it must track the version bump, which is what this asserts.
+  assert.equal(
+    CLI.dependencies?.['@lutrin/core'],
+    CORE.version,
+    `lutrin@${CLI.version} must depend on @lutrin/core@${CORE.version} exactly`,
+  );
+  assert.equal(CLI.version, CORE.version, 'the two published packages are versioned together');
+});
+
+test('the `lutrin` entry point is publishable and carries nothing but its bin', () => {
+  assert.ok(!CLI.private, '`lutrin` must be publishable: it is the name users type');
+  assert.equal(CLI.publishConfig?.access, 'public', 'an unscoped public package needs no access');
+  assert.deepEqual(
+    [...(CLI.files ?? [])].sort(),
+    ['README.md', 'bin.mjs'],
+    '`files` must bound the tarball to the bin and its readme',
   );
 });
 

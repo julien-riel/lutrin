@@ -48,7 +48,7 @@ npx lutrin build examples/demo.deck.md -o demo.html    # standalone HTML
 
 `examples/demo.deck.md` covers every layout and every block type: it is the
 best starting point to see what the DSL can do. To call `lutrin` from
-anywhere: `npm link -w @lutrin/core`.
+anywhere: `npm link -w lutrin`.
 
 The DSL — inferred layouts, `:::metric` / `:::warning` directives,
 ` ```chart ` charts, Mermaid, LaTeX, Lucide icons, animations, notes — is

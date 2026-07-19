@@ -1,0 +1,31 @@
+{
+  "name": "lutrin",
+  "version": "1.0.0",
+  "description": "Markdown → PowerPoint / HTML presentation compiler. Command-line entry point: installs the `lutrin` command and delegates to @lutrin/core.",
+  "type": "module",
+  "bin": {
+    "lutrin": "bin.mjs"
+  },
+  "files": ["bin.mjs", "README.md"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@lutrin/core": "1.0.0"
+  },
+  "keywords": ["markdown", "powerpoint", "pptx", "slides", "presentation", "deck", "html", "cli"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julien-riel/lutrin.git",
+    "directory": "packages/lutrin"
+  },
+  "bugs": {
+    "url": "https://github.com/julien-riel/lutrin/issues"
+  },
+  "homepage": "https://github.com/julien-riel/lutrin#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "author": "Julien Riel"
+}

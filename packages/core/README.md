@@ -16,7 +16,7 @@ The package is not published on npm yet. From a clone of the repository:
 npm install                 # at the root of the monorepo
 npx lutrin --help
 
-npm link -w @lutrin/core    # to call "lutrin" from anywhere
+npm link -w lutrin          # to call "lutrin" from anywhere
 ```
 
 Node ≥ 22 (`engines.node`). The sources are executed as they are (ESM) — no

@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "Markdown → PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives.",
   "type": "module",
-  "bin": {
-    "lutrin": "src/cli.mjs"
-  },
   "scripts": {
     "test": "node --import ./test/setup.mjs --test \"test/*.test.mjs\""
   },
@@ -15,6 +12,7 @@
   },
   "exports": {
     ".": "./src/html/render.mjs",
+    "./cli": "./src/cli.mjs",
     "./html": "./src/html/render.mjs",
     "./parse": "./src/deck/parse.mjs",
     "./layout": "./src/deck/layout.mjs",
