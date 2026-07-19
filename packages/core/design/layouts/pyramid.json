@@ -1,0 +1,6 @@
+{
+  "name": "pyramid",
+  "base": "layers",
+  "shape": "pyramid",
+  "description": "A hierarchy from apex to foundations — bands growing wider."
+}

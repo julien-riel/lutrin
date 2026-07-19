@@ -1,0 +1,5 @@
+{
+  "name": "journey",
+  "base": "steps",
+  "description": "The path of a request or a user: steps joined by arrows."
+}

@@ -1,0 +1,6 @@
+{
+  "name": "roadmap",
+  "base": "timeline",
+  "orientation": "vertical",
+  "description": "Dated milestones of a plan, in a column — axis on the left, dates and content on the right."
+}

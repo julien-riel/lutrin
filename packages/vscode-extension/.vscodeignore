@@ -1,0 +1,10 @@
+# Sources and tooling — only dist/, media/ and the manifest travel
+src/**
+test/**
+scripts/**
+esbuild.mjs
+tsconfig.json
+node_modules/**
+**/*.map
+**/*.vsix
+latest.json

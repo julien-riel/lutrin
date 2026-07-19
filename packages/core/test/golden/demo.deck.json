@@ -1,0 +1,1949 @@
+{
+  "meta": {
+    "title": "A presentation compiler",
+    "subtitle": "Enriched Markdown → PowerPoint and standalone HTML",
+    "author": "Lutrin",
+    "date": "July 2026",
+    "footer": "Presentation compiler · demonstration",
+    "assets": "vendor"
+  },
+  "slides": [
+    {
+      "title": "Why a compiler?",
+      "titleRuns": [
+        {
+          "text": "Why a compiler?"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [
+        "Stress the analogy with a classic compiler."
+      ],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Markdown is not the final format: it is a description "
+                    },
+                    {
+                      "text": "DSL",
+                      "bold": true
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Content is kept separate from page layout"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "One canonical intermediate representation (IR)"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Analysis passes: layout selection, pagination, validation"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Several possible rendering engines (PPTX, HTML, PDF…)"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 12
+            }
+          ]
+        }
+      ],
+      "line": 10
+    },
+    {
+      "title": "The pipeline",
+      "titleRuns": [
+        {
+          "text": "The pipeline"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Front end"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Enriched Markdown"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "markdown-it"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "AST → IR"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 24
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Back end"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Layout engine"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "PowerPoint scene"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "PptxGenJS"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 30
+            }
+          ]
+        }
+      ],
+      "line": 20
+    },
+    {
+      "title": "Architecture",
+      "titleRuns": [
+        {
+          "text": "Architecture"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "The front end produces the IR"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "The layout engine places each block in a slot"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Pagination splits whatever overflows"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "The renderer applies the brand"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 36
+            },
+            {
+              "type": "mermaid",
+              "source": "flowchart LR\n  A[Markdown] --> B[IR]\n  B --> C[Layout]\n  C --> D[Scene]\n  D --> E[.pptx]\n",
+              "line": 41
+            }
+          ]
+        }
+      ],
+      "line": 34
+    },
+    {
+      "title": "One thing at a time",
+      "titleRuns": [
+        {
+          "text": "One thing at a time"
+        }
+      ],
+      "layout": null,
+      "animate": true,
+      "notes": [
+        "Demonstration of the appearance animations."
+      ],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "The content of this slide appears on click, one step after another."
+                }
+              ],
+              "line": 53
+            },
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Lists reveal themselves point by point"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Each block is a distinct step"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Columns and sections appear as a whole"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 55
+            },
+            {
+              "type": "alert",
+              "kind": "success",
+              "blocks": [
+                {
+                  "type": "para",
+                  "runs": [
+                    {
+                      "text": "The same steps work in PowerPoint (native animations) and in the HTML"
+                    },
+                    {
+                      "text": " ",
+                      "soft": true
+                    },
+                    {
+                      "text": "preview (click on the slide)."
+                    }
+                  ],
+                  "line": 60
+                }
+              ],
+              "line": 59
+            }
+          ]
+        }
+      ],
+      "line": 49
+    },
+    {
+      "title": "Comparing the approaches",
+      "titleRuns": [
+        {
+          "text": "Comparing the approaches"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "table",
+              "header": [
+                [
+                  {
+                    "text": "Criterion"
+                  }
+                ],
+                [
+                  {
+                    "text": "Classic converter"
+                  }
+                ],
+                [
+                  {
+                    "text": "Compiler"
+                  }
+                ]
+              ],
+              "rows": [
+                [
+                  [
+                    {
+                      "text": "Page layout"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Approximate CSS"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Declarative layouts"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "Overflow"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Truncated text"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Automatic pagination"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "Diagrams"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Frozen image"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "AST → SVG → shapes"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "Theme"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Style sheet"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Declarative tokens"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "Outputs"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "A single one"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "PPTX, HTML, PDF…"
+                    }
+                  ]
+                ]
+              ],
+              "line": 68
+            }
+          ]
+        }
+      ],
+      "line": 66
+    },
+    {
+      "title": "Indicators",
+      "titleRuns": [
+        {
+          "text": "Indicators"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "metric",
+              "value": "19",
+              "label": "Layouts planned",
+              "trend": {
+                "dir": "up",
+                "sentiment": "positive",
+                "text": "+5 this release"
+              },
+              "line": 78
+            },
+            {
+              "type": "metric",
+              "value": "100%",
+              "label": "Output parity",
+              "trend": {
+                "dir": "flat",
+                "sentiment": "neutral",
+                "text": "stable"
+              },
+              "line": 84
+            },
+            {
+              "type": "metric",
+              "value": "0",
+              "label": "Broken slides",
+              "trend": {
+                "dir": "down",
+                "sentiment": "positive",
+                "text": "-100%"
+              },
+              "line": 90
+            },
+            {
+              "type": "alert",
+              "kind": "warning",
+              "blocks": [
+                {
+                  "type": "para",
+                  "runs": [
+                    {
+                      "text": "The trend on a "
+                    },
+                    {
+                      "text": ":::metric",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " card is colored according to its direction: "
+                    },
+                    {
+                      "text": "↑",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " ",
+                      "soft": true
+                    },
+                    {
+                      "text": "turns green, "
+                    },
+                    {
+                      "text": "↓",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " turns red. The "
+                    },
+                    {
+                      "text": "(+)",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " suffix inverts that reflex and forces"
+                    },
+                    {
+                      "text": " ",
+                      "soft": true
+                    },
+                    {
+                      "text": "green — to say that here a fall is good news, as in \"zero broken\"."
+                    }
+                  ],
+                  "line": 97
+                }
+              ],
+              "line": 96
+            }
+          ]
+        }
+      ],
+      "line": 76
+    },
+    {
+      "title": "Before / after",
+      "titleRuns": [
+        {
+          "text": "Before / after"
+        }
+      ],
+      "layout": "comparison",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Classic converter"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Approximate CSS, truncated text"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "A single output"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Theme by style sheet"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 108
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Compiler"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Declarative layouts, automatic pagination"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "PPTX, HTML, PDF…"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Validated design tokens"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 114
+            }
+          ]
+        }
+      ],
+      "line": 102,
+      "layoutLine": 104
+    },
+    {
+      "title": "Roadmap",
+      "titleRuns": [
+        {
+          "text": "Roadmap"
+        }
+      ],
+      "layout": "timeline",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Q3 2026"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Structured layouts and metric trends."
+                }
+              ],
+              "line": 124
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Q4 2026"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Interchangeable declarative themes."
+                }
+              ],
+              "line": 128
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Q1 2027"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Open-source release and example gallery."
+                }
+              ],
+              "line": 132
+            }
+          ]
+        }
+      ],
+      "line": 118,
+      "layoutLine": 120
+    },
+    {
+      "title": "A layered architecture",
+      "titleRuns": [
+        {
+          "text": "A layered architecture"
+        }
+      ],
+      "layout": "layers",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Outputs"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": ".pptx PowerPoint, standalone HTML, VS Code preview."
+                }
+              ],
+              "line": 140
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Renderers"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "PptxGenJS and HTML — same scene, same geometry."
+                }
+              ],
+              "line": 144
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Engine"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Layout inference, slot placement, pagination."
+                }
+              ],
+              "line": 148
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "IR"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "deck → slides → sections → blocks, source positions."
+                }
+              ],
+              "line": 152
+            }
+          ]
+        }
+      ],
+      "line": 134,
+      "layoutLine": 136
+    },
+    {
+      "title": "The project at a glance",
+      "titleRuns": [
+        {
+          "text": "The project at a glance"
+        }
+      ],
+      "layout": "swot",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Strengths"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Brand applied by construction"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Two outputs, a single geometry"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 160
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Weaknesses"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Embedded font ignored by Keynote"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 165
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Opportunities"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Themes for other organizations"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 169
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Threats"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Evolution of the OOXML format"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 173
+            }
+          ]
+        }
+      ],
+      "line": 154,
+      "layoutLine": 156
+    },
+    {
+      "title": "Weighing the decision",
+      "titleRuns": [
+        {
+          "text": "Weighing the decision"
+        }
+      ],
+      "layout": "pros-cons",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Pros"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "A single source file, under version control"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "The brand applied by construction"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 181
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Cons"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "A DSL to learn"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Less freedom than a free-form PowerPoint"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 186
+            }
+          ]
+        }
+      ],
+      "line": 175,
+      "layoutLine": 177
+    },
+    {
+      "title": "Filing a request, step by step",
+      "titleRuns": [
+        {
+          "text": "Filing a request, step by step"
+        }
+      ],
+      "layout": "journey",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Request"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Online form, five minutes."
+                }
+              ],
+              "line": 195
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Review"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Eligibility check within 10 days."
+                }
+              ],
+              "line": 199
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Answer"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Reasoned decision, sent by email."
+                }
+              ],
+              "line": 203
+            }
+          ]
+        }
+      ],
+      "line": 189,
+      "layoutLine": 191
+    },
+    {
+      "title": "Project portfolio",
+      "titleRuns": [
+        {
+          "text": "Project portfolio"
+        }
+      ],
+      "layout": "portfolio",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "New product"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Launch planned for the spring."
+                }
+              ],
+              "line": 211
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Training program"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Three cohorts this year."
+                }
+              ],
+              "line": 215
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Energy efficiency"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "A third less consumption."
+                }
+              ],
+              "line": 219
+            }
+          ]
+        }
+      ],
+      "line": 205,
+      "layoutLine": 207
+    },
+    {
+      "title": "Request triage",
+      "titleRuns": [
+        {
+          "text": "Request triage"
+        }
+      ],
+      "layout": "funnel",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "2,400 received"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "All channels combined."
+                }
+              ],
+              "line": 227
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "1,100 eligible"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "After checking the criteria."
+                }
+              ],
+              "line": 231
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "320 selected"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Funded this year."
+                }
+              ],
+              "line": 235
+            }
+          ]
+        }
+      ],
+      "line": 221,
+      "layoutLine": 223
+    },
+    {
+      "title": "Detailed roadmap",
+      "titleRuns": [
+        {
+          "text": "Detailed roadmap"
+        }
+      ],
+      "layout": "roadmap",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Q3 2026"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Parameterized layouts and official catalog."
+                }
+              ],
+              "line": 243
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Q4 2026"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Interchangeable declarative themes."
+                }
+              ],
+              "line": 247
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Q1 2027"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Open-source release and example gallery."
+                }
+              ],
+              "line": 251
+            }
+          ]
+        }
+      ],
+      "line": 237,
+      "layoutLine": 239
+    },
+    {
+      "title": "One figure to remember",
+      "titleRuns": [
+        {
+          "text": "One figure to remember"
+        }
+      ],
+      "layout": "key-message",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "87% satisfaction"
+                }
+              ],
+              "line": 257
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "2026 survey of 2,400 respondents."
+                }
+              ],
+              "line": 259
+            }
+          ]
+        }
+      ],
+      "line": 253,
+      "layoutLine": 255
+    },
+    {
+      "title": "Budget by quarter",
+      "titleRuns": [
+        {
+          "text": "Budget by quarter"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "The chart is rendered by the engine, in the brand's colors, with a palette"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "validated for color blindness and contrast."
+                }
+              ],
+              "line": 263
+            },
+            {
+              "type": "chart",
+              "chartType": "bar",
+              "categories": [
+                "Q1",
+                "Q2",
+                "Q3",
+                "Q4"
+              ],
+              "series": [
+                {
+                  "name": "Planned",
+                  "values": [
+                    120,
+                    150,
+                    180,
+                    210
+                  ]
+                },
+                {
+                  "name": "Actual",
+                  "values": [
+                    110,
+                    155,
+                    175,
+                    190
+                  ]
+                }
+              ],
+              "line": 266
+            }
+          ]
+        }
+      ],
+      "line": 261
+    },
+    {
+      "title": "Breakdown of spending",
+      "titleRuns": [
+        {
+          "text": "Breakdown of spending"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "chart",
+              "chartType": "doughnut",
+              "categories": [
+                "Salaries",
+                "Infrastructure",
+                "Services",
+                "Other"
+              ],
+              "series": [
+                {
+                  "name": "Spending",
+                  "values": [
+                    45,
+                    25,
+                    20,
+                    10
+                  ]
+                }
+              ],
+              "line": 275
+            }
+          ]
+        }
+      ],
+      "line": 273
+    },
+    {
+      "title": "The allocation formula",
+      "titleRuns": [
+        {
+          "text": "The allocation formula"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "The budget allocated to each team is computed as follows:"
+                }
+              ],
+              "line": 283
+            },
+            {
+              "type": "math",
+              "source": "B_e = \\frac{\\sum_{i=1}^{n} p_i \\cdot c_i}{N} \\times (1 + \\tau)",
+              "line": 285
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "where "
+                },
+                {
+                  "text": "p",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " is the workload, "
+                },
+                {
+                  "text": "c",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " the priority coefficient and "
+                },
+                {
+                  "text": "τ",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " the annual"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "indexation rate."
+                }
+              ],
+              "line": 289
+            }
+          ]
+        }
+      ],
+      "line": 281
+    },
+    {
+      "title": "Three pillars",
+      "titleRuns": [
+        {
+          "text": "Three pillars"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Speed"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "icon",
+              "name": "zap",
+              "color": "primary",
+              "line": 296
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "A compile in a few seconds."
+                }
+              ],
+              "line": 298
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Reliability"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "icon",
+              "name": "shield-check",
+              "color": "primary",
+              "line": 302
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Two outputs, a single geometry."
+                }
+              ],
+              "line": 304
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Openness"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "icon",
+              "name": "git-branch",
+              "color": "primary",
+              "line": 308
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "One source file, under version control."
+                }
+              ],
+              "line": 310
+            }
+          ]
+        }
+      ],
+      "line": 292
+    },
+    {
+      "title": "Everest, north face",
+      "titleRuns": [
+        {
+          "text": "Everest, north face"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [
+        "Photo: \"Everest North Face toward Base Camp\", © Luca Galuzzi - www.galuzzi.it, Wikimedia Commons, CC BY-SA 2.5. The credit must stay close to the image (the author's requirement)."
+      ],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "A "
+                    },
+                    {
+                      "text": "remote",
+                      "bold": true
+                    },
+                    {
+                      "text": " image: URL pasted as is into the Markdown"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Downloaded into the user cache, embedded in the .pptx"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Here "
+                    },
+                    {
+                      "text": "assets: vendor",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": ": a copy kept in "
+                    },
+                    {
+                      "text": "assets/remote/",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": ", a self-contained directory"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Photo © Luca Galuzzi — "
+                    },
+                    {
+                      "text": "www.galuzzi.it",
+                      "link": "http://www.galuzzi.it"
+                    },
+                    {
+                      "text": ", CC BY-SA 2.5"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 314
+            },
+            {
+              "type": "image",
+              "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
+              "role": "right",
+              "alt": "",
+              "line": 319
+            }
+          ]
+        }
+      ],
+      "line": 312
+    },
+    {
+      "title": "Panorama from the Fronalpstock",
+      "titleRuns": [
+        {
+          "text": "Panorama from the Fronalpstock"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [
+        "Photo: \"Fronalpstock, Switzerland\", Hannes Röst, Wikimedia Commons, CC BY-SA 3.0. hero layout: full-page image. The credit stays visible on the slide (a CC BY-SA requirement)."
+      ],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "image",
+              "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg",
+              "role": "background",
+              "alt": "",
+              "line": 325
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0"
+                }
+              ],
+              "line": 327
+            }
+          ]
+        }
+      ],
+      "line": 323
+    },
+    {
+      "title": "A word from users",
+      "titleRuns": [
+        {
+          "text": "A word from users"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "quote",
+              "runs": [
+                {
+                  "text": "You write a presentation the way you write code: a source language, an"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "intermediate representation, optimization passes."
+                }
+              ],
+              "cite": "A convinced author",
+              "line": 333
+            }
+          ]
+        }
+      ],
+      "line": 331
+    },
+    {
+      "title": "The code stays readable",
+      "titleRuns": [
+        {
+          "text": "The code stays readable"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "code",
+              "lang": "ts",
+              "source": "function compile(source: string): Deck {\n  const ast = parse(source); // markdown-it\n  const ir = lower(ast);\n  return layout(ir); // placement + pagination\n}",
+              "line": 340
+            }
+          ]
+        }
+      ],
+      "line": 338
+    },
+    {
+      "title": "A kit fits in a manifest",
+      "titleRuns": [
+        {
+          "text": "A kit fits in a manifest"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Installing an organization's brand means copying a directory. Its heart is a"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "kit.json",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " — data only, never code."
+                }
+              ],
+              "line": 350
+            },
+            {
+              "type": "code",
+              "lang": "json",
+              "source": "{\n  \"name\": \"slate-plus\",\n  \"version\": \"1.0.0\",\n  \"theme\": \"./theme.json\",\n  \"layouts\": \"./layouts\"\n}",
+              "line": 353
+            }
+          ]
+        }
+      ],
+      "line": 348
+    },
+    {
+      "title": "Next steps",
+      "titleRuns": [
+        {
+          "text": "Next steps"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Mermaid diagrams rendered as native shapes"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "HTML engine (reveal.js) and PDF engine (Typst)"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Dynamic components (github-stats, chart, sql)"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Fragments and animations"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Interchangeable declarative themes"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Accessibility checker (contrast, reading order)"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Hot preview while editing"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Example gallery"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Visual regression tests"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Incremental compilation cache"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 364
+            }
+          ]
+        }
+      ],
+      "line": 362
+    }
+  ]
+}

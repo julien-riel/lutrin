@@ -1,0 +1,9 @@
+{
+  "name": "slate-plus",
+  "version": "1.0.0",
+  "description": "Example kit: an amber palette over the generic theme, plus two layouts.",
+  "author": "Lutrin",
+  "homepage": "https://github.com/julien-riel/lutrin",
+  "theme": "./theme.json",
+  "layouts": "./layouts"
+}

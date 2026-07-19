@@ -1,0 +1,159 @@
+{
+  "name": "Slate (generic default theme)",
+  "colors": {
+    "primary": "1D4ED8",
+    "primaryLighter": "60A5FA",
+    "primaryDarker": "1E3A8A",
+    "brand": "1D4ED8",
+    "brandBlack": "111827",
+    "neutralPrimary": "212529",
+    "neutralSecondary": "637381",
+    "neutralTertiary": "ADB2BD",
+    "neutralStroke": "CED4DA",
+    "underground1": "F8F9FA",
+    "underground2": "DEE2E6",
+    "ground": "FFFFFF",
+    "highlightLight": "EFF6FF",
+    "highlightStrong": "DBEAFE",
+    "informative": "0079C4",
+    "informativeDark": "004B7B",
+    "informativeLight": "E6F5F9",
+    "positive": "0DA566",
+    "positiveDark": "025D29",
+    "positiveLight": "E7F6F0",
+    "warning": "FFB833",
+    "warningDark": "6C4600",
+    "warningLight": "FEFAE6",
+    "negative": "D3310A",
+    "negativeDark": "851A00",
+    "negativeLight": "FFEBE6"
+  },
+  "fonts": {
+    "body": "Arial",
+    "mono": "Courier New"
+  },
+  "type": {
+    "coverTitle": 40,
+    "coverSubtitle": 20,
+    "sectionTitle": 32,
+    "slideTitle": 26,
+    "sectionHeading": 16,
+    "lead": 16,
+    "body": 14,
+    "bullet": 14,
+    "bulletNested": 13,
+    "small": 11,
+    "caption": 9,
+    "code": 11,
+    "metricValue": 44,
+    "metricLabel": 12,
+    "quote": 22,
+    "tableBody": 12,
+    "tableHeader": 12
+  },
+  "space": {
+    "xs": 8,
+    "sm": 16,
+    "md": 24,
+    "lg": 32,
+    "xl": 40,
+    "xxl": 48
+  },
+  "page": {
+    "margin": 48,
+    "gutter": 24,
+    "titleHeight": 96,
+    "footerHeight": 32
+  },
+  "rounded": {
+    "sm": 2,
+    "md": 4,
+    "lg": 8,
+    "pill": 64
+  },
+  "chrome": {
+    "cover": {
+      "barY": 280,
+      "barW": 96,
+      "barH": 6,
+      "titleY": 304,
+      "titleH": 120,
+      "subtitleY": 424,
+      "subtitleH": 72,
+      "bylineBottom": 80,
+      "bylineH": 32,
+      "logoH": 44
+    },
+    "section": {
+      "titleY": 288,
+      "titleH": 144,
+      "logoH": 32
+    },
+    "title": {
+      "accentW": 64,
+      "accentH": 4
+    },
+    "footer": {
+      "textW": 600,
+      "h": 24,
+      "numW": 64
+    }
+  },
+  "chartColors": [
+    "0A8A76",
+    "B87F00",
+    "0079C4",
+    "D3310A",
+    "005E99",
+    "8A5C00"
+  ],
+  "layerShades": [
+    {
+      "fill": "1E3A8A",
+      "ink": "FFFFFF"
+    },
+    {
+      "fill": "1D4ED8",
+      "ink": "FFFFFF"
+    },
+    {
+      "fill": "60A5FA",
+      "ink": "212529"
+    },
+    {
+      "fill": "DBEAFE",
+      "ink": "1E3A8A"
+    },
+    {
+      "fill": "EFF6FF",
+      "ink": "1E3A8A"
+    }
+  ],
+  "trendInk": {
+    "positive": "025D29",
+    "negative": "851A00",
+    "neutral": "637381"
+  },
+  "semantic": {
+    "info": {
+      "fill": "E6F5F9",
+      "text": "004B7B",
+      "label": "Info"
+    },
+    "success": {
+      "fill": "E7F6F0",
+      "text": "025D29",
+      "label": "Key point"
+    },
+    "warning": {
+      "fill": "FEFAE6",
+      "text": "6C4600",
+      "label": "Caution"
+    },
+    "danger": {
+      "fill": "FFEBE6",
+      "text": "851A00",
+      "label": "Important"
+    }
+  }
+}

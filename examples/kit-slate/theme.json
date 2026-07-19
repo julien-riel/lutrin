@@ -1,0 +1,13 @@
+{
+  "name": "Slate+",
+  "colors": {
+    "primary": "B45309",
+    "primaryLighter": "FBBF24",
+    "primaryDarker": "78350F",
+    "brand": "B45309",
+    "highlightLight": "FFFBEB",
+    "highlightStrong": "FEF3C7"
+  },
+  "chartColors": ["B45309", "0E7490", "4D7C0F", "9333EA", "BE123C", "0F766E"],
+  "rounded": { "md": 8, "lg": 12 }
+}

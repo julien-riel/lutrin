@@ -1,0 +1,11 @@
+{
+  "name": "Example — fictional agency \"Blue River\"",
+  "colors": {
+    "primary": "0B5394",
+    "primaryLighter": "6FA8DC",
+    "primaryDarker": "073763",
+    "highlightLight": "EAF1FA",
+    "highlightStrong": "CFE2F3"
+  },
+  "chartColors": ["0B5394", "B87F00", "0A8A76", "D3310A", "005E99", "8A5C00"]
+}

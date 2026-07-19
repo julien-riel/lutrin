@@ -1,0 +1,35 @@
+{
+  "name": "lutrin",
+  "version": "1.0.0",
+  "description": "Markdown → PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives. CLI, VS Code extension, Obsidian plugin and agent skill.",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "pptx": "node packages/core/src/cli.mjs build",
+    "html": "node packages/core/src/cli.mjs build --html",
+    "test": "npm test --workspaces --if-present",
+    "test:core": "npm test -w @lutrin/core",
+    "typecheck": "npm run typecheck -w lutrin-vscode && npm run typecheck -w lutrin-obsidian",
+    "build": "npm run build -w lutrin-vscode && npm run build -w lutrin-obsidian",
+    "lint": "biome check .",
+    "fmt": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4"
+  },
+  "keywords": ["markdown", "powerpoint", "pptx", "slides", "presentation", "deck", "html"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julien-riel/lutrin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/julien-riel/lutrin/issues"
+  },
+  "homepage": "https://github.com/julien-riel/lutrin#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "author": "Julien Riel"
+}

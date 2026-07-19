@@ -1,0 +1,72 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "files": {
+    "ignore": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "packages/core/test/golden/**",
+      "packages/core/test/fixtures/**",
+      "packages/core/design/**",
+      "examples/**",
+      "package-lock.json"
+    ]
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true
+    }
+  },
+  "organizeImports": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        // `case 'table': case 'code': … default:` — the cases listed before the
+        // default ENUMERATE the block types concerned. Removing them would cost
+        // the reader what the code says about itself.
+        "noUselessSwitchCase": "off",
+        // `forEach` is readable and sufficient here; none of the loops targeted
+        // is a measured hot spot.
+        "noForEach": "off"
+      },
+      "performance": {
+        // `delete conf.theme` removes the key, which `= undefined` does not:
+        // the meaning differs, and it is the meaning that is wanted.
+        "noDelete": "off"
+      },
+      "style": {
+        // normalizing a parameter at the top of a function (`if (min > 0) min = 0`)
+        // is clearer than a mirror variable.
+        "noParameterAssign": "off"
+      },
+      "suspicious": {
+        // `while ((m = re.exec(s)))` is the canonical idiom for iterating over
+        // the matches of a regex — working around it lengthens without clarifying.
+        "noAssignInExpressions": "off"
+      }
+    }
+  }
+}

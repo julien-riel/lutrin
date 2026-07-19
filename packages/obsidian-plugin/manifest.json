@@ -1,0 +1,9 @@
+{
+  "id": "lutrin",
+  "name": "Lutrin",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Live preview, diagnostics and PowerPoint / HTML export for Markdown presentations compiled by Lutrin.",
+  "author": "Julien Riel",
+  "isDesktopOnly": true
+}

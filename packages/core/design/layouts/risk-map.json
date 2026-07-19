@@ -1,0 +1,8 @@
+{
+  "name": "risk-map",
+  "base": "grid",
+  "sections": { "min": 4, "max": 4 },
+  "cols": 2,
+  "kinds": ["success", "warning", "warning", "danger"],
+  "description": "Probability / severity: tinted quadrants, from green (low) to red (critical)."
+}

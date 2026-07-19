@@ -1,0 +1,7 @@
+{
+  "name": "priority-matrix",
+  "base": "grid",
+  "sections": { "min": 4, "max": 4 },
+  "cols": 2,
+  "description": "A 2 × 2 effort / impact matrix — trade-offs in four quadrants."
+}

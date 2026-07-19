@@ -1,0 +1,20 @@
+node_modules/
+out.*
+*.pdf
+.DS_Store
+packages/vscode-extension/dist/
+packages/vscode-extension/latest.json
+*.vsix
+packages/obsidian-plugin/dist/
+
+# deck compilation artifacts — never versioned
+*.pptx
+*.html
+*.deckkit
+examples/assets/remote/
+
+# local pointer to a brand kit (see scripts/package.mjs)
+.brandkit
+
+# internal review report — do not publish
+REVUE-*.md

@@ -1,0 +1,6 @@
+{
+  "name": "pros-cons",
+  "base": "comparison",
+  "panels": ["success", "danger"],
+  "description": "Weighing a decision: arguments for (green panel) / against (red panel)."
+}

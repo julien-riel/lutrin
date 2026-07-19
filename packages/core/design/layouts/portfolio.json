@@ -1,0 +1,8 @@
+{
+  "name": "portfolio",
+  "base": "grid",
+  "cols": 3,
+  "sections": { "min": 2, "max": 6 },
+  "headed": true,
+  "description": "Projects or services as a mosaic — one header per card."
+}

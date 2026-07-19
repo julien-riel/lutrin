@@ -1,0 +1,6 @@
+{
+  "name": "before-after",
+  "base": "comparison",
+  "sections": { "min": 2, "max": 2 },
+  "description": "Current state, understated, on the left; target highlighted on the right."
+}

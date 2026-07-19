@@ -1,0 +1,6 @@
+{
+  "name": "funnel",
+  "base": "layers",
+  "shape": "funnel",
+  "description": "Volumes narrowing step by step — conversion, request triage."
+}

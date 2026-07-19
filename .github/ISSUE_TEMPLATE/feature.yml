@@ -1,0 +1,46 @@
+name: Feature proposal
+description: Suggest a change to the DSL, the engine or the editor hosts.
+labels: [proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing: the project's contract is that **the author describes
+        the intent and the content, the engine decides the layout**. A proposal
+        that would ask the author to position elements — coordinates, sizes,
+        explicit columns — will be refused even if it is very well implemented.
+        See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+
+  - type: textarea
+    id: need
+    attributes:
+      label: The need
+      description: |
+        The authoring problem, not the solution you have in mind. "I cannot
+        show a progression in four steps" can be worked on; "there should be a
+        `columns: 4` option" presupposes the answer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: markdown
+    attributes:
+      label: What the Markdown would look like
+      description: The DSL as you would like to write it, if you have an idea.
+      render: markdown
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: What you do today instead, and why it is not enough.
+
+  - type: checkboxes
+    id: parity
+    attributes:
+      label: Output parity
+      description: |
+        The `.pptx` and the HTML are born from the same scene. A feature that
+        existed on one side only must degrade cleanly on the other.
+      options:
+        - label: I have thought about what this proposal gives in BOTH outputs.

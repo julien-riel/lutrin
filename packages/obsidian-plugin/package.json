@@ -1,0 +1,35 @@
+{
+  "name": "lutrin-obsidian",
+  "displayName": "Lutrin",
+  "description": "Obsidian plugin: live preview, diagnostics and PowerPoint / HTML export for Markdown presentations compiled by Lutrin.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": ["obsidian", "markdown", "powerpoint", "pptx", "slides", "presentation", "deck"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julien-riel/lutrin.git",
+    "directory": "packages/obsidian-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/julien-riel/lutrin/issues"
+  },
+  "homepage": "https://github.com/julien-riel/lutrin#readme",
+  "scripts": {
+    "build": "node esbuild.mjs && node scripts/package.mjs --dev",
+    "watch": "node esbuild.mjs --watch",
+    "release": "node esbuild.mjs && node scripts/package.mjs --release",
+    "test": "node --experimental-transform-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"test/*.test.mts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.5.7",
+    "typescript": "^5.5.0"
+  },
+  "author": "Julien Riel"
+}

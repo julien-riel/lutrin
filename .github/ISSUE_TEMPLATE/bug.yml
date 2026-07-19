@@ -1,0 +1,82 @@
+name: Bug report
+description: A deck does not compile, or compiles badly.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. What makes a bug fixable is above all the
+        **minimal Markdown that reproduces it** — not a description of the
+        thirty-slide deck where it was seen.
+
+  - type: textarea
+    id: markdown
+    attributes:
+      label: Minimal Markdown that reproduces it
+      description: The shortest deck fragment that triggers the problem.
+      render: markdown
+      placeholder: |
+        ---
+        title: Reproduction
+        ---
+
+        # Slide
+
+        …
+    validations:
+      required: true
+
+  - type: input
+    id: command
+    attributes:
+      label: Command run
+      placeholder: lutrin build deck.md -o output.pptx
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: Expected / actual
+      description: What was expected, then what happened.
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Output of `lutrin validate <deck.md> --json`, if the command succeeds.
+      render: json
+
+  - type: dropdown
+    id: output
+    attributes:
+      label: Output affected
+      options:
+        - PowerPoint (.pptx)
+        - HTML
+        - Both
+        - Not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `node --version`, operating system, and Lutrin version.
+      placeholder: Node 22.11.0, macOS 15.1, Lutrin 1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: kit
+    attributes:
+      label: Kit used
+      description: |
+        The kit name, or "none" for the generic theme. This repository ships no
+        brand guidelines: if the bug only appears with a private kit, say so —
+        it is handled differently.
+      placeholder: none

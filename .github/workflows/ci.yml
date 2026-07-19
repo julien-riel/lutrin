@@ -1,0 +1,282 @@
+# Continuous integration.
+#
+# The compiler is .mjs run as is: there is nothing to build in order to test
+# it, hence a "test" job that does no more than `npm ci` + `npm test`. What
+# costs is the MATRIX — the engine writes files, resolves paths and spawns
+# subprocesses, three areas where Windows diverges silently from POSIX. That is
+# where the matrix pays for itself, not on Node versions.
+#
+# Third-party actions are pinned by SHA, tag in a comment. A `v7` tag is
+# movable: its owner can rewrite it, and on a public repository that amounts to
+# running arbitrary code in CI. The risk is already contained here
+# (`permissions: contents: read`, and `pull_request` — never
+# `pull_request_target`, which would lend the repository token to a fork PR),
+# but pinning is cheap.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A PR pushed three times in a row does not occupy the matrix three times.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Blocking: the codebase has been through the formatter, and the rules the
+  # project does not endorse are disabled in biome.jsonc, each with its reason.
+  # A PR therefore only has to fix what it introduces itself.
+  format:
+    name: Format and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    name: Test — ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+
+      # The three suites are DISTINCT steps, and the last two run even if an
+      # earlier one failed: when the core breaks under Windows only, we want to
+      # know in the same run whether the editor hosts break too. `npm test
+      # --workspaces` would stop at the first red package and mask the other
+      # two.
+      #
+      # `--test "<glob>"` is expanded by Node itself, never by the shell: the
+      # same command holds under bash and under cmd.exe.
+      - name: Core tests
+        run: npm test -w @lutrin/core
+
+      # These two suites run TypeScript directly through Node
+      # (--experimental-transform-types), which requires Node >= 22.7. The
+      # matrix only installs recent 22.x and 24.x, so the condition holds; see
+      # CONTRIBUTING for the minimum version in development.
+      - name: VS Code extension tests
+        if: ${{ !cancelled() }}
+        run: npm test -w lutrin-vscode
+
+      - name: Obsidian plugin tests
+        if: ${{ !cancelled() }}
+        run: npm test -w lutrin-obsidian
+
+      - name: Typecheck of both editor hosts
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+
+      # We package here the ONLY genuinely portable gesture of the builds: the
+      # esbuild bundle. The `scripts/package.mjs --dev` step that follows in
+      # `npm run build` lays down a directory symlink to the core — a right
+      # that is not granted under Windows —, so it is reserved for the `build`
+      # job below.
+      - name: VS Code extension bundle
+        run: node esbuild.mjs
+        working-directory: packages/vscode-extension
+      - name: Obsidian plugin bundle
+        run: node esbuild.mjs
+        working-directory: packages/obsidian-plugin
+
+      # The only test that depends on an external tool. "mermaid: labels
+      # survive the sanitizer" calls mmdc (@mermaid-js/mermaid-cli), an
+      # OPTIONAL peerDependency that `npm ci` does not install: it skips itself
+      # in the "Core tests" above, across the whole matrix. Here we install the
+      # tool without recording it in package.json (--no-save) and replay the
+      # core suite, mmdc present this time — the step comes last so that this
+      # addition to node_modules touches no other.
+      #
+      # A single matrix cell: the install pulls in a Chromium through
+      # puppeteer, and what the test checks — the survival of labels through
+      # the sanitizer — depends neither on the OS nor on the Node version.
+      # Paying for it once is enough.
+      - name: mermaid test with mmdc (Linux)
+        if: ${{ !cancelled() && matrix.os == 'ubuntu-latest' && matrix.node == 24 }}
+        run: |
+          npm i --no-save @mermaid-js/mermaid-cli
+          npm test -w @lutrin/core
+
+  # Full build: Linux only, because the `--dev` mode symlinks dist/core to
+  # packages/core and fs.symlinkSync(..., 'dir') requires a privilege the
+  # Windows runner does not grant reliably.
+  #
+  # This job builds the artifacts that are ACTUALLY DISTRIBUTED, not merely the
+  # `--dev` mode. Dev mode stops at a symlink: it exercises neither the copy of
+  # src/design, nor the reduced package.json, nor `npm install --omit=dev` in
+  # dist/core, nor vsce, nor the latest.json — that is to say none of the paths
+  # that matter at delivery time. A PR adding a runtime dependency to the core
+  # without declaring it in its `dependencies` used to pass green.
+  build:
+    name: Build and verification of the distributed artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # The order is binding: `npm run vsix` calls ONLY scripts/package.mjs,
+      # not esbuild. Without a prior build, dist/extension.js — the package
+      # `main` — does not exist and vsce fails on a barely readable Node stack
+      # trace. The dev build must therefore come first.
+      - name: Build (bundles + dist dev)
+        run: npm run build
+
+      # No brand kit is embedded here: `.brandkit` is a local, unversioned
+      # pointer and LUTRIN_BRAND_KIT is not defined. This is the situation of a
+      # public clone, and it must stay silently correct — the build then starts
+      # from the generic theme. Verified locally by removing .brandkit: both
+      # packages build.
+      - name: VS Code extension VSIX
+        run: npm run vsix -w lutrin-vscode
+
+      - name: Obsidian plugin directory (release)
+        run: npm run release -w lutrin-obsidian
+
+      # Artifact verification — two complementary safety nets.
+      #
+      # 1. STRUCTURAL. The core silently tolerates the absence of design/:
+      #    neither a missing default theme nor a renamed layouts/ makes a
+      #    compilation fail (verified). No runtime test can therefore protect
+      #    these paths — only an assertion on the contents of the archive can.
+      #
+      # 2. EXECUTION, FROM OUTSIDE THE REPOSITORY. The crucial point: launched
+      #    from packages/vscode-extension/dist/core, the packaged core finds
+      #    the node_modules HOISTED to the monorepo root and masks any missing
+      #    dependency. Verified: with pptxgenjs removed from
+      #    dist/core/node_modules, the compilation succeeds all the same. The
+      #    VSIX has to be extracted outside the working tree so that upward
+      #    resolution finds nothing any more — only then does the absent
+      #    dependency show itself ("Cannot find package 'pptxgenjs'").
+      #
+      # The fixture is the core's own: hermetic (no remote resource) and
+      # carrying the 16 block types.
+      - name: VSIX verification
+        env:
+          VSIX_DIR: ${{ runner.temp }}/vsix
+        run: |
+          set -euo pipefail
+          # name taken from the latest.json the packaging script has just
+          # written, rather than a glob: a working tree may be carrying the
+          # VSIX of an earlier version, and `ls *.vsix` would return two.
+          name=$(node -e "process.stdout.write(require('./packages/vscode-extension/latest.json').vsix)")
+          vsix="packages/vscode-extension/$name"
+          echo "archive: $vsix"
+
+          rm -rf "$VSIX_DIR" && mkdir -p "$VSIX_DIR"
+          unzip -q "$vsix" -d "$VSIX_DIR"
+
+          # 1. structural
+          for required in \
+            extension/dist/extension.js \
+            extension/dist/core/src/cli.mjs \
+            extension/dist/core/package.json \
+            extension/dist/core/design/themes/default.json \
+            extension/dist/core/design/layouts \
+            extension/dist/core/node_modules
+          do
+            if [ ! -e "$VSIX_DIR/$required" ]; then
+              echo "✖ missing from the VSIX: $required" >&2
+              exit 1
+            fi
+          done
+          echo "✓ VSIX structure conforms"
+
+          # Inverse assertion: test/** is now excluded by .vscodeignore, the
+          # VSIX must no longer embed the package's test files. One "present"
+          # too many is as telling as one required file missing.
+          if [ -e "$VSIX_DIR/extension/test" ]; then
+            echo "✖ the VSIX still embeds extension/test" >&2
+            exit 1
+          fi
+          echo "✓ the VSIX does not embed the test files"
+
+          # 2. execution outside the working tree
+          fixture="$PWD/packages/core/test/fixtures/all-blocks.deck.md"
+          cd "$VSIX_DIR"
+          node extension/dist/core/src/cli.mjs build "$fixture" -o "$VSIX_DIR/smoke.pptx"
+          node extension/dist/core/src/cli.mjs build "$fixture" --html -o "$VSIX_DIR/smoke.html"
+          echo "✓ the packaged core compiles the fixture in both formats"
+
+      # The update manifest is consumed by the extension's updater, which
+      # REFUSES a manifest without a valid sha256 digest. Generating it is not
+      # enough: we check that the published digest is indeed that of the VSIX
+      # produced beside it.
+      - name: latest.json consistency
+        run: |
+          set -euo pipefail
+          cd packages/vscode-extension
+          expected=$(node -e "process.stdout.write(require('./latest.json').sha256)")
+          name=$(node -e "process.stdout.write(require('./latest.json').vsix)")
+          actual=$(sha256sum "$name" | cut -d' ' -f1)
+          if [ "$expected" != "$actual" ]; then
+            echo "✖ latest.json announces $expected, the VSIX is $actual" >&2
+            exit 1
+          fi
+          echo "✓ latest.json does describe $name"
+
+      # The Obsidian plugin is distributed as a DIRECTORY (no archive): it is
+      # that directory we verify, with the same standalone requirement.
+      - name: Obsidian directory verification
+        env:
+          OBS_DIR: ${{ runner.temp }}/obsidian
+        run: |
+          set -euo pipefail
+          rm -rf "$OBS_DIR"
+          cp -R packages/obsidian-plugin/dist "$OBS_DIR"
+
+          for required in main.js manifest.json versions.json styles.css \
+                          core/src/cli.mjs core/node_modules
+          do
+            if [ ! -e "$OBS_DIR/$required" ]; then
+              echo "✖ missing from the plugin directory: $required" >&2
+              exit 1
+            fi
+          done
+
+          fixture="$PWD/packages/core/test/fixtures/all-blocks.deck.md"
+          cd "$OBS_DIR"
+          node core/src/cli.mjs build "$fixture" -o "$OBS_DIR/smoke.pptx"
+          echo "✓ Obsidian plugin directory standalone and working"
+
+      # A downloadable binary for every commit. Short retention: these are
+      # verification artifacts, not a distribution.
+      - name: VSIX publication
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lutrin-vscode-vsix
+          path: |
+            packages/vscode-extension/*.vsix
+            packages/vscode-extension/latest.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Obsidian plugin publication
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lutrin-obsidian-plugin
+          path: packages/obsidian-plugin/dist
+          if-no-files-found: error
+          retention-days: 14

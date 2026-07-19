@@ -1,0 +1,8 @@
+{
+  "name": "finding-recommendation",
+  "base": "comparison",
+  "description": "Two opposing panels: what is observed, what is recommended.",
+  "panels": ["muted", "success"],
+  "pad": 24,
+  "sections": { "min": 2, "max": 2 }
+}

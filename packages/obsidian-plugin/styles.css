@@ -1,0 +1,59 @@
+/* Chrome of the preview panel — Obsidian document side only.
+ * All the slide styling lives in the shadow DOM (see preview.ts). */
+
+.lutrin-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
+.lutrin-empty {
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-medium);
+}
+
+.lutrin-host {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.lutrin-diagnostics {
+  flex: none;
+  max-height: 170px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding: 4px 0;
+  font-size: var(--font-ui-small);
+}
+
+.lutrin-diag {
+  display: flex;
+  gap: 8px;
+  padding: 2px 12px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.lutrin-diag:hover {
+  background: var(--background-modifier-hover);
+}
+
+.lutrin-diag-line {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.lutrin-diag-error .lutrin-diag-line {
+  color: var(--color-red);
+}
+
+.lutrin-diag-warning .lutrin-diag-line {
+  color: var(--color-yellow);
+}
+
+.lutrin-diag-info .lutrin-diag-line {
+  color: var(--color-blue);
+}

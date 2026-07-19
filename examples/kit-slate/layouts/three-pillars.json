@@ -1,0 +1,8 @@
+{
+  "name": "three-pillars",
+  "base": "pillars",
+  "description": "Three panels of equal weight, tinted in a cycle.",
+  "panels": ["pillar", "highlight", "pillar"],
+  "accent": true,
+  "sections": { "min": 3, "max": 3 }
+}

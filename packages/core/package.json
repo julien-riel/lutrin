@@ -1,0 +1,59 @@
+{
+  "name": "@lutrin/core",
+  "version": "1.0.0",
+  "description": "Markdown → PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives.",
+  "type": "module",
+  "bin": {
+    "lutrin": "src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --import ./test/setup.mjs --test \"test/*.test.mjs\""
+  },
+  "files": ["src", "design", "README.md"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./src/html/render.mjs",
+    "./html": "./src/html/render.mjs",
+    "./parse": "./src/deck/parse.mjs",
+    "./layout": "./src/deck/layout.mjs",
+    "./pptx": "./src/pptx/render.mjs",
+    "./validate": "./src/deck/validate.mjs",
+    "./tokens": "./src/deck/tokens.mjs",
+    "./theme": "./src/deck/theme.mjs",
+    "./context": "./src/deck/context.mjs"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "jszip": "^3.10.1",
+    "lucide-static": "^1.24.0",
+    "markdown-it": "^14.3.0",
+    "markdown-it-container": "^4.0.0",
+    "mathjax-full": "^3.2.1",
+    "pptxgenjs": "4.0.1"
+  },
+  "peerDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.16.0"
+  },
+  "peerDependenciesMeta": {
+    "@mermaid-js/mermaid-cli": {
+      "optional": true
+    }
+  },
+  "keywords": ["markdown", "powerpoint", "pptx", "slides", "presentation", "deck", "html"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julien-riel/lutrin.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/julien-riel/lutrin/issues"
+  },
+  "homepage": "https://github.com/julien-riel/lutrin#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "author": "Julien Riel"
+}
