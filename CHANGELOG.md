@@ -7,7 +7,7 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` and `lutrin-obsidian` that of
 their editor host. Unless stated otherwise, an entry describes the compiler.
 
-## [Unreleased]
+## [1.1.0] — 2026-07-20
 
 ### Fixed
 

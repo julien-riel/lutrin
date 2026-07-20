@@ -1,6 +1,6 @@
 {
   "name": "lutrin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Markdown → PowerPoint / HTML presentation compiler. Command-line entry point: installs the `lutrin` command and delegates to @lutrin/core.",
   "type": "module",
   "bin": {
@@ -11,7 +11,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@lutrin/core": "1.0.0"
+    "@lutrin/core": "1.1.0"
   },
   "keywords": ["markdown", "powerpoint", "pptx", "slides", "presentation", "deck", "html", "cli"],
   "repository": {
