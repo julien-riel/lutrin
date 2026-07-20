@@ -114,11 +114,9 @@ kbd {
   border-radius: 2px;
 }
 /* on the light half, the lifted blue drops under 3:1 — use the full accent */
-.proof :focus-visible,
 .gallery :focus-visible,
 .why :focus-visible,
-.entries :focus-visible,
-.footer :focus-visible {
+.entries :focus-visible {
   outline-color: var(--accent);
 }
 .wrap {
@@ -230,12 +228,6 @@ h2 {
   margin-left: 0.16em;
   background: var(--accent-bright);
   vertical-align: 0.09em;
-}
-.wordmark-dark {
-  color: var(--ink);
-}
-.wordmark-dark::after {
-  background: var(--accent);
 }
 .nav-links {
   display: flex;
@@ -382,7 +374,7 @@ h2 {
 /* ------------------------------------------------------------- pipeline */
 .pipeline {
   background: var(--night);
-  padding: clamp(4rem, 8vw, 7rem) 0 clamp(6rem, 10vw, 9rem);
+  padding: clamp(4rem, 8vw, 7rem) 0;
   color: #fff;
 }
 .pipeline h2 {
@@ -451,22 +443,21 @@ h2 {
   }
 }
 
-/* ---------------------------------------- the light world begins here */
 .proof {
   position: relative;
-  background: var(--canvas);
-  border-radius: 26px 26px 0 0;
-  margin-top: -52px;
-  padding: clamp(4rem, 8vw, 6.5rem) 0 clamp(3rem, 6vw, 5rem);
+  background: radial-gradient(1000px 640px at 24% 30%, #12203a 0%, var(--night) 62%);
+  padding: clamp(4rem, 8vw, 6.5rem) 0 clamp(6rem, 10vw, 9rem);
 }
-.proof h2,
+.proof h2 {
+  color: #fff;
+}
 .gallery h2,
 .why h2,
 .entries h2 {
   color: var(--ink);
 }
 .proof .lead a {
-  color: var(--accent);
+  color: var(--accent-bright);
 }
 
 .tabs {
@@ -478,16 +469,16 @@ h2 {
   font-family: var(--f-mono);
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--muted);
-  background: var(--paper);
-  border: 1px solid var(--line);
+  color: var(--dust);
+  background: var(--night-2);
+  border: 1px solid var(--line-night);
   border-radius: 999px;
   padding: 0.5em 1.3em;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .tab:hover {
-  color: var(--ink);
+  color: #fff;
 }
 .tab.is-active {
   background: var(--accent);
@@ -502,7 +493,8 @@ h2 {
   align-items: start;
 }
 .editor {
-  background: var(--night);
+  background: var(--night-2);
+  border: 1px solid var(--line-night);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 18px 50px rgba(11, 19, 34, 0.25);
@@ -570,7 +562,7 @@ h2 {
 .pair-caption {
   margin-top: 1rem;
   font-size: 0.9rem;
-  color: var(--muted-strong);
+  color: var(--dust);
   max-width: 40em;
 }
 @media (max-width: 960px) {
@@ -579,10 +571,13 @@ h2 {
   }
 }
 
-/* -------------------------------------------------------------- gallery */
+/* ---------------------------------------- the light world begins here */
 .gallery {
+  position: relative;
   background: var(--canvas);
-  padding: clamp(3rem, 6vw, 5rem) 0 clamp(4rem, 7vw, 6rem);
+  border-radius: 26px 26px 0 0;
+  margin-top: -52px;
+  padding: clamp(4rem, 7vw, 6rem) 0 clamp(4rem, 7vw, 6rem);
 }
 .cols {
   display: grid;
@@ -717,8 +712,8 @@ h2 {
 
 /* --------------------------------------------------------------- footer */
 .footer {
-  background: var(--canvas);
-  border-top: 1px solid var(--line);
+  background: var(--night);
+  border-top: 1px solid var(--line-night);
   padding: 3.5rem 0 2.5rem;
 }
 .footer-grid {
@@ -731,7 +726,7 @@ h2 {
   font-family: var(--f-display);
   font-style: italic;
   font-size: 1.02rem;
-  color: var(--muted-strong);
+  color: var(--dust);
   margin-top: 0.7rem;
 }
 .footer-links {
@@ -743,18 +738,21 @@ h2 {
   align-content: start;
 }
 .footer-links a {
-  color: var(--ink);
+  color: #fff;
   text-decoration: none;
 }
 .footer-links a:hover {
-  color: var(--accent);
+  color: var(--accent-bright);
 }
 .footer-fine {
   margin-top: 2.6rem;
   padding-top: 1.4rem;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-night);
   font-size: 0.8rem;
-  color: var(--muted-strong);
+  color: var(--dust);
+}
+.footer-fine code {
+  color: #c9d6f2;
 }
 .footer-fine p {
   margin: 0.3em 0;
