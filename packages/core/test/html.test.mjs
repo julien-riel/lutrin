@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeckHtml, compileHtml } from '../src/html/render.mjs';
-import { mermaidConfig, renderMermaidCached } from '../src/deck/assets.mjs';
+import { MERMAID_PNG_SCALE, mermaidConfig, renderMermaidCached } from '../src/deck/assets.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -88,7 +88,9 @@ test('mermaid: an SVG with foreignObject is refused rather than rendered unlabel
   const sourcePng = 'graph TD\n  C[Gamma] --> D[Delta]\n';
   const pngKey = `${crypto
     .createHash('sha1')
-    .update(JSON.stringify({ s: sourcePng, f: 'png', c: mermaidConfig() }))
+    .update(
+      JSON.stringify({ s: sourcePng, f: 'png', c: mermaidConfig(), px: MERMAID_PNG_SCALE }),
+    )
     .digest('hex')}.png`;
   fs.writeFileSync(path.join(vendor, pngKey), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   assert.equal(

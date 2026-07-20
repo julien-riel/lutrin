@@ -151,7 +151,12 @@ function addPara(slide, block, r) {
     color: block.color ?? COLORS.neutralPrimary,
     align: 'left',
     valign: 'top',
-    lineSpacingMultiple: LINE_HEIGHT,
+    // exact points, never a multiple: OOXML's spcPct multiplies the FONT'S
+    // own line metrics, so a kit font with tall ascenders rendered ~20%
+    // taller than blockHeight() measured and crowded whatever followed.
+    // spcPts pins the pitch to what the layout engine and the HTML (.para
+    // line-height 1.4) both assume, whatever font the kit ships.
+    lineSpacing: TYPE.body * LINE_HEIGHT,
   });
 }
 
@@ -168,8 +173,9 @@ function addHeading(slide, block, r) {
     bold: true,
     valign: 'top',
     ...(block.align ? { align: block.align } : {}),
-    // multi-line message: same line height as the CSS .slot-heading (1.3)
-    ...(block.size ? { lineSpacingMultiple: 1.3 } : {}),
+    // multi-line message: same line height as the CSS .slot-heading (1.3),
+    // in exact points (spcPts) — see addPara on why never a multiple
+    ...(block.size ? { lineSpacing: block.size * 1.3 } : {}),
   });
 }
 
@@ -193,6 +199,13 @@ function addBullets(slide, block, r) {
         text: '',
         options: { fontFace: FONTS.body, color: block.color ?? COLORS.neutralPrimary },
       });
+    }
+    if (it.level) {
+      // nested items: same size and pitch as the HTML (.bullets ul ul)
+      itemRuns.forEach((run) => {
+        run.options.fontSize = TYPE.bulletNested;
+      });
+      itemRuns[0].options.lineSpacing = TYPE.bulletNested * 1.3;
     }
     itemRuns[0] = {
       ...itemRuns[0],
@@ -222,8 +235,10 @@ function addBullets(slide, block, r) {
     fontFace: FONTS.body,
     color: block.color ?? COLORS.neutralPrimary,
     valign: 'top',
-    lineSpacingMultiple: 1.25,
-    paraSpaceAfter: 6,
+    // exact pitch and gap of the HTML (.bullets: line-height 1.3, li
+    // margin-bottom 6px) — spcPts + 4.5 pt (= 6 px); see addPara
+    lineSpacing: TYPE.bullet * 1.3,
+    paraSpaceAfter: 4.5,
   });
 }
 
@@ -259,7 +274,8 @@ function addCode(slide, block, r) {
     h: px(r.h - 2 * SPACE.xs),
     fontSize: TYPE.code,
     valign: 'top',
-    lineSpacingMultiple: 1.25,
+    // exact pitch of the HTML (.code line-height 1.3); see addPara
+    lineSpacing: TYPE.code * 1.3,
   });
 }
 
@@ -308,7 +324,13 @@ function addAlert(slide, block, r) {
   const runs = [
     {
       text: sem.label,
-      options: { bold: true, fontSize: TYPE.small, color: sem.text, breakLine: true },
+      options: {
+        bold: true,
+        fontSize: TYPE.small,
+        color: sem.text,
+        breakLine: true,
+        lineSpacing: TYPE.small * 1.3,
+      },
     },
   ];
   // outside ALERT_BLOCK_TYPES: ignored (height not reserved by blockHeight,
@@ -336,7 +358,9 @@ function addAlert(slide, block, r) {
     fontSize: TYPE.body,
     fontFace: FONTS.body,
     valign: 'top',
-    lineSpacingMultiple: 1.3,
+    // exact pitch of the HTML (.alert line-height 1.3); the label paragraph
+    // carries its own smaller pitch in its run options — see addPara
+    lineSpacing: TYPE.body * 1.3,
   });
 }
 
@@ -522,7 +546,8 @@ function addQuote(slide, block, r) {
     color: COLORS.neutralPrimary,
     fontFace: FONTS.body,
     valign: 'middle',
-    lineSpacingMultiple: LINE_HEIGHT,
+    // exact pitch of the HTML (.quote blockquote line-height 1.4); see addPara
+    lineSpacing: TYPE.quote * LINE_HEIGHT,
   });
   if (block.cite) {
     slide.addText(`— ${block.cite}`, {

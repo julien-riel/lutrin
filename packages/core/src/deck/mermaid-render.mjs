@@ -48,9 +48,12 @@ const {
 /** Intrinsic width of the produced SVG, in px — the base the PNG scale
  *  multiplies. Mermaid states it on the root element; the viewBox is the
  *  fallback, and 800 the last resort (a diagram is never rendered at a
- *  width of zero because an attribute moved). */
+ *  width of zero because an attribute moved). `width="100%"` (mermaid's
+ *  useMaxWidth default) is NOT an intrinsic width — reading its `100` used
+ *  to rasterize every diagram 300 px wide, blurry once stretched into its
+ *  slot; a percentage falls through to the viewBox. */
 function svgWidth(svg) {
-  const attr = /<svg[^>]*\swidth="([\d.]+)/i.exec(svg);
+  const attr = /<svg[^>]*\swidth="([\d.]+)(?:px)?"/i.exec(svg);
   if (attr) return Number(attr[1]);
   const box = /<svg[^>]*\sviewBox="[\d.-]+ [\d.-]+ ([\d.]+)/i.exec(svg);
   return box ? Number(box[1]) : 800;

@@ -782,13 +782,19 @@ export function renderMermaid(sourceText, tmpDir, idx, mmdc, { format = 'png' } 
     fs.writeFileSync(cfg, JSON.stringify(mermaidConfig()));
     fs.writeFileSync(src, sourceText);
     const args = ['-i', src, '-o', out, '-b', 'transparent', '-c', cfg];
-    if (format === 'png') args.push('-s', '3');
+    if (format === 'png') args.push('-s', String(MERMAID_PNG_SCALE));
     execFileSync(mmdc, args, { stdio: 'pipe', timeout: 60_000 });
     return fs.existsSync(out) ? out : null;
   } catch {
     return null;
   }
 }
+
+/** Raster scale of the PNG output (both the browser child and mmdc's `-s`).
+ *  Part of the PNG cache key: a diagram fills a slot of up to ~1180 px, so a
+ *  1× raster — as produced when `svgWidth` misread `width="100%"` — arrives
+ *  blurry, and bumping the scale must orphan those files. */
+export const MERMAID_PNG_SCALE = 3;
 
 /** The Mermaid bundle shipped inside the package (see vendor/mermaid/README).
  *  Absent only from a broken install — in which case the browser path simply
@@ -835,7 +841,7 @@ export function renderMermaidBrowser(sourceText, tmpDir, idx, { format = 'png' }
         browser: browser.path,
         mermaidBundle: MERMAID_BUNDLE,
         format,
-        scale: 3,
+        scale: MERMAID_PNG_SCALE,
         fontFiles: [FONT_FILES.regular, FONT_FILES.bold, FONT_FILES.italic].filter(Boolean),
         defaultFontFamily: FONTS.body,
       }),
@@ -897,10 +903,10 @@ function mermaidCacheDir() {
  *
  *  Consulted BEFORE the user cache: that is what allows a self-contained
  *  directory to display on a machine where mmdc is not installed. Since the key
- *  is a hash of (source + format + theme config), a file found there is by
- *  construction the exact rendering asked for — consulting this directory
- *  therefore adds no semantics, only one more source for content that is
- *  already determined. */
+ *  is a hash of (source + format + theme config, plus the raster scale for
+ *  PNGs), a file found there is by construction the exact rendering asked
+ *  for — consulting this directory therefore adds no semantics, only one more
+ *  source for content that is already determined. */
 export const mermaidVendorDir = (baseDir) => path.join(baseDir, 'assets', 'mermaid');
 
 /**
@@ -922,9 +928,18 @@ function svgUsableInHtml(file) {
 }
 
 export function renderMermaidCached(sourceText, { format = 'png', baseDir = null } = {}) {
+  // the raster scale keys the PNGs only: SVGs are scale-free, and including it
+  // there would orphan every diagram already vendored next to existing decks
   const key = `${crypto
     .createHash('sha1')
-    .update(JSON.stringify({ s: sourceText, f: format, c: mermaidConfig() }))
+    .update(
+      JSON.stringify({
+        s: sourceText,
+        f: format,
+        c: mermaidConfig(),
+        ...(format === 'png' ? { px: MERMAID_PNG_SCALE } : {}),
+      }),
+    )
     .digest('hex')}.${format}`;
   // The FILE NAME depends only on the content (source + format + config) —
   // that is what makes a vendored directory readable by any Lutrin. The

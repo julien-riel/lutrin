@@ -392,9 +392,9 @@ test('PPTX: vertical axis (arrow pointing down), axis without an arrow, solid do
   assert.equal(msg.calls.texts[0].fontSize, 60);
   assert.equal(msg.calls.texts[0].align, 'center');
   assert.equal(
-    msg.calls.texts[0].lineSpacingMultiple,
-    1.3,
-    'the same line height as the CSS .slot-heading',
+    msg.calls.texts[0].lineSpacing,
+    60 * 1.3,
+    'the line height of the CSS .slot-heading (1.3), in exact points — a multiple would follow the font metrics of the kit instead',
   );
 });
 
