@@ -735,7 +735,7 @@ function htmlMermaid(block, r, ctx) {
   const svg = ctx.mermaid.get(block);
   if (svg) return `<div class="figure mermaid el" style="${at(r, true)}">${svg}</div>`;
   // faithful fallback: source shown as a code block + a caption
-  return `${htmlCode({ lang: 'mermaid', source: block.source }, { ...r, h: r.h - 24 })}<div class="fallback-caption el" style="left:${Math.round(r.x)}px;top:${Math.round(r.y + r.h - 22)}px;width:${Math.round(r.w)}px;">Mermaid diagram — install @mermaid-js/mermaid-cli for graphical rendering</div>`;
+  return `${htmlCode({ lang: 'mermaid', source: block.source }, { ...r, h: r.h - 24 })}<div class="fallback-caption el" style="left:${Math.round(r.x)}px;top:${Math.round(r.y + r.h - 22)}px;width:${Math.round(r.w)}px;">Mermaid diagram — run \`lutrin setup-mermaid\` for graphical rendering</div>`;
 }
 
 function htmlIcon(block, r, ctx) {

@@ -19,6 +19,18 @@ own `LICENSE` file, exactly as it appears in `node_modules`.
 | [lucide-static](https://github.com/lucide-icons/lucide) | 1.x | ISC | icon set |
 | [mathjax-full](https://github.com/mathjax/MathJax-src) | 3.2.x | Apache-2.0 | LaTeX rendering |
 | [@resvg/resvg-js](https://github.com/yisibl/resvg-js) | 2.6.x | MPL-2.0 | SVG rasterization (native binary) |
+| [puppeteer-core](https://github.com/puppeteer/puppeteer) | 25.x | Apache-2.0 | drives a system browser for Mermaid; downloads none |
+
+## Vendored code
+
+| Component | Version | Licence | Note |
+|---|---|---|---|
+| [mermaid](https://github.com/mermaid-js/mermaid) | 11.16.0 | MIT | `packages/core/vendor/mermaid/mermaid.min.js`, copied verbatim |
+
+`mermaid.min.js` is redistributed unmodified, with its MIT licence alongside it
+in the same directory. It is a copy rather than a dependency because we load
+exactly one file out of a package that installs 83 MB — the rationale, and the
+upgrade procedure, are in `packages/core/vendor/mermaid/README.md`.
 
 **MPL-2.0** (`@resvg/resvg-js`) is *per-file* copyleft: it imposes nothing on
 the code that uses it, but any modification made to its own files must be
@@ -38,7 +50,7 @@ carries no `LICENSE` file of its own: it points at the same text.
 |---|---|---|
 | [esbuild](https://github.com/evanw/esbuild) | MIT | bundling of the extensions |
 | [typescript](https://github.com/microsoft/TypeScript) | Apache-2.0 | |
-| [@mermaid-js/mermaid-cli](https://github.com/mermaid-js/mermaid-cli) | MIT | Mermaid rendering, optional |
+| [@mermaid-js/mermaid-cli](https://github.com/mermaid-js/mermaid-cli) | MIT | Mermaid rendering, optional — the compiler drives a system browser instead |
 | [obsidian](https://github.com/obsidianmd/obsidian-api) | MIT | types for the plugin API |
 | [@biomejs/biome](https://github.com/biomejs/biome) | MIT OR Apache-2.0 | format and lint |
 

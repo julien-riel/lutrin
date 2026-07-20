@@ -337,9 +337,11 @@ color is the theme's `primary` ink; `![neutral](lucide:name)`,
 `![secondary](…)` and `![white](…)` are the other inks allowed. An unknown
 name produces `UNKNOWN_ICON`.
 
-**Mermaid** — a ```` ```mermaid ```` block is rendered as an image if
-`@mermaid-js/mermaid-cli` is installed, otherwise as a readable fallback (the
-source, with a note).
+**Mermaid** — a ```` ```mermaid ```` block is rendered as an image, using a
+browser already installed on the machine (Chrome, Edge, Brave or Chromium; set
+`LUTRIN_BROWSER` to pick one). With no browser to be found, the block degrades
+to a readable fallback — the source, with a note; `lutrin setup-mermaid`
+reports what is missing and can download one.
 
 ---
 

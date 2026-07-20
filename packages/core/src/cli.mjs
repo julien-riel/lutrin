@@ -84,6 +84,7 @@ const COMMANDS = [
   'config',
   'kit',
   'vendor',
+  'setup-mermaid',
 ];
 
 const USAGE = `Usage:
@@ -98,6 +99,7 @@ const USAGE = `Usage:
   lutrin kit remove <name>
   lutrin kit create <directory> [-o <file.deckkit>]
   lutrin capabilities [<input.md>] [--kit <kit|file.json|directory>] [--json]
+  lutrin setup-mermaid [--yes]
   lutrin --version | --help`;
 
 /** Help that was ASKED FOR is an answer (stdout, exit code 0); usage recalled
@@ -163,6 +165,9 @@ const FLAG_SPECS = {
   // real context (installed kit, layouts/ next to the deck) and not just that
   // of the bare engine.
   capabilities: { ...FLAGS_KIT, json: 'boolean' },
+  // `--yes` is what authorizes the ~200 MB download: a browser never arrives
+  // on a machine because someone ran a diagnostic.
+  'setup-mermaid': { yes: 'boolean' },
 };
 
 /**
@@ -456,7 +461,7 @@ async function cmdBuild(argv) {
   if (stats.mermaidTotal && stats.mermaidRendered < stats.mermaidTotal) {
     const missing = stats.mermaidTotal - stats.mermaidRendered;
     console.log(
-      `  ${missing} Mermaid diagram${missing > 1 ? 's' : ''} rendered as a text fallback (install @mermaid-js/mermaid-cli for graphical rendering)`,
+      `  ${missing} Mermaid diagram${missing > 1 ? 's' : ''} rendered as a text fallback — run \`lutrin setup-mermaid\` to diagnose`,
     );
   }
   if (stats.remoteTotal) {
@@ -992,7 +997,7 @@ async function cmdVendor(argv) {
   }
   for (const f of r.frontmatter) console.log(`  frontmatter: ${f}`);
   if (r.mermaid.done < r.mermaid.total)
-    console.log('  → diagrams not rendered: install @mermaid-js/mermaid-cli, then re-run vendor');
+    console.log('  → diagrams not rendered: run `lutrin setup-mermaid`, then re-run vendor');
   if (r.images.done < r.images.total)
     console.log('  → images not downloaded: check the URL or the connection, then re-run vendor');
   // self-containment is announced ONLY if nothing was left aside: until now the
@@ -1002,6 +1007,77 @@ async function cmdVendor(argv) {
       ? '\nINCOMPLETE directory: see the warnings above — it will not compile identically offline.'
       : '\nThe directory is self-contained: it compiles offline, with no kit installed.',
   );
+}
+
+// ---------------------------------------------------------------------------
+// setup-mermaid
+// ---------------------------------------------------------------------------
+
+/**
+ * Reports on the Mermaid rendering chain and, if nothing can drive it, offers
+ * to download a browser.
+ *
+ * The command exists because the failure it fixes is invisible: a diagram that
+ * cannot be rendered degrades to a readable code block, which is the right
+ * behaviour and looks, to the author, exactly like a compiler that does not do
+ * diagrams. This says out loud what is installed and what is missing.
+ *
+ * The download stays opt-in — `--yes` or an answered prompt. Nothing here runs
+ * during a build.
+ */
+async function cmdSetupMermaid(argv) {
+  const args = parseArgs(argv, FLAG_SPECS['setup-mermaid']);
+  const { findBrowser, downloadHeadlessShell, browserCacheDir } = await import(
+    './deck/browser.mjs'
+  );
+  const { findMmdc, renderMermaidCached } = await import('./deck/assets.mjs');
+
+  const mmdc = findMmdc();
+  let browser = findBrowser({ refresh: true });
+
+  console.log('Mermaid rendering:');
+  console.log(`  browser: ${browser ? `${browser.path} (${browser.source})` : 'none found'}`);
+  console.log(`  mermaid-cli: ${mmdc ?? 'not installed (optional — the browser is enough)'}`);
+
+  if (!browser) {
+    if (!args.yes) {
+      console.log(
+        [
+          '',
+          'No Chrome, Edge, Brave or Chromium was found, and Mermaid needs a browser',
+          'to measure the text it lays out.',
+          '',
+          'Installing any of those is the lightest fix. Otherwise lutrin can download',
+          `chrome-headless-shell (~200 MB) into ${browserCacheDir()}.`,
+          '',
+          'Re-run with --yes to download it.',
+        ].join('\n'),
+      );
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`\nDownloading chrome-headless-shell into ${browserCacheDir()} …`);
+    const exe = await downloadHeadlessShell((line) => console.log(line));
+    console.log(`✓ browser installed: ${exe}`);
+    browser = findBrowser({ refresh: true });
+  }
+
+  // A found browser is not a working one — an install can be broken, a
+  // container can lack the shared libraries Chrome links against. Render a
+  // diagram and say so, rather than promising on the strength of a file
+  // existing.
+  process.stdout.write('\nRendering a test diagram … ');
+  const out = renderMermaidCached('flowchart LR\n  A[Lutrin] --> B[Mermaid]', { format: 'svg' });
+  if (out) {
+    console.log('✓');
+    console.log('\nMermaid diagrams will render. Nothing else to install.');
+    return;
+  }
+  const { lastMermaidError } = await import('./deck/assets.mjs');
+  console.log('✖');
+  console.log(`\nThe browser was found but could not render: ${lastMermaidError() ?? 'unknown'}`);
+  console.log('Set LUTRIN_BROWSER to another browser, or re-run with --yes to download one.');
+  process.exitCode = 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -1100,6 +1176,9 @@ try {
       break;
     case 'capabilities':
       cmdCapabilities(rest2);
+      break;
+    case 'setup-mermaid':
+      await cmdSetupMermaid(rest2);
       break;
     default:
       usage();

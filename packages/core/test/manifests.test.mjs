@@ -9,10 +9,11 @@
  *      megabytes — into the public tarball.
  *   2. `@mermaid-js/mermaid-cli` was a devDependency of core while NOTHING in
  *      `test/` uses it: every `npm ci` downloaded ~1 GB of Chromium, in CI as
- *      well as for a contributor who only wanted to run the tests. Mermaid
- *      rendering is optional by design (`findMmdc()` returns null, the caller
- *      keeps its text fallback): the dependency must therefore stay optional,
- *      never installed by default.
+ *      well as for a contributor who only wanted to run the tests. Mermaid is
+ *      rendered by driving a browser already installed on the machine
+ *      (`browser.mjs` + the bundle in `vendor/mermaid/`), so mermaid-cli is a
+ *      compatibility path, not the engine: it must stay optional, never
+ *      installed by default.
  *   3. `engines.node` was absent everywhere, while the suite actually required
  *      Node ≥ 22 (the glob of `--test "<pattern>"` only exists from Node 21 on,
  *      and pptxgenjs ships ESM inside a `.js` that only Node ≥ 20.19's syntax
@@ -72,6 +73,23 @@ test('@lutrin/core bounds its tarball: neither test/ nor goldens published', () 
     CORE.files.includes('design'),
     'design/ must be published: layout.mjs reads the official layouts from it',
   );
+  assert.ok(
+    CORE.files.includes('vendor'),
+    'vendor/ must be published: it holds the Mermaid bundle the renderer injects',
+  );
+});
+
+test('the browser driver is a plain dependency, and never downloads a browser', () => {
+  // puppeteer-core, NOT puppeteer: the two differ precisely in that the latter
+  // downloads a Chrome on install — the ~1 GB this whole design avoids.
+  assert.ok(
+    CORE.dependencies?.['puppeteer-core'],
+    'puppeteer-core must be a dependency: Mermaid rendering is a feature, not an extra',
+  );
+  assert.ok(
+    !CORE.dependencies?.puppeteer && !CORE.devDependencies?.puppeteer,
+    '`puppeteer` downloads a browser on install — puppeteer-core is the one that does not',
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -115,7 +133,7 @@ test('mermaid-cli stays optional: never installed by a plain npm ci', () => {
     for (const field of ['dependencies', 'devDependencies', 'optionalDependencies']) {
       assert.ok(
         !pkg[field]?.[MERMAID],
-        `${name}: ${MERMAID} in ${field} — ~1 GB of Chromium on every install, for a rendering the compiler knows how to degrade to a text fallback`,
+        `${name}: ${MERMAID} in ${field} — ~1 GB of Chromium on every install, for a rendering the compiler now gets from a browser already on the machine`,
       );
     }
   }

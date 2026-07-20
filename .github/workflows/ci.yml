@@ -98,18 +98,20 @@ jobs:
         run: node esbuild.mjs
         working-directory: packages/obsidian-plugin
 
-      # The only test that depends on an external tool. "mermaid: labels
-      # survive the sanitizer" calls mmdc (@mermaid-js/mermaid-cli), an
-      # OPTIONAL peerDependency that `npm ci` does not install: it skips itself
-      # in the "Core tests" above, across the whole matrix. Here we install the
-      # tool without recording it in package.json (--no-save) and replay the
-      # core suite, mmdc present this time — the step comes last so that this
-      # addition to node_modules touches no other.
+      # Mermaid rendering itself needs no step: the runners ship a Chrome, so
+      # `browser.mjs` finds one and the diagram tests in "Core tests" above
+      # render for real across the whole matrix rather than skipping.
+      #
+      # What this step still guards is the OTHER path — mmdc, kept working for
+      # anyone who already has it installed. It is an OPTIONAL peerDependency
+      # that `npm ci` does not install, so nothing else in CI exercises it.
+      # Installed without being recorded in package.json (--no-save), replaying
+      # the core suite, and last so that this addition to node_modules touches
+      # no other.
       #
       # A single matrix cell: the install pulls in a Chromium through
-      # puppeteer, and what the test checks — the survival of labels through
-      # the sanitizer — depends neither on the OS nor on the Node version.
-      # Paying for it once is enough.
+      # puppeteer, and what it checks depends neither on the OS nor on the Node
+      # version. Paying for it once is enough.
       - name: mermaid test with mmdc (Linux)
         if: ${{ !cancelled() && matrix.os == 'ubuntu-latest' && matrix.node == 24 }}
         run: |

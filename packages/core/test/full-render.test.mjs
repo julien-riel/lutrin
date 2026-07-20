@@ -217,7 +217,7 @@ test('pptx: each of the sixteen block types leaves its marker in the XML', async
     assert.match(diagram, /descr="Mermaid diagram"/, 'mermaid: PNG rendered by mmdc');
   } else {
     assert.match(diagram, /ZQMERMAID/, 'mermaid: fallback, the source stays readable');
-    assert.match(diagram, /install @mermaid-js\/mermaid-cli/, 'mermaid: mention of the fallback');
+    assert.match(diagram, /lutrin setup-mermaid/, 'mermaid: mention of the fallback');
   }
 
   // panel, timeline-axis, timeline-dot: no text of their own — the marker is
@@ -307,7 +307,7 @@ test('html: each of the sixteen block types leaves its marker in the document', 
     assert.match(diagram, /class="figure mermaid el"[\s\S]*ZQMERMAID/, 'mermaid: inlined SVG');
   } else {
     assert.match(diagram, /ZQMERMAID/, 'mermaid: fallback, the source stays readable');
-    assert.match(diagram, /install @mermaid-js\/mermaid-cli/, 'mermaid: mention of the fallback');
+    assert.match(diagram, /lutrin setup-mermaid/, 'mermaid: mention of the fallback');
   }
 
   assert.match(htmlOf('Pillars'), /class="panel el"/, 'panel');
@@ -434,7 +434,7 @@ test('html without optional dependencies: image, math and mermaid fall back read
   assert.match(diagram, /class="code el"[\s\S]*ZQMERMAIDFALLBACK/, 'mermaid: the source survives');
   assert.match(
     diagram,
-    /class="fallback-caption el"[^>]*>Mermaid diagram — install @mermaid-js\/mermaid-cli/,
+    /class="fallback-caption el"[^>]*>Mermaid diagram — run `lutrin setup-mermaid`/,
     'mermaid: mention of the fallback',
   );
 });

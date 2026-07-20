@@ -7,6 +7,10 @@
       "packages/core/test/golden/**",
       "packages/core/test/fixtures/**",
       "packages/core/design/**",
+      // third-party code, redistributed verbatim: linting or formatting it
+      // would make the copy diverge from upstream and break the SHA-256 that
+      // vendor/mermaid/README.md records
+      "packages/core/vendor/**",
       "examples/**",
       "package-lock.json"
     ]

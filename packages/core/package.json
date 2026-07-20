@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --import ./test/setup.mjs --test \"test/*.test.mjs\""
   },
-  "files": ["src", "design", "README.md"],
+  "files": ["src", "design", "vendor", "README.md"],
   "publishConfig": {
     "access": "public"
   },
@@ -29,7 +29,8 @@
     "markdown-it": "^14.3.0",
     "markdown-it-container": "^4.0.0",
     "mathjax-full": "^3.2.1",
-    "pptxgenjs": "4.0.1"
+    "pptxgenjs": "4.0.1",
+    "puppeteer-core": "^25.3.0"
   },
   "peerDependencies": {
     "@mermaid-js/mermaid-cli": "^11.16.0"

@@ -9,6 +9,35 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ## [Unreleased]
 
+### Fixed
+
+- Mermaid diagrams now render on a fresh install. They used to need
+  `@mermaid-js/mermaid-cli`, an optional peer dependency almost nobody
+  installed because it pulls ~950 MB (405 MB of `node_modules` and a ~540 MB
+  Chrome download): every diagram silently degraded to its source as a code
+  block, which looks exactly like a compiler that does not do diagrams.
+  Rendering now drives a browser **already installed** on the machine — Chrome,
+  Edge, Brave or Chromium — over a Mermaid bundle shipped inside the package.
+  Cost: `puppeteer-core` (28 MB, and unlike `puppeteer` it downloads nothing)
+  plus 3.5 MB of vendored Mermaid, against 950 MB.
+
+### Added
+
+- `lutrin setup-mermaid`: reports which browser will render diagrams, renders a
+  test diagram to prove it works rather than promising, and — only with
+  `--yes` — downloads `chrome-headless-shell` (~200 MB) into
+  `~/.cache/lutrin/browser/` for a machine that has no browser at all. A build
+  never downloads anything by itself.
+- `LUTRIN_BROWSER` selects the browser to drive;
+  `PUPPETEER_EXECUTABLE_PATH` is honored too, for images that already set it.
+
+### Changed
+
+- `@mermaid-js/mermaid-cli` stays supported and is preferred when installed,
+  but it is now a compatibility path rather than the engine. The fallback
+  caption and the CLI now point at `lutrin setup-mermaid` instead of asking for
+  a ~1 GB install.
+
 ## [1.0.0] — 2026-07-18
 
 First public release. The project previously existed under the name

@@ -18,7 +18,10 @@
  *     to PNG when needed (`renderIcon`);
  *   - LaTeX equations  → MathJax (tex → SVG, glyphs as paths:
  *     `mathSvg`) then PNG when needed (`renderMath`);
- *   - Mermaid diagrams → mmdc (optional), as PNG (PPTX) or SVG (HTML).
+ *   - Mermaid diagrams → a browser already on the machine driven by
+ *     puppeteer-core (`browser.mjs`) over the Mermaid bundle vendored in
+ *     `vendor/mermaid/`, or `mmdc` when it happens to be installed — as PNG
+ *     (PPTX) or SVG (HTML).
  *
  * Every asset therefore exists in two flavors: SVG (inlined as is by the HTML
  * renderer) and a high-density PNG via @resvg/resvg-js (PowerPoint handles
@@ -41,6 +44,7 @@ import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { COLORS, FONTS, FONT_FILES } from './tokens.mjs';
+import { findBrowser } from './browser.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const require = createRequire(import.meta.url);
@@ -709,7 +713,7 @@ export async function renderMath(tex, { scale = 3 } = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Mermaid (optional): PNG or SVG rendering via mmdc when it is available
+// Mermaid: PNG or SVG rendering, in a browser found on the machine (or mmdc)
 // ---------------------------------------------------------------------------
 
 /** Mermaid theme aligned on the active theme: light surfaces, neutral rules,
@@ -786,10 +790,76 @@ export function renderMermaid(sourceText, tmpDir, idx, mmdc, { format = 'png' } 
   }
 }
 
+/** The Mermaid bundle shipped inside the package (see vendor/mermaid/README).
+ *  Absent only from a broken install — in which case the browser path simply
+ *  does not apply and the caller keeps its fallback. */
+const MERMAID_BUNDLE = path.join(ROOT, 'vendor', 'mermaid', 'mermaid.min.js');
+
+/** This file, spawned as a child process. */
+const MERMAID_CHILD = path.join(ROOT, 'src', 'deck', 'mermaid-render.mjs');
+
+/** Last diagnosis from the browser renderer, for the CLI to surface. A silent
+ *  null told nobody whether the browser was missing, the source invalid, or
+ *  Chrome unable to start — three fixes behind one symptom. */
+let _mermaidError = null;
+export const lastMermaidError = () => _mermaidError;
+
+/**
+ * Renders a Mermaid diagram in a browser found on the machine, and returns the
+ * path of the produced file — or null, the caller keeping its fallback.
+ *
+ * Synchronous, like `renderMermaid()` above and for the same reason: both
+ * callers of `renderMermaidCached()` dispatch blocks in synchronous loops. The
+ * asynchrony lives in the child process (`mermaid-render.mjs`), which the
+ * timeout below bounds.
+ */
+export function renderMermaidBrowser(sourceText, tmpDir, idx, { format = 'png' } = {}) {
+  const browser = findBrowser();
+  if (!browser) {
+    _mermaidError = 'no browser found — run `lutrin setup-mermaid`';
+    return null;
+  }
+  if (!fs.existsSync(MERMAID_BUNDLE)) {
+    _mermaidError = `the vendored Mermaid bundle is missing (${MERMAID_BUNDLE})`;
+    return null;
+  }
+  try {
+    const out = path.join(tmpDir, `diagram-${idx}.${format}`);
+    const request = path.join(tmpDir, `request-${idx}.json`);
+    fs.writeFileSync(
+      request,
+      JSON.stringify({
+        source: sourceText,
+        config: mermaidConfig(),
+        out,
+        browser: browser.path,
+        mermaidBundle: MERMAID_BUNDLE,
+        format,
+        scale: 3,
+        fontFiles: [FONT_FILES.regular, FONT_FILES.bold, FONT_FILES.italic].filter(Boolean),
+        defaultFontFamily: FONTS.body,
+      }),
+    );
+    // 60 s, as for mmdc: a cold browser launch costs a few seconds, and a
+    // diagram that has not rendered by then never will.
+    execFileSync(process.execPath, [MERMAID_CHILD, request], { stdio: 'pipe', timeout: 60_000 });
+    if (fs.existsSync(out)) {
+      _mermaidError = null;
+      return out;
+    }
+    _mermaidError = 'the renderer produced no file';
+    return null;
+  } catch (err) {
+    _mermaidError = (err?.stderr?.toString() || err?.message || String(err)).trim().split('\n')[0];
+    return null;
+  }
+}
+
 /**
  * Renders a Mermaid diagram through a persistent cache and returns the path of
- * the rendered file — indispensable to the live preview: mmdc costs several
- * seconds per diagram, and it is never run again for a source already seen.
+ * the rendered file — indispensable to the live preview: rendering costs
+ * several seconds per diagram, and it is never run again for a source already
+ * seen.
  *
  *   - disk cache `~/.cache/lutrin/mermaid/` (key: sha1 source+format+config),
  *     shared between the CLI, watch and the VS Code extension, persistent
@@ -879,13 +949,32 @@ export function renderMermaidCached(sourceText, { format = 'png', baseDir = null
     }
   }
 
+  // Two renderers, tried in order. mmdc first when it is there: someone who
+  // installed it asked for it, and it is the reference implementation. The
+  // browser is what makes a fresh machine work without installing anything —
+  // it needs no download, only a Chrome/Edge/Brave/Chromium already present.
   const mmdc = findMmdc();
-  if (!mmdc) return null;
+  const browser = findBrowser();
+  // No renderer at all → null WITHOUT memoizing it: installing a browser (or
+  // mmdc) must take effect without restarting the preview worker. A negative
+  // entry is only ever recorded for a source a working renderer refused.
+  if (!mmdc && !browser) {
+    _mermaidError = 'no browser found — run `lutrin setup-mermaid`';
+    return null;
+  }
+  const renderers = [
+    mmdc ? (dir) => renderMermaid(sourceText, dir, 0, mmdc, { format }) : null,
+    browser ? (dir) => renderMermaidBrowser(sourceText, dir, 0, { format }) : null,
+  ].filter(Boolean);
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-mmd-'));
   let result = null;
   try {
-    const out = renderMermaid(sourceText, tmpDir, 0, mmdc, { format });
+    let out = null;
+    for (const render of renderers) {
+      out = render(tmpDir);
+      if (out) break;
+    }
     if (out && (format !== 'svg' || svgUsableInHtml(out))) {
       // always written into the user cache, never into a vendored directory:
       // `lutrin vendor` alone decides what enters the project

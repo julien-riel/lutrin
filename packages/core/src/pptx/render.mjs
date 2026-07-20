@@ -598,7 +598,7 @@ function addMermaid(slide, block, r, ctx) {
   }
   // faithful fallback: source shown as a code block plus a caption
   addCode(slide, { type: 'code', lang: 'mermaid', source: block.source }, { ...r, h: r.h - 24 });
-  slide.addText('Mermaid diagram — install @mermaid-js/mermaid-cli for graphical rendering', {
+  slide.addText('Mermaid diagram — run `lutrin setup-mermaid` for graphical rendering', {
     x: px(r.x),
     y: px(r.y + r.h - 22),
     w: px(r.w),
