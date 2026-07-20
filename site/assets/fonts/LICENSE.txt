@@ -1,0 +1,9 @@
+The font files in this directory are subset builds (latin) served by the
+Google Fonts API, licensed under the SIL Open Font License 1.1:
+
+- Fraunces — Copyright 2020 The Fraunces Project Authors
+  https://github.com/undercasetype/Fraunces
+- IBM Plex Sans, IBM Plex Mono — Copyright IBM Corp. 2017
+  https://github.com/IBM/plex
+
+SIL Open Font License 1.1: https://openfontlicense.org

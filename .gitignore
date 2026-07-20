@@ -13,6 +13,10 @@ packages/obsidian-plugin/dist/
 *.deckkit
 examples/assets/remote/
 
+# the landing page itself is source, not an artifact; its demo deck
+# (site/demo.html, site/demo.pptx — `npm run site`) stays ignored above
+!site/index.html
+
 # local pointer to a brand kit (see scripts/package.mjs)
 .brandkit
 

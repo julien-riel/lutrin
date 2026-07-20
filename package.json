@@ -8,6 +8,7 @@
   "scripts": {
     "pptx": "node packages/core/src/cli.mjs build",
     "html": "node packages/core/src/cli.mjs build --html",
+    "site": "node packages/core/src/cli.mjs build examples/demo.deck.md --html -o site/demo.html && node packages/core/src/cli.mjs build examples/demo.deck.md -o site/demo.pptx",
     "test": "npm test --workspaces --if-present",
     "test:core": "npm test -w @lutrin/core",
     "typecheck": "npm run typecheck -w lutrin-vscode && npm run typecheck -w lutrin-obsidian",

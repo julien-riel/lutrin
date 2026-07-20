@@ -1,0 +1,79 @@
+# The landing page — https://julien-riel.github.io/lutrin/
+#
+# The slides the page shows are not screenshots: _site/demo.html is compiled
+# from examples/demo.deck.md by the engine at HEAD on every push to main, so
+# the page can never drift from what the compiler actually produces. Same for
+# demo.pptx — the "Download the .pptx" button hands out a file built by this
+# very commit.
+#
+# The deck's two remote images are downloaded from Wikimedia at build time
+# (examples/assets/remote/ is a vendor cache, deliberately unversioned), and
+# Mermaid renders because the runner ships a Chrome (see ci.yml). Third-party
+# actions are pinned by SHA, tag in a comment — same policy as ci.yml.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two pushes in a row: queued runs are superseded, but a deployment already
+# in flight is allowed to complete — cancelling actions/deploy-pages midway
+# can leave the environment with a stale in-progress deployment that blocks
+# the next run (the official Pages starter workflow says the same).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Compile the demo deck and assemble the site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # The deck first: `build` refuses a deck with validation errors (exit
+      # code 1), so a broken demo blocks the deploy rather than shipping a
+      # broken page. A FAILED IMAGE DOWNLOAD is not such an error — the CLI
+      # keeps a placeholder and exits 0 — so the grep makes it one: a
+      # Wikimedia outage must fail the deploy, not silently publish a demo
+      # with gray boxes where the photos belong.
+      - name: Compile the demo deck (HTML + PPTX)
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          node packages/core/src/cli.mjs build examples/demo.deck.md --html -o _site/demo.html | tee build-html.log
+          grep -q "2/2 remote images" build-html.log
+          node packages/core/src/cli.mjs build examples/demo.deck.md -o _site/demo.pptx
+
+      - name: Assemble the site
+        run: |
+          cp -R site/. _site/
+          cp docs/images/overview.png _site/assets/og.png
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write      # the deployment itself
+      id-token: write   # OIDC — how deploy-pages proves it is this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

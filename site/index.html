@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lutrin — a presentation compiler</title>
+<meta name="description" content="Lutrin compiles enriched Markdown into an editable PowerPoint or a standalone HTML page — and it is the engine, not the author, that decides the layout.">
+<link rel="canonical" href="https://julien-riel.github.io/lutrin/">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lutrin — a presentation compiler">
+<meta property="og:description" content="Write Markdown, ship a real PowerPoint. The engine — not the author — decides the layout.">
+<meta property="og:url" content="https://julien-riel.github.io/lutrin/">
+<meta property="og:image" content="https://julien-riel.github.io/lutrin/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="#top">Lutrin</a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="#compiler">How it works</a>
+    <a href="#proof">Real slides</a>
+    <a href="#why">Why Lutrin</a>
+    <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">DSL reference</a>
+    <a href="https://www.npmjs.com/package/lutrin">npm</a>
+    <a class="nav-gh" href="https://github.com/julien-riel/lutrin">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<!-- ================================================================ hero -->
+<section class="hero">
+  <canvas id="engine" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">a presentation compiler</p>
+      <h1>Write Markdown.<br>Ship a <em>real</em> PowerPoint.</h1>
+      <p class="hero-sub">Lutrin compiles enriched Markdown into an editable
+        <code>.pptx</code> or a standalone HTML page — and it is the engine,
+        not the author, that decides the layout. You write the intent; the
+        compiler picks the layout, places every block, and keeps the deck on
+        brand.</p>
+      <div class="cmd" role="group" aria-label="Install command">
+        <code id="cmd-text">npx lutrin build deck.md -o deck.pptx</code>
+        <button class="copy" data-copy="npx lutrin build deck.md -o deck.pptx" aria-live="polite">copy</button>
+      </div>
+      <p class="hero-meta">Node ≥ 22 · nothing else to install · MIT</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="#proof">See the slides it compiles</a>
+        <a class="btn btn-ghost" href="https://github.com/julien-riel/lutrin">Star on GitHub</a>
+      </div>
+    </div>
+  </div>
+  <p class="hero-caption">backdrop: blocks finding their slots — the layout engine, dramatized</p>
+</section>
+
+<!-- ============================================================ pipeline -->
+<section class="pipeline" id="compiler">
+  <div class="wrap">
+    <p class="eyebrow">pipeline</p>
+    <h2>A compiler, in the literal sense.</h2>
+    <p class="lead">Not a converter with a stylesheet: a front end, an
+      intermediate representation, analysis passes, and two renderers that
+      share one geometry.</p>
+    <ol class="rail">
+      <li class="reveal"><span class="step">01</span>
+        <h3>parse</h3>
+        <p>Enriched Markdown → AST. markdown-it, plus directives:
+        <code>:::metric</code>, <code>```chart</code>, Mermaid, LaTeX,
+        Lucide icons.</p></li>
+      <li class="reveal"><span class="step">02</span>
+        <h3>lower</h3>
+        <p>AST → IR. <code>deck → slides → sections → blocks</code>, source
+        positions kept for diagnostics.</p></li>
+      <li class="reveal"><span class="step">03</span>
+        <h3>layout</h3>
+        <p>The engine infers a layout from the structure of the content and
+        places blocks in slots; overflowing content is paginated, or measured
+        and flagged.</p></li>
+      <li class="reveal"><span class="step">04</span>
+        <h3>scene</h3>
+        <p>One positioned scene. Both renderers consume the same geometry —
+        parity is tested.</p></li>
+      <li class="reveal"><span class="step">05</span>
+        <h3>render</h3>
+        <p><code>.pptx</code> with native shapes, text boxes and tables,
+        fonts embedded — or one standalone HTML file with presenter mode.</p></li>
+    </ol>
+    <p class="aside"><code>lutrin validate</code> measures — overflows,
+      under-resolved images, better-suited layouts — and returns positioned
+      JSON (<code>--json</code>) for a write&nbsp;→&nbsp;validate&nbsp;→&nbsp;fix
+      agent loop.</p>
+  </div>
+</section>
+
+<!-- =============================================================== proof -->
+<section class="proof" id="proof">
+  <div class="wrap">
+    <p class="eyebrow eyebrow-dark">live output</p>
+    <h2>Real slides. Zero coordinates.</h2>
+    <p class="lead lead-dark">Everything below is live output, not
+      screenshots: the deck is recompiled from
+      <a href="https://github.com/julien-riel/lutrin/blob/main/examples/demo.deck.md"><code>examples/demo.deck.md</code></a>
+      by CI on every push to <code>main</code>. There is not a single
+      coordinate in the file.</p>
+
+    <div class="tabs" role="tablist" aria-label="Source to slide examples">
+      <button class="tab is-active" role="tab" aria-selected="true" id="tab-metrics" aria-controls="pane-metrics" data-slide="7">Metrics</button>
+      <button class="tab" role="tab" aria-selected="false" id="tab-chart" aria-controls="pane-chart" data-slide="18">Chart</button>
+      <button class="tab" role="tab" aria-selected="false" id="tab-funnel" aria-controls="pane-funnel" data-slide="15">Funnel</button>
+    </div>
+
+    <div class="pair">
+      <div class="editor">
+        <div class="editor-bar"><span></span><span></span><span></span><em>examples/demo.deck.md</em></div>
+        <pre class="src" id="pane-metrics" role="tabpanel" aria-labelledby="tab-metrics"><code><span class="k"># Indicators</span>
+
+<span class="d">:::metric</span>
+19
+Layouts planned
+<span class="up">↑ +5 this release</span>
+<span class="d">:::</span>
+
+<span class="d">:::metric</span>
+100%
+Output parity
+→ stable
+<span class="d">:::</span>
+
+<span class="d">:::metric</span>
+0
+Broken slides
+<span class="up">↓ -100% (+)</span>
+<span class="d">:::</span></code></pre>
+        <pre class="src" id="pane-chart" role="tabpanel" aria-labelledby="tab-chart" hidden><code><span class="k"># Budget by quarter</span>
+
+The chart is rendered by the engine, in the
+brand's colors, with a palette validated for
+color blindness and contrast.
+
+<span class="d">```chart</span>
+type: bar
+categories: Q1, Q2, Q3, Q4
+Planned: 120, 150, 180, 210
+Actual: 110, 155, 175, 190
+<span class="d">```</span></code></pre>
+        <pre class="src" id="pane-funnel" role="tabpanel" aria-labelledby="tab-funnel" hidden><code><span class="k"># Request triage</span>
+
+<span class="d">&lt;!-- layout: funnel --&gt;</span>
+
+<span class="k">## 2,400 received</span>
+All channels combined.
+
+<span class="k">## 1,100 eligible</span>
+After checking the criteria.
+
+<span class="k">## 320 selected</span>
+Funded this year.</code></pre>
+      </div>
+      <div class="compiled">
+        <div class="slidebox">
+          <iframe id="pair-frame" src="demo.html" data-slide="7" title="Compiled slide" loading="lazy" scrolling="no" tabindex="-1"></iframe>
+        </div>
+        <p class="pair-caption" data-for="pane-metrics">Three <code>:::metric</code> directives become three cards. The trend arrow picks its own color — and <code>(+)</code> flips it when a fall is good news.</p>
+        <p class="pair-caption" data-for="pane-chart" hidden>A fenced <code>chart</code> block becomes a chart rendered by the engine — same geometry in the HTML and in the <code>.pptx</code>, in the theme's palette.</p>
+        <p class="pair-caption" data-for="pane-funnel" hidden>One layout hint, and the engine does the geometry. Omit it and a layout is inferred from the structure of the content.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================= gallery -->
+<section class="gallery">
+  <div class="wrap">
+    <h2>One file. Twenty-seven slides.</h2>
+    <p class="lead lead-dark">A sample straight from the compiled deck —
+      metrics, charts, SWOT, funnels, diagrams, full-bleed photos. Click any
+      slide to open it in the deck.</p>
+  </div>
+  <div class="cols">
+    <div class="col" data-plx="-0.05">
+      <a class="card" href="demo.html#slide-7" target="_blank" rel="noopener">
+        <span class="slidebox"><iframe data-src="demo.html" data-slide="7" title="Slide 7 — metric cards" loading="lazy" scrolling="no" tabindex="-1"></iframe></span>
+        <span class="card-label"><code>:::metric</code> — indicator cards</span>
+      </a>
+      <a class="card" href="demo.html#slide-15" target="_blank" rel="noopener">
+        <span class="slidebox"><iframe data-src="demo.html" data-slide="15" title="Slide 15 — funnel layout" loading="lazy" scrolling="no" tabindex="-1"></iframe></span>
+        <span class="card-label"><code>layout: funnel</code> — request triage</span>
+      </a>
+    </div>
+    <div class="col" data-plx="0.06">
+      <a class="card" href="demo.html#slide-18" target="_blank" rel="noopener">
+        <span class="slidebox"><iframe data-src="demo.html" data-slide="18" title="Slide 18 — bar chart" loading="lazy" scrolling="no" tabindex="-1"></iframe></span>
+        <span class="card-label"><code>```chart</code> — engine-rendered, colorblind-safe palette</span>
+      </a>
+      <a class="card" href="demo.html#slide-23" target="_blank" rel="noopener">
+        <span class="slidebox"><iframe data-src="demo.html" data-slide="23" title="Slide 23 — full-bleed photo" loading="lazy" scrolling="no" tabindex="-1"></iframe></span>
+        <span class="card-label">full-bleed remote image, vendored and embedded</span>
+      </a>
+    </div>
+    <div class="col" data-plx="-0.03">
+      <a class="card" href="demo.html#slide-11" target="_blank" rel="noopener">
+        <span class="slidebox"><iframe data-src="demo.html" data-slide="11" title="Slide 11 — SWOT layout" loading="lazy" scrolling="no" tabindex="-1"></iframe></span>
+        <span class="card-label"><code>layout: swot</code> — four quadrants</span>
+      </a>
+      <a class="card" href="demo.html#slide-4" target="_blank" rel="noopener">
+        <span class="slidebox"><iframe data-src="demo.html" data-slide="4" title="Slide 4 — Mermaid diagram" loading="lazy" scrolling="no" tabindex="-1"></iframe></span>
+        <span class="card-label">Mermaid — rendered to SVG by the engine</span>
+      </a>
+    </div>
+  </div>
+  <div class="wrap deck-ctas">
+    <a class="btn btn-primary" href="demo.html" target="_blank" rel="noopener">Open the full deck</a>
+    <a class="btn btn-dark" href="demo.pptx" download>Download the .pptx</a>
+    <p class="aside aside-dark">In the deck, press <kbd>P</kbd> to present —
+      arrows to navigate, <kbd>N</kbd> for the notes window with timer. The
+      <code>.pptx</code> is the same deck, built by the same commit: open it
+      in PowerPoint and rework the text, tables and shapes.</p>
+  </div>
+</section>
+
+<!-- ================================================================= why -->
+<section class="why" id="why">
+  <div class="wrap">
+    <p class="eyebrow eyebrow-dark">positioning</p>
+    <h2>Why not Marp, Slidev, reveal.js, Pandoc?</h2>
+    <p class="lead lead-dark">They are good tools, and often the right
+      choice. Lutrin answers a different need, which comes down to three
+      points.</p>
+    <div class="grid3">
+      <article class="panel reveal">
+        <h3>A genuinely editable <code>.pptx</code></h3>
+        <p>Native shapes, text boxes and tables, fonts embedded. The
+          recipient opens the file, corrects a figure, and moves on — no
+          repository to clone.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>The engine owns the layout</h3>
+        <p>No coordinates, no columns, no CSS escape hatch. Layouts are
+          inferred, overflow is paginated. A deliberate constraint: decks stay
+          homogeneous and automatable.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>Validation that measures</h3>
+        <p>The deck doctor measures overflows, flags images too low-res for
+          the area they occupy, and suggests better-suited layouts — in the
+          CLI, underlined in VS Code, clickable in Obsidian.</p>
+      </article>
+    </div>
+    <p class="aside aside-dark">What the others do better: reveal.js and
+      Slidev are far richer on the web; Marp is mature, with familiar CSS
+      themes; Pandoc converts everything. And if you want to place one element
+      at one precise spot — Lutrin will tell you no.</p>
+  </div>
+</section>
+
+<!-- ============================================================= entries -->
+<section class="entries">
+  <div class="wrap">
+    <h2>Four doors, one compiler.</h2>
+    <div class="grid4">
+      <article class="panel reveal">
+        <h3><code>lutrin</code> CLI</h3>
+        <p><code>build</code>, <code>preview</code> with reload,
+          <code>validate</code>, <code>inspect</code>, <code>vendor</code>.
+          <code>npx lutrin</code> and nothing else.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>VS Code</h3>
+        <p>Live preview that follows the cursor, diagnostics underlined in
+          the editor, quick fixes, <code>.pptx</code> export.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>Obsidian</h3>
+        <p>The preview follows the active note; wiki embeds
+          <code>![[image.png]]</code> just work. Desktop only.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>Agent skill</h3>
+        <p><code>.claude/skills/deck</code>: an agent writes, validates,
+          fixes and builds — with a visual check at the end.</p>
+      </article>
+    </div>
+    <p class="aside aside-dark">An organization's brand travels as a
+      <strong>kit</strong> — theme, layouts, fonts and logos in one archive;
+      data, never code. <code>lutrin kit install &lt;url&gt;</code> and every
+      deck is on brand, in every entry point.</p>
+  </div>
+</section>
+
+<!-- ============================================================== footer -->
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="wordmark wordmark-dark">Lutrin</p>
+      <p class="footer-tag">A lectern for your Markdown:<br>you bring the words, it holds them up.</p>
+    </div>
+    <nav class="footer-links" aria-label="Project links">
+      <a href="https://github.com/julien-riel/lutrin">GitHub</a>
+      <a href="https://www.npmjs.com/package/lutrin">npm · lutrin</a>
+      <a href="https://www.npmjs.com/package/@lutrin/core">npm · @lutrin/core</a>
+      <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">DSL reference</a>
+      <a href="demo.html" target="_blank" rel="noopener">The demo deck</a>
+      <a href="demo.pptx" download>The demo .pptx</a>
+    </nav>
+  </div>
+  <div class="wrap footer-fine">
+    <p>MIT license · © Julien Riel · Slide photos © Luca Galuzzi CC BY-SA 2.5, Hannes Röst CC BY-SA 3.0 · Set in Fraunces &amp; IBM Plex (SIL OFL)</p>
+    <p>This page and its deck are rebuilt by GitHub Actions on every push to <code>main</code> — the slides above are compiled from <code>examples/demo.deck.md</code> at <code>HEAD</code>.</p>
+  </div>
+</footer>
+
+</main>
+
+<script src="assets/js/hero.js" defer></script>
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

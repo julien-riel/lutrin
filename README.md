@@ -3,6 +3,9 @@
 ![CI](https://github.com/julien-riel/lutrin/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+**[julien-riel.github.io/lutrin](https://julien-riel.github.io/lutrin/)** — the
+landing page, with a live demo deck recompiled on every push.
+
 **Lutrin compiles enriched Markdown into an editable PowerPoint or a
 standalone HTML page, and it is the engine — not the author — that decides
 the layout.**
@@ -311,6 +314,8 @@ packages/obsidian-plugin/      the Obsidian plugin (same worker, shadow DOM)
 examples/demo.deck.md          covers every layout and block type — test fixture
 examples/theme-example.json    example theme
 examples/kit-slate/            complete example kit (theme + layouts/, royalty-free)
+site/                          the landing page — deployed to GitHub Pages with the
+                               demo deck recompiled at HEAD (.github/workflows/pages.yml)
 ```
 
 ## Contributing, reporting
