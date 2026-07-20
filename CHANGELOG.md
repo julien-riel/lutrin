@@ -23,6 +23,23 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Marp compatibility** — a deck written for [Marp](https://marp.app)
+  compiles as it is: `marp: true` in the frontmatter (the pragma every Marp
+  deck already carries) switches the parser to the Marp dialect, in every
+  entry point at once — CLI, worker, VS Code, Obsidian. Slides split on `---`
+  only (`headingDivider` honoured, global and retroactive like in Marp), the
+  first `#`/`##` of a slide is its title, and the first subheading level
+  used below it opens sections (`###` or `####` under a `##` title — the
+  common Marp conventions, including the `<div class="columns">` idiom whose
+  divs are ignored while the headings they wrap become real columns),
+  HTML comments become presenter notes, `![bg]` images become slide
+  backgrounds (`bg left`/`bg right` = split sides), fragmented lists (`*`,
+  `1)`) animate their slide, `footer:` maps onto the deck footer. Directives
+  with no lutrin equivalent (`style:`, `theme:`, `backgroundColor:`…) are
+  each reported by the new `MARP_DIRECTIVE_IGNORED` diagnostic (info) —
+  never lost in silence — and the lutrin extensions (`<!-- layout: … -->`,
+  `:::metric`, `kit:`, charts, Mermaid) keep working inside a Marp deck.
+  Documented in docs/marp.md, with examples/marp-demo.md as a live example.
 - `lutrin setup-mermaid`: reports which browser will render diagrams, renders a
   test diagram to prove it works rather than promising, and — only with
   `--yes` — downloads `chrome-headless-shell` (~200 MB) into

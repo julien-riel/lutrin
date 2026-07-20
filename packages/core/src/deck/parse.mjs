@@ -44,6 +44,14 @@
 
 import MarkdownIt from 'markdown-it';
 import container from 'markdown-it-container';
+import {
+  classifyMarpDirective,
+  isMarpDeck,
+  marpBlocks,
+  marpMeta,
+  parseHeadingDivider,
+  parseMarpComment,
+} from './marp.mjs';
 
 export const CONTAINERS = ['info', 'success', 'warning', 'danger', 'metric'];
 
@@ -417,7 +425,26 @@ export function parseDeck(source) {
   // as a ghost slide. CI covers windows-latest; the BOM does not cost a line,
   // so source positions stay correct.
   const { meta, body, lineOffset } = splitFrontmatter(source.replace(/^\uFEFF/, ''));
+  /** Marp dialect (`marp: true` in the frontmatter): slides split on `---`
+   *  only, HTML comments are presenter notes, `![bg \u2026]` images become the
+   *  slide background \u2014 see marp.mjs. The lutrin DSL is unchanged without
+   *  the opt-in. */
+  const marp = isMarpDeck(meta);
+  const marpState = marp ? marpMeta(meta) : null;
   const tokens = buildMd().parse(body, {});
+  if (marp) {
+    // headingDivider is a GLOBAL Marp directive: wherever it is written, the
+    // LAST definition wins and applies to the whole deck — the slides before
+    // the comment split too. Hence this pre-scan, before any slide is cut.
+    for (const t of tokens) {
+      if (t.type !== 'html_block') continue;
+      for (const d of parseMarpComment(t.content)?.directives ?? []) {
+        if (classifyMarpDirective(d.key) === 'divider') {
+          marpState.divider = parseHeadingDivider(d.value);
+        }
+      }
+    }
+  }
   // 1-based, in the source file (frontmatter included)
   const lineOf = (t) => (t?.map ? t.map[0] + lineOffset + 1 : undefined);
 
@@ -469,6 +496,53 @@ export function parseDeck(source) {
     pending = [];
   };
 
+  /** Marp: has the slide's body opened yet? Images placed as backgrounds or
+   *  split sides do not count — `![bg …](…)` before the title is the
+   *  canonical Marp order, and the title that follows still titles the
+   *  slide. */
+  const marpSlideHasContent = (s) =>
+    s.sections.length > 1 ||
+    s.sections[0].heading !== null ||
+    s.sections[0].blocks.some(
+      (b) =>
+        !(
+          b.type === 'image' &&
+          (b.role === 'background' || b.role === 'left' || b.role === 'right')
+        ),
+    );
+
+  /** Routes a parsed Marp comment (directives + notes) into the deck. In the
+   *  Marp dialect a comment belongs to the slide it sits in — reading one
+   *  therefore OPENS the slide, like any content would: an empty Marp slide
+   *  carrying only a note exists and keeps its note. Directives with a lutrin
+   *  equivalent go through the normal machinery; the others land in
+   *  `marpState.ignored` so that validation reports them instead of losing
+   *  them in silence. */
+  function routeMarpComment(read, line) {
+    if (!read || (!read.directives.length && !read.notes.length)) return;
+    ensureSlide();
+    for (const note of read.notes) applyDirective(slide, { key: 'notes', value: note, line });
+    for (const d of read.directives) {
+      switch (classifyMarpDirective(d.key)) {
+        case 'lutrin':
+          applyDirective(slide, { key: d.key, value: d.value, line });
+          break;
+        case 'footer':
+          // lutrin's footer is deck-wide: the last definition wins, the way a
+          // Marp footer redefined mid-deck applies from there on
+          meta.footer = d.value;
+          break;
+        case 'divider':
+          // global directive: already applied deck-wide by the pre-scan
+          break;
+        case 'ignored':
+          marpState.ignored.push({ key: d.key, value: d.value, line });
+          break;
+        default: // silent: the engine already decides this on its own
+      }
+    }
+  }
+
   let i = 0;
   const n = tokens.length;
 
@@ -487,7 +561,14 @@ export function parseDeck(source) {
    *  Every block returned carries `line` (position in the source file). */
   function readBlock() {
     const line = lineOf(tokens[i]);
-    const b = readBlockAt();
+    let b = readBlockAt();
+    if (marp && b) {
+      // inline comments carry directives and notes too (Marpit reads them):
+      // collected during the strip, routed with the block's own line
+      const inline = [];
+      b = marpBlocks(b, (body) => inline.push(body));
+      for (const body of inline) routeMarpComment(parseMarpComment(`<!--${body}-->`), line);
+    }
     if (b && line != null) {
       for (const x of Array.isArray(b) ? b : [b]) x.line ??= line;
     }
@@ -518,10 +599,17 @@ export function parseDeck(source) {
       // nested block must not restart at "1." after the block. `startAt` is
       // the same convention as the split performed by pagination.
       let rank = 1;
+      /** Marp: `*` bullets and `1)` items are FRAGMENTED — they appear one by
+       *  one. The flag is read per chunk: a list cut in two by a nested block
+       *  keeps each half's own markers. */
+      let fragmented = false;
       /** Closes the current list chunk to let a block through. */
       const flushBullets = () => {
+        const frag = fragmented;
+        fragmented = false;
         if (!items.length) return;
         const b = { type: 'bullets', ordered, items };
+        if (marp && frag) b.fragmented = true;
         if (ordered && rank > 1) b.startAt = rank;
         if (itemsLine != null) b.line = itemsLine;
         rank += items.filter((it) => !it.level).length;
@@ -549,6 +637,11 @@ export function parseDeck(source) {
         }
         if (u.type === 'bullet_list_close' || u.type === 'ordered_list_close') {
           depth--;
+          i++;
+          continue;
+        }
+        if (u.type === 'list_item_open') {
+          if (marp && (u.markup === '*' || u.markup === ')')) fragmented = true;
           i++;
           continue;
         }
@@ -663,6 +756,10 @@ export function parseDeck(source) {
       }
       case 'html_block': {
         i++;
+        if (marp) {
+          routeMarpComment(parseMarpComment(t.content), lineOf(t));
+          return null;
+        }
         const c = parseComment(t.content);
         if (c) {
           const directive = { ...c, line: lineOf(t) };
@@ -739,7 +836,48 @@ export function parseDeck(source) {
     // a paragraph mixing text and images returns several blocks: all of them
     // are placed, in source order
     for (const block of Array.isArray(read) ? read : [read]) {
-      if (block.type === 'heading' && block.depth === 1) {
+      if (marp && block.type === 'heading') {
+        // Marp never splits on a heading — `---` does, and headingDivider
+        // restores the heading splits the deck asked for
+        if (marpState.divider?.has(block.depth)) pushSlide();
+        // Structural depths are RELATIVE to the slide's title: `#`/`##` are
+        // always structural (title or section), and below the title it is the
+        // FIRST subheading level actually used that opens the sections — a
+        // `##` slide subdivided with `###`, or with `####` inside the
+        // `<div class="columns">` idiom of Marp decks (the divs themselves
+        // are ignored HTML). Deeper headings stay subheadings in the flow.
+        const tDepth = slide?.marpTitleDepth;
+        const structural =
+          block.depth <= 2 ||
+          (tDepth != null &&
+            block.depth > tDepth &&
+            block.depth === (slide.marpSectionDepth ?? block.depth));
+        if (structural) {
+          ensureSlide();
+          slide.line ??= block.line;
+          // the first heading of the slide titles it — unless the body
+          // already opened (a background image does not open it: `![bg]`
+          // before the title is the canonical Marp order); a heading met
+          // mid-flow opens a section, exactly like a `##` of the lutrin DSL
+          if (!slide.title && !marpSlideHasContent(slide) && block.depth <= 2) {
+            slide.titleRuns = block.runs;
+            slide.title = runsToText(block.runs).trim();
+            slide.marpTitleDepth = block.depth;
+          } else {
+            if (slide.marpTitleDepth != null && block.depth > slide.marpTitleDepth) {
+              slide.marpSectionDepth ??= block.depth;
+            }
+            if (curSection().heading !== null || curSection().blocks.length) {
+              slide.sections.push({ heading: block.runs, blocks: [] });
+            } else {
+              curSection().heading = block.runs;
+            }
+          }
+          continue;
+        }
+        // deep heading: flows as content below
+      }
+      if (!marp && block.type === 'heading' && block.depth === 1) {
         pushSlide();
         ensureSlide();
         slide.titleRuns = block.runs;
@@ -750,6 +888,12 @@ export function parseDeck(source) {
 
       ensureSlide();
       slide.line ??= block.line;
+      if (marp && block.fragmented) {
+        // a fragmented list reveals point by point: that is lutrin's animate,
+        // unless the slide opted out explicitly (<!-- animate: none -->)
+        delete block.fragmented;
+        if (slide.animate === null) slide.animate = true;
+      }
       if (block.type === 'heading' && block.depth === 2) {
         // new section (potential slot)
         if (curSection().heading !== null || curSection().blocks.length) {
@@ -766,11 +910,36 @@ export function parseDeck(source) {
   pushSlide();
   dropPending();
 
+  if (marp) {
+    // several `![bg]` on one slide (Marp composes them side by side): lutrin
+    // has ONE background — the first wins, the others return to the flow
+    for (const s of slides) {
+      // parse-time bookkeeping, not part of the IR
+      delete s.marpTitleDepth;
+      delete s.marpSectionDepth;
+      let bg = false;
+      for (const sec of s.sections) {
+        for (const b of sec.blocks) {
+          if (b.type === 'image' && (b.role === 'background' || b.role === 'cover')) {
+            if (bg) b.role = 'auto';
+            bg = true;
+          }
+        }
+      }
+    }
+  }
+
   return {
     meta,
-    slides: slides.filter((s) => s.title || s.sections.some((x) => x.blocks.length || x.heading)),
+    // Marp keeps a slide that only carries a note (its comment is content);
+    // a slide with nothing at all is dropped in both dialects
+    slides: slides.filter(
+      (s) =>
+        s.title || s.sections.some((x) => x.blocks.length || x.heading) || (marp && s.notes.length),
+    ),
     // key absent when there is nothing to report: the IR of a healthy deck
     // does not change shape for an anomaly it does not have
     ...(orphanDirectives.length ? { orphanDirectives } : {}),
+    ...(marp && marpState.ignored.length ? { marpIgnored: marpState.ignored } : {}),
   };
 }

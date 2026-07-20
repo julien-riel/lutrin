@@ -37,6 +37,7 @@ import { chartDataDiagnostics } from './chart.mjs';
 import { LAYER_SHADES, PAGE, contentArea } from './tokens.mjs';
 import { prepareDeckContext } from './context.mjs';
 import { THEME_KEYS } from './theme.mjs';
+import { isMarpDeck } from './marp.mjs';
 import { closest } from './suggest.mjs';
 
 /** Candidates for animation preset suggestions (names + French aliases). */
@@ -110,6 +111,24 @@ export function validateDeck(
   // impossible parse into a diagnostic rather than a crash.
   const lines = source.split(/\r?\n/);
   if (typeof lines[0] === 'string') lines[0] = lines[0].replace(/^\uFEFF/, '');
+
+  // ------ IR -----------------------------------------------------------------
+  // Validation must never throw: a deck that cannot be parsed becomes a
+  // diagnostic, not a crash of the editor or of the CLI. Parsed BEFORE the
+  // text scan: the scan needs the deck's dialect, and only the parser knows
+  // it \u2014 frontmatter detection and quote stripping live there, a second
+  // ad hoc reading of `marp:` would inevitably diverge from it.
+  if (!deck) {
+    try {
+      deck = parseDeck(source);
+    } catch (e) {
+      push('error', 'PARSE_ERROR', `Could not parse the document: ${e?.message ?? e}`, 1);
+      return diags;
+    }
+  }
+  // Marp dialect: `:::` is not part of its syntax \u2014 a line starting with
+  // `:::` there is prose, not a mistyped directive. Whole scan off.
+  const marpDoc = isMarpDeck(deck.meta);
   let inFence = null;
   let inFrontmatter = lines[0]?.trim() === '---' ? 'open' : null;
   lines.forEach((raw, k) => {
@@ -126,6 +145,7 @@ export function validateDeck(
       return;
     }
     if (inFence) return;
+    if (marpDoc) return;
     const dir = line.match(/^:{3,}\s*([A-Za-z][\w-]*)/);
     // CASE-SENSITIVE comparison, like markdown-it-container when opening:
     // `:::Info` opens no callout and renders as a literal paragraph.
@@ -153,17 +173,14 @@ export function validateDeck(
     }
   });
 
-  // ------ IR -----------------------------------------------------------------
-  // Validation must never throw: a deck that cannot be parsed becomes a
-  // diagnostic, not a crash of the editor or of the CLI.
-  if (!deck) {
-    try {
-      deck = parseDeck(source);
-    } catch (e) {
-      push('error', 'PARSE_ERROR', `Could not parse the document: ${e?.message ?? e}`, 1);
-      return diags;
+  /** Line (1-based) of a frontmatter key, to position a diagnostic. */
+  const metaLine = (key) => {
+    if (lines[0]?.trim() !== '---') return 1;
+    for (let k = 1; k < lines.length && lines[k].trim() !== '---'; k++) {
+      if (new RegExp(`^${key}\\s*:`).test(lines[k])) return k + 1;
     }
-  }
+    return 1;
+  };
 
   // Directives the parser could not attach to any slide (end of file, or `---`
   // before any content). They have no effect: saying so here is the only trace
@@ -178,24 +195,45 @@ export function validateDeck(
     );
   }
 
-  if (!deck.slides.length && !deck.meta.title) {
+  // Marp directives with no lutrin equivalent: the parser collected them
+  // (deck.marpIgnored), each one is reported here — an author must never
+  // discover a lost directive by staring at the rendering. Info severity:
+  // the deck compiles, the engine simply decides these things itself.
+  // BEFORE the early return of EMPTY_DECK, for the same reason as the
+  // orphans: an empty deck loses its directives too.
+  for (const d of deck.marpIgnored ?? []) {
+    const at = d.line ?? metaLine(d.key);
+    if (d.key === 'theme') {
+      push(
+        'info',
+        'MARP_DIRECTIVE_IGNORED',
+        `Marp theme "${d.value}" ignored: lutrin themes come from kits — \`kit: <name>\` (frontmatter) or --kit. The generic theme applies.`,
+        at,
+        'kit:',
+      );
+    } else {
+      push(
+        'info',
+        'MARP_DIRECTIVE_IGNORED',
+        `Marp directive "${d.key}${d.value ? `: ${d.value}` : ''}" has no lutrin equivalent — ignored (layout, colors and chrome are decided by the engine and the theme).`,
+        at,
+      );
+    }
+  }
+
+  // In the Marp dialect, `title:` is HTML metadata — it creates no cover
+  // slide, so it cannot vouch for the deck the way a lutrin title does.
+  if (!deck.slides.length && (!deck.meta.title || marpDoc)) {
     push(
       'warning',
       'EMPTY_DECK',
-      'No slides: neither a frontmatter `title:`, nor a `# heading` in the body.',
+      marpDoc
+        ? 'No slides: in a Marp deck, `title:` is metadata and creates no slide — add body content (slides split on `---`).'
+        : 'No slides: neither a frontmatter `title:`, nor a `# heading` in the body.',
       1,
     );
     return diags;
   }
-
-  /** Line (1-based) of a frontmatter key, to position a diagnostic. */
-  const metaLine = (key) => {
-    if (lines[0]?.trim() !== '---') return 1;
-    for (let k = 1; k < lines.length && lines[k].trim() !== '---'; k++) {
-      if (new RegExp(`^${key}\\s*:`).test(lines[k])) return k + 1;
-    }
-    return 1;
-  };
 
   // `animate:` in the frontmatter (whole deck) — the same check as the slide
   // comment, positioned on the frontmatter line
@@ -658,8 +696,30 @@ export function capabilities() {
     codeFences: ['mermaid', 'math', 'latex', 'tex', 'chart'],
     comments: ['notes', 'layout', 'animate'],
     animatePresets: [...ANIM_PRESETS],
-    frontmatter: ['title', 'subtitle', 'author', 'date', 'footer', 'animate', 'kit', 'assets'],
+    frontmatter: [
+      'title',
+      'subtitle',
+      'author',
+      'date',
+      'footer',
+      'animate',
+      'kit',
+      'assets',
+      'marp',
+    ],
     outputs: ['pptx', 'html'],
+    marp:
+      '`marp: true` (frontmatter) reads the deck as Marp Markdown (Marpit + Marp Core): slides split on ' +
+      '`---` only (headingDivider honoured — global, last definition wins), the first #/## of a slide is ' +
+      'its title, and the first subheading level used below it opens sections (## under a # title, ### ' +
+      'or #### under a ## title — the <div class="columns"> idiom maps to real columns, the divs being ' +
+      'ignored HTML). HTML comments — inline ones included — are presenter notes unless they carry ' +
+      'directives, `![bg …]` images become the slide background (`bg left`/`bg right` = split side), Marp ' +
+      'sizing/filter keywords in alts are consumed, fragmented lists (`*`, `1)`) animate their slide, ' +
+      '<!-- fit --> is stripped. footer: maps onto the deck footer. Directives with no equivalent (style, ' +
+      'header, background*, color, size other than 16:9, Marp theme:) are reported by ' +
+      'MARP_DIRECTIVE_IGNORED — themes come from kits (kit:), which works in a Marp deck too, as do ' +
+      '<!-- layout: … -->, <!-- notes: … -->, <!-- animate --> and the ::: callouts.',
     remoteImages:
       '`![](https://…)` images are downloaded then embedded in the deliverable (the presentation has no ' +
       'network dependency). They land in the user cache ~/.cache/lutrin/remote/, shared between projects — ' +
@@ -732,6 +792,7 @@ export function capabilities() {
       'USER_CONFIG_INVALID',
       'LAYOUT_DEF_INVALID',
       'LAYOUT_DEF_ADJUSTED',
+      'MARP_DIRECTIVE_IGNORED',
     ],
   });
 }

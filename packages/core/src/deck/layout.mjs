@@ -28,6 +28,7 @@ import {
   LINE_HEIGHT,
   contentArea,
 } from './tokens.mjs';
+import { isMarpDeck } from './marp.mjs';
 import { ALERT_BLOCK_TYPES, animateFlag, animatePreset, runsToText } from './parse.mjs';
 import { closest } from './suggest.mjs';
 
@@ -908,8 +909,10 @@ export function buildScenes(deck) {
   const deckAnimate = meta.animate != null && animateFlag(meta.animate);
   const deckPreset = meta.animate != null ? animatePreset(meta.animate) : null;
 
-  // Implicit cover slide from the frontmatter
-  if (meta.title) {
+  // Implicit cover slide from the frontmatter. Not for a Marp deck: there,
+  // `title:` is HTML metadata (Marp CLI) and the cover is the deck's own
+  // first slide — an implicit one would double it.
+  if (meta.title && !isMarpDeck(meta)) {
     scenes.push({
       master: 'cover',
       layout: 'cover',

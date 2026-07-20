@@ -70,6 +70,11 @@ The DSL — inferred layouts, `:::metric` / `:::warning` directives,
 ` ```chart ` charts, Mermaid, LaTeX, Lucide icons, animations, notes — is
 documented in [docs/dsl.md](docs/dsl.md).
 
+A deck written for [Marp](https://marp.app) compiles as it is: `marp: true`
+in the frontmatter switches the parser to the Marp dialect — `---` slide
+splits, presenter notes in comments, `![bg]` images, fragmented lists.
+Details and the mapping table: [docs/marp.md](docs/marp.md).
+
 ## Why not Marp / Slidev / reveal.js / Pandoc?
 
 These tools are good, and for many uses they are the right choice. Lutrin
