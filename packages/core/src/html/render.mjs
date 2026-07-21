@@ -910,7 +910,14 @@ body{margin:0;background:#${C.underground2};font-family:"${FONTS.body}",-apple-s
 .el{position:absolute;margin:0}
 a{color:#${C.primary};text-decoration:none}
 a:hover{text-decoration:underline}
-code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker}}
+/* inline code — every surface property EXPLICIT, not only the ones the theme
+   cares about. The fragment mode injects this CSS into hosts (VS Code
+   webview, Obsidian) whose own default stylesheets give "code" a padded,
+   theme-colored chip (VS Code: --vscode-textPreformat-background); any
+   property left undeclared here is repainted by the host — dark chips under
+   dark editor themes, unreadable on a light slide. (No backticks in these
+   comments: we are inside a JS template literal.) */
+code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:transparent;padding:0;border-radius:0}
 
 /* chrome of content slides */
 .slide-title{position:absolute;left:${PAGE.margin}px;top:${SPACE.lg}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${PAGE.titleHeight - SPACE.lg - 8}px;display:flex;align-items:center;font-size:${TYPE.slideTitle}pt;font-weight:700;line-height:1.15}
@@ -969,7 +976,10 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker}}
 .tl-axis-v.tl-no-arrow{background-size:2px 100%}
 .tl-arrow-v{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:0;border-top:14px solid #${C.neutralStroke};border-left:7px solid transparent;border-right:7px solid transparent}
 .tl-dot{display:flex;align-items:center;justify-content:center;background:#${C.primary};color:#${C.ground};border:2px solid #${C.ground};border-radius:50%;font-size:${TYPE.metricLabel}pt;font-weight:700;box-sizing:border-box}
-.quote blockquote{position:absolute;left:96px;right:32px;top:0;bottom:64px;display:flex;align-items:center;margin:0;font-size:${TYPE.quote}pt;font-style:italic;line-height:1.4}
+/* same host-default hazard as "code" above: the webview paints blockquote
+   with --vscode-textBlockQuote-background and a left border — neutralized
+   explicitly */
+.quote blockquote{position:absolute;left:96px;right:32px;top:0;bottom:64px;display:flex;align-items:center;margin:0;padding:0;background:transparent;border:0;font-size:${TYPE.quote}pt;font-style:italic;line-height:1.4}
 .quote-mark{position:absolute;left:0;top:-10px;font-size:72pt;font-weight:700;color:#${C.primary};line-height:1}
 .quote figcaption{position:absolute;right:32px;bottom:12px;font-size:${TYPE.body}pt;color:#${C.neutralSecondary}}
 .img-contain{object-fit:contain}

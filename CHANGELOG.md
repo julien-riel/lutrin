@@ -9,6 +9,16 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ## [Unreleased]
 
+### Fixed
+
+- Inline code and quote blocks are readable again in the editor previews.
+  The fragment CSS declared only the properties the theme cares about; the
+  VS Code webview's own stylesheet then repainted what was left undeclared —
+  `code` got a padded chip in `--vscode-textPreformat-background`, dark
+  under a dark editor theme, illegible on a light slide (blockquotes, same
+  hazard). Every surface property is now declared explicitly, even at its
+  neutral value, so no host default can bleed into the slides.
+
 ### Added
 
 - **`lutrin-vscode` 1.1.0 — first Marketplace release.** Marketplace

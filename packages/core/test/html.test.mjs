@@ -44,6 +44,26 @@ test('fragment mode: no script, no trace of presenter mode', async () => {
   assert.doesNotMatch(all, /presenting|present-hint|__anim/);
 });
 
+// The fragment CSS lands in hosts whose OWN stylesheets restyle `code` and
+// `blockquote` (VS Code webview: --vscode-textPreformat-background gives
+// inline code a padded dark chip under dark themes; textBlockQuote adds a
+// background and a left border). Every surface property the host paints must
+// therefore be DECLARED here, even at its neutral value — an undeclared one
+// is repainted by the host, dark-on-light garbage on the slide.
+test('fragment mode: inline code and blockquote declare their surface, host defaults cannot bleed', async () => {
+  const { css } = await compileHtml(SOURCE, { fragment: true });
+  const codeRule = css.match(/^code\{([^}]*)\}/m)?.[1];
+  assert.ok(codeRule, 'the fragment CSS must carry a bare `code` rule');
+  for (const prop of ['background:transparent', 'padding:0', 'border-radius:0']) {
+    assert.ok(codeRule.includes(prop), `code rule must declare ${prop} — got: ${codeRule}`);
+  }
+  const quoteRule = css.match(/\.quote blockquote\{([^}]*)\}/)?.[1];
+  assert.ok(quoteRule, 'the fragment CSS must style .quote blockquote');
+  for (const prop of ['background:transparent', 'border:0', 'padding:0']) {
+    assert.ok(quoteRule.includes(prop), `blockquote rule must declare ${prop} — got: ${quoteRule}`);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Mermaid: VISIBLE labels, or no diagram at all
 // ---------------------------------------------------------------------------
@@ -88,9 +108,7 @@ test('mermaid: an SVG with foreignObject is refused rather than rendered unlabel
   const sourcePng = 'graph TD\n  C[Gamma] --> D[Delta]\n';
   const pngKey = `${crypto
     .createHash('sha1')
-    .update(
-      JSON.stringify({ s: sourcePng, f: 'png', c: mermaidConfig(), px: MERMAID_PNG_SCALE }),
-    )
+    .update(JSON.stringify({ s: sourcePng, f: 'png', c: mermaidConfig(), px: MERMAID_PNG_SCALE }))
     .digest('hex')}.png`;
   fs.writeFileSync(path.join(vendor, pngKey), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   assert.equal(
