@@ -1,0 +1,6 @@
+# The vendored Mermaid bundle is pinned byte-for-byte by the SHA-256 recorded
+# in vendor/mermaid/README.md (and asserted by mermaid.test.mjs). On a Windows
+# checkout, core.autocrlf=true — the GitHub runners' default — rewrites its
+# LF into CRLF and the digest no longer matches anything. Nothing under
+# vendor/ is ours to normalize: it travels exactly as published upstream.
+packages/core/vendor/** -text

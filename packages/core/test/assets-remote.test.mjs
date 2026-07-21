@@ -134,6 +134,10 @@ test('in vendor mode, the project copy is reused as is', async () => {
 
 test('vendor: a read-only project falls back on the cache rather than failing', async (t) => {
   if (process.getuid?.() === 0) return t.skip('root ignores file permissions');
+  // chmod on a directory is a no-op on Windows (the read-only attribute does
+  // not deny writes into it): the premise of this test — an FS that refuses
+  // the write — cannot be staged there
+  if (process.platform === 'win32') return t.skip('chmod cannot make a directory read-only');
   const baseDir = tmpProject();
   const cached = seedCache(PHOTO_URL);
   fs.chmodSync(baseDir, 0o500); // read + traverse, no write

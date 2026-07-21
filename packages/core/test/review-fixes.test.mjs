@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { compileHtml } from '../src/html/render.mjs';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
@@ -18,7 +19,9 @@ import { validateDeck } from '../src/deck/validate.mjs';
 import { setFrontmatterKey } from '../src/vendor.mjs';
 import { fetchKitArchive } from '../src/kit/archive.mjs';
 
-const PIXEL = path.join(path.dirname(new URL(import.meta.url).pathname), 'fixtures', 'pixel.png');
+// fileURLToPath, never URL.pathname: on Windows the pathname is "/D:/a/…",
+// which path resolution then glues onto the current drive as "D:\D:\a\…"
+const PIXEL = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'pixel.png');
 const scenesFor = (source) => buildScenes(parseDeck(source));
 const codes = (source, opts) => validateDeck(source, opts).map((d) => d.code);
 

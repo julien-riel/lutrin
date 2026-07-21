@@ -1312,21 +1312,30 @@ test('rename: "lutrin" wins over "mtl-deck" when the package.json carries both',
 
 test('rename: ~/.config/mtl-deck is migrated to ~/.config/lutrin, once only', (t) => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-home-'));
-  const prevHome = process.env.HOME;
-  const prevL = process.env.LUTRIN_CONFIG;
-  const prevM = process.env.MTL_DECK_CONFIG;
+  // EVERY route to the config root must lead into the fake home, not only
+  // HOME: the root resolution prefers XDG_CONFIG_HOME when set (the GitHub
+  // ubuntu runners set it — this test failed there, and only there, for as
+  // long as it redirected HOME alone), and os.homedir() reads USERPROFILE
+  // on Windows, where HOME means nothing.
+  const prev = Object.fromEntries(
+    ['HOME', 'USERPROFILE', 'XDG_CONFIG_HOME', 'LUTRIN_CONFIG', 'MTL_DECK_CONFIG'].map((k) => [
+      k,
+      process.env[k],
+    ]),
+  );
   t.after(() => {
-    process.env.HOME = prevHome;
-    if (prevL === undefined) delete process.env.LUTRIN_CONFIG;
-    else process.env.LUTRIN_CONFIG = prevL;
-    if (prevM === undefined) delete process.env.MTL_DECK_CONFIG;
-    else process.env.MTL_DECK_CONFIG = prevM;
+    for (const [k, v] of Object.entries(prev)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
     fs.rmSync(home, { recursive: true, force: true });
   });
   // the root migration applies ONLY if nothing drives the root
   delete process.env.LUTRIN_CONFIG;
   delete process.env.MTL_DECK_CONFIG;
+  delete process.env.XDG_CONFIG_HOME;
   process.env.HOME = home;
+  process.env.USERPROFILE = home;
 
   const legacy = path.join(home, '.config', 'mtl-deck');
   fs.mkdirSync(path.join(legacy, 'themes', 'custom'), { recursive: true });
