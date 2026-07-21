@@ -1,0 +1,142 @@
+# Publication of the VS Code extension.
+#
+# Trigger: a `vscode-v<version>` tag, where <version> MUST equal the version in
+# packages/vscode-extension/package.json — the guard below refuses anything
+# else, because the Marketplace rejects a re-published version number and the
+# mismatch would only surface there, after the build. `workflow_dispatch` runs
+# the same pipeline WITHOUT publishing (the VSIX lands as an artifact): the way
+# to rehearse the release before creating the tag, or before the VSCE_PAT
+# secret even exists. A manual run NEVER publishes, even when launched on a
+# tag ref — IS_TAG requires the push event, not merely the ref shape.
+#
+# ci.yml does not run on tags, so this workflow replays the tests itself: a
+# tag laid on a commit that never went through a PR must not reach the
+# Marketplace unverified.
+#
+# Secrets: VSCE_PAT (required — a tag run FAILS FAST without it: a green run
+# that skipped the Marketplace would look exactly like a release; an Azure
+# DevOps PAT with the "Marketplace: Manage" scope, see publication.md),
+# OVSX_PAT (optional — if present, the same VSIX also goes to Open VSX, the
+# registry VSCodium and Cursor read; if absent that step is skipped, and it
+# runs AFTER the GitHub release so its failure can strand nothing). Secrets
+# are not readable from `if:` conditions, hence the job-level env mapping the
+# steps test instead.
+#
+# Third-party actions are pinned by SHA for the same reasons as ci.yml.
+name: Release — VS Code extension
+
+on:
+  push:
+    tags: ['vscode-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Test, package, publish
+    runs-on: ubuntu-latest
+    permissions:
+      # `gh release create` attaches the VSIX to a GitHub release (tag runs only)
+      contents: write
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      IS_TAG: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/vscode-v') }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Tag matches the manifest version
+        if: env.IS_TAG == 'true'
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#vscode-v}"
+          pkg=$(node -p "require('./packages/vscode-extension/package.json').version")
+          if [ "$tag" != "$pkg" ]; then
+            echo "✖ tag says $tag, package.json says $pkg" >&2
+            exit 1
+          fi
+          echo "✓ releasing $pkg"
+
+      # Before the long test/build phase: a missing (or mis-named) secret
+      # yields an empty string, and an empty-PAT tag run must be a loud
+      # failure, not a green run with nothing on the Marketplace.
+      - name: VSCE_PAT is present
+        if: env.IS_TAG == 'true' && env.VSCE_PAT == ''
+        run: |
+          echo "✖ VSCE_PAT secret missing or empty — a vscode-v* tag publishes to the Marketplace (publication.md, one-time setup)" >&2
+          exit 1
+
+      # The extension's own suite plus the core's: the VSIX embeds the core,
+      # so a broken core IS a broken extension, whatever the extension's tests
+      # say.
+      - name: Core tests
+        run: npm test -w @lutrin/core
+      - name: Extension tests
+        run: npm test -w lutrin-vscode
+      - name: Typecheck
+        run: npm run typecheck -w lutrin-vscode
+
+      # Same order as ci.yml, and binding: `npm run vsix` packages dist/, the
+      # build must have produced it first. No brand kit here — a Marketplace
+      # package carries the generic theme, a brand belongs to whoever holds it.
+      - name: Build
+        run: npm run build -w lutrin-vscode
+      - name: Package VSIX
+        run: npm run vsix -w lutrin-vscode
+
+      - name: Publish to Visual Studio Marketplace
+        if: env.IS_TAG == 'true'
+        working-directory: packages/vscode-extension
+        run: |
+          set -euo pipefail
+          vsix=$(node -e "process.stdout.write(require('./latest.json').vsix)")
+          npx @vscode/vsce publish --packagePath "$vsix"
+
+      # The VSIX + latest.json pair is the supported channel for installations
+      # outside the Marketplace (lutrin.updateUrl): attaching both to a GitHub
+      # release gives them a stable https home. BEFORE Open VSX: if that
+      # optional registry fails, the job goes red but both primary channels
+      # are already complete — the miss is repairable by hand with this VSIX.
+      - name: GitHub release with the VSIX
+        if: env.IS_TAG == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          vsix=$(node -e "process.stdout.write(require('./packages/vscode-extension/latest.json').vsix)")
+          gh release create "$GITHUB_REF_NAME" \
+            --title "VS Code extension ${GITHUB_REF_NAME#vscode-v}" \
+            --notes "See [the extension changelog](https://github.com/${GITHUB_REPOSITORY}/blob/main/packages/vscode-extension/CHANGELOG.md)." \
+            "packages/vscode-extension/$vsix" \
+            packages/vscode-extension/latest.json
+
+      # `ovsx` is a devDependency of the extension for the same reason vsce
+      # is (scripts/package.mjs): npx then resolves the lockfile-pinned copy
+      # instead of executing whatever the registry serves that day — this step
+      # holds a publishing token.
+      - name: Publish to Open VSX (optional)
+        if: env.IS_TAG == 'true' && env.OVSX_PAT != ''
+        working-directory: packages/vscode-extension
+        run: |
+          set -euo pipefail
+          vsix=$(node -e "process.stdout.write(require('./latest.json').vsix)")
+          npx ovsx publish "$vsix" -p "$OVSX_PAT"
+
+      # Dry runs (workflow_dispatch) still hand you the binary they built.
+      - name: VSIX artifact
+        if: env.IS_TAG != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lutrin-vscode-vsix-dry-run
+          path: |
+            packages/vscode-extension/*.vsix
+            packages/vscode-extension/latest.json
+          if-no-files-found: error
+          retention-days: 14

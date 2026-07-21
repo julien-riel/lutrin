@@ -1,16 +1,50 @@
 {
   "name": "lutrin-vscode",
-  "displayName": "Lutrin",
-  "description": "Live preview, diagnostics and PowerPoint export for Markdown presentations compiled by Lutrin.",
-  "version": "0.1.0",
+  "displayName": "Lutrin — Markdown Presentations",
+  "description": "Write presentations in Markdown: live slide preview, deck diagnostics with quick fixes, brand kits, Marp compatibility and one-click PowerPoint (.pptx) export.",
+  "version": "1.1.0",
   "publisher": "lutrin",
   "license": "MIT",
   "private": true,
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0b1322",
+    "theme": "dark"
+  },
+  "pricing": "Free",
+  "badges": [
+    {
+      "url": "https://img.shields.io/github/actions/workflow/status/julien-riel/lutrin/ci.yml?branch=main&label=CI",
+      "href": "https://github.com/julien-riel/lutrin/actions/workflows/ci.yml",
+      "description": "CI — tests on Linux, macOS and Windows"
+    },
+    {
+      "url": "https://img.shields.io/npm/v/lutrin?label=lutrin%20CLI",
+      "href": "https://www.npmjs.com/package/lutrin",
+      "description": "The same compiler as a CLI, on npm"
+    },
+    {
+      "url": "https://img.shields.io/badge/license-MIT-blue",
+      "href": "https://github.com/julien-riel/lutrin/blob/main/LICENSE",
+      "description": "MIT license"
+    }
+  ],
   "engines": {
     "vscode": "^1.90.0",
     "node": ">=22"
   },
-  "keywords": ["markdown", "powerpoint", "pptx", "slides", "presentation", "deck"],
+  "keywords": [
+    "markdown",
+    "presentation",
+    "slides",
+    "powerpoint",
+    "pptx",
+    "deck",
+    "marp",
+    "preview",
+    "export",
+    "mermaid"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/julien-riel/lutrin.git",
@@ -19,10 +53,22 @@
   "bugs": {
     "url": "https://github.com/julien-riel/lutrin/issues"
   },
-  "homepage": "https://github.com/julien-riel/lutrin#readme",
-  "categories": ["Visualization", "Other"],
+  "homepage": "https://julien-riel.github.io/lutrin/",
+  "categories": ["Visualization", "Linters", "Other"],
   "main": "./dist/extension.js",
   "activationEvents": ["onLanguage:markdown"],
+  "extensionKind": ["workspace"],
+  "capabilities": {
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "The compiler runs in a Node worker against real files (images, fonts, brand kits)."
+    },
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Preview, diagnostics and export work. Settings that point at files to load or packages to install are read from user settings only.",
+      "restrictedConfigurations": ["lutrin.defaultKit", "lutrin.updateUrl"]
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -32,14 +78,30 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "lutrin.newDeck",
+        "title": "New Presentation",
+        "shortTitle": "Lutrin Presentation",
+        "category": "Lutrin",
+        "icon": "$(new-file)"
+      },
+      {
         "command": "lutrin.exportPptx",
         "title": "Export to PowerPoint (.pptx)",
-        "category": "Lutrin"
+        "category": "Lutrin",
+        "icon": "$(desktop-download)"
       },
       {
         "command": "lutrin.checkForUpdates",
         "title": "Check for Updates",
         "category": "Lutrin"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "lutrin.showPreview",
+        "key": "ctrl+k l",
+        "mac": "cmd+k l",
+        "when": "editorLangId == markdown"
       }
     ],
     "menus": {
@@ -48,6 +110,35 @@
           "command": "lutrin.showPreview",
           "when": "editorLangId == markdown",
           "group": "navigation"
+        },
+        {
+          "command": "lutrin.exportPptx",
+          "when": "editorLangId == markdown",
+          "group": "1_lutrin"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "lutrin.exportPptx",
+          "when": "resourceLangId == markdown",
+          "group": "1_lutrin"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "lutrin.showPreview",
+          "when": "resourceFilename =~ /\\.deck\\.md$/",
+          "group": "navigation@10"
+        },
+        {
+          "command": "lutrin.exportPptx",
+          "when": "resourceFilename =~ /\\.deck\\.md$/",
+          "group": "navigation@11"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "lutrin.newDeck"
         }
       ],
       "commandPalette": [
@@ -67,30 +158,88 @@
         "lutrin.files": {
           "type": "string",
           "default": "**/*.deck.md",
+          "order": 1,
           "description": "Glob of the Markdown files automatically treated as presentations (diagnostics without opening the preview). A \"deck: true\" frontmatter, or opening the preview by hand, has the same effect."
         },
         "lutrin.debounceMs": {
           "type": "number",
           "default": 300,
+          "order": 2,
           "description": "Delay (ms) between a keystroke and recompiling the preview."
         },
         "lutrin.defaultKit": {
           "type": "string",
           "default": "",
+          "order": 3,
           "markdownDescription": "This editor's default kit for decks that name none (the name of a kit installed in `~/.config/lutrin/kits/`, the path of a kit directory, the path of a `.json` file, or `none` for the generic theme). Empty = the kit embedded in the extension, if there is one. The document always wins: the frontmatter `kit:`, the project default (`package.json`) and the user default (`lutrin config`, shared across tools) all take precedence over this setting."
         },
         "lutrin.updateUrl": {
           "type": "string",
           "default": "",
-          "description": "https URL of the internal update manifest (latest.json, generated by \"npm run vsix\" — http URLs are refused, and the manifest's sha256 digest is verified before installation). Empty = checking disabled. The extension checks on activation, then once a day, and through the \"Check for Updates\" command."
+          "order": 4,
+          "description": "For VSIX installations distributed outside the Marketplace only — the Marketplace updates itself. https URL of the internal update manifest (latest.json, generated by \"npm run vsix\" — http URLs are refused, and the manifest's sha256 digest is verified before installation). Empty = checking disabled. The extension checks on activation, then once a day, and through the \"Check for Updates\" command."
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "lutrin.gettingStarted",
+        "title": "Get started with Lutrin",
+        "description": "Write a presentation in Markdown, watch it compose beside the text, export a PowerPoint anyone can retouch.",
+        "steps": [
+          {
+            "id": "lutrin.newDeck",
+            "title": "Create your first deck",
+            "description": "A presentation is a Markdown file — one # heading per slide, the engine lays it out.\n[New Presentation](command:lutrin.newDeck)",
+            "media": {
+              "markdown": "media/walkthrough/new-deck.md"
+            },
+            "completionEvents": ["onCommand:lutrin.newDeck"]
+          },
+          {
+            "id": "lutrin.preview",
+            "title": "Preview while you type",
+            "description": "The panel recompiles as you type and follows your cursor from slide to slide.\n[Show Preview](command:lutrin.showPreview)",
+            "media": {
+              "markdown": "media/walkthrough/preview.md"
+            },
+            "completionEvents": ["onCommand:lutrin.showPreview"]
+          },
+          {
+            "id": "lutrin.doctor",
+            "title": "Let the deck doctor underline problems",
+            "description": "Overflowing slides, unknown layouts, unresolved images: diagnostics appear on the exact line, most with a one-click fix.",
+            "media": {
+              "markdown": "media/walkthrough/doctor.md"
+            }
+          },
+          {
+            "id": "lutrin.export",
+            "title": "Export to PowerPoint",
+            "description": "The .pptx is fully editable — text stays text, shapes stay shapes.\n[Export to PowerPoint](command:lutrin.exportPptx)",
+            "media": {
+              "markdown": "media/walkthrough/export.md"
+            },
+            "completionEvents": ["onCommand:lutrin.exportPptx"]
+          },
+          {
+            "id": "lutrin.kits",
+            "title": "Put your brand on it",
+            "description": "A brand kit (colors, fonts, logos, layouts) restyles every deck without touching the Markdown.\n[Read about kits](https://github.com/julien-riel/lutrin#readme)",
+            "media": {
+              "markdown": "media/walkthrough/kits.md"
+            },
+            "completionEvents": ["onLink:https://github.com/julien-riel/lutrin#readme"]
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "build": "node esbuild.mjs && node scripts/package.mjs --dev",
     "watch": "node esbuild.mjs --watch",
     "vsix": "node scripts/package.mjs --vsix",
+    "icon": "node scripts/icon.mjs",
     "test": "node --experimental-transform-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"test/*.test.mts\"",
     "typecheck": "tsc --noEmit"
   },
@@ -99,6 +248,7 @@
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.24.0",
+    "ovsx": "^1.0.2",
     "typescript": "^5.5.0"
   },
   "author": "Julien Riel"

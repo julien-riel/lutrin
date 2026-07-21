@@ -38,14 +38,45 @@ export class PreviewManager implements vscode.Disposable {
       existing.reveal();
       return;
     }
-    const panel = new PreviewPanel(this.context, this.client, this.diagnostics, doc, () =>
-      this.panels.delete(key),
+    // the dispose callback deletes by VALUE, not by the key captured here:
+    // rekey() may have moved the panel under another key since
+    const panel: PreviewPanel = new PreviewPanel(
+      this.context,
+      this.client,
+      this.diagnostics,
+      doc,
+      () => {
+        for (const [k, p] of this.panels) if (p === panel) this.panels.delete(k);
+      },
     );
     this.panels.set(key, panel);
   }
 
   get(doc: vscode.TextDocument): PreviewPanel | undefined {
     return this.panels.get(doc.uri.toString());
+  }
+
+  /** Moves a panel under a new document — see the rekey note in extension.ts:
+   *  saving an untitled deck replaces its document, URI included, and a panel
+   *  keyed to the dead `untitled:` URI would silently never refresh again. */
+  rekey(oldKey: string, doc: vscode.TextDocument): void {
+    const panel = this.panels.get(oldKey);
+    if (!panel) return;
+    const newKey = doc.uri.toString();
+    const occupant = this.panels.get(newKey);
+    if (occupant && occupant !== panel) {
+      // the destination file already has its own live preview (the untitled
+      // text was saved over it): keep the incumbent, retire the incoming
+      // panel — silently overwriting the map entry would leave a second,
+      // identically-titled panel open that no event would ever reach again
+      this.panels.delete(oldKey);
+      panel.dispose();
+      occupant.reveal();
+      return;
+    }
+    this.panels.delete(oldKey);
+    this.panels.set(newKey, panel);
+    panel.rekey(doc);
   }
 
   dispose(): void {
@@ -56,11 +87,13 @@ export class PreviewManager implements vscode.Disposable {
 
 export class PreviewPanel implements vscode.Disposable {
   private readonly panel: vscode.WebviewPanel;
-  /** Stable key of the document (URI): the only reliable link to it. Closing
-   *  then reopening the file creates a NEW TextDocument object — capturing the
+  /** Key of the document (URI): the only reliable link to it. Closing then
+   *  reopening the file creates a NEW TextDocument object — capturing the
    *  constructor's own would recompile a dead, frozen document. So the live
-   *  document is looked up by this key on every compilation (see liveDoc). */
-  private readonly key: string;
+   *  document is looked up by this key on every compilation (see liveDoc).
+   *  Mutable for one reason only: saving an untitled document REPLACES it,
+   *  URI included (see rekey). */
+  private key: string;
   private slideMap: { slide: number; startLine: number }[] = [];
   private currentSlide = 0;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -104,6 +137,15 @@ export class PreviewPanel implements vscode.Disposable {
 
   reveal(): void {
     this.panel.reveal(undefined, true);
+  }
+
+  /** Follows the document across an untitled → file save (PreviewManager
+   *  keeps the map in step). The refresh recompiles with the REAL baseDir —
+   *  relative images start resolving the moment the deck has a directory. */
+  rekey(doc: vscode.TextDocument): void {
+    this.key = doc.uri.toString();
+    this.panel.title = `Preview — ${path.basename(doc.uri.path)}`;
+    void this.refresh();
   }
 
   /** Debounced recompilation (typing in the editor). */

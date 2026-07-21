@@ -239,7 +239,12 @@ the frontmatter `kit:` and the project default take precedence.
 Live preview (updated as you type, following the cursor), diagnostics
 underlined in the editor and `.pptx` export. Files named `*.deck.md` (or
 carrying `deck: true` in the frontmatter) are validated automatically; the
-preview opens through the "Show Presentation Preview" command on any Markdown.
+preview opens through the "Show Presentation Preview" command on any Markdown,
+and "Lutrin: New Presentation" opens a starter deck that already compiles.
+
+Install it from the
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=lutrin.lutrin-vscode)
+(search for "Lutrin" in the Extensions view), or build the VSIX yourself.
 
 Development: open this repository in VS Code and press F5 (the build task
 assembles `dist/` with the core symlinked). To produce an installable package:

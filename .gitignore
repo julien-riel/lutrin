@@ -4,6 +4,8 @@ out.*
 .DS_Store
 packages/vscode-extension/dist/
 packages/vscode-extension/latest.json
+# copied from the repo root by scripts/package.mjs so it travels in the VSIX
+packages/vscode-extension/THIRD-PARTY-NOTICES.md
 *.vsix
 packages/obsidian-plugin/dist/
 

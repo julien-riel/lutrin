@@ -13,6 +13,7 @@ import { DeckDiagnostics } from './diagnostics';
 import { DeckQuickFixes } from './quickfix';
 import { isDeck, markAsDeck } from './deckDetector';
 import { imageRootsFor } from './imageRoots';
+import { newDeck } from './newDeck';
 import { PreviewManager } from './previewPanel';
 import { exportPptx } from './exportPptx';
 import { Updater } from './updater';
@@ -35,6 +36,25 @@ export function activate(context: vscode.ExtensionContext): void {
   const updater = new Updater(context, log);
   context.subscriptions.push(log, client, diagnostics, previews, updater);
   updater.start();
+
+  // Untitled deck whose preview panel is waiting to be re-keyed onto the
+  // file: document its save is about to open (see onDidCloseTextDocument).
+  // The text match is the pairing proof; the timestamp only stops a stale
+  // stash from claiming an unrelated file opened much later.
+  let savedUntitled: { key: string; text: string; at: number } | null = null;
+  const followUntitledSave = (doc: vscode.TextDocument): void => {
+    if (
+      savedUntitled &&
+      doc.uri.scheme === 'file' &&
+      doc.languageId === 'markdown' &&
+      Date.now() - savedUntitled.at < 5000 &&
+      doc.getText() === savedUntitled.text
+    ) {
+      previews.rekey(savedUntitled.key, doc);
+      markAsDeck(doc.uri);
+      savedUntitled = null;
+    }
+  };
 
   // "Cold" diagnostics (with no preview open) for files detected as decks:
   // validation alone in the worker, with no HTML rendering.
@@ -69,17 +89,26 @@ export function activate(context: vscode.ExtensionContext): void {
       DeckQuickFixes.metadata,
     ),
 
-    vscode.commands.registerCommand('lutrin.showPreview', () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor || editor.document.languageId !== 'markdown') {
+    // Context menus (Explorer, editor tab) pass the CLICKED resource's URI —
+    // which need not be the active editor, right-clicking focuses nothing.
+    // The palette and keybinding pass no argument: the active editor it is.
+    vscode.commands.registerCommand('lutrin.showPreview', async (uri?: vscode.Uri) => {
+      const doc = uri
+        ? await vscode.workspace.openTextDocument(uri)
+        : vscode.window.activeTextEditor?.document;
+      if (!doc || doc.languageId !== 'markdown') {
         void vscode.window.showWarningMessage('Open a Markdown file to show the preview.');
         return;
       }
-      markAsDeck(editor.document.uri);
-      previews.show(editor.document);
+      markAsDeck(doc.uri);
+      previews.show(doc);
     }),
 
-    vscode.commands.registerCommand('lutrin.exportPptx', () => exportPptx(client)),
+    vscode.commands.registerCommand('lutrin.newDeck', () => newDeck()),
+
+    vscode.commands.registerCommand('lutrin.exportPptx', (uri?: vscode.Uri) =>
+      exportPptx(client, uri),
+    ),
 
     vscode.commands.registerCommand('lutrin.checkForUpdates', () =>
       updater.check({ silent: false }),
@@ -92,10 +121,30 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
 
     vscode.workspace.onDidOpenTextDocument((doc) => {
+      followUntitledSave(doc);
       if (isDeck(doc)) validateSoon(doc, 0);
     }),
 
     vscode.workspace.onDidCloseTextDocument((doc) => {
+      // Saving an untitled document (the "New Presentation" flow) does not
+      // save it in place: VS Code closes it and opens the SAME text under a
+      // file: URI. A preview panel keyed to the untitled URI would survive,
+      // apparently healthy, and silently never refresh again. The
+      // open/close order is not contractual, so both handlers look for the
+      // counterpart: here an already-open twin, otherwise a stash the open
+      // handler above consumes.
+      if (doc.isUntitled && previews.get(doc)) {
+        const twin = vscode.workspace.textDocuments.find(
+          (d) =>
+            d.uri.scheme === 'file' && d.languageId === 'markdown' && d.getText() === doc.getText(),
+        );
+        if (twin) {
+          previews.rekey(doc.uri.toString(), twin);
+          markAsDeck(twin.uri);
+        } else {
+          savedUntitled = { key: doc.uri.toString(), text: doc.getText(), at: Date.now() };
+        }
+      }
       // cancel the pending validation: without this, its timer would publish
       // ghost diagnostics for a file that is already closed
       const key = doc.uri.toString();

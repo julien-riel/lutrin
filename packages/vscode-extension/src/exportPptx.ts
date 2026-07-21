@@ -1,17 +1,25 @@
-/** "Export to PowerPoint" command: compiles the active document into a .pptx. */
+/** "Export to PowerPoint" command: compiles a document into a .pptx. */
 
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { CompilerClient, ExportResult } from './compilerClient';
 import { imageRootsFor } from './imageRoots';
 
-export async function exportPptx(client: CompilerClient): Promise<void> {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.languageId !== 'markdown') {
+/**
+ * `uri` is what VS Code passes when the command comes from a context menu
+ * (Explorer right-click, editor tab): the CLICKED resource, which need not be
+ * the active editor — right-clicking neither opens nor focuses the file. The
+ * palette and keybinding pass nothing: then, and only then, the active editor
+ * is the document meant.
+ */
+export async function exportPptx(client: CompilerClient, uri?: vscode.Uri): Promise<void> {
+  const doc = uri
+    ? await vscode.workspace.openTextDocument(uri)
+    : vscode.window.activeTextEditor?.document;
+  if (!doc || doc.languageId !== 'markdown') {
     void vscode.window.showWarningMessage('Open a presentation Markdown file before exporting.');
     return;
   }
-  const doc = editor.document;
   if (doc.isUntitled) {
     void vscode.window.showWarningMessage(
       'Save the file before exporting (the .pptx is written next to the .md).',

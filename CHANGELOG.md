@@ -7,6 +7,20 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` and `lutrin-obsidian` that of
 their editor host. Unless stated otherwise, an entry describes the compiler.
 
+## [Unreleased]
+
+### Added
+
+- **`lutrin-vscode` 1.1.0 — first Marketplace release.** Marketplace
+  metadata (icon, banner, categories, badges, workspace-trust and remote
+  support), a "Lutrin: New Presentation" command opening a starter deck
+  that already compiles, a getting-started walkthrough, Explorer /
+  editor-title menus and a `Ctrl+K L` keybinding for the preview, and a
+  `Release — VS Code extension` workflow publishing on `vscode-v*` tags
+  (Marketplace, optionally Open VSX, VSIX attached to a GitHub release).
+  Setup and procedure: [publication.md](publication.md). Details:
+  [the extension changelog](packages/vscode-extension/CHANGELOG.md).
+
 ## [1.1.0] — 2026-07-20
 
 ### Fixed

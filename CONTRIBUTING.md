@@ -96,6 +96,15 @@ Do not propose loosening this rule.
 The project distributes no branded kit. An organization's brand lives in its
 own repository, under the control of whoever owns the trademark.
 
+An organization building its own VS Code host can embed its kit in the VSIX
+at build time: point the `LUTRIN_BRAND_KIT` environment variable at a kit
+directory or a `.deckkit` archive — or write that path into a `.brandkit`
+file at the repository root (untracked) — before `npm run vsix -w
+lutrin-vscode`. The kit is copied into the package under the name its
+`kit.json` manifest declares. Its absence is never an error (a public clone
+builds on the generic theme); a kit that is asked for but not found fails
+the build rather than shipping a package silently stripped of its brand.
+
 ## Reporting a problem
 
 A good issue contains the minimal Markdown that reproduces the problem, the
