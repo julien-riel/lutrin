@@ -642,11 +642,15 @@ export async function iconSvg(name, { color = 'primary' } = {}) {
   return svg.replace(/currentColor/g, `#${hex}`);
 }
 
+/** Icon raster density (px) — shared with the callers that separate the SVG
+ *  lookup from the rasterization to tell the two failures apart. */
+export const ICON_RASTER_PX = 384;
+
 /**
  * Renders a Lucide icon as a recolored PNG.
  * @returns {{png:Buffer,w:number,h:number}|null}
  */
-export async function renderIcon(name, { color = 'primary', rasterPx = 384 } = {}) {
+export async function renderIcon(name, { color = 'primary', rasterPx = ICON_RASTER_PX } = {}) {
   const svg = await iconSvg(name, { color });
   return svg ? svgToPng(svg, rasterPx) : null;
 }

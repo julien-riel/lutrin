@@ -458,6 +458,36 @@ function sfntWithFsType(fsType, { tag = 'OS/2', base = 0 } = {}) {
   return Buffer.concat([header, os2]);
 }
 
+/** Minimal sfnt whose WINDOWS IDENTITY is controllable: an OS/2 table
+ *  (fsType and the fsSelection style bits) plus a name table carrying a
+ *  single Windows-platform family record (nameID 1, UTF-16BE) — exactly what
+ *  readFontIdentity reads and what GDI matches an embedded font by. */
+function sfntWithIdentity({ family, fsType = 8, bold = false, italic = false }) {
+  const os2 = Buffer.alloc(96);
+  os2.writeUInt16BE(fsType, 8);
+  os2.writeUInt16BE((bold ? 0x20 : 0) | (italic ? 0x01 : 0), 62); // fsSelection
+  const str = Buffer.from(family, 'utf16le').swap16(); // UTF-16BE in the file
+  const name = Buffer.alloc(6 + 12 + str.length);
+  name.writeUInt16BE(1, 2); // count (format 0, one record)
+  name.writeUInt16BE(6 + 12, 4); // storage right after the record
+  name.writeUInt16BE(3, 6); // platform: Windows
+  name.writeUInt16BE(1, 8); // encoding: Unicode BMP
+  name.writeUInt16BE(0x409, 10); // language: en-US
+  name.writeUInt16BE(1, 12); // nameID 1: family
+  name.writeUInt16BE(str.length, 14);
+  str.copy(name, 18);
+  const header = Buffer.alloc(12 + 2 * 16);
+  header.writeUInt32BE(0x00010000, 0);
+  header.writeUInt16BE(2, 4); // numTables
+  header.write('OS/2', 12, 'latin1');
+  header.writeUInt32BE(header.length, 12 + 8);
+  header.writeUInt32BE(os2.length, 12 + 12);
+  header.write('name', 28, 'latin1');
+  header.writeUInt32BE(header.length + os2.length, 28 + 8);
+  header.writeUInt32BE(name.length, 28 + 12);
+  return Buffer.concat([header, os2, name]);
+}
+
 /** A .ttc collection carrying the given fsTypes, in order. */
 function ttcWithFsType(values) {
   const headerLen = 12 + 4 * values.length;
@@ -568,6 +598,56 @@ test('embedFonts: a "Restricted" font is not embedded, and the refusal is said o
   }
 });
 
+test('embedFonts: a variant Windows cannot match is not embedded, and the remedy is said', async (t) => {
+  // Webfont families in the wild: each weight declares ITSELF as a
+  // single-style family (distinct nameID 1, style bits at zero). macOS
+  // regroups them, GDI does not — PowerPoint on Windows then fails to install
+  // the embedded fonts at EVERY recipient ("general failure" dialog). Seen
+  // live with the Montréal Web cut of a city kit.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-identity-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const before = { ...FONT_FILES };
+  t.after(() => Object.assign(FONT_FILES, before));
+
+  const write = (name, buf) => {
+    const f = path.join(dir, name);
+    fs.writeFileSync(f, buf);
+    return f;
+  };
+  // FONTS.body is the default theme's family here (Arial): the regular is a
+  // faithful desktop cut, the bold a webfont-style family of its own, the
+  // italic bears the right family name but no italic bit
+  const okRegular = write('Body-Regular.ttf', sfntWithIdentity({ family: 'Arial' }));
+  const wrongFamily = write(
+    'Body-Bold.ttf',
+    sfntWithIdentity({ family: 'Arial Gras', bold: true }),
+  );
+  const wrongStyle = write('Body-Italic.ttf', sfntWithIdentity({ family: 'Arial', italic: false }));
+
+  const deck = parseDeck('---\ntitle: Identity\n---\n\n# Slide\n\nSome text.\n');
+  const out = path.join(dir, 'identity.pptx');
+  await renderDeck(buildScenes(deck), deck.meta, dir, out);
+
+  Object.assign(FONT_FILES, { regular: okRegular, bold: wrongFamily, italic: wrongStyle });
+  const r = await embedFonts(out);
+
+  assert.equal(r.count, 1, `only the coherent variant goes through: ${r.warnings.join(' ; ')}`);
+
+  const family = r.warnings.find((w) => /family name/.test(w));
+  assert.ok(family, `family warning expected, got: ${r.warnings.join(' ; ')}`);
+  assert.match(family, /Body-Bold\.ttf/, 'the diagnostic names the font at fault');
+  assert.match(family, /"Arial Gras"/, 'the name Windows would see');
+  assert.match(family, /nameID 1/, 'and what to rebuild');
+
+  const style = r.warnings.find((w) => /style bits/.test(w));
+  assert.ok(style, `style warning expected, got: ${r.warnings.join(' ; ')}`);
+  assert.match(style, /Body-Italic\.ttf/);
+
+  const zip = await JSZip.loadAsync(fs.readFileSync(out));
+  const fntdata = Object.keys(zip.files).filter((f) => f.endsWith('.fntdata'));
+  assert.equal(fntdata.length, 1, `one font part expected, got: ${fntdata.join(', ')}`);
+});
+
 // ---------------------------------------------------------------------------
 // Rasterizer absent: the deliverable is truncated, that must be SAID
 // ---------------------------------------------------------------------------
@@ -606,6 +686,26 @@ test('pptx: rasterizer absent + chart → RASTER_UNAVAILABLE diagnostic', async 
 test('pptx: rasterizer absent with no block to rasterize → no diagnostic', async (t) => {
   const { stats } = await withoutRasterizer(t, '---\ntitle: Text\n---\n\n# Slide\n\nSome text.\n');
   assert.deepEqual(stats.diagnostics, [], 'nothing to rasterize: nothing to report');
+});
+
+test('pptx: rasterizer absent + VALID icon → RASTER_UNAVAILABLE alone, never "icon not found"', async (t) => {
+  // the icon's SVG resolves fine from lucide-static: the only failure is the
+  // rasterization. Conflating the two sent Windows users hunting for a
+  // network problem when their VSIX simply shipped another platform's binary.
+  const { hasLucideIcon } = await import('../src/deck/assets.mjs');
+  if (hasLucideIcon('antenna') !== true) return t.skip('lucide-static absent on this machine');
+  const { stats } = await withoutRasterizer(
+    t,
+    '---\ntitle: Icons\n---\n\n# Slide\n\n![](lucide:antenna)\n',
+  );
+  assert.ok(
+    stats.diagnostics.some((x) => x.code === 'RASTER_UNAVAILABLE'),
+    `the icon counts among the truncated blocks: ${JSON.stringify(stats.diagnostics)}`,
+  );
+  assert.ok(
+    !stats.warnings.some((w) => /not found/.test(w)),
+    `a found icon must not be reported as not found: ${JSON.stringify(stats.warnings)}`,
+  );
 });
 
 test('pptx: rasterizer present → the chart is an image, with no diagnostic', async (t) => {

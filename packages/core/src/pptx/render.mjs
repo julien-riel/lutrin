@@ -33,8 +33,9 @@ import {
 import { ALERT_BLOCK_TYPES, runsToText } from '../deck/parse.mjs';
 import {
   fetchRemoteImage,
+  iconSvg,
+  ICON_RASTER_PX,
   imageDims,
-  renderIcon,
   renderMath,
   renderMermaidCached,
   rasterAvailable,
@@ -947,6 +948,9 @@ function renderCover(pptx, scene) {
     bold: true,
     color: COLORS.neutralPrimary,
     fontFace: FONTS.body,
+    // explicit: a paragraph without `algn` inherits the master's titleStyle,
+    // which PptxGenJS hard-codes centered — the HTML output is left-aligned
+    align: 'left',
     valign: 'top',
   });
   if (LOGOS.cover && fs.existsSync(LOGOS.cover)) {
@@ -1000,6 +1004,7 @@ function renderSection(pptx, scene) {
     bold: true,
     color: COLORS.ground,
     fontFace: FONTS.body,
+    align: 'left', // same inheritance trap as the cover title
     valign: 'middle',
   });
   if (LOGOS.section && fs.existsSync(LOGOS.section)) {
@@ -1228,13 +1233,20 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const iconWarnings = new Array(iconBlocks.length);
   await Promise.all(
     iconBlocks.map(async (b, k) => {
-      const out = await renderIcon(b.name, { color: b.color });
-      if (!out) {
+      // two failures, two diagnostics: an icon whose SVG cannot be FOUND is a
+      // deck problem (typo, package absent, offline), while an SVG found but
+      // not RASTERIZED is the missing resvg binary — already reported, with
+      // its remedy, by RASTER_UNAVAILABLE below. Conflating them sent Windows
+      // users hunting for a network problem when their VSIX simply shipped
+      // another platform's rasterizer.
+      const svg = await iconSvg(b.name, { color: b.color });
+      if (!svg) {
         iconWarnings[k] =
           `Icon "${iconLabel(b.name)}" not found — name unknown to Lucide, or the lucide-static package is absent and there is no network. The slide is rendered without it.`;
         return;
       }
-      icons.set(b, writeTmpPng(tmp(), `icon-${k}-${iconSlug(b.name)}`, out.png));
+      const out = await svgToPng(svg, ICON_RASTER_PX);
+      if (out) icons.set(b, writeTmpPng(tmp(), `icon-${k}-${iconSlug(b.name)}`, out.png));
     }),
   );
   const assetWarnings = iconWarnings.filter(Boolean);
@@ -1335,6 +1347,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
           bold: true,
           color: COLORS.neutralPrimary,
           fontFace: FONTS.body,
+          align: 'left', // same inheritance trap as the cover title
           valign: 'middle',
         },
       );
