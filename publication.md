@@ -58,9 +58,12 @@ The `Release — VS Code extension` workflow replays the tests, builds
 the VSIX, refuses a tag that disagrees with `package.json`, publishes
 to the Marketplace, attaches the VSIX + `latest.json` to a GitHub
 release for installations outside the Marketplace, then publishes to
-Open VSX if `OVSX_PAT` exists. A tag run **fails immediately** if
-`VSCE_PAT` is missing or empty — a green run that silently skipped the
-Marketplace would look exactly like a release.
+Open VSX if `OVSX_PAT` exists. Without `VSCE_PAT` the Marketplace step
+is **skipped with a warning annotation** on the run's summary page — the
+GitHub release still comes out, and its VSIX can be uploaded by hand on
+[marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage)
+(signed in, no PAT needed). The annotation is what keeps a green run
+from silently passing for a Marketplace release.
 
 **Rehearsal:** run the workflow by hand (Actions → Release — VS Code
 extension → Run workflow). A manual run stops after packaging and

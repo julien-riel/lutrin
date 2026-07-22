@@ -13,14 +13,17 @@
 # tag laid on a commit that never went through a PR must not reach the
 # Marketplace unverified.
 #
-# Secrets: VSCE_PAT (required — a tag run FAILS FAST without it: a green run
-# that skipped the Marketplace would look exactly like a release; an Azure
-# DevOps PAT with the "Marketplace: Manage" scope, see publication.md),
-# OVSX_PAT (optional — if present, the same VSIX also goes to Open VSX, the
-# registry VSCodium and Cursor read; if absent that step is skipped, and it
-# runs AFTER the GitHub release so its failure can strand nothing). Secrets
-# are not readable from `if:` conditions, hence the job-level env mapping the
-# steps test instead.
+# Secrets: VSCE_PAT (optional — an Azure DevOps PAT with the "Marketplace:
+# Manage" scope, see publication.md; if absent, the Marketplace step is
+# SKIPPED WITH A WARNING ANNOTATION and the run still produces the GitHub
+# release, whose VSIX can then be uploaded by hand on
+# marketplace.visualstudio.com/manage. The warning is what keeps the skip
+# from passing for a release: a green run with nothing on the Marketplace
+# says so on its summary page), OVSX_PAT (optional — if present, the same
+# VSIX also goes to Open VSX, the registry VSCodium and Cursor read; if
+# absent that step is skipped, and it runs AFTER the GitHub release so its
+# failure can strand nothing). Secrets are not readable from `if:`
+# conditions, hence the job-level env mapping the steps test instead.
 #
 # Third-party actions are pinned by SHA for the same reasons as ci.yml.
 name: Release — VS Code extension
@@ -65,13 +68,14 @@ jobs:
           echo "✓ releasing $pkg"
 
       # Before the long test/build phase: a missing (or mis-named) secret
-      # yields an empty string, and an empty-PAT tag run must be a loud
-      # failure, not a green run with nothing on the Marketplace.
+      # yields an empty string. The tag run carries on — the GitHub release
+      # below is a complete distribution channel on its own — but the skip is
+      # announced HERE, as a warning annotation on the run's summary page,
+      # so a green run cannot silently pass for a Marketplace release.
       - name: VSCE_PAT is present
         if: env.IS_TAG == 'true' && env.VSCE_PAT == ''
         run: |
-          echo "✖ VSCE_PAT secret missing or empty — a vscode-v* tag publishes to the Marketplace (publication.md, one-time setup)" >&2
-          exit 1
+          echo "::warning title=Marketplace publish will be skipped::VSCE_PAT secret missing or empty — the VSIX will only reach the GitHub release. Upload it by hand on marketplace.visualstudio.com/manage, or add the secret (publication.md, one-time setup) and re-run."
 
       # The extension's own suite plus the core's: the VSIX embeds the core,
       # so a broken core IS a broken extension, whatever the extension's tests
@@ -92,7 +96,7 @@ jobs:
         run: npm run vsix -w lutrin-vscode
 
       - name: Publish to Visual Studio Marketplace
-        if: env.IS_TAG == 'true'
+        if: env.IS_TAG == 'true' && env.VSCE_PAT != ''
         working-directory: packages/vscode-extension
         run: |
           set -euo pipefail
