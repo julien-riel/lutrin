@@ -22,5 +22,8 @@ examples/assets/remote/
 # local pointer to a brand kit (see scripts/package.mjs)
 .brandkit
 
+# locally generated brand kits — never versioned here (they live in their own repos)
+/kits/
+
 # internal review report — do not publish
 REVUE-*.md
