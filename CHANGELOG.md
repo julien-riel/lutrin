@@ -9,8 +9,39 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-07-22
+
+A deck that leaves the machine now survives the trip: every fix below was
+invisible where the deck was built and broke where it was opened.
+
 ### Fixed
 
+- **Slide titles export left-aligned**, as the HTML output has always shown
+  them. Title placeholders carried no explicit alignment and inherited the
+  centered `titleStyle` PptxGenJS hard-codes into the generated slide
+  master — every title of every deck rendered centered in PowerPoint,
+  Keynote and Quick Look.
+- **Embedded brand fonts now install on Windows.** Windows font matching
+  (GDI) pairs an embedded font by its OWN family name (`name` table,
+  nameID 1) and bold/italic bits, never by the declared typeface — webfont
+  cuts, where each weight ships as its own single-style family, hit every
+  recipient with PowerPoint's "unable to install some embedded fonts /
+  general failure" dialog. `embedFonts()` now reads each variant's Windows
+  identity (`readFontIdentity`) and refuses to embed an unmatchable one,
+  naming the file, what Windows would see, and the table to rebuild.
+- **A found icon is no longer reported as "not found"** when only its
+  rasterization failed. The `lucide:` diagnostic conflated "SVG missing"
+  with "rasterizer missing", sending authors hunting for a network problem
+  when their install simply shipped another platform's resvg binary — that
+  case is `RASTER_UNAVAILABLE`'s, which names the remedy.
+- **`lutrin-vscode` 1.1.1 / `lutrin-obsidian` — the packaged hosts
+  rasterize on every platform.** The `npm install` into the shipped
+  `dist/core` kept only the `@resvg/resvg-js` prebuild of the machine that
+  built the package: a VSIX built on macOS reached Windows users with
+  every chart, equation and icon replaced by its specification in text.
+  Both packaging scripts now pull the prebuilds of all supported platforms
+  (Windows x64/arm64, macOS x64/arm64, Linux glibc/musl/armhf), pinned to
+  the resolved version, and fail the build if one is missing.
 - Inline code and quote blocks are readable again in the editor previews.
   The fragment CSS declared only the properties the theme cares about; the
   VS Code webview's own stylesheet then repainted what was left undeclared —
@@ -168,5 +199,7 @@ extracted it and made the engine generic.
 - Every organization brand shipped with the engine. Brand guidelines commit an
   organization's mark: they live in their own repository, as a kit.
 
-[Unreleased]: https://github.com/julien-riel/lutrin/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/julien-riel/lutrin/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/julien-riel/lutrin/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/julien-riel/lutrin/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/julien-riel/lutrin/releases/tag/v1.0.0

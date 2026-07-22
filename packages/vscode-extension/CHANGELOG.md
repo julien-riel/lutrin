@@ -5,6 +5,35 @@ This file covers the VS Code extension; the compiler's own changes are in the
 [repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
 The extension's version tracks the `@lutrin/core` compiler it embeds.
 
+## [1.1.1] — 2026-07-22
+
+Windows decks now look like the preview. Every fix below was invisible on
+the machine that builds the deck and greeted its recipients instead.
+
+### Fixed
+
+- **Charts, equations and icons render on every platform.** The packaged
+  extension carried the native rasterizer (`@resvg/resvg-js`) of the machine
+  that built it, and no other: on any other OS the export fell back to
+  spec-as-text with `RASTER_UNAVAILABLE` warnings. The extension now ships
+  the rasterizer prebuilds of all supported platforms (Windows x64/arm64,
+  macOS, Linux glibc/musl/armhf).
+- **Embedded brand fonts install on Windows** (compiler 1.1.1) — a kit font
+  whose family name or bold/italic bits don't match what Windows font
+  matching (GDI) needs used to hit every recipient with PowerPoint's
+  "unable to install some embedded fonts / general failure" dialog. The
+  compiler now checks each variant's Windows identity and refuses to embed
+  an unmatchable one, naming the file and the table to rebuild.
+- **A found icon is no longer reported as "not found"** when only its
+  rasterization failed — the two failures now carry their own diagnostic.
+- **Slide titles export left-aligned** (compiler 1.1.1), as the preview
+  shows them — they inherited a centered style from the generated
+  PowerPoint master.
+- **Inline code and quote blocks are readable in the editor preview** —
+  the webview's own stylesheet repainted undeclared surface properties
+  (dark chips under a dark theme on a light slide); every surface property
+  is now declared explicitly.
+
 ## [1.1.0] — 2026-07-20
 
 First Marketplace release.
