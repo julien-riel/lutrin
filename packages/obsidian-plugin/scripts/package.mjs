@@ -9,8 +9,10 @@
  *
  *   --release   a real copy of packages/core/{src,design} into dist/core,
  *               with a reduced package.json + `npm install --omit=dev` INSIDE
- *               dist/core: the runtime dependencies (including the native
- *               resvg prebuild) travel with the plugin. dist/ becomes standalone.
+ *               dist/core: the runtime dependencies travel with the plugin —
+ *               including the native resvg prebuilds of EVERY supported
+ *               platform, not only the builder's
+ *               (core/scripts/resvg-prebuilds.mjs). dist/ becomes standalone.
  *
  *   --vault <path>   (optional, repeatable) symlink dist/ into
  *               `<path>/.obsidian/plugins/lutrin` for development.
@@ -24,6 +26,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { installResvgPrebuilds } from '../../core/scripts/resvg-prebuilds.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(here, '..');
@@ -74,6 +77,7 @@ if (mode === 'dev') {
     cwd: distCore,
     stdio: 'inherit',
   });
+  installResvgPrebuilds(distCore);
   console.log('✓ dist/ (release) — standalone plugin directory');
 }
 

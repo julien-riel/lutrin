@@ -8,10 +8,11 @@
  *
  *   --vsix  a real copy of packages/core/{src,design} into dist/core, with a
  *           reduced package.json + `npm install --omit=dev` INSIDE dist/core:
- *           the runtime dependencies (including the native resvg prebuild)
- *           travel inside the VSIX. Then `vsce package --no-dependencies`
- *           (the node_modules hoisted by the workspaces cannot be read by
- *           vsce).
+ *           the runtime dependencies travel inside the VSIX — including the
+ *           native resvg prebuilds of EVERY supported platform, not only the
+ *           builder's (core/scripts/resvg-prebuilds.mjs). Then
+ *           `vsce package --no-dependencies` (the node_modules hoisted by the
+ *           workspaces cannot be read by vsce).
  *
  * The worker lives in the core (core/src/worker/worker.mjs): it travels with
  * dist/core in both modes, nothing to copy.
@@ -22,6 +23,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { installResvgPrebuilds } from '../../core/scripts/resvg-prebuilds.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const extRoot = path.resolve(here, '..');
@@ -153,6 +155,8 @@ execSync('npm install --omit=dev --no-package-lock --no-audit --no-fund', {
   cwd: distCore,
   stdio: 'inherit',
 });
+
+installResvgPrebuilds(distCore);
 
 installBrandKit();
 
