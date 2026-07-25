@@ -357,6 +357,26 @@ not zero exaggerates every difference on it. For a series that lives in a
 narrow band far from zero — an availability figure between 99 % and 100 % — say
 so with a `:::metric` and its trend rather than a chart that will look flat.
 
+# Where the capability sits
+
+```chart
+type: heat
+categories: Discovery, Design, Build, Run
+Permits: 4, 4, 3, 2
+Licences: 3, 2, 2, 1
+Inspections: 2, 1, 0, 0
+Mobile app: 4, 3, 4, 3
+scale: 4
+```
+
+The same matrix as the scorecard beside it, tinted instead of filled. The ramp
+is the theme's own layer shades, each paired with an ink that clears 4.5:1 —
+so a kit repaints the grid for free and it still reads in greyscale.
+
+`scale: 4` is doing real work. Without it the ramp normalises on the largest
+value present, one outlier repaints everything, and two months of the same
+report stop being comparable.
+
 # Three options, five criteria
 
 ```chart

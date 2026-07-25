@@ -477,7 +477,7 @@ Actual: 110, 155, 175, 190
 
 - `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
   `share-bar`, `share-barh` (each category normalised to 100 %), `line`,
-  `area`, `pie`, `doughnut`, `radar`, `waterfall`, `gantt`, `rating`. Each
+  `area`, `pie`, `doughnut`, `radar`, `waterfall`, `gantt`, `rating`, `heat`. Each
   `Name: v1, v2, …` line is a series (decimals with a **point**).
   `pie`/`doughnut`: a single series.
 - `target:` (or `cible:`) — the line a series is judged against (an SLA, a
@@ -490,6 +490,10 @@ Actual: 110, 155, 175, 190
 - `rating` — a scorecard of part-filled discs, options × criteria. `scale:`
   declares the denominator and is never inferred from the largest value seen;
   at `scale: 4` the fills land on the quarters. Drawn, not typeset.
+- `heat` — a tinted matrix (rows × columns) on the theme's layer shades, each
+  cell keeping its number. `scale:` is near-essential: without it the ramp
+  normalises on the largest value present, so one outlier repaints the grid —
+  the figure labels the bound "(largest value)" when that happens.
 - `gantt` — lanes spanning periods: `Discovery: Q1 - Q2`, both ends included,
   a comma for several bars on one lane, `now:` for the "we are here" rule. The
   only way to draw a DURATION in this DSL.

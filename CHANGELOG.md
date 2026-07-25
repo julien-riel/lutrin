@@ -11,6 +11,17 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **`type: heat` — the tinted matrix.** Coverage, maturity, risk: rows are
+  series, columns are categories, and each cell takes one of the theme's five
+  layer shades with the ink already paired to it, so the grid clears 4.5:1
+  cell by cell, survives greyscale and is repainted by a kit for free. Five
+  discrete steps rather than a gradient, and every cell keeps its number — a
+  tint says "more", not "more than what". `scale:` normalises the ramp; without
+  it the fallback is the largest value present, and the figure says so by
+  labelling the bound "(largest value)", because that fallback is the trap: one
+  outlier repaints the grid and two months of the same report stop being
+  comparable.
+
 - **`type: rating` — the scorecard of part-filled discs.** Options down the
   side, criteria across the top, and `scale:` declaring the denominator, which
   is the whole design: a scale derived from the largest value seen would let one
