@@ -107,7 +107,7 @@ to take them in if they are taken.
 |---|---|---|---|---|
 | 1 | `opener` layout — the honest answer to "drop cap" | [logos-testimonial-icons.md](logos-testimonial-icons.md) §3c | a JSON file | — |
 | 2 | Semantic icon size (`![large](lucide:…)`) | [build-logos-and-icons.md](build-logos-and-icons.md) §1 | an afternoon | — |
-| ~~3~~ | ~~`type: rating`~~ — **shipped**; `type: heat` is the same shape with a colour ramp and is still open | [reopening-rating-and-person.md](reopening-rating-and-person.md) | a branch in `chart.mjs` | — |
+| ~~3~~ | ~~`type: rating` and `type: heat`~~ — **both shipped**, and they turned out to be one feature: the same matrix frame, filled in one and tinted in the other | [reopening-rating-and-person.md](reopening-rating-and-person.md) | a branch in `chart.mjs` | — |
 | 4 | The deep block walker | [build-logos-and-icons.md](build-logos-and-icons.md) §2 | small, but its own change | — |
 | 5 | The logo wall | [build-logos-and-icons.md](build-logos-and-icons.md) §3 | a block | 4 |
 | 6 | The customer testimonial | [logos-testimonial-icons.md](logos-testimonial-icons.md) §2 | try it as a property of `quote` first | 4 |
@@ -118,9 +118,10 @@ Why in that order:
 
 - **1–3 depend on nothing and cost almost nothing.** A JSON layout, an intent
   word, and one branch in `chart.mjs`. Together they close three requests that
-  keep coming back. **3 has shipped** — `type: rating`, at the cost the
-  revision predicted; `type: heat` remains, and is the same figure with a
-  colour ramp instead of a fill fraction.
+  keep coming back. **3 has shipped**, both halves of it: `rating` and `heat`
+  share a `matrixFrame()` and differ only in what they draw inside a cell —
+  the review's guess that "whoever does one should look at whether they are one
+  feature" turned out to be right.
 - **3 jumped the queue, and the reason is recorded.** `:::rating` scored last
   of thirty candidates, because a Harvey ball was assumed to be a glyph or an
   OOXML shape and both fail somewhere. It is neither: this engine already draws

@@ -18,7 +18,7 @@
  *   - text carries the text inks, never the series color.
  */
 
-import { COLORS, CHART_COLORS, FONTS, SEMANTIC } from './tokens.mjs';
+import { COLORS, CHART_COLORS, FONTS, LAYER_SHADES, SEMANTIC } from './tokens.mjs';
 
 /**
  * Number formatting locale (ticks, legend values).
@@ -507,16 +507,37 @@ function harveyBall(cx, cy, r, frac, fill) {
   return `${ring}<path d="M${cx},${cy} L${cx},${cy - r} A${r},${r} 0 ${large} 1 ${x},${y} z" fill="${fill}"/>`;
 }
 
+/** Frame shared by the two MATRIX figures — `rating` and `heat`. Both read
+ *  rows as series and columns as categories, so the room left for the row
+ *  labels and the plot itself is computed once rather than in two places that
+ *  would drift. What each does INSIDE a cell is its own business. */
+function matrixFrame(block, W, H) {
+  const labelW = Math.min(W * 0.34, Math.max(...block.series.map((s) => textW(s.name, 11))) + 24);
+  const plot = { x: labelW + 8, y: 26, w: W - labelW - 20, h: H - 26 - 22 };
+  return { plot, colW: plot.w / Math.max(block.categories.length, 1) };
+}
+
+/** Column heads, above the first row, and one row label per series. */
+function matrixLabels(cats, series, plot, colW, rowH, top, headY) {
+  const p = cats.map(
+    (c, i) =>
+      `<text x="${plot.x + colW * (i + 0.5)}" y="${headY}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="middle">${esc(c)}</text>`,
+  );
+  series.forEach((s, si) => {
+    p.push(
+      `<text x="${plot.x - 12}" y="${top + rowH * (si + 0.5) + 4}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(s.name)}</text>`,
+    );
+  });
+  return p;
+}
+
 function rating(block, W, H, locale) {
   const { categories: cats, series } = block;
   // the denominator is the author's, never the observed maximum (see the
   // `scale:` branch in parse.mjs). Five is the idiom's own default; at
   // `scale: 4` the fills land exactly on the quarters everyone draws by hand.
   const scale = block.scale > 0 ? block.scale : 5;
-  const labelW = Math.min(W * 0.34, Math.max(...series.map((s) => textW(s.name, 11))) + 24);
-  const headH = 26;
-  const plot = { x: labelW + 8, y: headH, w: W - labelW - 20, h: H - headH - 22 };
-  const colW = plot.w / Math.max(cats.length, 1);
+  const { plot, colW } = matrixFrame(block, W, H);
   // A Harvey ball is a MARK, not a pie: capped at 22 px however much room the
   // slot offers, or a three-by-four scorecard on a full slide draws twelve
   // dinner plates. The rows are then packed to what the discs need and the
@@ -529,18 +550,10 @@ function rating(block, W, H, locale) {
   // the column heads sit just above the FIRST ROW, not at the top of the slot:
   // rows are centred in the space, and a header pinned to the frame drifts away
   // from the grid it names as soon as the slot is tall
-  const headY = top + rowH / 2 - r - 12;
-  cats.forEach((c, i) => {
-    p.push(
-      `<text x="${plot.x + colW * (i + 0.5)}" y="${headY}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="middle">${esc(c)}</text>`,
-    );
-  });
+  p.push(...matrixLabels(cats, series, plot, colW, rowH, top, top + rowH / 2 - r - 12));
 
   series.forEach((s, si) => {
     const cy = top + rowH * (si + 0.5);
-    p.push(
-      `<text x="${plot.x - 12}" y="${cy + 4}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(s.name)}</text>`,
-    );
     // ONE hue for every disc: the row is already named on the left, so the
     // fill carries a VALUE and never an identity — cycling CHART_COLORS would
     // say "these two scores are different things" when they are the same
@@ -556,6 +569,59 @@ function rating(block, W, H, locale) {
   // off a disc, and a scorecard whose scale is a mystery is a decoration
   p.push(
     `<text x="${W - 12}" y="${H - 6}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(`/ ${fmt(scale, locale)}`)}</text>`,
+  );
+  return p.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Heat: the same matrix, tinted instead of filled — coverage, maturity, risk.
+// ---------------------------------------------------------------------------
+
+function heat(block, W, H, locale) {
+  const { categories: cats, series } = block;
+  const shown = series.map((s) => shownValues(s, cats));
+  // The ramp is normalised against the DECLARED scale when there is one. With
+  // none, it falls back on the largest value present — and then says so on the
+  // figure, because that fallback is the trap: one outlier repaints the whole
+  // grid, and two decks of the same data read differently. `scale:` is what
+  // makes a heat map comparable from one month to the next.
+  const observed = Math.max(1, ...shown.flat().map((v) => Math.abs(v)));
+  const scale = block.scale > 0 ? block.scale : observed;
+  const { plot, colW } = matrixFrame(block, W, H);
+  // rows capped and the block centred, as `rating` does: a two-row matrix
+  // stretched over a full slide draws cells the size of playing cards, and a
+  // heat map is read by comparing tints, not by their area
+  const rowH = Math.min(plot.h / Math.max(series.length, 1), 72);
+  const top = plot.y + Math.max(0, (plot.h - rowH * series.length) / 2);
+  const p = matrixLabels(cats, series, plot, colW, rowH, top, top - 10);
+
+  series.forEach((_s, si) => {
+    const y = top + rowH * si;
+    shown[si].forEach((v, i) => {
+      // five discrete steps, not a continuous gradient: LAYER_SHADES ships
+      // five tints of the primary, each already PAIRED with an ink validated
+      // at 4.5:1 — so the figure survives greyscale, a kit repaints it for
+      // free, and no cell is ever legible-looking but unreadable
+      const frac = Math.min(1, Math.max(0, v / scale));
+      const step = Math.min(LAYER_SHADES.length - 1, Math.floor(frac * LAYER_SHADES.length));
+      // high value = dark: LAYER_SHADES runs dark → light, so the index flips
+      const shade = LAYER_SHADES[LAYER_SHADES.length - 1 - step] ?? LAYER_SHADES[0];
+      const x = plot.x + colW * i;
+      p.push(
+        `<rect x="${x + 1}" y="${y + 1}" width="${Math.max(colW - 2, 1)}" height="${Math.max(rowH - 2, 1)}" rx="2" fill="#${shade.fill}"/>`,
+      );
+      // the number stays: a tint says "more" and a reader still has to know
+      // more than what
+      p.push(
+        `<text x="${x + colW / 2}" y="${y + rowH / 2 + 4}" font-family="${FONT()}" font-size="11" fill="#${shade.ink}" text-anchor="middle">${esc(fmt(v, locale))}</text>`,
+      );
+    });
+  });
+
+  p.push(
+    `<text x="${W - 12}" y="${H - 6}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(
+      block.scale > 0 ? `/ ${fmt(scale, locale)}` : `/ ${fmt(scale, locale)} (largest value)`,
+    )}</text>`,
   );
   return p.join('\n');
 }
@@ -693,7 +759,9 @@ export function chartSvg(block, W, H, { locale = DEFAULT_LOCALE } = {}) {
             ? gantt(block, W, H)
             : block.chartType === 'rating'
               ? rating(block, W, H, locale)
-              : cartesian(block, W, H, locale);
+              : block.chartType === 'heat'
+                ? heat(block, W, H, locale)
+                : cartesian(block, W, H, locale);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <rect width="${W}" height="${H}" fill="${bg()}"/>
 ${body}

@@ -12,7 +12,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chartSvg, chartDataDiagnostics } from '../src/deck/chart.mjs';
-import { COLORS, CHART_COLORS, SEMANTIC } from '../src/deck/tokens.mjs';
+import { COLORS, CHART_COLORS, LAYER_SHADES, SEMANTIC } from '../src/deck/tokens.mjs';
 import { parseDeck } from '../src/deck/parse.mjs';
 
 const chart = (chartType, categories, series) => ({ type: 'chart', chartType, categories, series });
@@ -569,4 +569,82 @@ test('rating: `scale:` is reserved only for this type, and only as a number', ()
   assert.equal(bar.series.at(-1).name, 'scale');
   // and a non-numeric or non-positive value is not a denominator
   assert.equal(spec('type: rating\ncategories: A\nOne: 2\nscale: 0').scale, undefined);
+});
+
+// ---------------------------------------------------------------------------
+// heat: the same matrix as `rating`, tinted instead of filled
+// ---------------------------------------------------------------------------
+
+/** Cell fills of a heat map, in drawing order. */
+const cellFills = (svg) =>
+  [
+    ...svg.matchAll(
+      /<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="[\d.]+" rx="2" fill="#(\w+)"/g,
+    ),
+  ].map((m) => m[1].toLowerCase());
+
+test('heat: the ramp is LAYER_SHADES, darkest for the highest value', () => {
+  const svg = chartSvg(
+    {
+      ...chart('heat', ['A', 'B'], [{ name: 'Row', values: [4, 0] }]),
+      scale: 4,
+    },
+    600,
+    300,
+  );
+  const fills = cellFills(svg);
+  assert.equal(fills.length, 2, 'one cell per value');
+  // every fill comes from the shade ramp — never CHART_COLORS, which encodes
+  // identity, and never a raw hex, which a kit could not repaint
+  const ramp = LAYER_SHADES.map((s) => s.fill.toLowerCase());
+  assert.ok(
+    fills.every((f) => ramp.includes(f)),
+    `fills outside LAYER_SHADES: ${fills}`,
+  );
+  // 4/4 takes the darkest end, 0/4 the lightest — the ramp runs dark → light,
+  // so getting the direction wrong is an easy and invisible mistake
+  assert.equal(fills[0], ramp[0], 'the full value takes the darkest shade');
+  assert.equal(fills[1], ramp[ramp.length - 1], 'zero takes the lightest');
+  // the number stays in the cell: a tint says "more", not "more than what"
+  assert.match(svg, />4</);
+  assert.match(svg, />0</);
+});
+
+test('heat: the ink of each cell is the one paired with its own shade', () => {
+  const svg = chartSvg(
+    { ...chart('heat', ['A', 'B'], [{ name: 'R', values: [4, 0] }]), scale: 4 },
+    600,
+    300,
+  );
+  // pairs, in drawing order: a cell painted with one shade's fill and another
+  // shade's ink would pass every token-level contrast test and still be
+  // unreadable — that is exactly the defect this branch fixed on solid panels
+  const pairs = [...svg.matchAll(/rx="2" fill="#(\w+)"\/>\s*<text[^>]*fill="#(\w+)"/g)];
+  assert.equal(pairs.length, 2);
+  for (const [, fill, textInk] of pairs) {
+    const shade = LAYER_SHADES.find((s) => s.fill.toLowerCase() === fill.toLowerCase());
+    assert.ok(shade, `fill #${fill} is not a shade`);
+    assert.equal(textInk.toLowerCase(), shade.ink.toLowerCase(), 'ink must be its shade’s own');
+  }
+});
+
+test('heat: an undeclared scale falls back on the largest value AND says so', () => {
+  // 50 against a declared 100 sits mid-ramp; against the inferred 50 it is the
+  // top of it. Values that merely differ are not enough — 90 and 100 both land
+  // in the last of five steps, and the first version of this test passed for
+  // that reason rather than for the right one.
+  const base = chart('heat', ['A', 'B'], [{ name: 'R', values: [10, 50] }]);
+  const declared = chartSvg({ ...base, scale: 100 }, 600, 300);
+  const inferred = chartSvg(base, 600, 300);
+
+  // the figure never hides which normalisation it used
+  assert.match(inferred, /\/ 50 \(largest value\)/);
+  assert.match(declared, /\/ 100/);
+  assert.ok(!/largest value/.test(declared), 'a declared scale is not a fallback');
+
+  // and the pictures genuinely differ: at scale 100 the 90 is not the top of
+  // the ramp, at the inferred scale it is. This is the whole reason to declare
+  // one — an outlier otherwise repaints the grid from one month to the next.
+  assert.notDeepEqual(cellFills(declared), cellFills(inferred));
+  assert.equal(cellFills(inferred)[1], LAYER_SHADES[0].fill.toLowerCase());
 });

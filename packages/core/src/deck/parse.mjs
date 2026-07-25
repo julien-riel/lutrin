@@ -91,6 +91,7 @@ export const CHART_TYPES = new Set([
   'waterfall',
   'gantt',
   'rating',
+  'heat',
 ]);
 
 /** Blocks a list item can carry and that a bullet cannot contain (a list's IR
@@ -457,7 +458,7 @@ function parseChartSpec(source) {
       spec.target = Number(val);
     } else if (
       lower === 'scale' &&
-      spec.chartType === 'rating' &&
+      (spec.chartType === 'rating' || spec.chartType === 'heat') &&
       Number.isFinite(Number(val)) &&
       Number(val) > 0
     ) {

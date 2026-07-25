@@ -527,7 +527,7 @@ Actual: 110, 155, 175, 190
 
 - `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
   `share-bar`, `share-barh`, `line`, `area`, `pie`, `doughnut`, `radar`,
-  `waterfall`, `gantt`, `rating`.
+  `waterfall`, `gantt`, `rating`, `heat`.
 - `categories` (or `catégories`): the x axis. Absent, they are numbered.
 - Every other line `Name: v1, v2, …` is a **series**; decimals use a
   **point**. A line starting with `#` is a comment.
@@ -572,6 +572,18 @@ The fill is a fraction of the disc, so the granularity is the scale's: at
 years. A score past the scale reads as full rather than wrapping. The discs are
 **drawn**, never typeset — ◐ (U+25D0) is absent from WGL4, so a kit shipping a
 narrow face would put a tofu box on the slide.
+
+**`heat`** — the same matrix as `rating`, tinted instead of filled: coverage,
+maturity, risk. The ramp is the theme's five layer shades, each already paired
+with an ink that clears 4.5:1, so a kit repaints the whole grid for free and the
+figure survives greyscale. Every cell keeps its number — a tint says "more", not
+"more than what".
+
+`scale:` matters more here than anywhere. Without it the ramp normalises
+against the **largest value present**, which means one outlier repaints the
+grid and two months of the same report read differently; the figure admits it
+by labelling the bound "(largest value)". Declare `scale:` and a heat map
+becomes comparable from one deck to the next.
 
 **`gantt`** — named lanes spanning periods, and the only chart here that draws
 a *duration*:
