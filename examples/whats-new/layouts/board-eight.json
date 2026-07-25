@@ -1,0 +1,11 @@
+{
+  "name": "board-eight",
+  "base": "grid",
+  "cols": 4,
+  "sections": { "min": 2, "max": 8 },
+  "panels": ["muted", "muted", "muted", "warning-solid"],
+  "headed": true,
+  "density": "dense",
+  "radius": "md",
+  "description": "Eight panels, four across two rows — one programme per cell, the fourth flagged."
+}

@@ -331,7 +331,9 @@ parameters (types, domains, defaults) in `capabilities().layoutParams` —
 consult them rather than inventing. Overview: `comparison.panels/pad`,
 `pillars.panels/accent`, `timeline.dot/arrow/numbered/orientation`,
 `layers.ratios/shades/shape` (stack, funnel, pyramid), `swot.kinds`,
-`split.ratio/side`, `metrics.max/cardHeight`, `grid.cols/panels/kinds/headed`,
+`split.ratio/side`, `metrics.max/cardHeight`,
+`grid.cols/panels/kinds/spans/headed` (`spans` = the columns each cell takes,
+cycling — six panels over a full-width band is `[1,1,1,1,1,1,3]` at `cols: 3`),
 `steps.connector/panels`, `focus.align/accent/scale`. Four parameters govern
 how the text and the surfaces look, and they are the **only** sanctioned way
 to ask for any of it:

@@ -1084,7 +1084,10 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
    the same function the .pptx and blockHeight read — the classes carry the
    look only, never the geometry */
 .progress>div{position:absolute}
-.progress-label{display:flex;align-items:center;font-size:${TYPE.body}pt;line-height:1.3;overflow:hidden}
+/* the label never wraps: progressLayout() commits to a fixed height before
+   either renderer runs, so a second line would leave the block's own box —
+   which it did, the first time a bar was put in a three-column cell */
+.progress-label{display:flex;align-items:center;font-size:${TYPE.body}pt;line-height:1.3;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .progress-track{background:#${C.underground2}}
 .progress-marker{position:absolute;border-radius:1px}
 .progress-pct{display:flex;align-items:center;font-size:${TYPE.small}pt;font-weight:700;white-space:nowrap}

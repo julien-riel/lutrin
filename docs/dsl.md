@@ -233,7 +233,7 @@ Parameters published by the bases (exact types, domains and defaults in
 | `timeline` | `dot` (20–48 px), `arrow`, `numbered`, `orientation` (`horizontal`/`vertical`) |
 | `layers` | `ratios`, `shades`, `shape` (`stack`/`funnel`/`pyramid`), `density` |
 | `swot` | `kinds` (tint per quadrant), `density` |
-| `grid` | `cols` (1–4), `panels`, `kinds`, `headed`, `density`, `radius`, `align` |
+| `grid` | `cols` (1–4), `panels`, `kinds`, `spans`, `headed`, `density`, `radius`, `align` |
 | `steps` | `connector` (`arrow`/`line`/`none`), `panels`, `density`, `radius` |
 | `content` | `density`, `align` |
 | `focus` | `align` (default `center`), `accent`, `scale` (0.5–2.5) |
@@ -249,6 +249,15 @@ their own keep their own ink, measured against that surface: a callout, a
 metric card, a code block, a badge. `radius` — `sm`, `md`, `lg` or `pill` —
 overrides the radius each variant has by default; `pill` is half the shorter
 side, whatever the panel's size.
+
+**`spans` — cells that span several columns.** A list of column counts,
+cycling like `panels`: `"cols": 3, "spans": [1, 1, 1, 1, 1, 1, 3]` puts six
+panels over a full-width band. Placement is a left-to-right flow, exactly as a
+reader scans — a cell that no longer fits opens the next row, and the gap a
+wide cell leaves at the end of a row is kept rather than filled by a later
+cell. That is deliberate: the author wrote those sections in an order, and
+reading order is the one thing a mosaic must not rearrange. A span wider than
+the grid is a full-width cell, never an overflow.
 
 `align` — `left` (default), `center` or `right` — is the horizontal alignment
 of the text the layout places: the blocks in the flow (`content`), the text

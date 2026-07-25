@@ -12,10 +12,17 @@ import './setup.mjs'; // hermetic even when invoked directly (see setup.mjs)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseDeck } from '../src/deck/parse.mjs';
-import { buildScenes, blockHeight, registerLayout, resetUserLayouts } from '../src/deck/layout.mjs';
+import {
+  buildScenes,
+  blockHeight,
+  packGrid,
+  registerLayout,
+  resetUserLayouts,
+} from '../src/deck/layout.mjs';
 import {
   COLORS,
   LAYER_SHADES,
+  PAGE,
   SEMANTIC,
   SPACE,
   contentArea,
@@ -732,4 +739,84 @@ test('metrics: the content below the cards does not overflow the content area', 
     bottom,
     'overflowing content stops exactly at the bottom of the content area',
   );
+});
+
+// ---------------------------------------------------------------------------
+// grid `spans`: cells that occupy several columns
+// ---------------------------------------------------------------------------
+
+test('packGrid: a flow, never a best fit — reading order is not rearranged', () => {
+  // no spans = the historical placement, cell by cell
+  assert.deepEqual(packGrid(4, 2), {
+    rows: 2,
+    cells: [
+      { col: 0, row: 0, span: 1 },
+      { col: 1, row: 0, span: 1 },
+      { col: 0, row: 1, span: 1 },
+      { col: 1, row: 1, span: 1 },
+    ],
+  });
+
+  // a wide cell first, then two ordinary ones underneath
+  assert.deepEqual(packGrid(3, 2, [2, 1, 1]).cells, [
+    { col: 0, row: 0, span: 2 },
+    { col: 0, row: 1, span: 1 },
+    { col: 1, row: 1, span: 1 },
+  ]);
+
+  // THE GAP IS KEPT. A best-fit packer would pull the third cell up beside the
+  // first to fill the hole; the author wrote these sections in an order, and a
+  // mosaic that reorders them is telling a different story from the source.
+  const gap = packGrid(3, 3, [2, 2, 1]);
+  assert.deepEqual(gap.cells, [
+    { col: 0, row: 0, span: 2 },
+    { col: 0, row: 1, span: 2 },
+    { col: 2, row: 1, span: 1 },
+  ]);
+  assert.equal(gap.rows, 2);
+
+  // a span wider than the grid is a full-width cell, never an overflow
+  assert.deepEqual(packGrid(1, 2, [3]).cells, [{ col: 0, row: 0, span: 2 }]);
+});
+
+test('grid spans: a wide cell is wider ON THE SLIDE, and swallows the gutter it covers', (t) => {
+  t.after(resetUserLayouts);
+  registerLayout({ name: 'span-probe', base: 'grid', cols: 2, spans: [2, 1, 1] });
+  const scene = buildScenes(
+    parseDeck('# G\n\n<!-- layout: span-probe -->\n\n## A\n\n- a\n\n## B\n\n- b\n\n## C\n\n- c\n'),
+  )[0];
+  const panels = scene.elements.filter((e) => e.block.type === 'panel').map((e) => e.region);
+  assert.equal(panels.length, 3);
+  const [wide, left, right] = panels;
+
+  // the full-width cell spans both columns AND the gutter between them, so it
+  // is strictly wider than twice a plain cell would be on its own
+  assert.ok(wide.w > left.w * 2, 'a 2-span cell takes the gutter it covers');
+  assert.equal(Math.round(wide.w), Math.round(left.w + right.w + PAGE.gutter));
+  // the two ordinary cells sit on the next row, side by side
+  assert.equal(left.y, right.y);
+  assert.ok(left.y > wide.y, 'the row below');
+  assert.equal(left.x, wide.x, 'and it starts at the same left edge');
+});
+
+test('grid spans: six and eight sections lay out without leaving the content area', (t) => {
+  t.after(resetUserLayouts);
+  registerLayout({ name: 'six', base: 'grid', cols: 3 });
+  registerLayout({ name: 'eight', base: 'grid', cols: 4 });
+  const body = (n) =>
+    Array.from({ length: n }, (_, i) => `## S${i + 1}\n\n- item ${i + 1}\n`).join('\n');
+  const area = contentArea();
+  for (const [layout, n, rows] of [
+    ['six', 6, 2],
+    ['eight', 8, 2],
+  ]) {
+    const scene = buildScenes(parseDeck(`# G\n\n<!-- layout: ${layout} -->\n\n${body(n)}`))[0];
+    const panels = scene.elements.filter((e) => e.block.type === 'panel').map((e) => e.region);
+    assert.equal(panels.length, n, `${layout}: one panel per section`);
+    assert.equal(new Set(panels.map((p) => Math.round(p.y))).size, rows, `${layout}: ${rows} rows`);
+    for (const p of panels) {
+      assert.ok(p.x >= area.x - 0.5 && p.x + p.w <= area.x + area.w + 0.5, `${layout}: inside`);
+      assert.ok(p.y + p.h <= area.y + area.h + 0.5, `${layout}: above the footer`);
+    }
+  }
 });

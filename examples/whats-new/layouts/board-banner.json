@@ -1,0 +1,12 @@
+{
+  "name": "board-banner",
+  "base": "grid",
+  "cols": 3,
+  "sections": { "min": 2, "max": 7 },
+  "spans": [1, 1, 1, 1, 1, 1, 3],
+  "panels": ["muted", "muted", "muted", "muted", "muted", "muted", "info-solid"],
+  "headed": true,
+  "density": "compact",
+  "radius": "lg",
+  "description": "Six panels over a full-width band: the seventh cell spans all three columns."
+}

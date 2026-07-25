@@ -300,6 +300,41 @@ function scaleBlocks(blocks, density) {
  * solid danger panel, under AA, while three separate places in the docs
  * promised the opposite.
  */
+/**
+ * Where each cell of a `grid` sits, once cells may span several columns.
+ *
+ * Placement is a left-to-right flow, exactly as a reader scans: a cell that
+ * does not fit on the current row opens the next one. NOT a best-fit packer —
+ * a later cell must never jump ahead of an earlier one to fill a hole, because
+ * the author wrote those sections in an order, and reading order is the one
+ * thing a mosaic must not invent.
+ *
+ * The gap a wide cell leaves at the end of a row is therefore left empty, and
+ * that gap is a layout worth having: it is how a board gets a full-width band
+ * under its panels.
+ *
+ * `spans` cycles like `panels` and `kinds`, and every value is clamped to the
+ * column count — a span of 3 in a 2-column grid is a full-width cell, never an
+ * overflow.
+ *
+ * @returns {{cells: Array<{col:number,row:number,span:number}>, rows:number}}
+ */
+export function packGrid(n, cols, spans = null) {
+  const cells = [];
+  let col = 0;
+  let row = 0;
+  for (let k = 0; k < n; k++) {
+    const span = Math.min(spans?.length ? spans[k % spans.length] : 1, cols);
+    if (col + span > cols) {
+      row++;
+      col = 0;
+    }
+    cells.push({ col, row, span });
+    col += span;
+  }
+  return { cells, rows: cells.length ? row + 1 : 1 };
+}
+
 const INKED_BLOCKS = new Set(['para', 'bullets', 'heading', 'table', 'quote', 'progress']);
 
 /**
@@ -700,6 +735,15 @@ export function registerLayout(def) {
         values: SEMANTIC_KINDS,
         default: null,
         description: 'semantic tints per cell, cycling (takes precedence over panels)',
+      },
+      spans: {
+        type: 'number-list',
+        min: 1,
+        max: 4,
+        integer: true,
+        default: null,
+        description:
+          'columns each cell occupies, cycling — a cell that no longer fits opens the next row',
       },
       headed: {
         type: 'boolean',
@@ -1624,17 +1668,20 @@ export function buildScenes(deck) {
         const maxCells = bounds?.max ?? 8;
         const n = Math.min(Math.max(secs.length, 1), maxCells);
         const cols = Math.min(P.cols ?? 2, n);
-        const rows = Math.ceil(n / cols);
-        const cellW = (area.w - (cols - 1) * PAGE.gutter) / cols;
+        const placed = packGrid(n, cols, P.spans);
+        const rows = placed.rows;
+        const unitW = (area.w - (cols - 1) * PAGE.gutter) / cols;
         const cellH = (area.h - SPACE.xs - (rows - 1) * PAGE.gutter) / rows;
         const headH = TYPE.sectionHeading * PT_TO_PX * LINE_HEIGHT;
         const panels = P.panels ?? ['muted'];
         const elements = [];
         secs.slice(0, n).forEach((sec, k) => {
+          const slot = placed.cells[k];
           const cell = {
-            x: area.x + (k % cols) * (cellW + PAGE.gutter),
-            y: area.y + SPACE.xs + Math.floor(k / cols) * (cellH + PAGE.gutter),
-            w: cellW,
+            x: area.x + slot.col * (unitW + PAGE.gutter),
+            y: area.y + SPACE.xs + slot.row * (cellH + PAGE.gutter),
+            // a cell spanning s columns also swallows the s-1 gutters it covers
+            w: unitW * slot.span + PAGE.gutter * (slot.span - 1),
             h: cellH,
           };
           const spec = P.kinds ? P.kinds[k % P.kinds.length] : panels[k % panels.length];

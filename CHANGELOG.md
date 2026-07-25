@@ -11,6 +11,16 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Grid cells that span several columns — `spans`.** A list of column counts
+  on the `grid` generator, cycling like `panels`: six panels over a full-width
+  band is `"cols": 3, "spans": [1, 1, 1, 1, 1, 1, 3]`. Placement stays a
+  left-to-right flow — a cell that no longer fits opens the next row, and the
+  gap a wide cell leaves at the end of a row is KEPT rather than filled by a
+  later cell, because the author wrote those sections in an order and reading
+  order is the one thing a mosaic must not rearrange. A span wider than the
+  grid is a full-width cell, never an overflow. It lives in a layout
+  definition, so a deck still says nothing about width.
+
 - **Five chart types, and the line a series is judged against.** `stacked-bar`
   and `stacked-barh` add the series up per category; `share-bar` and
   `share-barh` normalise each category to 100 % and label the segments past
