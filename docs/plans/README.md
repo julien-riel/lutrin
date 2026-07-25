@@ -85,6 +85,17 @@ semantic size is an afternoon, an inline icon is most likely closed by OOXML,
 and a true drop cap is closed by the absence of a text flow engine, with a
 `split` layout as the honest answer.
 
+[build-logos-and-icons.md](build-logos-and-icons.md) is the implementation
+brief for the three that were asked for next — the semantic icon size, the deep
+walker, the logo wall — plus the one experiment that decides the inline icon.
+
+One verdict was overturned in the process, and it is recorded in the rating
+brief: a Harvey ball does not have to be a glyph or an OOXML shape. Charts here
+are already drawn as SVG and rasterised, precisely because native OOXML charts
+are invisible in Keynote — a drawn disc has nothing left to substitute or
+misinterpret. Which makes a scorecard a **chart type** rather than a block, at
+a tenth of the cost the rejection was weighed against.
+
 ## Reading order
 
 They are ordered by dependency, not by value.
