@@ -15,6 +15,7 @@ import {
   CONTAINERS,
   CHART_TYPES,
   ICON_COLORS,
+  ICON_SIZES,
   ANIM_PRESETS,
   ANIM_PRESET_ALIASES,
   SEMANTIC_KINDS,
@@ -399,6 +400,22 @@ export function validateDeck(
           b.line,
         );
       }
+      // an icon's alt slot holds intent words — an ink and a size. A word that
+      // names neither was ignored in silence, which is how "![big]" drew a
+      // default icon and left the author looking for the size they had asked
+      // for. The icon still draws: this says which word was dropped.
+      if (b.type === 'icon' && b.unknownWords) {
+        const vocabulary = [...ICON_COLORS, ...ICON_SIZES];
+        for (const word of b.unknownWords) {
+          push(
+            'warning',
+            'UNKNOWN_ICON_WORD',
+            `Unknown word "${word}" in the alt of an icon (inks: ${[...ICON_COLORS].join(', ')}; sizes: ${[...ICON_SIZES].join(', ')}) — it will be ignored.`,
+            b.line,
+            closest(word, vocabulary) ?? undefined,
+          );
+        }
+      }
       if (b.type === 'code' && b.invalidChart) {
         push(
           'warning',
@@ -766,6 +783,8 @@ export function capabilities() {
     directives: CONTAINERS,
     chartTypes: [...CHART_TYPES],
     iconColors: [...ICON_COLORS],
+    // the size words of the same alt slot: `![neutral large](lucide:leaf)`
+    iconSizes: [...ICON_SIZES],
     codeFences: ['mermaid', 'math', 'latex', 'tex', 'chart'],
     comments: ['notes', 'layout', 'animate'],
     animatePresets: [...ANIM_PRESETS],
@@ -843,6 +862,7 @@ export function capabilities() {
       'METRICS_DROPPED',
       'MISSING_IMAGE',
       'UNKNOWN_ICON',
+      'UNKNOWN_ICON_WORD',
       'INVALID_CHART',
       'INVALID_PROGRESS',
       'UNKNOWN_PROGRESS_KIND',

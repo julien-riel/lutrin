@@ -13,8 +13,10 @@ footer: New in the compiler · one source, two deliverables
 - **Figures that line up**: a Markdown delimiter row is now honoured
 - **Saturated panels**, with the ink chosen for you
 - A **text scale** a layout can ask for — and the engine pulls by itself
-- Five chart types: **stacked**, **share**, **waterfall**, **gantt**, and a
-  **target line** on any of them
+- Six chart types: **stacked**, **share**, **waterfall**, **gantt**, **heat**
+  and **rating** — plus the **target line** a series is judged against
+- An **icon that carries its own size**, and the `opener` layout that answers
+  what a drop cap was for
 - Everything below is in **this one file**, compiled to `.pptx` and to HTML
 
 <!-- notes: the same source produced both deliverables; open them side by side. -->
@@ -439,9 +441,61 @@ never a start and an end.
 
 <!-- notes: this layout is six lines of JSON on top of `swot` — no code at all. The four tints are chosen so that Assumptions and Dependencies read alike: both are things we rely on and do not own. -->
 
+# An icon carries its own size
+
+Words, never points: `small`, `medium` and `large` are factors on the size the
+slot already governs, so a column narrower than the icon still wins over a
+`large`. The word rides in the alt slot beside the ink, in either order —
+`![neutral large](lucide:leaf)`.
+
+## Small
+
+![small](lucide:leaf)
+
+Beside a line, or at the head of a pillar on a crowded board.
+
+## Medium
+
+![](lucide:leaf)
+
+The default — and the block carries no size key at all, so a deck written
+before this compiles to exactly the slide it did.
+
+## Large
+
+![large](lucide:leaf)
+
+Opening a section, or filling the narrow column of the layout on the next
+slide.
+
+<!-- notes: the flow reserves the height the factor asks for, not the one the default asks for — an icon that draws 1.4× larger has to measure 1.4× larger, or the block underneath is placed on top of it. A word that names neither an ink nor a size is UNKNOWN_ICON_WORD, with the nearest word suggested, rather than silence. -->
+
+# What a drop cap was actually for
+
+<!-- layout: opener -->
+
+![large](lucide:compass)
+
+Text that flows around a shape needs a text flow engine, and this compiler has
+none: it places blocks in rectangles and estimates their heights. The HTML
+could fake it with a `float`; a DrawingML text box is a rectangle and could
+not fake it at all — and building it on one side only is the divergence the
+contract forbids.
+
+But look at what a drop cap is *for*: an icon set large at the head of a
+passage, the text beside it. That is a composition, not a text engine, and
+`opener` is a JSON file naming a base, a ratio and a side — the icon in the
+narrow column, the passage in the wide one.
+
+The icon opposite is the `large` of the previous slide, and the layout is the
+only thing this slide had to name: no width, no side, no coordinate.
+
+<!-- notes: the icon is trimmed to the square it draws rather than stretched down its column — stretched, it centred itself halfway down the slide, beside nothing. The true wrap-around is recorded as refused, with the reason. -->
+
 # One source, two deliverables
 
-Everything in this deck came out of one `.md` file and two small JSON layouts.
+Everything in this deck came out of one `.md` file and five small JSON layouts
+— plus three from the official catalog, which are files nobody had to write.
 The `.pptx` and the HTML are born of the same scene: the same geometry to the
 pixel, the same tints, the same wrap.
 

@@ -340,6 +340,64 @@ test('an image sharing its paragraph is no longer dropped in silence', () => {
   );
 });
 
+test("an icon's alt slot carries intent words: an ink, a size, in any order", () => {
+  const icon = (alt) => blocksOf(parseDeck(`# S\n\n![${alt}](lucide:leaf)\n`))[0];
+
+  // the default has to stay EXACTLY the block that existed before sizes did:
+  // one extra key and every golden moves
+  assert.deepEqual(icon(''), { type: 'icon', name: 'leaf', color: 'primary', line: 3 });
+
+  assert.equal(icon('large').size, 'large');
+  assert.equal(icon('large').color, 'primary', 'a size alone leaves the ink at its default');
+  assert.equal(icon('neutral').size, undefined, 'an ink alone adds no size key');
+
+  const both = icon('neutral small');
+  assert.equal(both.color, 'neutral');
+  assert.equal(both.size, 'small');
+  const reversed = icon('small neutral');
+  assert.equal(reversed.color, 'neutral', 'the order of the words is free');
+  assert.equal(reversed.size, 'small');
+
+  // a word that names neither is not silently swallowed: it travels to
+  // validation, and the icon still draws
+  const wrong = icon('big');
+  assert.deepEqual(wrong.unknownWords, ['big']);
+  assert.equal(wrong.size, undefined);
+  assert.equal(wrong.color, 'primary');
+
+  // an image is NOT an icon: its alt slot is a role or alternative text, and
+  // "large" there is what a screen reader will read out
+  const image = blocksOf(parseDeck('# S\n\n![large](photo.png)\n'))[0];
+  assert.equal(image.type, 'image');
+  assert.equal(image.alt, 'large');
+  assert.equal(image.size, undefined);
+});
+
+test('UNKNOWN_ICON_WORD names the word that was dropped, and suggests the nearest one', () => {
+  const diags = validateDeck('# S\n\n![lrage](lucide:leaf)\n').filter(
+    (d) => d.code === 'UNKNOWN_ICON_WORD',
+  );
+  assert.equal(diags.length, 1);
+  assert.equal(diags[0].severity, 'warning', 'the icon still draws');
+  assert.equal(diags[0].line, 3);
+  assert.match(diags[0].message, /"lrage"/);
+  assert.equal(diags[0].suggestion, 'large');
+
+  // two bad words, two diagnostics — an author fixing one must still see the other
+  assert.equal(
+    validateDeck('# S\n\n![huge bleu](lucide:leaf)\n').filter((d) => d.code === 'UNKNOWN_ICON_WORD')
+      .length,
+    2,
+  );
+  // and nothing at all for the words that ARE the vocabulary
+  assert.equal(
+    validateDeck('# S\n\n![white large](lucide:leaf)\n').filter(
+      (d) => d.code === 'UNKNOWN_ICON_WORD',
+    ).length,
+    0,
+  );
+});
+
 test('emphasis continues on both sides of an image', () => {
   // the bold/italic/link state must carry from one fragment to the next: the
   // paragraph is cut by the image, the styling is not

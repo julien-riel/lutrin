@@ -45,6 +45,7 @@ import {
   TREND_INK,
   badgeLayout,
   blockFontSize,
+  iconSize,
   panelRadius,
   panelStyle,
   progressLayout,
@@ -854,7 +855,7 @@ function htmlMermaid(block, r, ctx) {
 function htmlIcon(block, r, ctx) {
   const svg = ctx.icons.get(block);
   if (!svg) return ''; // icon not found: nothing rather than a broken box
-  const size = Math.round(Math.min(r.w, r.h, 160));
+  const size = iconSize(block, r);
   // flush left, like the text (the brand is left-aligned)
   return (
     `<div class="icon el" style="${at(r, true)}">` +

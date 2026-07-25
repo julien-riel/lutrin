@@ -579,3 +579,34 @@ export function badgeLayout(block, widthPx) {
   }
   return { items, h: items.length ? y + BADGE.h : 0 };
 }
+
+/**
+ * The size an author may ASK FOR on an icon — a word, never a point size.
+ *
+ * The words are FACTORS, not dimensions: they scale the cap and the flow
+ * height, and the slot still governs. `![small](lucide:leaf)` in a column
+ * narrower than 78 px is 78 px wide nowhere — it is as wide as the column,
+ * exactly like the default. The word adjusts, it never positions.
+ *
+ * Module-private on purpose: making these themable means a THEME_KEYS group,
+ * an ALL_LIVE entry and a mirror in design/themes/default.json, and no kit has
+ * asked. The first one that does carries the change (build brief §1).
+ */
+const ICON = { max: 160, flowHeight: 112 };
+export const ICON_SCALE = { small: 0.7, medium: 1, large: 1.4 };
+
+/** Factor of an icon's size word (1 when the author named none). */
+export const iconScale = (block) => ICON_SCALE[block?.size] ?? 1;
+
+/**
+ * Side of the square an icon is drawn in, in px — the ONE answer both
+ * renderers read. Two `Math.min` written twice drifted apart the first time
+ * one of them gained a factor; this is the same lesson badgeLayout() banked.
+ */
+export const iconSize = (block, region) =>
+  Math.round(Math.min(region.w, region.h, ICON.max * iconScale(block)));
+
+/** Height an icon reserves when it flows in a region (blockHeight). Scaled by
+ *  the same factor: an icon that DRAWS larger must also MEASURE larger, or the
+ *  block underneath it is placed on top of it. */
+export const iconFlowHeight = (block) => Math.round(ICON.flowHeight * iconScale(block));

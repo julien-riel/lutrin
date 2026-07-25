@@ -33,6 +33,8 @@ import {
   blockFontSize,
   charWidth,
   contentArea,
+  iconFlowHeight,
+  iconSize,
   panelStyle,
   progressLayout,
   scaleTextToken,
@@ -125,7 +127,10 @@ export function blockHeight(block, widthPx) {
       // one equation "line" per \\ separator (multiline environments)
       return block.source.split('\\\\').length * 56 + SPACE.sm;
     case 'icon':
-      return 112;
+      // the size word an author may have asked for travels with the height:
+      // a `large` icon that drew at 1.4× while still measuring 112 px would be
+      // placed on top of whatever the flow put underneath it
+      return iconFlowHeight(block);
     case 'heading':
       // imposed size (key message of the focus layout): the text may flow
       // over several lines — the estimate follows; otherwise one title line
@@ -1317,9 +1322,15 @@ export function buildScenes(deck) {
         break;
       }
       case 'split': {
+        // An icon counts as the visual HERE, and not in inferLayout(): asking
+        // for a split-based layout with an icon in it can only mean the icon
+        // takes the visual column (this is what `opener` is), whereas
+        // inferring `split` from an icon would move every existing slide that
+        // heads a column with one — the demo's three pillars first of all.
         const isVisual = (b) =>
           b.type === 'mermaid' ||
           b.type === 'chart' ||
+          b.type === 'icon' ||
           (b.type === 'image' && b.role !== 'background');
         const visuals = blocks.filter(isVisual);
         const text = blocks.filter((b) => !isVisual(b));
@@ -1334,12 +1345,19 @@ export function buildScenes(deck) {
           : { x: area.x + leftW + PAGE.gutter, y: area.y, w: rightW, h: area.h };
         const elements = flowBlocks(text, textRegion, { paginate: false })[0];
         const visH = (visRegion.h - (visuals.length - 1) * PAGE.gutter) / visuals.length;
-        visuals.forEach((v, k) =>
+        visuals.forEach((v, k) => {
+          // An icon holds an intrinsic square size, where a chart or an image
+          // fills whatever slot it is given. Stretched over the whole column
+          // it centred itself halfway down the slide, beside nothing —
+          // `opener` wants it against the first line of the passage. Its share
+          // is therefore trimmed to the square it will actually draw.
+          const h =
+            v.type === 'icon' ? Math.min(visH, iconSize(v, { w: visRegion.w, h: visH })) : visH;
           elements.push({
             block: v,
-            region: { ...visRegion, y: visRegion.y + k * (visH + PAGE.gutter), h: visH },
-          }),
-        );
+            region: { ...visRegion, y: visRegion.y + k * (visH + PAGE.gutter), h },
+          });
+        });
         push({ elements });
         break;
       }

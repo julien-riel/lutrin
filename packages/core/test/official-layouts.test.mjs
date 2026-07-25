@@ -44,6 +44,7 @@ const OFFICIALS = [
   'pyramid',
   'raid',
   'status-list',
+  'opener',
 ];
 
 const FOUR_SECTIONS = '## One\n\n- a\n\n## Two\n\n- b\n\n## Three\n\n- c\n\n## Four\n\n- d\n';
@@ -88,6 +89,7 @@ test('every official layout compiles a demo deck (named scene, never a crash)', 
     'status-list':
       '## Delivery\n\n:::progress success\n100 %\nForm\n:::\n\n## Compliance\n\n:::status\nScope\n!Budget\n:::\n',
     raid: FOUR_SECTIONS,
+    opener: '![large](lucide:compass)\n\nThe passage the icon opens.\n',
   };
   for (const name of OFFICIALS) {
     const scenes = scenesFor(name, BODIES[name]);
@@ -193,6 +195,10 @@ test('anti-drift: the settings of the official catalog are frozen', () => {
   assert.equal(defs['key-message'].base, 'focus');
   assert.deepEqual(defs.portfolio.params, { cols: 3, headed: true });
   assert.deepEqual(defs.portfolio.sections, { min: 2, max: 6 });
+  // `ratio` is the share taken by the TEXT — 0.78 leaves the icon the narrow
+  // column, and the brief that asked for this layout sketched it inverted
+  assert.deepEqual(defs.opener.params, { ratio: 0.78, side: 'left' });
+  assert.equal(defs.opener.base, 'split');
 });
 
 // ---------------------------------------------------------------------------
@@ -318,6 +324,51 @@ test('focus with no paragraph: plain flow, never a crash', () => {
   resetUserLayouts();
   const [scene] = scenesFor('key-message', '```chart\ntype: bar\ncategories: a, b\nS: 1, 2\n```\n');
   assert.ok(scene.elements.some((e) => e.block.type === 'chart'));
+});
+
+// ---------------------------------------------------------------------------
+// split (opener) — the answer to "a drop cap"
+// ---------------------------------------------------------------------------
+
+test('opener: the icon takes the narrow left column, the text the wide right one', () => {
+  resetUserLayouts();
+  const [scene] = scenesFor('opener', '![large](lucide:compass)\n\nThe passage the icon opens.\n');
+  const icon = scene.elements.find((e) => e.block.type === 'icon');
+  const para = scene.elements.find((e) => e.block.type === 'para');
+  assert.ok(icon && para, 'both columns are placed');
+  assert.ok(icon.region.x < para.region.x, 'the icon opens on the left');
+  assert.ok(
+    para.region.w > 3 * icon.region.w,
+    `the text column is the wide one (text ${para.region.w}, icon ${icon.region.w})`,
+  );
+  assert.equal(icon.region.y, para.region.y, 'the icon sits against the first line, not halfway');
+});
+
+test('opener: the icon is trimmed to the square it draws, never stretched down the column', () => {
+  resetUserLayouts();
+  const height = (word) =>
+    scenesFor('opener', `![${word}](lucide:compass)\n\nA passage.\n`)[0].elements.find(
+      (e) => e.block.type === 'icon',
+    ).region.h;
+  // a chart in the same slot takes the whole column: an icon must not, or it
+  // centres itself halfway down the slide, beside nothing
+  const chartH = scenesFor(
+    'opener',
+    '```chart\ntype: bar\ncategories: a, b\nS: 1, 2\n```\n\nA passage.\n',
+  )[0].elements.find((e) => e.block.type === 'chart').region.h;
+  assert.ok(chartH > 400, 'a chart still fills the column');
+  assert.equal(height('small'), 112);
+  assert.equal(height('medium'), 160);
+  assert.equal(height('large'), 224);
+});
+
+test('opener still places a slide with no icon at all (it is a split like any other)', () => {
+  resetUserLayouts();
+  const [scene] = scenesFor('opener', 'Only a passage, and no icon to open it.\n');
+  assert.ok(
+    scene.elements.some((e) => e.block.type === 'para'),
+    'the text is placed regardless',
+  );
 });
 
 // ---------------------------------------------------------------------------

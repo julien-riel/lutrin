@@ -28,6 +28,7 @@ import {
   TREND_INK,
   badgeLayout,
   blockFontSize,
+  iconSize,
   panelRadius,
   panelStyle,
   progressLayout,
@@ -882,7 +883,7 @@ const iconSlug = (name) => name.toLowerCase().replace(/[^a-z0-9-]/g, '') || 'ico
 function addIcon(slide, block, r, ctx) {
   const asset = ctx.icons.get(block);
   if (!asset) return; // icon not found (diagnostic emitted in the pre-pass): nothing rather than a broken slab
-  const size = Math.min(r.w, r.h, 160);
+  const size = iconSize(block, r);
   // aligned on the left edge, like the text (the brand is a left-aligned
   // system — a centered icon breaks the grid of the column)
   slide.addImage({

@@ -11,6 +11,29 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **A semantic size for icons — `![large](lucide:leaf)`.** The alt slot already
+  carried an ink; it now carries a size in the same slot, in any order:
+  `small`, `medium`, `large`. Words, never points — they are factors on the
+  size both renderers already derive from the slot, so a column narrower than
+  the square still wins, and an author never writes a dimension. The factor
+  reaches the two renderers AND `blockHeight()` through one accessor: an icon
+  that draws 1.4× larger must also measure 1.4× larger, or the next block in
+  the flow lands on top of it. A word that names neither an ink nor a size used
+  to be swallowed in silence — which is how `![big]` drew a default icon and
+  left its author hunting; it is now `UNKNOWN_ICON_WORD`, with the nearest word
+  suggested and the icon still drawn.
+
+- **The `opener` layout — what a drop cap was actually for.** An icon in a
+  narrow left column, the passage in the wide one. Text that flows *around* a
+  shape needs a text flow engine, which this compiler deliberately lacks: the
+  HTML could fake it with a `float`, a DrawingML text box is a rectangle and
+  could not, and one-sided is the divergence the contract forbids. But an icon
+  set large at the head of a passage is a composition, and this one is a JSON
+  file. An icon now counts as the visual of a `split` — only there, never in
+  the inference, which would move every slide that heads a column with one —
+  and it is trimmed to the square it draws rather than stretched down its
+  column, where it centred itself halfway down the slide beside nothing.
+
 - **`type: heat` — the tinted matrix.** Coverage, maturity, risk: rows are
   series, columns are categories, and each cell takes one of the theme's five
   layer shades with the ink already paired to it, so the grid clears 4.5:1
