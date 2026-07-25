@@ -414,7 +414,7 @@ export function validateDeck(
         push(
           'warning',
           'INVALID_PROGRESS',
-          'The :::progress value could not be read — the card will be displayed as a paragraph. Expected a share on the first line: "75 %", "0.75" or "3/4".',
+          'The :::progress value could not be read — the card will be displayed as a paragraph. Expected a share on the first line: "75 %", "0.75" or "3/4", optionally followed by the target it is judged against ("62 % / 80 %").',
           b.line,
         );
       }

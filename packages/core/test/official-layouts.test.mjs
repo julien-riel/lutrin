@@ -42,6 +42,7 @@ const OFFICIALS = [
   'portfolio',
   'pros-cons',
   'pyramid',
+  'raid',
   'status-list',
 ];
 
@@ -86,6 +87,7 @@ test('every official layout compiles a demo deck (named scene, never a crash)', 
     portfolio: FOUR_SECTIONS,
     'status-list':
       '## Delivery\n\n:::progress success\n100 %\nForm\n:::\n\n## Compliance\n\n:::status\nScope\n!Budget\n:::\n',
+    raid: FOUR_SECTIONS,
   };
   for (const name of OFFICIALS) {
     const scenes = scenesFor(name, BODIES[name]);

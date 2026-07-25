@@ -12,7 +12,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chartSvg, chartDataDiagnostics } from '../src/deck/chart.mjs';
-import { COLORS, CHART_COLORS } from '../src/deck/tokens.mjs';
+import { COLORS, CHART_COLORS, SEMANTIC } from '../src/deck/tokens.mjs';
+import { parseDeck } from '../src/deck/parse.mjs';
 
 const chart = (chartType, categories, series) => ({ type: 'chart', chartType, categories, series });
 
@@ -273,4 +274,170 @@ test('number formatting follows the locale option, fr-CA by default', () => {
   const byDefault = chartSvg(block, 640, 360);
   assert.ok(!byDefault.includes('>1,500<'), 'fr-CA remains the default');
   assert.ok(/>1\s*500</.test(byDefault), 'fr-CA: space separator');
+});
+
+// ---------------------------------------------------------------------------
+// Stacked, share, target, waterfall, gantt — the five chart types added on the
+// widgets-next shortlist. Each one is checked as a DRAWING, like the rest of
+// this file: what a reader would see, not what the string contains.
+// ---------------------------------------------------------------------------
+
+test('stacked-bar: one column per category, segments touching, scaled on the TOTALS', () => {
+  const svg = chartSvg(
+    chart(
+      'stacked-bar',
+      ['Q1', 'Q2'],
+      [
+        { name: 'A', values: [60, 40] },
+        { name: 'B', values: [40, 60] },
+      ],
+    ),
+    600,
+    300,
+  );
+  const a = barsOf(svg, 0).map(bbox);
+  const b = barsOf(svg, 1).map(bbox);
+  assert.equal(a.length, 2, 'one segment of A per category');
+  assert.equal(b.length, 2);
+
+  // ONE column: both segments of a category share the same x span — sizing a
+  // stack like a group would draw two half-width columns side by side
+  assert.equal(a[0].x0, b[0].x0);
+  assert.equal(a[0].x1, b[0].x1);
+  // and they stack: B sits on top of A, touching it
+  assert.ok(Math.abs(b[0].y1 - a[0].y0) < 1.5, 'the second segment starts where the first ends');
+  // both categories total 100, so both columns are the same height — that is
+  // the scale reading the totals rather than the individual values
+  const h = (bx) => bx.y1 - bx.y0;
+  assert.ok(Math.abs(h(a[0]) + h(b[0]) - (h(a[1]) + h(b[1]))) < 1.5);
+  for (const bx of [...a, ...b]) assert.ok(inFrame(bx, 600, 300));
+});
+
+test('share-bar: each category is normalised to 100 %, whatever its total', () => {
+  const svg = chartSvg(
+    chart(
+      'share-bar',
+      ['Small', 'Large'],
+      [
+        { name: 'A', values: [1, 100] },
+        { name: 'B', values: [1, 100] },
+      ],
+    ),
+    600,
+    300,
+  );
+  const a = barsOf(svg, 0).map(bbox);
+  const b = barsOf(svg, 1).map(bbox);
+  const h = (bx) => bx.y1 - bx.y0;
+  // 1+1 and 100+100 are worlds apart in absolute terms and identical in share
+  assert.ok(Math.abs(h(a[0]) - h(a[1])) < 1.5, 'a share ignores the magnitude');
+  assert.ok(Math.abs(h(b[0]) - h(b[1])) < 1.5);
+  assert.match(svg, /100 %/, 'the ticks are percentages');
+  // a category totalling zero draws nothing rather than dividing by it
+  const zero = chartSvg(chart('share-bar', ['Z'], [{ name: 'A', values: [0] }]), 400, 200);
+  assert.equal(barsOf(zero, 0).length, 0);
+});
+
+test('target: the rule is drawn, labelled, and pulls the scale up to itself', () => {
+  const withTarget = { ...chart('bar', ['Q1'], [{ name: 'A', values: [10] }]), target: 40 };
+  const svg = chartSvg(withTarget, 600, 300);
+  // dashed, in the page ink — never a series colour, and so never in the legend
+  const rule = svg.match(/<line[^>]*stroke="#([0-9a-fA-F]{6})"[^>]*stroke-dasharray/i);
+  assert.ok(rule, 'the target rule is dashed');
+  assert.equal(rule[1].toLowerCase(), COLORS.neutralSecondary.toLowerCase());
+  assert.ok(
+    !CHART_COLORS.some((c) => c.toLowerCase() === rule[1].toLowerCase()),
+    'the target is not an identity',
+  );
+  // a rule outside its own frame is worse than no rule: the scale must have
+  // grown to hold 40, so the lone bar of 10 is now well under half the plot
+  const bar = bbox(barsOf(svg, 0)[0]);
+  const plain = bbox(
+    barsOf(chartSvg(chart('bar', ['Q1'], [{ name: 'A', values: [10] }]), 600, 300), 0)[0],
+  );
+  assert.ok(bar.y1 - bar.y0 < plain.y1 - plain.y0, 'the target entered niceScale');
+});
+
+test('waterfall: anchors run from zero, deltas float, and hue carries the sign', () => {
+  const svg = chartSvg(
+    chart(
+      'waterfall',
+      ['Budget', 'Gain', 'Loss', 'Actual'],
+      [{ name: 'C', values: [100, 20, -30, 90] }],
+    ),
+    700,
+    340,
+  );
+  const paths = [...svg.matchAll(/<path d="([^"]+)" fill="#([0-9a-fA-F]{6})"\/>/g)];
+  assert.equal(paths.length, 4, 'one bar per category');
+  const kind = (k) => paths[k][2].toLowerCase();
+  assert.equal(kind(0), COLORS.neutralSecondary.toLowerCase(), 'an anchor is neutral');
+  assert.equal(kind(3), COLORS.neutralSecondary.toLowerCase());
+  assert.equal(kind(1), SEMANTIC.success.solid.toLowerCase(), 'a rise is the success tint');
+  assert.equal(kind(2), SEMANTIC.danger.solid.toLowerCase(), 'a fall is the danger tint');
+
+  const box = paths.map((m) => bbox(m[1]));
+  const base = baseline(svg).y1;
+  assert.ok(Math.abs(box[0].y1 - base) < 1.5, 'the opening anchor stands on zero');
+  assert.ok(Math.abs(box[3].y1 - base) < 1.5, 'so does the closing one');
+  assert.ok(box[1].y1 < base - 1.5, 'a delta floats on the running sum, off the baseline');
+  // the numbers are part of the chart: a bridge without them is a shape
+  assert.match(svg, />\+20</);
+  assert.match(svg, />-30</);
+});
+
+test('waterfall: `totals:` names the anchors when the bridge has a subtotal', () => {
+  const svg = chartSvg(
+    {
+      ...chart(
+        'waterfall',
+        ['Open', 'Δ', 'Sub', 'Δ2', 'End'],
+        [{ name: 'C', values: [100, 20, 120, -10, 110] }],
+      ),
+      totals: ['Open', 'Sub', 'End'],
+    },
+    700,
+    340,
+  );
+  const paths = [...svg.matchAll(/<path d="[^"]+" fill="#([0-9a-fA-F]{6})"\/>/g)].map((m) =>
+    m[1].toLowerCase(),
+  );
+  const neutral = COLORS.neutralSecondary.toLowerCase();
+  assert.deepEqual(
+    paths.map((c) => c === neutral),
+    [true, false, true, false, true],
+    'the three named categories are the anchors',
+  );
+});
+
+test('gantt: a lane spans its periods, both ends included, and "now" is a rule', () => {
+  const deck = parseDeck(
+    '# Plan\n\n```chart\ntype: gantt\ncategories: Q1, Q2, Q3\nnow: Q2\nBuild: Q1 - Q2\nShip: Q3\n```\n',
+  );
+  const block = deck.slides[0].sections.flatMap((s) => s.blocks)[0];
+  assert.equal(block.chartType, 'gantt');
+  assert.deepEqual(block.series[0].spans, [{ from: 0, to: 1, raw: 'Q1 - Q2' }]);
+  // the raw text is kept for the no-rasterizer fallback, which rebuilds the
+  // spec with values.join(', ') — objects there would print [object Object]
+  assert.deepEqual(block.series[0].values, ['Q1 - Q2']);
+
+  const svg = chartSvg(block, 700, 300);
+  const bars = [...svg.matchAll(/<path d="([^"]+)" fill="#([0-9a-fA-F]{6})"\/>/g)];
+  assert.equal(bars.length, 2, 'one bar per span');
+  // one hue for every lane: the lane is named on the left, so colour carries
+  // nothing — and cycling the palette would cap a plan at six workstreams
+  assert.equal(bars[0][2].toLowerCase(), bars[1][2].toLowerCase());
+  const [build, ship] = bars.map((m) => bbox(m[1]));
+  assert.ok(build.x1 - build.x0 > (ship.x1 - ship.x0) * 1.7, 'two periods are twice one period');
+  assert.match(svg, new RegExp(`stroke="#${COLORS.negative}"`, 'i'), 'the "now" rule is drawn');
+});
+
+test('gantt: a period that resolves to nothing invalidates the spec', () => {
+  const deck = parseDeck(
+    '# Plan\n\n```chart\ntype: gantt\ncategories: Q1, Q2\nBuild: Q1 - Q9\n```\n',
+  );
+  const block = deck.slides[0].sections.flatMap((s) => s.blocks)[0];
+  // the DSL's standing promise: the source shown as a code block, INVALID_CHART
+  assert.equal(block.type, 'code');
+  assert.equal(block.invalidChart, true);
 });

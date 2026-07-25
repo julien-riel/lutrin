@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { parseDeck, runsToText } from '../src/deck/parse.mjs';
 import { validateDeck } from '../src/deck/validate.mjs';
 import { readDemo, assertGolden } from './helpers.mjs';
+import { progressLayout } from '../src/deck/tokens.mjs';
 
 /** Blocks of a slide, sections flattened. */
 const blocksOf = (deck, i = 0) => deck.slides[i].sections.flatMap((s) => s.blocks);
@@ -86,6 +87,46 @@ test(':::progress — an out-of-range value is clamped, an unreadable one degrad
   assert.equal(degraded.type, 'para');
   assert.equal(degraded.invalidProgress, true);
   assert.equal(runsToText(degraded.runs), 'almost done Label');
+});
+
+test(':::progress — a target, and the two spellings it must not swallow', () => {
+  const bar = (value) => blocksOf(parseDeck(`# P\n\n:::progress\n${value}\nLabel\n:::\n`))[0];
+
+  const t = bar('62 % / 80 %');
+  assert.equal(t.value, 0.62);
+  assert.equal(t.target, 0.8);
+
+  // A FRACTION IS NOT A TARGET. The whole line is tried as a single share
+  // first, and a split additionally requires a per cent sign — without that
+  // second condition `1/0` (a division by zero, INVALID_PROGRESS since the
+  // directive shipped) came back as "100 %, target 0 %", silently. It did
+  // during this very change; the assertion below is what caught it.
+  assert.equal(bar('3/4').value, 0.75);
+  assert.equal(bar('3/4').target, undefined, 'a fraction is a share, not a share and a target');
+  assert.equal(bar('1/0').value, undefined, 'a division by zero is still no share at all');
+  assert.equal(bar('1/0').type, 'para');
+
+  // the comma is the DECIMAL separator in the default locale (fr-CA), so it
+  // could never be the value/target separator: `0,75` keeps getting the
+  // diagnostic it has always had rather than reading as "value 0, target 75"
+  assert.equal(bar('0,75').type, 'para');
+  assert.equal(bar('0,75').invalidProgress, true);
+
+  // a bar with no target carries no key at all — existing scenes must not move
+  assert.equal(bar('62 %').target, undefined);
+
+  const g = progressLayout({ type: 'progress', value: 0.62, target: 0.8, label: 'L' }, 400);
+  const plain = progressLayout({ type: 'progress', value: 0.62, label: 'L' }, 400);
+  assert.ok(g.marker, 'the target is marked on the track');
+  assert.equal(g.h, plain.h, 'and it changes no height — that is why it is a property');
+  assert.equal(g.marker.reached, false);
+  assert.ok(
+    g.marker.x > g.fill.x + g.fill.w,
+    'a target above the value stands beyond the end of the fill',
+  );
+  // 0 and 1 land on the track's own end caps, where a rule reads as an artefact
+  assert.equal(progressLayout({ type: 'progress', value: 0.5, target: 1 }, 400).marker, undefined);
+  assert.equal(progressLayout({ type: 'progress', value: 0.5, target: 0 }, 400).marker, undefined);
 });
 
 test(':::status — one badge per comma, its severity carried by its own prefix', () => {
