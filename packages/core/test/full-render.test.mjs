@@ -45,7 +45,7 @@ import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeck } from '../src/pptx/render.mjs';
 import { renderDeckHtml } from '../src/html/render.mjs';
 import { rasterAvailable, renderMermaidCached } from '../src/deck/assets.mjs';
-import { COLORS, SEMANTIC } from '../src/deck/tokens.mjs';
+import { COLORS, SEMANTIC, contrastRatio } from '../src/deck/tokens.mjs';
 import { ALL_BLOCKS_DIR, readAllBlocks } from './helpers.mjs';
 
 /** mmdc is an optional peerDependency: without it, `mermaid` switches to its
@@ -227,9 +227,31 @@ test('pptx: each of the eighteen block types leaves its marker in the XML', asyn
   assert.match(badges, /ZQINLINE/, 'badge: the inline badge text');
   assert.match(
     badges,
-    new RegExp(`<a:highlight><a:srgbClr val="${SEMANTIC.danger.solid}"`),
-    'badge: the inline "!" badge is highlighted in its tint',
+    new RegExp(`<a:highlight><a:srgbClr val="${SEMANTIC.danger.fill}"`),
+    'badge: the inline "!!" badge is highlighted in its tint',
   );
+
+  // ...and the ink must be the one that reads WITHOUT the highlight. `highlight`
+  // is a PowerPoint extension: Keynote, QuickLook and LibreOffice drop it on
+  // import. Emitted with the saturated pair, the badge came out as white text
+  // on white paper there — exported through Keynote, two badges of this very
+  // fixture were simply absent from the slide. So the pair is asserted against
+  // the PAGE, not against the highlight that may never be painted.
+  for (const kind of Object.keys(SEMANTIC)) {
+    const ink = SEMANTIC[kind].text;
+    const ratio = contrastRatio(ink, COLORS.ground);
+    assert.ok(
+      ratio >= 4.5,
+      `badge ${kind}: ink #${ink} is ${ratio.toFixed(2)}:1 on the page — unreadable wherever the highlight is dropped`,
+    );
+  }
+  for (const m of badges.matchAll(/<a:highlight><a:srgbClr val="(\w+)"/g)) {
+    const tint = Object.values(SEMANTIC).find((s) => s.fill === m[1]);
+    assert.ok(
+      tint,
+      `badge: highlight #${m[1]} is not a pale tint fill — the saturated pair vanishes without it`,
+    );
+  }
 
   const quote = await xmlOf('Quote');
   assert.match(quote, /ZQQUOTE/, 'quote: the text');

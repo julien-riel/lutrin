@@ -1,0 +1,11 @@
+{
+  "name": "board",
+  "base": "grid",
+  "cols": 2,
+  "sections": { "min": 2, "max": 4 },
+  "panels": ["muted", "muted", "muted", "danger-solid"],
+  "headed": true,
+  "density": "compact",
+  "radius": "lg",
+  "description": "Status board: three quiet panels and one saturated panel for what must be escalated."
+}

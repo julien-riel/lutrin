@@ -1,0 +1,9 @@
+{
+  "name": "scorecard",
+  "base": "comparison",
+  "panels": ["success-solid", "muted"],
+  "radius": "lg",
+  "pad": 32,
+  "density": "compact",
+  "description": "A verdict beside its detail: saturated panel on the left, the reading on the right."
+}
