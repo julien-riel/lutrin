@@ -33,7 +33,9 @@ import {
   LAYER_SHADES,
   TREND_INK,
   SEMANTIC,
+  LINE_HEIGHT,
   blockFontSize,
+  iconSize,
   scaleTextToken,
 } from '../src/deck/tokens.mjs';
 import {
@@ -1655,4 +1657,26 @@ test('e2e: the escaped logo of a hostile kit does NOT reach the produced HTML', 
     /884400/,
     'the kit color, for its part, does travel — only the escaped path is dropped',
   );
+});
+
+// `line` is the one icon size that is not a factor on a constant of the
+// engine: it is one line of BODY text, so a kit that ships a bigger body has
+// to get a bigger icon without asking. Written as a number in tokens.mjs it
+// would have looked right at the default and stayed 26 px on every kit.
+test('an icon sized `line` follows the theme body, not a constant', (t) => {
+  t.after(() => applyTheme(null));
+  const icon = { type: 'icon', name: 'check', color: 'primary', size: 'line' };
+  const region = { x: 0, y: 0, w: 400, h: 400 };
+  const atDefault = iconSize(icon, region);
+
+  applyTheme({ type: { body: 20 } });
+  const atKit = iconSize(icon, region);
+
+  assert.ok(
+    atKit > atDefault,
+    `a 20 pt body must give a taller icon than the 14 pt default (${atKit} vs ${atDefault})`,
+  );
+  assert.equal(atKit, Math.round(20 * (96 / 72) * LINE_HEIGHT), 'exactly one line of that body');
+  // the sizes that ARE factors stay put: the theme moves the text, not the grid
+  assert.equal(iconSize({ ...icon, size: 'large' }, region), 224);
 });

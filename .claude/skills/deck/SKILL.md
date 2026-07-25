@@ -467,17 +467,28 @@ The alt slot holds **intent words**, in any order — an ink and a size:
 | | Words | Default |
 |---|---|---|
 | Ink | `primary`, `neutral`, `secondary`, `white` (dark panels only) | `primary` |
-| Size | `small`, `medium`, `large` | `medium` |
+| Size | `line`, `small`, `medium`, `large` | `medium` |
 
 ```markdown
 ![large](lucide:leaf)           one step up from the slot's size
 ![neutral small](lucide:leaf)   both words, either order
+![line](lucide:leaf)            as tall as one line of body text
 ```
 
-Sizes are words, never points: they are factors on the size the slot already
-governs, so a narrow column still wins over a `large` icon. Any other word is
-reported by `UNKNOWN_ICON_WORD` and ignored. Never write a point size — the
-engine owns dimensions.
+Sizes are words, never points: `small`/`medium`/`large` are factors on the size
+the slot already governs, so a narrow column still wins over a `large` icon.
+`line` is the smallest and follows the theme's body text instead of a factor —
+for an icon standing beside text. Any other word is reported by
+`UNKNOWN_ICON_WORD` and ignored. Never write a point size — the engine owns
+dimensions.
+
+**An icon cannot go inside a table cell or inside a sentence.** A cell and a
+text run hold text in both formats — a DrawingML cell is a text body, and the
+engine leaves row heights to PowerPoint, so there is no geometry to float an
+image against. An icon written in a cell is dropped and reported
+(`TABLE_CONTENT_DROPPED`). For a status column, use an inline badge
+(`==Delivered==`, `==!At risk==`); for a matrix of marks, `type: heat` or
+`type: rating`.
 
 ### Charts (bars, pie, lines…)
 

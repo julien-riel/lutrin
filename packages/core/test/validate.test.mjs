@@ -196,7 +196,11 @@ test('capabilities() reflects the engine sources of truth', () => {
   // the icon's alt vocabulary: an agent that cannot read the size words back
   // invents point sizes instead
   assert.ok(caps.diagnostics.includes('UNKNOWN_ICON_WORD'));
-  assert.deepEqual(caps.iconSizes, ['small', 'medium', 'large']);
+  // both were pushed by the validator and listed nowhere until a table cell
+  // ate an icon and nobody could find out why
+  assert.ok(caps.diagnostics.includes('TABLE_CONTENT_DROPPED'));
+  assert.ok(caps.diagnostics.includes('QUOTE_CONTENT_DROPPED'));
+  assert.deepEqual(caps.iconSizes, ['line', 'small', 'medium', 'large']);
   assert.deepEqual(caps.iconColors, ['primary', 'neutral', 'secondary', 'white']);
   assert.deepEqual(caps.outputs, ['pptx', 'html']);
 });

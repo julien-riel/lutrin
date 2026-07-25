@@ -595,8 +595,21 @@ export function badgeLayout(block, widthPx) {
 const ICON = { max: 160, flowHeight: 112 };
 export const ICON_SCALE = { small: 0.7, medium: 1, large: 1.4 };
 
-/** Factor of an icon's size word (1 when the author named none). */
-export const iconScale = (block) => ICON_SCALE[block?.size] ?? 1;
+/**
+ * The size an icon ASKS for, in px, before the slot has its say — and the two
+ * words obey two different rules on purpose.
+ *
+ * `small`/`medium`/`large` are FACTORS on the engine's own dimension (`base`:
+ * the drawing cap, or the height the flow reserves). `line` is not a factor at
+ * all: it is the height of ONE LINE of body text, read from the theme at call
+ * time, so an icon standing beside a sentence matches the sentence rather than
+ * a number chosen here — and a kit shipping a 16 pt body gets a taller one for
+ * free. That is why it cannot be a fourth entry in ICON_SCALE.
+ */
+function iconIntrinsic(block, base) {
+  if (block?.size === 'line') return TYPE.body * PT_TO_PX * LINE_HEIGHT;
+  return base * (ICON_SCALE[block?.size] ?? 1);
+}
 
 /**
  * Side of the square an icon is drawn in, in px — the ONE answer both
@@ -604,9 +617,9 @@ export const iconScale = (block) => ICON_SCALE[block?.size] ?? 1;
  * one of them gained a factor; this is the same lesson badgeLayout() banked.
  */
 export const iconSize = (block, region) =>
-  Math.round(Math.min(region.w, region.h, ICON.max * iconScale(block)));
+  Math.round(Math.min(region.w, region.h, iconIntrinsic(block, ICON.max)));
 
-/** Height an icon reserves when it flows in a region (blockHeight). Scaled by
- *  the same factor: an icon that DRAWS larger must also MEASURE larger, or the
+/** Height an icon reserves when it flows in a region (blockHeight). Same rule
+ *  as the drawing: an icon that DRAWS larger must also MEASURE larger, or the
  *  block underneath it is placed on top of it. */
-export const iconFlowHeight = (block) => Math.round(ICON.flowHeight * iconScale(block));
+export const iconFlowHeight = (block) => Math.round(iconIntrinsic(block, ICON.flowHeight));

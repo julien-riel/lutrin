@@ -11,6 +11,24 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **`![line](lucide:leaf)` — an icon the height of one line of text.** The
+  smallest of the four size words, and the only one that is not a factor on a
+  constant of the engine: it is one line of BODY text, read from the theme, so
+  a kit with a 16 pt body gets a taller icon without asking. For an icon
+  standing *beside* text. It cannot go *inside* a table cell — see below.
+
+- **A table cell that eats an image now says so — `TABLE_CONTENT_DROPPED`.** A
+  cell holds runs, and an image has never been one: `![](lucide:check)` written
+  in a status column was dropped at parse time and the cell came out empty,
+  with nothing in the log. Neither format can hold it — a DrawingML cell is a
+  text body, and this engine deliberately leaves row heights to PowerPoint, so
+  there is no geometry to float an image against; it is the inline-icon finding
+  one step worse, since one long cell shifts every row below it. The diagnostic
+  names what does work: an inline badge for a status column, `type: heat` or
+  `type: rating` for a matrix of marks. `QUOTE_CONTENT_DROPPED`, pushed since
+  the quotation shipped, was missing from the published list for the same
+  reason nobody noticed this one.
+
 - **A semantic size for icons — `![large](lucide:leaf)`.** The alt slot already
   carried an ink; it now carries a size in the same slot, in any order:
   `small`, `medium`, `large`. Words, never points — they are factors on the

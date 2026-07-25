@@ -445,8 +445,9 @@ never a start and an end.
 
 Words, never points: `small`, `medium` and `large` are factors on the size the
 slot already governs, so a column narrower than the icon still wins over a
-`large`. The word rides in the alt slot beside the ink, in either order —
-`![neutral large](lucide:leaf)`.
+`large`. A fourth, `line`, is the height of one line of body text and follows
+the kit rather than a factor. The word rides in the alt slot beside the ink, in
+either order — `![neutral large](lucide:leaf)`.
 
 ## Small
 
@@ -465,10 +466,63 @@ before this compiles to exactly the slide it did.
 
 ![large](lucide:leaf)
 
-Opening a section, or filling the narrow column of the layout on the next
-slide.
+Opening a section, or filling the narrow column of the layout two slides on.
 
 <!-- notes: the flow reserves the height the factor asks for, not the one the default asks for — an icon that draws 1.4× larger has to measure 1.4× larger, or the block underneath is placed on top of it. A word that names neither an ink nor a size is UNKNOWN_ICON_WORD, with the nearest word suggested, rather than silence. -->
+
+# A specification sheet is a grid, not a table
+
+<!-- layout: portfolio -->
+
+## Processor
+
+![line](lucide:cpu)
+
+**2 × Xeon Gold 6338**
+
+64 cores · 2.0 GHz
+
+## Memory
+
+![line](lucide:memory-stick)
+
+**512 GB** DDR4-3200
+
+ECC · 16 × 32 GB
+
+## Storage
+
+![line](lucide:hard-drive)
+
+**4 × 3.84 TB** NVMe
+
+RAID 10 · 7.6 TB usable
+
+## Network
+
+![line](lucide:ethernet-port)
+
+**2 × 25 GbE** bonded
+
+1 GbE out-of-band
+
+## Platform
+
+![line](lucide:server)
+
+**RHEL 9.4**
+
+Kernel 5.14
+
+## Database
+
+![line](lucide:database)
+
+**PostgreSQL 16.3**
+
+Synchronous replication
+
+<!-- notes: this is where `line` earns its name — an icon the height of the text it labels, one per specification. And it is a GRID because it cannot be a table: a cell renders text only in both formats, so an icon written into one is dropped and reported (TABLE_CONTENT_DROPPED). A probe measured both ways round it in Keynote — as a cell fill the picture is stretched to 12:1, as a floated image it drifts 23 px on a 26 px mark — and the verdict is banked in docs/plans/widgets-next.md. Here the engine places the icon itself, so it lands where it was put. `portfolio` is an official layout: no file to write. -->
 
 # What a drop cap was actually for
 
@@ -495,7 +549,7 @@ only thing this slide had to name: no width, no side, no coordinate.
 # One source, two deliverables
 
 Everything in this deck came out of one `.md` file and five small JSON layouts
-— plus three from the official catalog, which are files nobody had to write.
+— plus four from the official catalog, which are files nobody had to write.
 The `.pptx` and the HTML are born of the same scene: the same geometry to the
 pixel, the same tints, the same wrap.
 

@@ -473,6 +473,23 @@ export function validateDeck(
           );
         }
       }
+      // a table cell holds runs, and neither format can put a picture in one:
+      // a DrawingML cell is a text body, and the engine leaves the row heights
+      // to PowerPoint, so a floated image would be placed against a geometry
+      // it does not know. The image was already dropped — this is the sentence
+      // that was missing (parse.mjs sets `dropped`).
+      if (b.type === 'table' && b.dropped?.length) {
+        for (const t of b.dropped) {
+          push(
+            'warning',
+            'TABLE_CONTENT_DROPPED',
+            t === 'icon'
+              ? 'A table cell renders text only: the icon it contains will be ignored — use an inline badge (`==Delivered==`, `==!At risk==`) for a status column, or `type: heat` / `type: rating` for a whole matrix of marks.'
+              : 'A table cell renders text only: the image it contains will be ignored — place it outside the table.',
+            b.line,
+          );
+        }
+      }
       // cartesian and radar: chart.mjs truncates each series to the number of
       // categories BEFORE computing its scale (otherwise the surplus, never
       // plotted, crushes the visible plot). What it rules out, it says here —
@@ -872,6 +889,10 @@ export function capabilities() {
       'LAYOUT_SUGGESTION',
       'IMAGE_UPSCALED',
       'ALERT_CONTENT_DROPPED',
+      // both were pushed by the validator and listed nowhere: an agent reading
+      // capabilities() was told they did not exist
+      'QUOTE_CONTENT_DROPPED',
+      'TABLE_CONTENT_DROPPED',
       'CHART_DATA_IGNORED',
       'QUOTE_EMPTY',
       'LAYERS_SHADE_MISSING',
