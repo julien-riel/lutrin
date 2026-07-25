@@ -566,6 +566,10 @@ function addProgress(slide, block, r) {
     // exact pitch, never a multiple — see addPara
     lineSpacing: TYPE.body * 1.3,
     margin: TEXT_INSET,
+    // the height was committed to before this ran: a wrapped label would leave
+    // the block's box. The HTML counterpart clips with an ellipsis; PowerPoint
+    // has no ellipsis, so it overruns — stated in docs/dsl.md.
+    wrap: false,
   });
   slide.addText(g.pct.text, {
     x: px(r.x + g.pct.x),

@@ -1,0 +1,11 @@
+{
+  "name": "board-six",
+  "base": "grid",
+  "cols": 3,
+  "sections": { "min": 2, "max": 6 },
+  "panels": ["muted"],
+  "headed": true,
+  "density": "compact",
+  "radius": "lg",
+  "description": "Six panels, three across two rows — a portfolio review at a glance."
+}

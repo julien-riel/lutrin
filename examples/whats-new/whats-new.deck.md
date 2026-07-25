@@ -145,6 +145,126 @@ Each commitment carries an ==Owner==.
 
 <!-- notes: four panels, one of them saturated, from four `##` sections and a six-line layouts/board.json. No coordinate is written anywhere. -->
 
+# The portfolio, six at a time
+
+<!-- layout: board-six -->
+
+## Online services
+
+:::progress success
+100 %
+Delivered
+:::
+
+## Paper forms
+
+:::progress
+45 % / 70 %
+Target 70 %
+:::
+
+## Data migration
+
+:::progress warning
+25 %
+Analysis
+:::
+
+## Permits
+
+:::status
+Scope, Schedule
+!Budget
+:::
+
+## Mobile app
+
+:::status
+Quality
+?Business case
+:::
+
+## Decommissioning
+
+:::status
+!!Procurement
+:::
+
+<!-- notes: same layout family as the four-panel board — `cols: 3` and nothing else. Six sections, two rows. -->
+
+# Eight programmes, one page
+
+<!-- layout: board-eight -->
+
+## Online services
+
+Delivered · 3 612 k$
+
+## Paper forms
+
+In development · 1 120 k$
+
+## Data migration
+
+Under analysis · 975 k$
+
+## Recruitment
+
+Two positions unfilled since February
+
+## Permits
+
+Awaiting sign-off · 640 k$
+
+## Mobile app
+
+Business case in review
+
+## Partner API
+
+Contract signed · Q3 start
+
+## Decommissioning
+
+Blocked on procurement
+
+<!-- notes: `cols: 4`, `density: dense`, and the fourth tint cycles onto whatever needs flagging. Eight is the ceiling the grid generator publishes. -->
+
+# Six panels and a band
+
+<!-- layout: board-banner -->
+
+## Online services
+
+Delivered 15 April
+
+## Paper forms
+
+45 % — June
+
+## Data migration
+
+25 % — under analysis
+
+## Permits
+
+Awaiting sign-off
+
+## Mobile app
+
+Business case in review
+
+## Partner API
+
+Contract signed
+
+## What the committee is asked to decide
+
+Confirm the 30 May migration window, or the paper-forms commitment moves to
+September and the decommissioning date with it.
+
+<!-- notes: the seventh cell carries `span: 3` in the layout JSON — it takes the whole row, and the two gutters it covers with it. The deck says nothing about width. -->
+
 # The engine fits it for you
 
 <!-- layout: comparison -->
