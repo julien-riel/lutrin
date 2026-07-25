@@ -193,6 +193,11 @@ test('capabilities() reflects the engine sources of truth', () => {
   assert.ok(caps.diagnostics.includes('BLOCK_OVERFLOW'));
   assert.ok(caps.diagnostics.includes('ALERT_CONTENT_DROPPED'));
   assert.ok(caps.diagnostics.includes('CHART_DATA_IGNORED'));
+  // the icon's alt vocabulary: an agent that cannot read the size words back
+  // invents point sizes instead
+  assert.ok(caps.diagnostics.includes('UNKNOWN_ICON_WORD'));
+  assert.deepEqual(caps.iconSizes, ['small', 'medium', 'large']);
+  assert.deepEqual(caps.iconColors, ['primary', 'neutral', 'secondary', 'white']);
   assert.deepEqual(caps.outputs, ['pptx', 'html']);
 });
 

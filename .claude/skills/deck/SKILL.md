@@ -247,6 +247,7 @@ by example:
 | `portfolio` | 3-column grid with headers | projects / services as a mosaic |
 | `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | 1-column grid, dense text | a status board: progress bars and badges, stacked |
+| `opener` | split, narrow visual column | an icon opening a passage — the answer to "a drop cap" |
 
 Validation suggests them when the content betrays the intent ("Pros / Cons"
 headings → `pros-cons`, "Probability / Severity" → `risk-map`). List and
@@ -456,11 +457,27 @@ band per `##`.
 ### Icons (Lucide)
 
 `![](lucide:name)` — icon from [lucide.dev](https://lucide.dev) (~2000 names,
-e.g. `bike`, `house`, `leaf`, `chart-bar`). Rendered in the theme's `primary`
-color by default; `![neutral](lucide:name)`, `![secondary](…)` or
-`![white](…)` for the permitted inks. Resolution: `node_modules/lucide-static`
-→ user cache `~/.cache/lutrin/icons/lucide/` → unpkg download (cached). Ideal
-at the head of a column (`## title`, then icon, then text).
+e.g. `bike`, `house`, `leaf`, `chart-bar`). Resolution:
+`node_modules/lucide-static` → user cache `~/.cache/lutrin/icons/lucide/` →
+unpkg download (cached). Ideal at the head of a column (`## title`, then icon,
+then text), or in the narrow column of the `opener` layout.
+
+The alt slot holds **intent words**, in any order — an ink and a size:
+
+| | Words | Default |
+|---|---|---|
+| Ink | `primary`, `neutral`, `secondary`, `white` (dark panels only) | `primary` |
+| Size | `small`, `medium`, `large` | `medium` |
+
+```markdown
+![large](lucide:leaf)           one step up from the slot's size
+![neutral small](lucide:leaf)   both words, either order
+```
+
+Sizes are words, never points: they are factors on the size the slot already
+governs, so a narrow column still wins over a `large` icon. Any other word is
+reported by `UNKNOWN_ICON_WORD` and ignored. Never write a point size — the
+engine owns dimensions.
 
 ### Charts (bars, pie, lines…)
 

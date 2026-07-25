@@ -174,6 +174,56 @@ test('a panel radius describes the same geometry in both renderers', () => {
   assert.equal(shapes[0].rectRadius * 96, 4);
 });
 
+// An icon's size word is a THIRD reader problem: both renderers draw the
+// square, and blockHeight() reserves the room for it. Two `Math.min` written
+// out twice is exactly the shape the panel radius had before it drifted, and
+// a height left at the old constant would place the next block on top of a
+// `large` icon. All three go through iconSize()/iconFlowHeight().
+test('an icon size word yields the same square in both renderers, and the height that fits it', () => {
+  const region = { x: 48, y: 120, w: 400, h: 400 };
+  const ctx = { icons: { get: () => '<svg viewBox="0 0 24 24"></svg>' } };
+  // factors on the 160 px cap and on the 112 px flow height — a word, and the
+  // slot still governs (see the clamp asserted below)
+  const expected = { small: 112, medium: 160, large: 224 };
+
+  for (const [word, side] of Object.entries(expected)) {
+    const block = { type: 'icon', name: 'compass', color: 'primary', size: word };
+
+    assert.match(
+      HTML.icon(block, region, ctx),
+      new RegExp(`width:${side}px;height:${side}px`),
+      `HTML icon "${word}": a ${side} px square expected`,
+    );
+
+    const images = [];
+    PPTX.icon({ addImage: (o) => images.push(o) }, block, region, ctx);
+    assert.equal(images[0].w * 96, side, `PPTX icon "${word}": ${side} px expressed in inches`);
+    assert.equal(images[0].h * 96, side, 'the icon stays square');
+
+    assert.equal(
+      blockHeight(block, region.w),
+      Math.round(112 * (side / 160)),
+      `blockHeight must reserve the room a "${word}" icon draws in`,
+    );
+  }
+
+  // no word: the block carries no `size` key at all, and nothing moves
+  const plain = { type: 'icon', name: 'compass', color: 'primary' };
+  assert.match(HTML.icon(plain, region, ctx), /width:160px;height:160px/);
+  assert.equal(blockHeight(plain, region.w), 112);
+
+  // the word ADJUSTS, it never positions: a slot narrower than the square
+  // still governs, on both sides and at every word
+  const narrow = { x: 48, y: 120, w: 90, h: 400 };
+  for (const word of Object.keys(expected)) {
+    const block = { type: 'icon', name: 'compass', color: 'primary', size: word };
+    assert.match(HTML.icon(block, narrow, ctx), /width:90px;height:90px/);
+    const images = [];
+    PPTX.icon({ addImage: (o) => images.push(o) }, block, narrow, ctx);
+    assert.equal(images[0].w * 96, 90, `PPTX icon "${word}" overflows a 90 px slot`);
+  }
+});
+
 // The column alignment (plan 4) is the one IR field that is INDEXED: the
 // delimiter row gives one entry per column, and each renderer has to put it
 // back on the right cell. An off-by-one on one side only is exactly the kind

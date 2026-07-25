@@ -105,8 +105,8 @@ to take them in if they are taken.
 
 | # | What | Where | Cost | Depends on |
 |---|---|---|---|---|
-| 1 | `opener` layout — the honest answer to "drop cap" | [logos-testimonial-icons.md](logos-testimonial-icons.md) §3c | a JSON file | — |
-| 2 | Semantic icon size (`![large](lucide:…)`) | [build-logos-and-icons.md](build-logos-and-icons.md) §1 | an afternoon | — |
+| ~~1~~ | ~~`opener` layout — the honest answer to "drop cap"~~ — **shipped** | [logos-testimonial-icons.md](logos-testimonial-icons.md) §3c | a JSON file, plus two lines in `split` | — |
+| ~~2~~ | ~~Semantic icon size (`![large](lucide:…)`)~~ — **shipped** | [build-logos-and-icons.md](build-logos-and-icons.md) §1 | an afternoon | — |
 | ~~3~~ | ~~`type: rating` and `type: heat`~~ — **both shipped**, and they turned out to be one feature: the same matrix frame, filled in one and tinted in the other | [reopening-rating-and-person.md](reopening-rating-and-person.md) | a branch in `chart.mjs` | — |
 | 4 | The deep block walker | [build-logos-and-icons.md](build-logos-and-icons.md) §2 | small, but its own change | — |
 | 5 | The logo wall | [build-logos-and-icons.md](build-logos-and-icons.md) §3 | a block | 4 |
@@ -118,10 +118,21 @@ Why in that order:
 
 - **1–3 depend on nothing and cost almost nothing.** A JSON layout, an intent
   word, and one branch in `chart.mjs`. Together they close three requests that
-  keep coming back. **3 has shipped**, both halves of it: `rating` and `heat`
-  share a `matrixFrame()` and differ only in what they draw inside a cell —
-  the review's guess that "whoever does one should look at whether they are one
+  keep coming back. **All three have shipped.** `rating` and `heat` share a
+  `matrixFrame()` and differ only in what they draw inside a cell — the
+  review's guess that "whoever does one should look at whether they are one
   feature" turned out to be right.
+- **1 and 2 came out with three differences from the briefs, and the code is
+  right.** (a) The sketch `{ "base": "split", "ratio": 0.22, "side": "left" }`
+  is inverted: `ratio` is the share taken by the TEXT, so the layout ships at
+  `0.78` — 0.22 would have given the passage the narrow column and the icon the
+  wide one. (b) `split` did not count an icon as a visual at all, so the icon
+  flowed with the text; it does now — there, and deliberately not in
+  `inferLayout()`, where it would have turned the demo's three pillars into a
+  split. (c) An icon in that column was stretched to the full height and
+  centred itself halfway down the slide, beside nothing: it is trimmed to the
+  square it draws, which is what puts it against the first line. The icon
+  sizes stayed module-private, as recommended.
 - **3 jumped the queue, and the reason is recorded.** `:::rating` scored last
   of thirty candidates, because a Harvey ball was assumed to be a glyph or an
   OOXML shape and both fail somewhere. It is neither: this engine already draws

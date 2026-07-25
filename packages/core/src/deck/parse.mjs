@@ -73,6 +73,10 @@ export const CONTAINERS = [...SEMANTIC_KINDS, 'metric', 'progress', 'status'];
 export const ALERT_BLOCK_TYPES = new Set(['para', 'bullets']);
 const IMAGE_ROLES = new Set(['cover', 'background', 'left', 'right']);
 export const ICON_COLORS = new Set(['primary', 'neutral', 'secondary', 'white']);
+/** The size words an icon's alt slot accepts, beside the ink. Words, never
+ *  points: the factors they stand for belong to the engine (tokens.mjs,
+ *  ICON_SCALE), and an author who could write "24 pt" would be positioning. */
+export const ICON_SIZES = new Set(['small', 'medium', 'large']);
 /** The modifier comes FIRST in the stacked names (`stacked-barh`, not
  *  `barh-stacked`): the existing `barh` token stays whole, and the `h` keeps
  *  meaning "horizontal" everywhere it appears. */
@@ -296,16 +300,29 @@ export const runsToText = (runs) => runs.map((r) => r.text).join('');
 
 /** markdown-it `image` token → `image` or `icon` block.
  *  `![role](…)`: the alt carries the role when it names one, otherwise the
- *  alternative text; `lucide:`/`icon:` switches to an icon. */
+ *  alternative text; `lucide:`/`icon:` switches to an icon.
+ *
+ *  An icon's alt slot is a set of INTENT WORDS, in any order: an ink
+ *  (`neutral`) and a size (`large`). A word that names neither is not silently
+ *  dropped — it travels on the block as `unknownWords` and validation reports
+ *  it with a "did you mean", the same contract as an unknown progress tint. */
 function imageBlock(img) {
   const alt = img.content ?? '';
   const src = img.attrGet('src') ?? '';
   const icon = src.match(/^(?:lucide|icon):(.+)$/i);
   if (icon) {
+    const words = alt.split(/\s+/).filter(Boolean);
+    const color = words.find((w) => ICON_COLORS.has(w));
+    const size = words.find((w) => ICON_SIZES.has(w));
+    const unknown = words.filter((w) => !ICON_COLORS.has(w) && !ICON_SIZES.has(w));
     return {
       type: 'icon',
       name: icon[1].trim().toLowerCase(),
-      color: ICON_COLORS.has(alt) ? alt : 'primary',
+      color: color ?? 'primary',
+      // no word, no key: a deck that asked for nothing must produce the block
+      // it produced before this feature existed — goldens included
+      ...(size ? { size } : {}),
+      ...(unknown.length ? { unknownWords: unknown } : {}),
     };
   }
   return {

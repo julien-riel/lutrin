@@ -182,6 +182,7 @@ layouts — **data**, not code — and they are always available.
 | `portfolio` | grid, 3 columns with headers | projects or services as a mosaic |
 | `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | grid, 1 column, dense | a status board: progress bars and badges, stacked |
+| `opener` | split, narrow visual column | an icon opening a passage — what a drop cap is for |
 
 Validation **suggests** them when the content betrays the intent: sections
 "Pros" / "Cons" propose `pros-cons`, headings "Probability" / "Severity"
@@ -499,10 +500,24 @@ in `assets/remote/` next to the `.md` — useful only if the directory must be
 self-contained.
 
 **Lucide icons** — `![](lucide:name)` places an icon from
-[lucide.dev](https://lucide.dev) (`bike`, `house`, `leaf`, `chart-bar`…). Its
-color is the theme's `primary` ink; `![neutral](lucide:name)`,
-`![secondary](…)` and `![white](…)` are the other inks allowed. An unknown
-name produces `UNKNOWN_ICON`.
+[lucide.dev](https://lucide.dev) (`bike`, `house`, `leaf`, `chart-bar`…). An
+unknown name produces `UNKNOWN_ICON`.
+
+The alt slot of an icon carries **intent words**, in any order: an ink and a
+size. The ink is the theme's `primary` by default; `neutral`, `secondary` and
+`white` are the others allowed (`white` for dark panels only). The size is
+`small`, `medium` (the default) or `large` — words, never points: they are
+factors on the size the slot already governs, so a column narrower than the
+icon still wins.
+
+```markdown
+![](lucide:leaf)                icon in the primary ink, at the slot's size
+![large](lucide:leaf)           the same, one step up
+![neutral small](lucide:leaf)   both words, either order
+```
+
+A word that names neither an ink nor a size is reported by
+`UNKNOWN_ICON_WORD`, with the nearest word suggested — the icon still draws.
 
 **Mermaid** — a ```` ```mermaid ```` block is rendered as an image, using a
 browser already installed on the machine (Chrome, Edge, Brave or Chromium; set
@@ -701,6 +716,7 @@ The main ones:
 | `BLOCK_OVERFLOW` | warning | a block overflows its region in a non-paginated layout, the text scale spent |
 | `METRICS_DROPPED` | warning | more `:::metric` cards than the layout displays |
 | `MISSING_IMAGE`, `UNKNOWN_ICON` | warning | resource not found |
+| `UNKNOWN_ICON_WORD` | warning | a word in an icon's alt names neither an ink nor a size |
 | `INVALID_CHART`, `CHART_DATA_IGNORED` | warning | `chart` specification could not be parsed, or data dropped |
 | `INVALID_PROGRESS` | warning | `:::progress` value unreadable — the card falls back to a paragraph |
 | `UNKNOWN_PROGRESS_KIND` | warning | unknown tint after `:::progress` |

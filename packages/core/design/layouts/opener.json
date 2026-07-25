@@ -1,0 +1,7 @@
+{
+  "name": "opener",
+  "base": "split",
+  "ratio": 0.78,
+  "side": "left",
+  "description": "An icon opening a passage: the icon in a narrow left column, the text in the wide one — the answer to \"drop cap\" in an engine with no text flow."
+}
