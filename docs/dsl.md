@@ -527,7 +527,7 @@ Actual: 110, 155, 175, 190
 
 - `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
   `share-bar`, `share-barh`, `line`, `area`, `pie`, `doughnut`, `radar`,
-  `waterfall`, `gantt`.
+  `waterfall`, `gantt`, `rating`.
 - `categories` (or `catégories`): the x axis. Absent, they are numbered.
 - Every other line `Name: v1, v2, …` is a **series**; decimals use a
   **point**. A line starting with `#` is a comment.
@@ -551,6 +551,27 @@ them instead when the bridge has an intermediate subtotal. This is the one
 chart where **hue carries the sign** rather than the identity: rises in the
 success tint, falls in the danger tint, anchors in the neutral ink. Every bar
 carries its number — a bridge without them is a shape.
+
+**`rating`** — the scorecard of part-filled discs: options down the side,
+criteria across the top. `scale:` declares the denominator, and declaring it is
+the point — a scale derived from the largest value seen would let one new score
+rescale every other row in the deck.
+
+````markdown
+```chart
+type: rating
+categories: Fit to process, Cost of change, Risk
+Rebuild in house: 4, 2, 4
+Buy the module: 2, 5, 2
+scale: 5
+```
+````
+
+The fill is a fraction of the disc, so the granularity is the scale's: at
+`scale: 4` the discs land exactly on the quarters drawn by hand for forty
+years. A score past the scale reads as full rather than wrapping. The discs are
+**drawn**, never typeset — ◐ (U+25D0) is absent from WGL4, so a kit shipping a
+narrow face would put a tofu box on the slide.
 
 **`gantt`** — named lanes spanning periods, and the only chart here that draws
 a *duration*:

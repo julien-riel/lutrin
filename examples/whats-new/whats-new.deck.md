@@ -357,6 +357,26 @@ not zero exaggerates every difference on it. For a series that lives in a
 narrow band far from zero — an availability figure between 99 % and 100 % — say
 so with a `:::metric` and its trend rather than a chart that will look flat.
 
+# Three options, five criteria
+
+```chart
+type: rating
+categories: Fit to process, Cost of change, Risk, Time to value
+Rebuild in house: 4, 2, 4, 2
+Extend the platform: 3, 4, 3, 4
+Buy the module: 2, 5, 2, 5
+scale: 5
+```
+
+The Harvey ball, and it is drawn rather than typeset. The half-filled disc
+character is absent from WGL4 — this slide will not print it, for the same
+reason — so a kit with a narrow face would put a tofu box in front of the
+committee; and an OOXML wedge a viewer ignores draws a confidently wrong score.
+An SVG rasterised like every other figure here has neither failure mode.
+
+`scale:` is declared and never inferred: one new score elsewhere must not
+rescale this table.
+
 # The plan
 
 ```chart

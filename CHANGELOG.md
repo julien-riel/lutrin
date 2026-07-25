@@ -11,6 +11,18 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **`type: rating` — the scorecard of part-filled discs.** Options down the
+  side, criteria across the top, and `scale:` declaring the denominator, which
+  is the whole design: a scale derived from the largest value seen would let one
+  new score rescale every other row of the deck. The discs are DRAWN and
+  rasterised like every other figure here, which is what makes them possible at
+  all — ◐ (U+25D0) is absent from WGL4 so a narrow kit font would show a tofu
+  box, and an OOXML shape adjustment a viewer ignores draws the preset's 270°
+  wedge, a confidently wrong score. At `scale: 4` the fills land exactly on the
+  quarters. Rejected in the widgets review on those two rendering grounds, and
+  reopened once the drawn route made both moot; as a chart type it costs a
+  branch in `chart.mjs` rather than a block.
+
 - **Grid cells that span several columns — `spans`.** A list of column counts
   on the `grid` generator, cycling like `panels`: six panels over a full-width
   band is `"cols": 3, "spans": [1, 1, 1, 1, 1, 1, 3]`. Placement stays a
