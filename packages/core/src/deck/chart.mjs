@@ -18,7 +18,7 @@
  *   - text carries the text inks, never the series color.
  */
 
-import { COLORS, CHART_COLORS, FONTS } from './tokens.mjs';
+import { COLORS, CHART_COLORS, FONTS, SEMANTIC } from './tokens.mjs';
 
 /**
  * Number formatting locale (ticks, legend values).
@@ -127,17 +127,38 @@ function legendRow(series, x, y, w) {
 // Cartesian: bar, barh, line, area
 // ---------------------------------------------------------------------------
 
+/** Stacked family: what the modifier says, read once rather than by comparing
+ *  strings at every use. `share` normalises each category to 100 %. */
+const stackOf = (t) => ({
+  stacked: t.startsWith('stacked-') || t.startsWith('share-'),
+  share: t.startsWith('share-'),
+  horizontal: t.endsWith('barh'),
+});
+
 function cartesian(block, W, H, locale) {
   const { categories: cats, series } = block;
   const legend = series.length > 1;
+  const stack = stackOf(block.chartType);
   // values truncated first: the scale must only know what will actually be
   // plotted (see shownValues)
   const shown = series.map((s) => shownValues(s, cats));
-  const allVals = shown.flat();
-  const { lo, hi, ticks } = niceScale(Math.min(0, ...allVals), Math.max(0, ...allVals));
-  const horizontal = block.chartType === 'barh';
+  // A stack is scaled on the per-category TOTALS, never on the individual
+  // values, or the tallest column runs out of the frame. Shares are always
+  // 0–100. Same discipline as shownValues(): aggregate BEFORE the bounds.
+  const totalAt = (i) => shown.reduce((sum, v) => sum + Math.max(0, v[i] ?? 0), 0);
+  const negAt = (i) => shown.reduce((sum, v) => sum + Math.min(0, v[i] ?? 0), 0);
+  const scaleVals = stack.share
+    ? [0, 100]
+    : stack.stacked
+      ? cats.flatMap((_, i) => [totalAt(i), negAt(i)])
+      : shown.flat();
+  // the target is a fact about the data: a rule drawn outside its own frame is
+  // worse than no rule
+  const withTarget = Number.isFinite(block.target) ? [...scaleVals, block.target] : scaleVals;
+  const { lo, hi, ticks } = niceScale(Math.min(0, ...withTarget), Math.max(0, ...withTarget));
+  const horizontal = block.chartType === 'barh' || stack.horizontal;
 
-  const tickLabels = ticks.map((t) => fmt(t, locale));
+  const tickLabels = ticks.map((t) => (stack.share ? `${fmt(t, locale)} %` : fmt(t, locale)));
   const valLabelW = Math.max(...tickLabels.map((t) => textW(t, 11)));
   const catLabelW = Math.max(...cats.map((c) => textW(c, 11)));
   const pad = {
@@ -202,7 +223,57 @@ function cartesian(block, W, H, locale) {
     );
   });
 
-  if (block.chartType === 'bar' || block.chartType === 'barh') {
+  if (stack.stacked) {
+    // one bar per category, whatever the number of series: a stack is ONE
+    // column — sizing it like a group would draw four quarter-width columns of
+    // stacked segments
+    const bw = Math.min(slot * 0.68, 64);
+    cats.forEach((_, i) => {
+      const c = center(i) - bw / 2;
+      const total = totalAt(i);
+      // a share of a category totalling zero is not a share: draw nothing
+      // rather than divide by it
+      const norm = stack.share ? (total > 0 ? 100 / total : 0) : 1;
+      // positives stack up from zero, negatives stack down from it — stacking
+      // one on the other would draw a total nobody has
+      let up = 0;
+      let down = 0;
+      const last = shown.length - 1;
+      shown.forEach((values, si) => {
+        const v = (values[i] ?? 0) * norm;
+        if (!v) return;
+        const from = v > 0 ? up : down;
+        const to = from + v;
+        if (v > 0) up = to;
+        else down = to;
+        const [a, b] = [vpos(from), vpos(to)];
+        const span = Math.abs(b - a);
+        // only the free end of the whole stack is rounded: rounding an inner
+        // segment notches it into its neighbour
+        const r = si === last && v > 0 ? 4 : 0;
+        p.push(
+          horizontal
+            ? roundedBar(Math.min(a, b), c, span, bw, r, true, color(si), v < 0)
+            : roundedBar(c, Math.min(a, b), bw, span, r, false, color(si), v < 0),
+        );
+        // 2 px of ground between adjacent fills, as circular() does with bg()
+        if (span > 2) {
+          p.push(
+            horizontal
+              ? `<line x1="${b}" y1="${c}" x2="${b}" y2="${c + bw}" stroke="${bg()}" stroke-width="2"/>`
+              : `<line x1="${c}" y1="${b}" x2="${c + bw}" y2="${b}" stroke="${bg()}" stroke-width="2"/>`,
+          );
+        }
+        // in-segment label past the pie's own 7 % threshold, on shares only
+        if (stack.share && Math.abs(v) >= 7) {
+          const mid = (a + b) / 2;
+          p.push(
+            `<text x="${horizontal ? mid : c + bw / 2}" y="${(horizontal ? c + bw / 2 : mid) + 4}" font-family="${FONT()}" font-size="11" font-weight="bold" fill="${bg()}" text-anchor="middle">${Math.round(Math.abs(v))} %</text>`,
+          );
+        }
+      });
+    });
+  } else if (block.chartType === 'bar' || block.chartType === 'barh') {
     // 2 px of white between neighbouring bars of the same group
     const group = Math.min(slot * 0.68, series.length * 64);
     const bw = (group - (series.length - 1) * 2) / series.length;
@@ -242,7 +313,167 @@ function cartesian(block, W, H, locale) {
     });
   }
 
+  // The target: a dashed rule across the plot, in the page's own secondary
+  // ink. NOT an identity — it stays out of legendRow and out of CHART_COLORS:
+  // a commitment is not one more series in one more colour.
+  if (Number.isFinite(block.target)) {
+    const t = vpos(block.target);
+    const label = fmt(block.target, locale);
+    p.push(
+      horizontal
+        ? `<line x1="${t}" y1="${plot.y}" x2="${t}" y2="${plot.y + plot.h}" stroke="${ink()}" stroke-width="1" stroke-dasharray="4 3"/>` +
+            `<text x="${t}" y="${plot.y - 2}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="middle">${esc(label)}</text>`
+        : `<line x1="${plot.x}" y1="${t}" x2="${plot.x + plot.w}" y2="${t}" stroke="${ink()}" stroke-width="1" stroke-dasharray="4 3"/>` +
+            `<text x="${plot.x + plot.w}" y="${t - 4}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(label)}</text>`,
+    );
+  }
+
   if (legend) p.push(legendRow(series, plot.x, H - 10, plot.w));
+  return p.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Waterfall: the bridge — hue carries SIGN here, not identity. The exception
+// in this family, and the reason it does not read CHART_COLORS.
+// ---------------------------------------------------------------------------
+
+function waterfall(block, W, H, locale) {
+  const { categories: cats } = block;
+  const values = shownValues(block.series[0] ?? { values: [] }, cats);
+  // anchors: the first and the last by default — the common bridge types
+  // nothing — overridden by `totals:` when there is a mid-bridge subtotal
+  const named = block.totals?.length ? new Set(block.totals) : null;
+  const isAnchor = (i) => (named ? named.has(cats[i]) : i === 0 || i === values.length - 1);
+
+  // each bar's foot and head: an anchor runs from zero, a delta floats on the
+  // running sum
+  const bars = [];
+  let run = 0;
+  values.forEach((v, i) => {
+    if (isAnchor(i)) {
+      bars.push({ from: 0, to: v, anchor: true, v });
+      run = v;
+    } else {
+      bars.push({ from: run, to: run + v, anchor: false, v });
+      run += v;
+    }
+  });
+
+  const extremes = bars.flatMap((b) => [b.from, b.to]);
+  const { lo, hi, ticks } = niceScale(Math.min(0, ...extremes), Math.max(0, ...extremes));
+  const tickLabels = ticks.map((t) => fmt(t, locale));
+  const pad = {
+    left: 8 + Math.max(...tickLabels.map((t) => textW(t, 11))),
+    right: 12,
+    top: 22,
+    bottom: 24,
+  };
+  const plot = {
+    x: pad.left + 6,
+    y: pad.top,
+    w: W - pad.left - pad.right - 6,
+    h: H - pad.top - pad.bottom,
+  };
+  const vpos = (v) => plot.y + plot.h - ((v - lo) / (hi - lo)) * plot.h;
+  const p = [];
+
+  ticks.forEach((t, k) => {
+    const y = vpos(t);
+    if (t !== lo)
+      p.push(
+        `<line x1="${plot.x}" y1="${y}" x2="${plot.x + plot.w}" y2="${y}" stroke="${grid()}" stroke-width="1"/>`,
+      );
+    p.push(
+      `<text font-family="${FONT()}" font-size="11" fill="${ink()}" x="${plot.x - 8}" y="${y + 4}" text-anchor="end">${esc(tickLabels[k])}</text>`,
+    );
+  });
+  p.push(
+    `<line x1="${plot.x}" y1="${vpos(0)}" x2="${plot.x + plot.w}" y2="${vpos(0)}" stroke="${axis()}" stroke-width="1"/>`,
+  );
+
+  const slot = plot.w / Math.max(values.length, 1);
+  const bw = Math.min(slot * 0.62, 72);
+  bars.forEach((b, i) => {
+    const cx = plot.x + slot * (i + 0.5);
+    const x = cx - bw / 2;
+    const [a, z] = [vpos(b.from), vpos(b.to)];
+    const span = Math.abs(z - a);
+    const fill = b.anchor
+      ? `#${COLORS.neutralSecondary}`
+      : `#${(b.v >= 0 ? SEMANTIC.success : SEMANTIC.danger).solid}`;
+    p.push(roundedBar(x, Math.min(a, z), bw, Math.max(span, 1), 4, false, fill, b.v < 0));
+    // a connector from this bar's head to the next bar's foot
+    if (i < bars.length - 1 && !bars[i + 1].anchor) {
+      p.push(
+        `<line x1="${x + bw}" y1="${z}" x2="${cx + slot - bw / 2}" y2="${z}" stroke="${axis()}" stroke-width="1" stroke-dasharray="3 2"/>`,
+      );
+    }
+    // the numbers are not optional: a bridge without them is a shape
+    const top = Math.min(a, z);
+    p.push(
+      `<text x="${cx}" y="${top - 5}" font-family="${FONT()}" font-size="11" font-weight="bold" fill="${ink()}" text-anchor="middle">${esc(
+        b.anchor ? fmt(b.v, locale) : `${b.v > 0 ? '+' : ''}${fmt(b.v, locale)}`,
+      )}</text>`,
+    );
+    p.push(
+      `<text x="${cx}" y="${plot.y + plot.h + 16}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="middle">${esc(cats[i] ?? '')}</text>`,
+    );
+  });
+  return p.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Gantt: named lanes spanning periods. The only chart here that draws a
+// DURATION — nothing else in the engine takes a start and an end.
+// ---------------------------------------------------------------------------
+
+function gantt(block, W, H) {
+  const { categories: cats, series } = block;
+  const laneW = Math.min(W * 0.32, Math.max(...series.map((s) => textW(s.name, 11))) + 24);
+  const plot = { x: laneW + 8, y: 26, w: W - laneW - 20, h: H - 26 - 16 };
+  const colW = plot.w / Math.max(cats.length, 1);
+  // the row pitch comes from the number of lanes, INSIDE the svg: blockHeight()
+  // must not learn to branch on a chart type — charts stay out of pagination
+  const rowH = plot.h / Math.max(series.length, 1);
+  const barH = Math.min(rowH * 0.55, 26);
+  const p = [];
+
+  cats.forEach((c, i) => {
+    const x = plot.x + colW * i;
+    if (i)
+      p.push(
+        `<line x1="${x}" y1="${plot.y}" x2="${x}" y2="${plot.y + plot.h}" stroke="${grid()}" stroke-width="1"/>`,
+      );
+    p.push(
+      `<text x="${x + colW / 2}" y="${plot.y - 8}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="middle">${esc(c)}</text>`,
+    );
+  });
+
+  series.forEach((s, si) => {
+    const cy = plot.y + rowH * (si + 0.5);
+    p.push(
+      `<text x="${plot.x - 12}" y="${cy + 4}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(s.name)}</text>`,
+    );
+    // ONE hue for every lane: the lane is already named on the left, exactly as
+    // in barh, so colour would carry nothing — and cycling CHART_COLORS would
+    // cap a plan at six workstreams for no gain
+    for (const span of s.spans ?? []) {
+      const x = plot.x + colW * span.from + 3;
+      const w = colW * (span.to - span.from + 1) - 6;
+      p.push(roundedBar(x, cy - barH / 2, Math.max(w, 4), barH, 4, true, `#${COLORS.primary}`));
+    }
+  });
+
+  // "we are here": a rule at the START of the named period, since a period is
+  // the unit here — placing it mid-column would claim a precision the data
+  // does not carry
+  const nowAt = cats.indexOf(block.now);
+  if (nowAt >= 0) {
+    const x = plot.x + colW * nowAt;
+    p.push(
+      `<line x1="${x}" y1="${plot.y - 4}" x2="${x}" y2="${plot.y + plot.h}" stroke="#${COLORS.negative}" stroke-width="2"/>`,
+    );
+  }
   return p.join('\n');
 }
 
@@ -373,7 +604,11 @@ export function chartSvg(block, W, H, { locale = DEFAULT_LOCALE } = {}) {
       ? circular(block, W, H, locale)
       : block.chartType === 'radar'
         ? radar(block, W, H, locale)
-        : cartesian(block, W, H, locale);
+        : block.chartType === 'waterfall'
+          ? waterfall(block, W, H, locale)
+          : block.chartType === 'gantt'
+            ? gantt(block, W, H)
+            : cartesian(block, W, H, locale);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <rect width="${W}" height="${H}" fill="${bg()}"/>
 ${body}

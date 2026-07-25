@@ -1,0 +1,7 @@
+{
+  "name": "raid",
+  "base": "swot",
+  "kinds": ["danger", "info", "warning", "info"],
+  "density": "compact",
+  "description": "RAID log: Risks, Assumptions, Issues, Dependencies — the four sections in that order."
+}

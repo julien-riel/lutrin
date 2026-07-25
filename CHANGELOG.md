@@ -11,6 +11,34 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Five chart types, and the line a series is judged against.** `stacked-bar`
+  and `stacked-barh` add the series up per category; `share-bar` and
+  `share-barh` normalise each category to 100 % and label the segments past
+  7 %. The scale reads the per-category *totals*, so the tallest column always
+  fits, and only the free end of a stack is rounded. `waterfall` draws the
+  bridge from an opening figure to a closing one — the first and last
+  categories anchor to zero, `totals:` names them when there is a mid-bridge
+  subtotal, and it is the one chart where hue carries the SIGN rather than the
+  identity. `gantt` draws lanes spanning periods (`Discovery: Q1 - Q2`, both
+  ends included, a comma for several bars on one lane, `now:` for the "we are
+  here" rule): **duration existed nowhere in this engine** — milestones and
+  steps, never a start and an end. And `target:` (or `cible:`) draws the
+  commitment a series is measured against, dashed, in the deck's own ink, taken
+  into the scale so it can never fall outside its frame; reserved only when the
+  value is a single number, so a series named "Target" still reads as a series.
+- **A target on `:::progress`.** `62 % / 80 %` — the share, then the commitment
+  it is judged against, marked by a rule standing on the track. The block's
+  height does not change, which is why it is a property and not a component.
+  The whole line is read as a single share first and a split additionally
+  requires a per cent sign, so `3/4` stays three quarters and `1/0` stays the
+  diagnostic it always was — and the comma is never a separator here, since in
+  the default locale it is the decimal point.
+- **`raid`, a twelfth official layout.** The RAID log (Risks, Assumptions,
+  Issues, Dependencies) is a 2 × 2 the `swot` generator already draws: this is
+  six lines of JSON and no code at all. Assumptions and Dependencies share the
+  informative tint on purpose — both are things a programme relies on and does
+  not own.
+
 - **A text scale — `density`.** A layout definition can now place its text one
   or two steps under the theme's own sizes: `comfortable` (the default),
   `compact` and `dense`, on `grid`, `comparison`, `pillars`, `steps`, `swot`,

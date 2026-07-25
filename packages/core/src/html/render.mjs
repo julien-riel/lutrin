@@ -747,6 +747,13 @@ function htmlProgress(block, r) {
       `<div class="progress-fill" style="${box(g.fill)}border-radius:${radius}px;background:#${sem.solid}"></div>`,
     );
   }
+  // the target rule stands ON the track, so it takes the ink of the page and
+  // not the tint of the bar: it is a commitment, not a share
+  if (g.marker) {
+    parts.push(
+      `<div class="progress-marker" style="${box(g.marker)}background:#${COLORS.neutralPrimary}"></div>`,
+    );
+  }
   // Inside the fill the ink is the tint's own — the fill is the surface there,
   // whatever the panel underneath. Outside it, the text writes on the panel:
   // the deck's secondary ink normally, the panel's own when it repainted us.
@@ -1079,6 +1086,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .progress>div{position:absolute}
 .progress-label{display:flex;align-items:center;font-size:${TYPE.body}pt;line-height:1.3;overflow:hidden}
 .progress-track{background:#${C.underground2}}
+.progress-marker{position:absolute;border-radius:1px}
 .progress-pct{display:flex;align-items:center;font-size:${TYPE.small}pt;font-weight:700;white-space:nowrap}
 .progress-caption{display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 /* badges — the pill of a :::status row AND of an inline ==Action==. Same

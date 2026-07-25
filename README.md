@@ -318,7 +318,7 @@ their diff: see [CONTRIBUTING.md](CONTRIBUTING.md).
 ```text
 packages/core/                 the compiler + CLI (bin: lutrin)
 packages/core/design/themes/   default.json — canonical mirror of the default theme
-packages/core/design/layouts/  the catalog of the eleven official layouts
+packages/core/design/layouts/  the catalog of the twelve official layouts
 packages/core/src/kit/         .deckkit archives (pack, download, install)
 packages/core/src/worker/      the single IPC worker of the editor hosts (+ protocol.d.ts)
 packages/core/test/            the node:test harness (goldens, parity, validation, kits)

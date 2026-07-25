@@ -79,6 +79,7 @@ const OFFICIALS = [
   'priority-matrix',
   'pros-cons',
   'pyramid',
+  'raid',
   'risk-map',
   'roadmap',
   'status-list',

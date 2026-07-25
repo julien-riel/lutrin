@@ -164,7 +164,7 @@ will leave gaps).
 
 ## Official layouts
 
-Eleven layouts shipped with the compiler
+Twelve layouts shipped with the compiler
 (`packages/core/design/layouts/*.json`). They are parameterized structured
 layouts — **data**, not code — and they are always available.
 
@@ -180,6 +180,7 @@ layouts — **data**, not code — and they are always available.
 | `pyramid` | layers as a pyramid | a hierarchy, from apex to foundations |
 | `key-message` | focus | the figure or the sentence that must stick |
 | `portfolio` | grid, 3 columns with headers | projects or services as a mosaic |
+| `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | grid, 1 column, dense | a status board: progress bars and badges, stacked |
 
 Validation **suggests** them when the content betrays the intent: sections
@@ -398,6 +399,18 @@ Online leisure services
 :::
 ```
 
+A bar can also carry the **target it is judged against** — `62 % / 80 %`, the
+share first, the commitment second. The marker is a rule standing on the track,
+in the deck's own ink: it changes no height, which is why it is a property of
+the bar and not a component of its own. A target of exactly 0 or 100 % lands on
+an end cap and is left undrawn.
+
+The two forms cannot be confused, and the rule is worth stating because a
+fraction is also a slash: the WHOLE line is read as a single share first, and a
+split additionally requires a per cent sign. So `3/4` stays three quarters,
+`1/0` stays the diagnostic it has always been, and the comma is never a
+separator here — in the default locale it is the decimal point.
+
 The share accepts `75 %`, `75%`, `0.75` and `3/4`. A figure outside 0–100 % is
 **clamped** (a typo in the figure, not in the syntax); a first line that is not
 a share at all degrades the card to the paragraph you wrote and reports
@@ -503,13 +516,50 @@ Actual: 110, 155, 175, 190
 ```
 ````
 
-- `type`: `bar`, `barh` (horizontal bars), `line`, `area`, `pie`,
-  `doughnut`, `radar`.
+- `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
+  `share-bar`, `share-barh`, `line`, `area`, `pie`, `doughnut`, `radar`,
+  `waterfall`, `gantt`.
 - `categories` (or `catégories`): the x axis. Absent, they are numbered.
 - Every other line `Name: v1, v2, …` is a **series**; decimals use a
   **point**. A line starting with `#` is a comment.
 - `pie` and `doughnut` display a single series only, of positive shares; the
   rest is dropped with a `CHART_DATA_IGNORED` diagnostic.
+- `target:` (or `cible:`) draws the line a series is judged against — a
+  commitment, an SLA, a budget. **Only when the value is a single number**: a
+  list stays an ordinary series, so a series legitimately named "Target" is
+  never swallowed. The rule is dashed, in the deck's own ink, and it enters the
+  scale so it never falls outside its own frame. It means nothing on `pie`,
+  `doughnut` and `radar`.
+
+**Stacked and share** — `stacked-bar` adds the series up per category;
+`share-bar` normalises each category to 100 % and labels the segments past 7 %.
+The scale reads the per-category *totals*, positives stack up from zero and
+negatives down from it.
+
+**`waterfall`** — the bridge from an opening figure to a closing one. The first
+and last categories are the anchors; `totals: Budget, Subtotal, Actual` names
+them instead when the bridge has an intermediate subtotal. This is the one
+chart where **hue carries the sign** rather than the identity: rises in the
+success tint, falls in the danger tint, anchors in the neutral ink. Every bar
+carries its number — a bridge without them is a shape.
+
+**`gantt`** — named lanes spanning periods, and the only chart here that draws
+a *duration*:
+
+````markdown
+```chart
+type: gantt
+categories: Q1, Q2, Q3, Q4
+now: Q2
+Discovery: Q1 - Q2
+Partner API: Q1, Q3 - Q4
+```
+````
+
+A span is `from - to`, **both ends included**; the comma keeps the meaning it
+has everywhere else — a list — so a lane can carry several bars. `now:` draws
+the "we are here" rule at the start of that period. One period name that
+resolves to nothing invalidates the spec (`INVALID_CHART`).
 
 Colors come from the theme's palette, adjusted and validated (color blindness,
 contrast ≥ 3:1). Six series at most stay readable; beyond that, group into

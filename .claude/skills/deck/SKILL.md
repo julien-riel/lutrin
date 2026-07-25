@@ -228,7 +228,7 @@ number of sections does not fit).
 
 ### Official layouts (shipped catalog, pure data)
 
-Eleven named layouts, built on the bases above with parameters
+Twelve named layouts, built on the bases above with parameters
 (`packages/core/design/layouts/*.json`), always available — ask for them with
 `<!-- layout: … -->` just like the built-in layouts. They document the bases
 by example:
@@ -245,6 +245,7 @@ by example:
 | `pyramid` | layers as a pyramid | hierarchy, from apex to foundations |
 | `key-message` | focus | the figure or the sentence that must stick |
 | `portfolio` | 3-column grid with headers | projects / services as a mosaic |
+| `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | 1-column grid, dense text | a status board: progress bars and badges, stacked |
 
 Validation suggests them when the content betrays the intent ("Pros / Cons"
@@ -413,7 +414,9 @@ Scope, Schedule, Quality
 ```
 
 `:::progress` takes the share on the first line (`75 %`, `0.75` or `3/4` — a
-figure out of range is clamped), then the label, then an optional caption; the
+figure out of range is clamped), optionally followed by the target it is judged
+against (`62 % / 80 %`, drawn as a rule on the track), then the label, then an
+optional caption; the
 word after the directive is the tint (`info` — the default — `success`,
 `warning` or `danger`). A first line that is no share at all is not guessed
 at: the card degrades to the paragraph written and `INVALID_PROGRESS` says so.
@@ -470,9 +473,21 @@ Actual: 110, 155, 175, 190
 ```
 ```
 
-- `type`: `bar`, `barh` (horizontal bars), `line`, `area`, `pie`,
-  `doughnut`, `radar`. Each `Name: v1, v2, …` line is a series (decimals with
-  a **point**). `pie`/`doughnut`: a single series.
+- `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
+  `share-bar`, `share-barh` (each category normalised to 100 %), `line`,
+  `area`, `pie`, `doughnut`, `radar`, `waterfall`, `gantt`. Each
+  `Name: v1, v2, …` line is a series (decimals with a **point**).
+  `pie`/`doughnut`: a single series.
+- `target:` (or `cible:`) — the line a series is judged against (an SLA, a
+  budget), drawn dashed in the deck's ink and taken into the scale. Reserved
+  only when the value is a SINGLE number, so a series named "Target" survives.
+- `waterfall` — a bridge from an opening figure to a closing one; the first and
+  last categories are the anchors, `totals:` names them when there is a
+  mid-bridge subtotal. The one chart where hue carries the SIGN (rise, fall)
+  rather than the identity.
+- `gantt` — lanes spanning periods: `Discovery: Q1 - Q2`, both ends included,
+  a comma for several bars on one lane, `now:` for the "we are here" rule. The
+  only way to draw a DURATION in this DSL.
 - `CHART_COLORS` palette (tokens.mjs): tints of the active theme, adjusted
   and **validated** (color blindness, contrast); 6 series maximum — beyond
   that, group into "Other". Never pick the colors by hand.

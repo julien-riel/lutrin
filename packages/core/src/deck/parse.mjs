@@ -73,7 +73,24 @@ export const CONTAINERS = [...SEMANTIC_KINDS, 'metric', 'progress', 'status'];
 export const ALERT_BLOCK_TYPES = new Set(['para', 'bullets']);
 const IMAGE_ROLES = new Set(['cover', 'background', 'left', 'right']);
 export const ICON_COLORS = new Set(['primary', 'neutral', 'secondary', 'white']);
-export const CHART_TYPES = new Set(['bar', 'barh', 'line', 'area', 'pie', 'doughnut', 'radar']);
+/** The modifier comes FIRST in the stacked names (`stacked-barh`, not
+ *  `barh-stacked`): the existing `barh` token stays whole, and the `h` keeps
+ *  meaning "horizontal" everywhere it appears. */
+export const CHART_TYPES = new Set([
+  'bar',
+  'barh',
+  'stacked-bar',
+  'stacked-barh',
+  'share-bar',
+  'share-barh',
+  'line',
+  'area',
+  'pie',
+  'doughnut',
+  'radar',
+  'waterfall',
+  'gantt',
+]);
 
 /** Blocks a list item can carry and that a bullet cannot contain (a list's IR
  *  knows nothing but runs): they are re-read as blocks in their own right and
@@ -370,9 +387,53 @@ function inlineParagraphBlocks(token) {
  * Invalid specification → null: the caller falls back to a code block, and
  * the user sees their source as written rather than a broken slide.
  */
+/** Periods of a `gantt` lane: `Q1 - Q2` (both ends INCLUDED), and the comma
+ *  keeps the meaning it has on every other series line — a list, hence several
+ *  bars on one lane. Returns null on anything else, which invalidates the
+ *  spec: INVALID_CHART, and the author sees the source they wrote.
+ *
+ *  The raw text is kept beside the resolved indices because the .pptx fallback
+ *  for a missing rasterizer rebuilds the spec with `values.join(', ')`
+ *  (pptx/render.mjs) — with objects in there it would print `[object Object]`
+ *  on the one path nobody exercises locally. */
+function parseSpans(val, cats) {
+  const at = (name) => cats.indexOf(name.trim());
+  const spans = [];
+  for (const part of val.split(',').map((s) => s.trim())) {
+    if (!part) return null;
+    const dash = part.split(/\s+-\s+|\s+–\s+/);
+    if (dash.length > 2) return null;
+    const from = at(dash[0]);
+    const to = at(dash.length === 2 ? dash[1] : dash[0]);
+    if (from < 0 || to < 0 || to < from) return null;
+    spans.push({ from, to, raw: part });
+  }
+  return spans.length ? spans : null;
+}
+
 function parseChartSpec(source) {
   const spec = { chartType: 'bar', categories: [], series: [] };
-  for (const raw of source.split('\n')) {
+  const lines = source.split('\n');
+  // `type:` may legally be written last, and `gantt` reads its values with
+  // another reader entirely — so the type has to be known before the first
+  // value is read, hence this pre-scan rather than a second pass.
+  for (const raw of lines) {
+    const m = raw.trim().match(/^type\s*:\s*(.*)$/i);
+    if (!m) continue;
+    if (!CHART_TYPES.has(m[1].trim().toLowerCase())) return null;
+    spec.chartType = m[1].trim().toLowerCase();
+  }
+  // categories too: a gantt lane resolves its period names against them, and
+  // an author may declare the lane before the axis
+  for (const raw of lines) {
+    const m = raw.trim().match(/^(?:categories|catégories)\s*:\s*(.*)$/i);
+    if (m)
+      spec.categories = m[1]
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+  }
+  for (const raw of lines) {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
     const m = line.match(/^([^:]+):\s*(.*)$/);
@@ -381,8 +442,27 @@ function parseChartSpec(source) {
     const val = m[2].trim();
     const lower = key.toLowerCase();
     if (lower === 'type') {
-      if (!CHART_TYPES.has(val.toLowerCase())) return null;
-      spec.chartType = val.toLowerCase();
+      // already read by the pre-scan
+    } else if (
+      (lower === 'target' || lower === 'cible') &&
+      !val.includes(',') &&
+      Number.isFinite(Number(val)) &&
+      val !== ''
+    ) {
+      // Reserved ONLY when the value is a single number: a list stays an
+      // ordinary series, so a series legitimately named "Target" is never
+      // swallowed, and the rule states in one sentence. `cible` is the French
+      // input alias, on the `catégories` precedent below.
+      spec.target = Number(val);
+    } else if (lower === 'totals' && spec.chartType === 'waterfall') {
+      // anchor categories of a bridge — the default (first and last) covers
+      // the common case, this key covers a mid-bridge subtotal
+      spec.totals = val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else if (lower === 'now' && spec.chartType === 'gantt') {
+      spec.now = val;
     } else if (lower === 'categories' || lower === 'catégories') {
       // `catégories` is a deliberately FRENCH input alias of the DSL key, kept
       // for the same reason as PRESET_ALIASES below: it is a value an author
@@ -391,6 +471,12 @@ function parseChartSpec(source) {
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
+    } else if (spec.chartType === 'gantt') {
+      // a lane carries periods, not numbers — and keeps its raw text so the
+      // no-rasterizer fallback prints what the author wrote
+      const spans = parseSpans(val, spec.categories);
+      if (!spans) return null;
+      spec.series.push({ name: key, spans, values: spans.map((s) => s.raw) });
     } else {
       // `Number('')` is 0: a series with no values ("Sales:"), a hole
       // ("12, , 18") or a trailing comma ("12, 18,") therefore read as silent
@@ -949,7 +1035,30 @@ export function parseDeck(source) {
           }
           if (kind === 'progress') {
             const lines = containerLines(inner);
-            const value = parseProgressValue(lines[0] ?? '');
+            const first = lines[0] ?? '';
+            // `62 % / 80 %` — a share and the commitment it is judged against.
+            // The WHOLE line is tried as a single share FIRST, and only a line
+            // that would be INVALID_PROGRESS today is split: `3/4` therefore
+            // stays the fraction it has always been, and no existing deck can
+            // change meaning. The separator is a slash and not a comma on
+            // purpose — the default locale is fr-CA, where the comma IS the
+            // decimal separator, and `0,75` would silently become "value 0,
+            // target 75 %" instead of the diagnostic it gets today.
+            let value = parseProgressValue(first);
+            let target = null;
+            // …and a split needs a PER CENT SIGN somewhere, which is what tells
+            // the two forms apart: a fraction never carries one. Without that
+            // condition `3/0` — a division by zero, INVALID_PROGRESS since the
+            // directive shipped — would quietly become "100 %, target 0 %".
+            if (value === null && first.includes('/') && first.includes('%')) {
+              const [a, b, ...rest] = first.split('/').map((s) => s.trim());
+              const v = parseProgressValue(a);
+              const t = parseProgressValue(b ?? '');
+              if (!rest.length && v !== null && t !== null) {
+                value = v;
+                target = t;
+              }
+            }
             if (value === null) {
               // the author sees what they wrote, never a bar drawn at a value
               // nobody chose — same fallback INVALID_CHART already makes
@@ -964,6 +1073,7 @@ export function parseDeck(source) {
             return {
               type: 'progress',
               value,
+              ...(target !== null ? { target } : {}),
               label: lines[1] ?? '',
               ...(caption ? { caption } : {}),
               ...(tint ? { kind: tint } : {}),

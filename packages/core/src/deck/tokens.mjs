@@ -537,6 +537,22 @@ export function progressLayout(block, widthPx) {
           w: pctW,
           h: PROGRESS.barH,
         },
+    // The target: a 2 px rule standing across the track where the commitment
+    // sits. Height unchanged — that is the whole reason this is a property of
+    // the bar and not a block of its own. A target of 0 or 1 would land on an
+    // end cap and read as a drawing artefact, so it is only marked strictly
+    // inside.
+    ...(Number.isFinite(block.target) && block.target > 0 && block.target < 1
+      ? {
+          marker: {
+            x: barX + Math.round(barW * block.target) - 1,
+            y: barY - 2,
+            w: 2,
+            h: PROGRESS.barH + 4,
+            reached: value >= block.target,
+          },
+        }
+      : {}),
     ...(block.caption ? { caption: { x: 0, y: PROGRESS.rowH, w, h: PROGRESS.captionH } } : {}),
   };
 }

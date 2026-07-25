@@ -536,6 +536,19 @@ function addProgress(slide, block, r) {
   // a 0 % bar writes no fill: a zero-width pill is an artefact, and the empty
   // track already says what there is to say
   if (g.fill.w > 0) bar(g.fill, sem.solid);
+  // the target rule stands ON the track, so it takes the ink of the page and
+  // not the tint of the bar: it is a commitment, not a share. A plain rect —
+  // a rounded one at 2 px wide would draw a lozenge.
+  if (g.marker) {
+    slide.addShape('rect', {
+      x: px(r.x + g.marker.x),
+      y: px(r.y + g.marker.y),
+      w: px(g.marker.w),
+      h: px(g.marker.h),
+      fill: { color: COLORS.neutralPrimary },
+      line: { type: 'none' },
+    });
+  }
   // `block.color`: the panel repainted us. It governs everything that writes
   // on the panel — the label, the caption, the percentage when it sits OUTSIDE
   // the fill. The percentage inside the fill keeps the tint's own ink: there

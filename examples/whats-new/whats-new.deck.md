@@ -6,12 +6,15 @@ date: July 2026
 footer: New in the compiler · one source, two deliverables
 ---
 
-# Five additions
+# What is new
 
-- **Progress bars** and **status badges**, as blocks and inline
+- **Progress bars** and **status badges**, as blocks and inline — now with the
+  **target** a bar is judged against
 - **Figures that line up**: a Markdown delimiter row is now honoured
 - **Saturated panels**, with the ink chosen for you
 - A **text scale** a layout can ask for — and the engine pulls by itself
+- Five chart types: **stacked**, **share**, **waterfall**, **gantt**, and a
+  **target line** on any of them
 - Everything below is in **this one file**, compiled to `.pptx` and to HTML
 
 <!-- notes: the same source produced both deliverables; open them side by side. -->
@@ -29,9 +32,9 @@ Delivered 15 April
 :::
 
 :::progress
-45 %
+45 % / 70 %
 Paper forms
-In development
+Committed 70 % by June
 :::
 
 ## Back office
@@ -186,6 +189,95 @@ These two columns are the demonstration. Neither of them fits at the deck's
 ordinary size, and neither of them overflows.
 
 <!-- notes: run `lutrin validate` on this file: this slide reports SLIDE_DENSIFIED, and nothing else does. -->
+
+# Where the money went
+
+```chart
+type: waterfall
+categories: Budget, Volume, Price, FX, Overruns, Actual
+Committed: 3900, -180, 240, -95, -253, 3612
+```
+
+The one chart here where colour carries the **sign** and not the identity: a
+rise is a rise, a fall is a fall, and the two anchors are neither. The first
+and last categories anchor to zero by default; `totals:` names them when the
+bridge has a subtotal in the middle.
+
+<!-- notes: the numbers on the bars are drawn by the engine and are not optional — a bridge without them is a shape. -->
+
+# What it costs, quarter by quarter
+
+```chart
+type: stacked-bar
+categories: Q1, Q2, Q3, Q4
+Salaries: 1200, 1250, 1260, 1310
+Infrastructure: 420, 430, 510, 480
+Services: 260, 300, 280, 340
+```
+
+`stacked-bar` adds the series up; `share-bar` normalises each category to
+100 % when the mix matters more than the magnitude. The scale reads the
+per-category totals, so the tallest column always fits.
+
+# Requests closed, against the commitment
+
+```chart
+type: bar
+categories: Jan, Feb, Mar, Apr, May
+Closed: 180, 205, 240, 232, 268
+target: 220
+```
+
+`target:` is the line a series is judged against. It is not a sixth series in
+a sixth colour — it is the ink of the page, dashed — and it enters the scale,
+so it can never fall outside its own frame.
+
+The scale always holds zero, here as everywhere: a bar chart whose baseline is
+not zero exaggerates every difference on it. For a series that lives in a
+narrow band far from zero — an availability figure between 99 % and 100 % — say
+so with a `:::metric` and its trend rather than a chart that will look flat.
+
+# The plan
+
+```chart
+type: gantt
+categories: Q1, Q2, Q3, Q4, Q1 2027
+now: Q2
+Discovery: Q1 - Q2
+Build: Q2 - Q4
+Partner API: Q1, Q3 - Q4
+Rollout: Q4 - Q1 2027
+```
+
+A span is `from - to`, both ends included; a comma puts two bars on one lane.
+Until now **duration existed nowhere in this engine** — milestones and steps,
+never a start and an end.
+
+# Risks, assumptions, issues, dependencies
+
+<!-- layout: raid -->
+
+## Risks
+
+- A winter storm could delay the June release
+- Two developer positions unfilled since February
+
+## Assumptions
+
+- Procurement confirms the decommissioning date by 30 May
+- The partner API stays backward compatible
+
+## Issues
+
+- The data-migration window closes on 30 May
+- Two of eight milestones moved to May
+
+## Dependencies
+
+- Côte-des-Neiges and Ville-Marie sign off on the permit flow
+- The SCAEC confirms the business need for the mobile app
+
+<!-- notes: this layout is six lines of JSON on top of `swot` — no code at all. The four tints are chosen so that Assumptions and Dependencies read alike: both are things we rely on and do not own. -->
 
 # One source, two deliverables
 
