@@ -70,9 +70,57 @@ for anyone to notice. Compare the inline-badge defect this branch fixed
 `angleRange` wedges at 25 %, 50 % and 75 %, opened in **Keynote, QuickLook and
 LibreOffice**, and a screenshot of each. The export recipe is in
 `.claude/skills/deck/SKILL.md`. If any of the three draws 270°, arcs are out
-engine-wide — and the fallback is five WGL4-safe marks (filled versus hollow,
-which also separates the extremes without relying on hue, and survives
-greyscale), which is no longer a Harvey ball and should be named something
+engine-wide.
+
+### …unless the discs are drawn, and that changes the verdict
+
+Objection 2 assumed the disc had to be a glyph or an OOXML shape. It does not.
+**This engine already renders one family of figures as images, for exactly this
+reason**: `chart` blocks are drawn as in-house SVG, rasterised through resvg,
+and placed with a single `addImage` (`pptx/render.mjs:934`). The module header
+of `deck/chart.mjs` states the motive — native OOXML charts are invisible in
+Keynote and QuickLook, so an image is the faithful route.
+
+A Harvey ball drawn that way has no glyph to substitute and no shape adjustment
+to ignore. It is a PNG: identical in PowerPoint, Keynote, QuickLook and
+LibreOffice. **Objection 2 is answered**, and the `angleRange` experiment above
+becomes unnecessary rather than blocking.
+
+That has a consequence worth more than the answer itself. If the marks are
+drawn as one figure anyway, then a scorecard is **a chart type, not a block** —
+one branch in `chart.mjs`, no `BLOCK_RENDERERS` entry, no `blockHeight` case,
+no parity row, no fixture marker, no golden churn. That is a tenth of the cost
+the rejection was weighed against, and it is the same lesson the whole
+widgets review produced.
+
+It also answers objection 1 for free, because the `chart` grammar has a place
+to declare the scale — a reserved key, exactly like the `target:` shipped in
+this branch:
+
+```chart
+type: rating
+categories: Fit to process, Cost of change, Risk
+Option A: 4, 2, 5
+Option B: 3, 5, 3
+scale: 5
+```
+
+One denominator per figure, stated once, never inferred from the observed
+maximum. Rows are options, columns are criteria, and the whole thing is the
+matrix a consulting deck actually draws.
+
+**What still stands:** objection 3. A table says this too, and more precisely.
+But objection 3 was weighed against the cost of a block; at the cost of a chart
+type the ratio is not the same, and a reader comparing three options across
+five criteria does read a grid of filled discs faster than a grid of digits.
+Answer it in a paragraph, then build it as a chart type — and note that
+`type: heat` (widgets-next.md, "the seventh item if one is ever wanted") is the
+same shape with a colour ramp instead of a fill fraction, so whoever does one
+should look at whether they are one feature.
+
+The fallback if the drawn route somehow fails: five WGL4-safe marks (filled
+versus hollow, which separates the extremes without relying on hue and survives
+greyscale) — no longer a Harvey ball, and it should then be named something
 else.
 
 ### Objection 3 — a table already says it, and more precisely
