@@ -138,21 +138,29 @@
     "info": {
       "fill": "E6F5F9",
       "text": "004B7B",
+      "solid": "0079C4",
+      "solidText": "FFFFFF",
       "label": "Info"
     },
     "success": {
       "fill": "E7F6F0",
       "text": "025D29",
+      "solid": "0DA566",
+      "solidText": "212529",
       "label": "Key point"
     },
     "warning": {
       "fill": "FEFAE6",
       "text": "6C4600",
+      "solid": "FFB833",
+      "solidText": "6C4600",
       "label": "Caution"
     },
     "danger": {
       "fill": "FFEBE6",
       "text": "851A00",
+      "solid": "D3310A",
+      "solidText": "FFFFFF",
       "label": "Important"
     }
   }

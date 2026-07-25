@@ -3176,5 +3176,183 @@
         }
       }
     ]
+  },
+  {
+    "master": "content",
+    "layout": "status-list",
+    "title": "Where the programme stands",
+    "titleRuns": [
+      {
+        "text": "Where the programme stands"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 375,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 1184,
+          "h": 264
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Delivery"
+            }
+          ]
+        },
+        "region": {
+          "x": 64,
+          "y": 136,
+          "w": 1152,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "progress",
+          "value": 1,
+          "label": "Online services",
+          "caption": "Delivered in April",
+          "kind": "success",
+          "line": 381
+        },
+        "region": {
+          "x": 64,
+          "y": 189.86666666666667,
+          "w": 1152,
+          "h": 46
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "progress",
+          "value": 0.45,
+          "label": "Paper forms",
+          "caption": "Under analysis",
+          "kind": "warning",
+          "line": 387
+        },
+        "region": {
+          "x": 64,
+          "y": 251.86666666666667,
+          "w": 1152,
+          "h": 46
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 48,
+          "y": 408,
+          "w": 1184,
+          "h": 264
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Commitments"
+            }
+          ]
+        },
+        "region": {
+          "x": 64,
+          "y": 424,
+          "w": 1152,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "badge",
+          "items": [
+            {
+              "text": "Scope",
+              "kind": "success"
+            },
+            {
+              "text": "Schedule",
+              "kind": "success"
+            },
+            {
+              "text": "Quality",
+              "kind": "success"
+            },
+            {
+              "text": "Budget",
+              "kind": "warning"
+            },
+            {
+              "text": "Recruitment",
+              "kind": "danger"
+            }
+          ],
+          "line": 395
+        },
+        "region": {
+          "x": 64,
+          "y": 477.8666666666667,
+          "w": 1152,
+          "h": 34
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Each commitment carries an "
+            },
+            {
+              "text": "Owner",
+              "badge": "success"
+            },
+            {
+              "text": "; one that slips is tagged "
+            },
+            {
+              "text": "At risk",
+              "badge": "warning"
+            },
+            {
+              "text": "."
+            }
+          ],
+          "line": 401,
+          "size": 9
+        },
+        "region": {
+          "x": 64,
+          "y": 527.8666666666667,
+          "w": 1152,
+          "h": 24.799999999999997
+        },
+        "group": 1
+      }
+    ]
   }
 ]

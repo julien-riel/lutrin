@@ -17,6 +17,7 @@ import {
   ICON_COLORS,
   ANIM_PRESETS,
   ANIM_PRESET_ALIASES,
+  SEMANTIC_KINDS,
   isKnownAnimateValue,
   runsToText,
 } from './parse.mjs';
@@ -26,6 +27,7 @@ import {
   inferLayout,
   LAYOUTS,
   LAYOUT_SECTIONS,
+  OVERFLOW_TOLERANCE,
   layoutDef,
   layoutParams,
   layoutParamSchema,
@@ -34,7 +36,7 @@ import {
 } from './layout.mjs';
 import { hasLucideIcon, imageDims, imageWithinRoots, resolveImagePath } from './assets.mjs';
 import { chartDataDiagnostics } from './chart.mjs';
-import { LAYER_SHADES, PAGE, contentArea } from './tokens.mjs';
+import { LAYER_SHADES, PAGE, TEXT_DENSITY, contentArea } from './tokens.mjs';
 import { prepareDeckContext } from './context.mjs';
 import { THEME_KEYS } from './theme.mjs';
 import { isMarpDeck } from './marp.mjs';
@@ -405,6 +407,28 @@ export function validateDeck(
           b.line,
         );
       }
+      // progress: an unreadable value degrades the card to the paragraph the
+      // author wrote (parse.mjs sets `invalidProgress`), never to a bar drawn
+      // at a share nobody chose — the same contract as INVALID_CHART
+      if (b.type === 'para' && b.invalidProgress) {
+        push(
+          'warning',
+          'INVALID_PROGRESS',
+          'The :::progress value could not be read — the card will be displayed as a paragraph. Expected a share on the first line: "75 %", "0.75" or "3/4".',
+          b.line,
+        );
+      }
+      // an unknown tint is not fatal: the bar is drawn in the default tint,
+      // and this is the only place the author learns their word was ignored
+      if (b.type === 'progress' && b.unknownKind) {
+        push(
+          'warning',
+          'UNKNOWN_PROGRESS_KIND',
+          `Unknown tint ":::progress ${b.unknownKind}" (tints: ${SEMANTIC_KINDS.join(', ')}) — the bar will be drawn in the "info" tint.`,
+          b.line,
+          closest(b.unknownKind, SEMANTIC_KINDS) ?? undefined,
+        );
+      }
       // callouts: the renderers only render paragraphs and bullet lists — any
       // other block is ignored, and the author must know it
       if (b.type === 'alert') {
@@ -586,6 +610,10 @@ export function validateDeck(
     // panels, split — the author can only fix it by knowing about it).
     // The lower bound is the bottom of the CONTENT AREA (672 px): that is where
     // panels and columns end — not the footer (688 px).
+    // `badge` is audited and `progress` is not, on purpose: a badge row WRAPS,
+    // so its height depends on the words in it — exactly what this audit
+    // exists for — while a bar is a fixed-height object that cannot overflow
+    // by being written differently.
     const AUDITED = new Set([
       'para',
       'bullets',
@@ -595,15 +623,52 @@ export function validateDeck(
       'alert',
       'quote',
       'math',
+      'badge',
     ]);
     const ADVICE = {
       table: 'split the table or remove columns',
       bullets: 'shorten the bullets or spread them over two slides',
+      badge: 'shorten the labels or split the row over two :::status blocks',
     };
     const area = contentArea();
     const areaBottom = area.y + area.h;
+    // last rung of the text scale: past it the engine has nothing left to try,
+    // and BLOCK_OVERFLOW must stop advising what has already been done
+    const densest = Object.keys(TEXT_DENSITY).at(-1);
     for (const scene of allScenes) {
       if (scene.master === 'cover' || scene.master === 'section') continue;
+
+      // auto-fit (info): the engine re-flowed a bounded region one or two steps
+      // down the text scale rather than let it run over its neighbour. Same
+      // family as SLIDE_PAGINATED — the engine acted, and only the author can
+      // decide whether it is the words or the size that should give.
+      // Grouped by region (the animation group a panel/column/cell already
+      // carries): one line per region, not one per paragraph.
+      const densified = new Map();
+      for (const el of scene.elements) {
+        if (!el.densified) continue;
+        const key = el.group ?? '';
+        if (!densified.has(key))
+          densified.set(key, { step: el.densified, label: null, line: null });
+        const region = densified.get(key);
+        // the region's name is its heading — the panel title an author reads on
+        // the slide, rather than an index they would have to count out
+        if (!region.label && el.block.type === 'heading') region.label = runsToText(el.block.runs);
+        // anchored on the first block of the region that knows where it was
+        // written: the region itself has no line, only its content does
+        region.line ??= el.block.line ?? null;
+      }
+      for (const region of densified.values()) {
+        push(
+          'info',
+          'SLIDE_DENSIFIED',
+          `${region.label ? `The "${region.label}" region` : 'A region of this slide'} was rendered at the "${region.step}" text scale${
+            region.step === densest ? ', the densest the engine has,' : ''
+          } so it would fit (${scene.layout} layout) — shorten the content to keep the deck's default size.`,
+          region.line ?? scene.sourceLine,
+        );
+      }
+
       let flagged = 0;
       for (const el of scene.elements) {
         if (flagged >= 3 || !AUDITED.has(el.block.type)) continue;
@@ -611,13 +676,21 @@ export function validateDeck(
         const overflow = Math.round(
           Math.max(needed - el.region.h, el.region.y + Math.max(needed, el.region.h) - areaBottom),
         );
-        if (overflow > 12) {
+        if (overflow > OVERFLOW_TOLERANCE) {
           flagged++;
+          // the advice changes once the engine has spent the scale: telling an
+          // author to trim what the compiler has already shrunk twice reads as
+          // a tool that does not know what it did
+          const spent = el.densified === densest;
           push(
             'warning',
             'BLOCK_OVERFLOW',
-            `The "${el.block.type}" block overflows its region by about ${overflow} px (${scene.layout} layout) — ${
-              ADVICE[el.block.type] ?? 'trim the content or switch layouts'
+            `The "${el.block.type}" block overflows its region by about ${overflow} px (${scene.layout} layout)${
+              spent ? ', already at the densest step' : ''
+            } — ${
+              spent
+                ? 'cut the content or split the slide'
+                : (ADVICE[el.block.type] ?? 'trim the content or switch layouts')
             }.`,
             el.block.line ?? scene.sourceLine,
           );
@@ -771,7 +844,10 @@ export function capabilities() {
       'MISSING_IMAGE',
       'UNKNOWN_ICON',
       'INVALID_CHART',
+      'INVALID_PROGRESS',
+      'UNKNOWN_PROGRESS_KIND',
       'SLIDE_PAGINATED',
+      'SLIDE_DENSIFIED',
       'BLOCK_OVERFLOW',
       'LAYOUT_SUGGESTION',
       'IMAGE_UPSCALED',

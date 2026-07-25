@@ -16,6 +16,11 @@
  *     **trend** — up, down or flat. The color follows the direction
  *     (up = positive); suffix `(+)` / `(-)` to invert it when a fall is good
  *     news (costs, incidents);
+ *   - `:::progress [tint]` (value, label, optional caption) → progress bar;
+ *     the value reads as `75 %`, `75%`, `0.75` or `3/4`, clamped to 0–1;
+ *   - `:::status` (one item per comma, `!` warning, `!!` danger, `?` info) →
+ *     a row of badges;
+ *   - `==Action==` / `==!Urgent==` inside a sentence → inline badge;
  *   - `![cover|background|left|right](img)` → image role;
  *   - `![alt](https://…)` → remote image, downloaded and copied locally;
  *   - `![color?](lucide:name)` → Lucide icon (color: primary by default);
@@ -53,7 +58,13 @@ import {
   parseMarpComment,
 } from './marp.mjs';
 
-export const CONTAINERS = ['info', 'success', 'warning', 'danger', 'metric'];
+/** The four semantic tints an author can name — as a callout (`:::warning`),
+ *  as the tint of a progress bar (`:::progress warning`) or as the severity of
+ *  a badge. One list: a tint that exists for a callout and not for a bar would
+ *  be a distinction the author has no way to guess. */
+export const SEMANTIC_KINDS = ['info', 'success', 'warning', 'danger'];
+
+export const CONTAINERS = [...SEMANTIC_KINDS, 'metric', 'progress', 'status'];
 
 /** Block types a :::info/success/warning/danger callout knows how to render
  *  (single source of truth: both renderers, the layout's height estimation
@@ -74,9 +85,78 @@ export const CHART_TYPES = new Set(['bar', 'barh', 'line', 'area', 'pie', 'dough
  *  text must stay a bullet, as it always has. */
 const ITEM_NESTED_BLOCKS = new Set(['table_open', 'fence', 'code_block', 'blockquote_open']);
 
+/** Severity prefixes of a badge — `:::status` items and the inline `==…==`
+ *  form share them, because they are the same object written in two places.
+ *  No prefix = success: a status board is a list of things that are fine,
+ *  with the exceptions marked. */
+const BADGE_PREFIX = { '!!': 'danger', '!': 'warning', '?': 'info' };
+const BADGE_PREFIX_RE = /^(!!|!|\?)\s*/;
+
+/** `text` with its severity prefix removed → `{ text, kind }`, or null when
+ *  nothing but the prefix is left. */
+function badgeItem(text) {
+  const m = text.match(BADGE_PREFIX_RE);
+  const label = (m ? text.slice(m[0].length) : text).trim();
+  return label ? { text: label, kind: m ? BADGE_PREFIX[m[1]] : 'success' } : null;
+}
+
+/**
+ * Inline rule for `==Action==` / `==!Urgent==`.
+ *
+ * Hand-rolled rather than pulled from a plugin: the whole rule is the twenty
+ * lines below, and CONTRIBUTING.md asks for a new dependency to be discussed
+ * rather than assumed.
+ *
+ * Where the rule sits in the inline chain turns out not to matter: the scan is
+ * positional — it fires only when the cursor is ON a `==` — so a `==` inside a
+ * code span is never reached whatever the order, the span having been consumed
+ * as one token before the cursor could get there. Registering it before
+ * `emphasis` is therefore convention, not load-bearing; moving it before
+ * `backticks` changes no output, which a mutation run confirms.
+ *
+ * What IS a choice, and is asserted in parse.test.mjs: a badge that opens
+ * BEFORE a span swallows it, and the backticks stay literal inside the label.
+ * Code inside a badge is not rendered as code.
+ *
+ * A badge never spans a line break: the closing `==` is looked for up to the
+ * next newline only. An unclosed `==`, an empty `====` and a prefix with no
+ * label all decline, and the `==` then stays the literal text the author typed.
+ */
+function badgeRule(state, silent) {
+  const src = state.src;
+  const start = state.pos;
+  if (src.charCodeAt(start) !== 0x3d || src.charCodeAt(start + 1) !== 0x3d) return false;
+  // a LONGER run of `=` is not a marker: `====` must stay the four characters
+  // the author typed. Without this, the rule reopens at the second `=` and
+  // pairs it with the next `==` in the paragraph, badging the text between two
+  // things that were never a badge.
+  if (src.charCodeAt(start - 1) === 0x3d || src.charCodeAt(start + 2) === 0x3d) return false;
+  let end = -1;
+  for (let p = start + 2; p < state.posMax - 1; p++) {
+    const c = src.charCodeAt(p);
+    if (c === 0x0a) break;
+    if (c === 0x3d && src.charCodeAt(p + 1) === 0x3d) {
+      end = p;
+      break;
+    }
+  }
+  if (end < 0) return false;
+  const item = badgeItem(src.slice(start + 2, end).trim());
+  if (!item) return false;
+  if (!silent) {
+    const token = state.push('badge_inline', 'span', 0);
+    token.markup = '==';
+    token.content = item.text;
+    token.meta = { kind: item.kind };
+  }
+  state.pos = end + 2;
+  return true;
+}
+
 function buildMd() {
   const md = new MarkdownIt({ html: true, linkify: true, typographer: false });
   for (const name of CONTAINERS) md.use(container, name);
+  md.inline.ruler.before('emphasis', 'badge', badgeRule);
   return md;
 }
 
@@ -159,6 +239,18 @@ function pushRun(runs, t, state) {
     case 'image':
       // outside a paragraph (list, cell, heading) an image has no block to go
       // into; inside one, inlineParagraphBlocks() intercepts it first.
+      break;
+    case 'badge_inline':
+      // an explicit case, BEFORE the default: a token this switch does not
+      // know becomes an ordinary text run, and the badge would lose its tint
+      // without a single error
+      runs.push({
+        text: t.content,
+        badge: t.meta.kind,
+        bold: state.bold > 0 || undefined,
+        italic: state.italic > 0 || undefined,
+        link: state.link || undefined,
+      });
       break;
     case 'text':
     default:
@@ -348,6 +440,28 @@ export function parseTrend(text) {
     label = label.slice(0, override.index).trim();
   }
   return { dir, sentiment, text: label };
+}
+
+/**
+ * Value of a `:::progress` card → a share between 0 and 1, or null when the
+ * line is not a share at all.
+ *
+ * Four spellings, because they are the four an author actually writes: `75 %`,
+ * `75%`, `0.75` and `3/4`. Out-of-range values are CLAMPED rather than
+ * refused — `150 %` is a typo in the figure, not in the syntax, and a bar
+ * drawn full says that more usefully than a paragraph would.
+ */
+export function parseProgressValue(text) {
+  const s = String(text).trim();
+  const clamp = (v) => Math.min(1, Math.max(0, v));
+  let m = s.match(/^([+-]?\d+(?:\.\d+)?)\s*%$/);
+  if (m) return clamp(Number(m[1]) / 100);
+  m = s.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+  // a denominator of zero is not a share, whatever the numerator says
+  if (m) return Number(m[2]) > 0 ? clamp(Number(m[1]) / Number(m[2])) : null;
+  m = s.match(/^([+-]?\d+(?:\.\d+)?)$/);
+  if (m) return clamp(Number(m[1]));
+  return null;
 }
 
 function parseComment(html) {
@@ -546,6 +660,26 @@ export function parseDeck(source) {
   let i = 0;
   const n = tokens.length;
 
+  /** Lines of a `:::` card (metric, progress, status): the paragraphs it
+   *  holds, each cut at its soft breaks — writing the value and the label as
+   *  two paragraphs or as two lines of one paragraph is the same intent, and
+   *  the author has no reason to know which one markdown-it saw. Anything that
+   *  is not a paragraph is ignored (a card holds no table). */
+  function containerLines(inner) {
+    const lines = [];
+    for (const p of inner.filter((b) => b.type === 'para')) {
+      let cur = [];
+      for (const r of p.runs) {
+        if (r.soft) {
+          lines.push(cur);
+          cur = [];
+        } else cur.push(r);
+      }
+      lines.push(cur);
+    }
+    return lines.filter((l) => l.length).map((l) => runsToText(l).trim());
+  }
+
   /** Consumes a `:::name` container's tokens and returns its blocks. */
   function collectUntil(closeType) {
     const blocks = [];
@@ -739,6 +873,7 @@ export function parseDeck(source) {
       case 'table_open': {
         const header = [];
         const rows = [];
+        const align = [];
         let inHead = false;
         let row = null;
         i++;
@@ -748,11 +883,24 @@ export function parseDeck(source) {
           else if (u.type === 'thead_close') inHead = false;
           else if (u.type === 'tr_open') row = [];
           else if (u.type === 'tr_close') (inHead ? header : rows).push(row);
+          // the delimiter row (`|---:|`) governs a COLUMN. markdown-it repeats
+          // the resolved style on every body cell too; we read it once, from
+          // the header, because Markdown has no per-cell syntax and recording
+          // it per cell would invent one the author cannot write.
+          else if (inHead && u.type === 'th_open')
+            align.push(u.attrGet('style')?.replace('text-align:', '') ?? 'left');
           else if (u.type === 'inline') row.push(inlineRuns(u));
           i++;
         }
         i++;
-        return { type: 'table', header: header[0] ?? [], rows };
+        return {
+          type: 'table',
+          header: header[0] ?? [],
+          rows,
+          // omitted when the delimiter row says nothing: an all-left table is
+          // the table every existing deck already compiled to
+          ...(align.some((a) => a !== 'left') ? { align } : {}),
+        };
       }
       case 'html_block': {
         i++;
@@ -776,39 +924,65 @@ export function parseDeck(source) {
         // :::name containers
         const cm = t.type.match(/^container_(\w+)_open$/);
         if (cm) {
+          // the word after the directive name (`:::progress success`) —
+          // markdown-it-container leaves the whole line on the open token's
+          // `info`, directive name included. Read BEFORE collectUntil: `t` is
+          // captured at the head of readBlockAt, but the token stream moves on.
+          const arg = t.info.trim().slice(cm[1].length).trim().split(/\s+/)[0];
           i++;
           const kind = cm[1];
           const inner = collectUntil(`container_${kind}_close`);
           if (kind === 'metric') {
-            // 1st line = value, the rest = label — whether the lines are
-            // separate paragraphs or split by a plain soft break
-            const lines = [];
-            for (const p of inner.filter((b) => b.type === 'para')) {
-              let cur = [];
-              for (const r of p.runs) {
-                if (r.soft) {
-                  lines.push(cur);
-                  cur = [];
-                } else cur.push(r);
-              }
-              lines.push(cur);
-            }
-            const filled = lines.filter((l) => l.length);
+            const lines = containerLines(inner);
             // last line read as a trend (↑ +12 %…) if it has the shape of one
             let trend = null;
-            if (filled.length > 1) {
-              trend = parseTrend(runsToText(filled[filled.length - 1]).trim());
-              if (trend) filled.pop();
+            if (lines.length > 1) {
+              trend = parseTrend(lines[lines.length - 1]);
+              if (trend) lines.pop();
             }
             return {
               type: 'metric',
-              value: filled[0] ? runsToText(filled[0]).trim() : '',
-              label: filled
-                .slice(1)
-                .map((l) => runsToText(l).trim())
-                .join(' '),
+              value: lines[0] ?? '',
+              label: lines.slice(1).join(' '),
               ...(trend ? { trend } : {}),
             };
+          }
+          if (kind === 'progress') {
+            const lines = containerLines(inner);
+            const value = parseProgressValue(lines[0] ?? '');
+            if (value === null) {
+              // the author sees what they wrote, never a bar drawn at a value
+              // nobody chose — same fallback INVALID_CHART already makes
+              return {
+                type: 'para',
+                runs: [{ text: lines.join(' ') }],
+                invalidProgress: true,
+              };
+            }
+            const caption = lines.slice(2).join(' ');
+            const tint = SEMANTIC_KINDS.includes(arg) ? arg : null;
+            return {
+              type: 'progress',
+              value,
+              label: lines[1] ?? '',
+              ...(caption ? { caption } : {}),
+              ...(tint ? { kind: tint } : {}),
+              // reported by UNKNOWN_PROGRESS_KIND; the bar is drawn in the
+              // default tint rather than refused
+              ...(arg && !tint ? { unknownKind: arg } : {}),
+            };
+          }
+          if (kind === 'status') {
+            // one item per comma, its severity carried by its own prefix: the
+            // line grouping of the example is a reading convenience, not syntax
+            const items = [];
+            for (const line of containerLines(inner)) {
+              for (const raw of line.split(',')) {
+                const item = badgeItem(raw.trim());
+                if (item) items.push(item);
+              }
+            }
+            return { type: 'badge', items };
           }
           return { type: 'alert', kind, blocks: inner };
         }

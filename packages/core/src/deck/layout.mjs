@@ -8,7 +8,9 @@
  *   2. placement  — assign each block to a slot (a region in px on the
  *                   1280 × 720 surface, aligned to the 8 px grid);
  *   3. pagination — estimate heights and split what overflows into
- *                   "(cont.)" continuation slides.
+ *                   "(cont.)" continuation slides; where a region cannot
+ *                   paginate, auto-fit re-flows it a step down the text
+ *                   scale instead (flowBlocks).
  *
  * The scene produced is purely geometric: the renderer has no decision left
  * to make.
@@ -22,25 +24,29 @@ import {
   COLORS,
   LAYER_SHADES,
   PAGE,
-  SEMANTIC,
   SPACE,
+  TEXT_DENSITY,
   TYPE,
   LINE_HEIGHT,
+  PT_TO_PX,
+  badgeLayout,
+  blockFontSize,
+  charWidth,
   contentArea,
+  panelStyle,
+  progressLayout,
+  scaleTextToken,
 } from './tokens.mjs';
 import { isMarpDeck } from './marp.mjs';
 import { ALERT_BLOCK_TYPES, animateFlag, animatePreset, runsToText } from './parse.mjs';
 import { closest } from './suggest.mjs';
-
-const PT_TO_PX = 96 / 72;
 
 // ---------------------------------------------------------------------------
 // Height estimation (px)
 // ---------------------------------------------------------------------------
 
 function textHeight(text, widthPx, pt, lineHeight = LINE_HEIGHT) {
-  const avgChar = pt * PT_TO_PX * 0.52;
-  const cpl = Math.max(8, Math.floor(widthPx / avgChar));
+  const cpl = Math.max(8, Math.floor(widthPx / charWidth(pt)));
   const lines = Math.max(1, Math.ceil((text.length || 1) / cpl));
   return lines * pt * PT_TO_PX * lineHeight;
 }
@@ -48,7 +54,7 @@ function textHeight(text, widthPx, pt, lineHeight = LINE_HEIGHT) {
 export function blockHeight(block, widthPx) {
   switch (block.type) {
     case 'para':
-      return textHeight(runsToText(block.runs), widthPx, TYPE.body) + SPACE.xs;
+      return textHeight(runsToText(block.runs), widthPx, blockFontSize(block)) + SPACE.xs;
     case 'bullets':
       return block.items.reduce(
         (h, it) =>
@@ -56,22 +62,23 @@ export function blockHeight(block, widthPx) {
           textHeight(
             runsToText(it.runs),
             widthPx - 32 - it.level * 24,
-            it.level ? TYPE.bulletNested : TYPE.bullet,
+            blockFontSize(block, it.level ? 'nested' : 'body'),
           ) +
           6,
         SPACE.xs,
       );
     case 'code': {
       const lines = block.source.split('\n').length;
-      return lines * TYPE.code * PT_TO_PX * 1.35 + SPACE.lg;
+      return lines * blockFontSize(block) * PT_TO_PX * 1.35 + SPACE.lg;
     }
     case 'table': {
+      const pt = blockFontSize(block);
       const rowH = (cells) =>
         Math.max(
           ...cells.map((c) =>
-            textHeight(runsToText(c), (widthPx - 16 * cells.length) / cells.length, TYPE.tableBody),
+            textHeight(runsToText(c), (widthPx - 16 * cells.length) / cells.length, pt),
           ),
-          TYPE.tableBody * PT_TO_PX * LINE_HEIGHT,
+          pt * PT_TO_PX * LINE_HEIGHT,
         ) + 14;
       return (
         rowH(block.header.length ? block.header : [[]]) +
@@ -81,16 +88,35 @@ export function blockHeight(block, widthPx) {
     }
     case 'alert': {
       // only the blocks the renderers actually render count: reserving the
-      // height of an ignored block would dig a visual hole in the callout
+      // height of an ignored block would dig a visual hole in the callout.
+      // The callout's own size travels down with them: both renderers set it
+      // on the whole shape, so measuring the contents at the theme's token
+      // would reserve a height nothing occupies.
       const inner = block.blocks
         .filter((b) => ALERT_BLOCK_TYPES.has(b.type))
-        .reduce((h, b) => h + blockHeight(b, widthPx - 2 * SPACE.sm), 0);
-      return inner + 2 * SPACE.sm + TYPE.small * PT_TO_PX * LINE_HEIGHT;
+        .reduce(
+          (h, b) =>
+            h + blockHeight(block.size ? { ...b, size: block.size } : b, widthPx - 2 * SPACE.sm),
+          0,
+        );
+      return inner + 2 * SPACE.sm + blockFontSize(block, 'label') * PT_TO_PX * LINE_HEIGHT;
     }
     case 'metric':
       return 160;
+    case 'progress':
+      // a CONSTANT, like the metric card: a bar is an object of known size,
+      // and a label too long to fit beside it is the layout's problem, not
+      // the block's (progressLayout owns the two heights)
+      return progressLayout(block, widthPx).h;
+    case 'badge':
+      // the row wraps its own items, and this is the only place the wrap can
+      // be known: pagination trusts this number, and so do both renderers,
+      // which place the badges from the same function
+      return badgeLayout(block, widthPx).h + SPACE.xs;
     case 'quote':
-      return textHeight(runsToText(block.runs), widthPx - 2 * SPACE.xl, TYPE.quote) + SPACE.xl;
+      return (
+        textHeight(runsToText(block.runs), widthPx - 2 * SPACE.xl, blockFontSize(block)) + SPACE.xl
+      );
     case 'image':
     case 'mermaid':
     case 'chart':
@@ -103,8 +129,9 @@ export function blockHeight(block, widthPx) {
     case 'heading':
       // imposed size (key message of the focus layout): the text may flow
       // over several lines — the estimate follows; otherwise one title line
-      if (block.size) return textHeight(runsToText(block.runs), widthPx, block.size) + SPACE.xs;
-      return TYPE.sectionHeading * PT_TO_PX * LINE_HEIGHT + SPACE.xs;
+      if (block.size)
+        return textHeight(runsToText(block.runs), widthPx, blockFontSize(block)) + SPACE.xs;
+      return blockFontSize(block) * PT_TO_PX * LINE_HEIGHT + SPACE.xs;
     default:
       return 0;
   }
@@ -150,18 +177,146 @@ const REGISTRY = new Map(); // name → { name, base?, sections?, description?, 
 // with no parameters stays a pure alias).
 // ---------------------------------------------------------------------------
 
-/** Admissible values of the `panels` parameters: the neutral variants of
- *  panelStyle() + the four semantic tints — the layout picks the variant,
- *  the theme defines its color. */
-const PANEL_VARIANTS = ['muted', 'highlight', 'pillar', 'info', 'success', 'warning', 'danger'];
 const SEMANTIC_KINDS = ['info', 'success', 'warning', 'danger'];
+
+/** Admissible values of the `panels` parameters: the neutral variants of
+ *  panelStyle() + the four semantic tints, pale (`success`) or saturated
+ *  (`success-solid`) — the layout picks the variant, the theme defines its
+ *  color. Two names for one tint rather than a separate `tone` parameter: the
+ *  tone is per panel, and `panels` is already the per-panel list. */
+const PANEL_VARIANTS = [
+  'muted',
+  'highlight',
+  'pillar',
+  ...SEMANTIC_KINDS,
+  ...SEMANTIC_KINDS.map((k) => `${k}-solid`),
+];
 
 const panelsParam = (dflt, what) => ({
   type: 'enum-list',
   values: PANEL_VARIANTS,
   default: dflt,
-  description: `panel variant per ${what}, cycling: muted, highlight, pillar or a semantic tint`,
+  description: `panel variant per ${what}, cycling: muted, highlight, pillar or a semantic tint (pale, or saturated with the "-solid" suffix)`,
 });
+
+/** Corner radius of the panels a generator draws. Absent (the default) leaves
+ *  each variant its own — an accent bar and a semantic quadrant are not
+ *  rounded the same, and naming a step here would flatten that. */
+const radiusParam = () => ({
+  type: 'enum',
+  values: ['sm', 'md', 'lg', 'pill'],
+  default: null,
+  description: 'corner radius of the panels: sm, md, lg or pill (default: per variant)',
+});
+
+/** Panel block described by one entry of a `panels`/`kinds` list. The IR keeps
+ *  `tone` OMITTED for the pale tone: the scenes of a deck that asked for
+ *  nothing must not gain a key. */
+function panelFrom(spec) {
+  const solid = spec.endsWith('-solid');
+  const kind = solid ? spec.slice(0, -'-solid'.length) : spec;
+  if (!SEMANTIC_KINDS.includes(kind)) return { variant: spec };
+  return { variant: 'semantic', kind, ...(solid ? { tone: 'solid' } : {}) };
+}
+
+/** The author-facing surface of the text scale: an intent word, never a point
+ *  size. Same spec on every generator that flows text into a bounded region —
+ *  a panel, a cell, a band — since that is where a 14 pt body runs out of
+ *  room first. */
+const densityParam = () => ({
+  type: 'enum',
+  values: Object.keys(TEXT_DENSITY),
+  default: 'comfortable',
+  description: 'text scale of the blocks placed in the regions: comfortable, compact or dense',
+});
+
+/** Horizontal alignment offered by the generators that place text in a region
+ *  of their own choosing. Deliberately NOT author-facing: `align` has exactly
+ *  two producers — the table parser (which honours a Markdown delimiter row)
+ *  and a layout definition. A paragraph an author could align by hand is
+ *  positioning, and positioning is the engine's job. */
+const alignParam = (what) => ({
+  type: 'enum',
+  values: ['left', 'center', 'right'],
+  default: 'left',
+  description: `horizontal alignment of ${what}`,
+});
+
+/** `align` as an IR field, OMITTED at the natural value: left is what every
+ *  block has always rendered as, and a scene that asked for nothing must not
+ *  gain a key. */
+const alignAttr = (align) => (align && align !== 'left' ? { align } : {});
+
+/** Block types both renderers actually align. A table has its own per-column
+ *  alignment, read from the delimiter row, and a layout has no business
+ *  overriding what the author wrote in the Markdown. */
+const ALIGNED_BLOCKS = new Set(['para', 'bullets', 'heading']);
+
+function alignBlocks(blocks, align) {
+  const attr = alignAttr(align);
+  if (!attr.align) return blocks;
+  return blocks.map((b) => (ALIGNED_BLOCKS.has(b.type) ? { ...b, ...attr } : b));
+}
+
+/** Block types the scale is stamped on. `heading` is deliberately out — a
+ *  slot title is short, and shrinking it along with the body would blur the
+ *  hierarchy the panel exists to show; `code` and `quote` are out because
+ *  their surfaces are fixed frames, and they are what an overflowing panel
+ *  should be told to drop, not to squeeze. */
+const SIZED_BLOCKS = new Set(['para', 'bullets', 'table', 'alert']);
+
+/**
+ * Stamps a text scale on the blocks a region is about to flow — the layout's
+ * `density`, or the step auto-fit fell back to. The factor applies to each
+ * block's OWN theme token, so a kit with a 16 pt body and a 12 pt table keeps
+ * its proportions.
+ *
+ * Always applied to the ORIGINAL blocks (flowBlocks re-scales from them at
+ * every step): a factor applied on top of a factor would land on sizes the
+ * scale does not have.
+ *
+ * Returns the blocks UNTOUCHED at the default step: a scene of a deck that
+ * asked for nothing must not carry a single `size` key, or every existing
+ * deck's geometry moves and the goldens with it.
+ */
+function scaleBlocks(blocks, density) {
+  if (!density || density === 'comfortable') return blocks;
+  return blocks.map((b) =>
+    SIZED_BLOCKS.has(b.type) ? { ...b, size: scaleTextToken(blockFontSize(b), density) } : b,
+  );
+}
+
+/**
+ * Block types repainted by the panel they sit in: those that put ink STRAIGHT
+ * ONTO the panel's surface.
+ *
+ * The blocks left out are left out because they carry a surface of their own —
+ * a callout its tint, a metric card and a code block their frame, a badge its
+ * pill — so their ink is measured against that surface, not against the panel,
+ * and repainting them would break the pair that was validated. The visuals
+ * (image, chart, mermaid, math, icon) hold no body text to repaint.
+ *
+ * Getting this set wrong is not cosmetic: a table left out sat at 3.10:1 on a
+ * solid danger panel, under AA, while three separate places in the docs
+ * promised the opposite.
+ */
+const INKED_BLOCKS = new Set(['para', 'bullets', 'heading', 'table', 'quote', 'progress']);
+
+/**
+ * Applies a panel's ink to the blocks flowed INTO it. A saturated surface
+ * imposes it on every block that writes directly on it: on a solid danger
+ * panel the title is white and the ordinary body ink is 3.2:1 on the same red
+ * — a half-repainted panel is worse than a pale one.
+ *
+ * A pale tint keeps stamping the slot title alone, as it always has: the
+ * deck's ordinary ink is legible on it, and colouring every paragraph of every
+ * existing scene would move every golden to say nothing new.
+ */
+function inkBlocks(blocks, panel) {
+  const { ink } = panelStyle(panel);
+  if (panel.tone !== 'solid' || !ink) return blocks;
+  return blocks.map((b) => (INKED_BLOCKS.has(b.type) ? { ...b, color: ink } : b));
+}
 
 /** Validates a parameter value against its spec; returns the value (copied
  *  if a list), throws an Error otherwise. */
@@ -408,6 +563,7 @@ export function registerLayout(def) {
         default: 176,
         description: 'card height (px)',
       },
+      align: alignParam('the text placed under the cards'),
     },
   },
   {
@@ -443,6 +599,8 @@ export function registerLayout(def) {
         default: 16,
         description: 'inner padding of the panels (px)',
       },
+      density: densityParam(),
+      radius: radiusParam(),
     },
   },
   {
@@ -451,6 +609,8 @@ export function registerLayout(def) {
     paramSchema: {
       panels: panelsParam(['pillar'], 'pillar'),
       accent: { type: 'boolean', default: true, description: 'accent bar at the top of pillars' },
+      density: densityParam(),
+      radius: radiusParam(),
     },
   },
   {
@@ -506,6 +666,7 @@ export function registerLayout(def) {
         default: 'stack',
         description: 'full-width bands (stack), a funnel (narrowing) or a pyramid (widening)',
       },
+      density: densityParam(),
     },
   },
   {
@@ -518,6 +679,7 @@ export function registerLayout(def) {
         default: ['success', 'danger', 'info', 'warning'],
         description: 'semantic tint per quadrant (cycling)',
       },
+      density: densityParam(),
     },
   },
   {
@@ -544,6 +706,9 @@ export function registerLayout(def) {
         default: false,
         description: 'detached header per cell (title + rule)',
       },
+      density: densityParam(),
+      radius: radiusParam(),
+      align: alignParam('the text inside the cells'),
     },
   },
   {
@@ -557,14 +722,18 @@ export function registerLayout(def) {
         description: 'link between steps: arrow, line or nothing',
       },
       panels: panelsParam(['muted'], 'step'),
+      density: densityParam(),
+      radius: radiusParam(),
     },
   },
   {
     name: 'focus',
     paramSchema: {
       align: {
+        // its own spec rather than alignParam(): the key message is CENTERED
+        // by default — the only generator where left is not the natural value
         type: 'enum',
-        values: ['center', 'left'],
+        values: ['left', 'center', 'right'],
         default: 'center',
         description: 'alignment of the key message',
       },
@@ -586,7 +755,10 @@ export function registerLayout(def) {
   { name: 'code' },
   { name: 'diagram' },
   { name: 'chart' },
-  { name: 'content' },
+  {
+    name: 'content',
+    paramSchema: { density: densityParam(), align: alignParam('the blocks in the flow') },
+  },
 ].forEach((def) => registerLayout({ ...def, builtin: true }));
 
 // ---------------------------------------------------------------------------
@@ -787,14 +959,34 @@ export function inferLayout(slide, index) {
 // Passes 2 and 3 — placement + pagination
 // ---------------------------------------------------------------------------
 
-/** Flows blocks into a region; returns pages of placed elements. */
-function flowBlocks(blocks, region, { paginate = true } = {}) {
+/** Density steps, from the deck's default down — the ladder auto-fit walks.
+ *  TEXT_DENSITY declares them in that order and densityParam() publishes the
+ *  same keys, so a theme adding a step cannot desynchronise the two. */
+const DENSITY_LADDER = Object.keys(TEXT_DENSITY);
+
+/** Slack (px) a region is granted before the engine calls it an overflow.
+ *  Shared with the BLOCK_OVERFLOW audit (validate.mjs): with two thresholds
+ *  the engine would either densify regions it never flags — invisible
+ *  shrinking — or flag regions it could have fitted. */
+export const OVERFLOW_TOLERANCE = 12;
+
+/**
+ * One pass of the flow, at a fixed text scale.
+ *
+ * `overflow` is how far past the region's bottom the content REALLY asks to
+ * go, measured on the ESTIMATED heights and not on the placed ones: a block
+ * taller than the whole region is placed clamped to it, and would otherwise
+ * measure as a perfect fit — which is precisely the case auto-fit exists for.
+ */
+function flowOnce(blocks, region, paginate) {
   const pages = [];
   let page = [];
   let y = region.y;
+  let wanted = region.y;
 
-  const place = (block, h) => {
+  const place = (block, h, need = h) => {
     page.push({ block, region: { x: region.x, y, w: region.w, h } });
+    wanted = Math.max(wanted, y + need);
     y += h + SPACE.sm;
   };
   const breakPage = () => {
@@ -852,10 +1044,62 @@ function flowBlocks(blocks, region, { paginate = true } = {}) {
       }
       breakPage();
     }
-    place(block, Math.min(rawH, region.h));
+    place(block, Math.min(rawH, region.h), rawH);
   }
   breakPage();
-  return pages.length ? pages : [[]];
+  return {
+    pages: pages.length ? pages : [[]],
+    overflow: wanted - (region.y + region.h),
+  };
+}
+
+/**
+ * Flows blocks into a region; returns pages of placed elements.
+ *
+ * Auto-fit: where the region is bounded — `paginate: false`, which is every
+ * panel, every column, every cell — content that does not fit is re-flowed one
+ * step down the text scale, as far as `dense` and no further. Three properties,
+ * each of them a candidate mistake:
+ *
+ *   - the WHOLE region steps down, never the offending block alone: three type
+ *     sizes in one panel reads as a bug rather than as a fit;
+ *   - the step is DISCRETE — a continuous best-fit factor would give every
+ *     panel a size of its own and make the goldens meaningless;
+ *   - the floor is HONEST: below `dense` the engine stops and lets
+ *     BLOCK_OVERFLOW say so. Text at 6 pt is not a fit, it is a failure with
+ *     the evidence hidden.
+ *
+ * Where pagination is on, IT wins and nothing is densified: a flow layout has
+ * somewhere to put the overflow, and shrinking instead would silently trade a
+ * legible second slide for a cramped single one.
+ *
+ * A re-flow is a second pass over the same blocks — pure measurement, no I/O —
+ * and two re-flows a third. Measured rather than assumed: a ten-slide board of
+ * eight panels whose every panel walks the whole ladder lays out in 0.18 ms,
+ * against 0.12 ms when nothing moves. Nothing to optimise against the seconds
+ * Mermaid, fonts and image embedding cost.
+ */
+function flowBlocks(blocks, region, { paginate = true, density = 'comfortable' } = {}) {
+  const first = Math.max(0, DENSITY_LADDER.indexOf(density));
+  // only while the scale has something to bite on: a region holding nothing
+  // but a diagram, an image or a code block does not shrink by a single pixel,
+  // and reporting a densification the rendering denies is worse than silence
+  const shrinkable = !paginate && blocks.some((b) => SIZED_BLOCKS.has(b.type));
+  let step = first;
+  let flowed = flowOnce(scaleBlocks(blocks, DENSITY_LADDER[step]), region, paginate);
+  while (shrinkable && flowed.overflow > OVERFLOW_TOLERANCE && step < DENSITY_LADDER.length - 1) {
+    step++;
+    // re-scaled from the ORIGINAL blocks, never from the previous attempt: a
+    // factor applied twice would land on a size the scale does not have
+    flowed = flowOnce(scaleBlocks(blocks, DENSITY_LADDER[step]), region, paginate);
+  }
+  if (step > first) {
+    // the mark rides on the ELEMENT rather than on the block: it records what
+    // the engine did to the region, which is what SLIDE_DENSIFIED reports and
+    // what BLOCK_OVERFLOW reads to stop advising what has already been done
+    for (const page of flowed.pages) for (const el of page) el.densified = DENSITY_LADDER[step];
+  }
+  return flowed.pages;
 }
 
 /**
@@ -1024,7 +1268,7 @@ export function buildScenes(deck) {
         // cards and overflowed 16 px below the footer)
         const belowY = area.y + cardH + SPACE.lg + SPACE.sm;
         const below = { x: area.x, y: belowY, w: area.w, h: Math.max(0, area.y + area.h - belowY) };
-        elements.push(...flowBlocks(rest, below, { paginate: false })[0]);
+        elements.push(...flowBlocks(alignBlocks(rest, P.align), below, { paginate: false })[0]);
         push({ elements });
         break;
       }
@@ -1080,9 +1324,10 @@ export function buildScenes(deck) {
             el.group = 0;
           }); // animation: the lead = one step
           elements.push(...flowed);
-          // the lead is NOT bounded in height: if it eats the slide, it is
-          // BLOCK_OVERFLOW (validate) that says so — the engine does not
-          // silently trim what the author wrote
+          // the lead is NOT bounded in height: auto-fit will have tried the
+          // scale on it, and if it still eats the slide it is BLOCK_OVERFLOW
+          // (validate) that says so — the engine shrinks, it never trims what
+          // the author wrote
           top = flowed.reduce((m, el) => Math.max(m, el.region.y + el.region.h), area.y) + SPACE.md;
         }
         const colH = Math.max(0, area.y + area.h - top);
@@ -1123,20 +1368,15 @@ export function buildScenes(deck) {
             w: colW,
             h: area.h - SPACE.xs,
           };
-          const spec = panels[k % panels.length];
-          const panel = SEMANTIC_KINDS.includes(spec)
-            ? { variant: 'semantic', kind: spec }
-            : { variant: spec };
+          const panel = panelFrom(panels[k % panels.length]);
           const accented = panel.variant === 'pillar' && P.accent !== false;
-          elements.push({
-            block: {
-              type: 'panel',
-              ...panel,
-              ...(panel.variant === 'pillar' && P.accent === false ? { accent: false } : {}),
-            },
-            region: { ...col },
-            group: k,
-          });
+          const block = {
+            type: 'panel',
+            ...panel,
+            ...(panel.variant === 'pillar' && P.accent === false ? { accent: false } : {}),
+            ...(P.radius ? { radius: P.radius } : {}),
+          };
+          elements.push({ block, region: { ...col }, group: k });
           const padTop = accented ? SPACE.md : pad; // room for the accent
           const inner = {
             x: col.x + pad,
@@ -1144,14 +1384,17 @@ export function buildScenes(deck) {
             w: col.w - 2 * pad,
             h: col.h - padTop - pad,
           };
-          const ink = panel.variant === 'semantic' ? SEMANTIC[panel.kind].text : null;
+          const ink = panelStyle(block).ink;
           const colBlocks = sec.heading
             ? [
                 { type: 'heading', depth: 2, runs: sec.heading, ...(ink ? { color: ink } : {}) },
                 ...sec.blocks,
               ]
             : sec.blocks;
-          const flowed = flowBlocks(colBlocks, inner, { paginate: false })[0];
+          const flowed = flowBlocks(inkBlocks(colBlocks, block), inner, {
+            paginate: false,
+            density: P.density,
+          })[0];
           flowed.forEach((el) => {
             el.group = k;
           }); // animation: one panel = one step
@@ -1287,8 +1530,8 @@ export function buildScenes(deck) {
               ? Math.round((k * Math.max(lastShade, 0)) / (n - 1))
               : 0;
           const shade = Math.min(Math.max(wanted, 0), Math.max(lastShade, 0));
-          // empty palette (a theme overwriting LAYER_SHADES): readable neutral ink
-          const ink = LAYER_SHADES[shade]?.ink ?? COLORS.neutralPrimary;
+          const bandBlock = { type: 'panel', variant: 'layer', shade };
+          const ink = panelStyle(bandBlock).ink;
           const bandW = area.w * widthAt(k);
           const band = {
             x: area.x + (area.w - bandW) / 2,
@@ -1296,11 +1539,7 @@ export function buildScenes(deck) {
             w: bandW,
             h: bandH,
           };
-          elements.push({
-            block: { type: 'panel', variant: 'layer', shade },
-            region: band,
-            group: k,
-          });
+          elements.push({ block: bandBlock, region: band, group: k });
           const hasBody = it.blocks.length > 0;
           const headW = hasBody ? band.w * titleRatio - SPACE.md : band.w - 2 * SPACE.md;
           elements.push({
@@ -1318,7 +1557,7 @@ export function buildScenes(deck) {
             const flowed = flowBlocks(
               it.blocks.map((b) => ({ ...b, color: ink })),
               body,
-              { paginate: false },
+              { paginate: false, density: P.density },
             )[0];
             // description centered vertically in the band, like the title
             const bottom = flowed.reduce((m, el) => Math.max(m, el.region.y + el.region.h), body.y);
@@ -1351,12 +1590,8 @@ export function buildScenes(deck) {
             w: cellW,
             h: cellH,
           };
-          const kindK = kinds[k % kinds.length];
-          elements.push({
-            block: { type: 'panel', variant: 'semantic', kind: kindK },
-            region: cell,
-            group: k,
-          });
+          const quadrant = { type: 'panel', ...panelFrom(kinds[k % kinds.length]) };
+          elements.push({ block: quadrant, region: cell, group: k });
           const inner = {
             x: cell.x + SPACE.sm,
             y: cell.y + SPACE.sm,
@@ -1365,11 +1600,14 @@ export function buildScenes(deck) {
           };
           const colBlocks = sec.heading
             ? [
-                { type: 'heading', depth: 2, runs: sec.heading, color: SEMANTIC[kindK].text },
+                { type: 'heading', depth: 2, runs: sec.heading, color: panelStyle(quadrant).ink },
                 ...sec.blocks,
               ]
             : sec.blocks;
-          const flowed = flowBlocks(colBlocks, inner, { paginate: false })[0];
+          const flowed = flowBlocks(inkBlocks(colBlocks, quadrant), inner, {
+            paginate: false,
+            density: P.density,
+          })[0];
           flowed.forEach((el) => {
             el.group = k;
           }); // animation: one quadrant = one step
@@ -1400,17 +1638,19 @@ export function buildScenes(deck) {
             h: cellH,
           };
           const spec = P.kinds ? P.kinds[k % P.kinds.length] : panels[k % panels.length];
-          const panel = SEMANTIC_KINDS.includes(spec)
-            ? { variant: 'semantic', kind: spec }
-            : { variant: spec };
-          elements.push({ block: { type: 'panel', ...panel }, region: cell, group: k });
+          const block = {
+            type: 'panel',
+            ...panelFrom(spec),
+            ...(P.radius ? { radius: P.radius } : {}),
+          };
+          elements.push({ block, region: cell, group: k });
           const inner = {
             x: cell.x + SPACE.sm,
             y: cell.y + SPACE.sm,
             w: cell.w - 2 * SPACE.sm,
             h: cell.h - 2 * SPACE.sm,
           };
-          const ink = panel.variant === 'semantic' ? SEMANTIC[panel.kind].text : null;
+          const ink = panelStyle(block).ink;
           const heading = sec.heading
             ? { type: 'heading', depth: 2, runs: sec.heading, ...(ink ? { color: ink } : {}) }
             : null;
@@ -1418,7 +1658,11 @@ export function buildScenes(deck) {
           let cellBlocks = sec.blocks;
           if (P.headed && heading) {
             // detached header: title at the top of the cell, rule, content below
-            elements.push({ block: heading, region: { ...inner, h: headH }, group: k });
+            elements.push({
+              block: alignBlocks([heading], P.align)[0],
+              region: { ...inner, h: headH },
+              group: k,
+            });
             elements.push({
               block: { type: 'timeline-axis', arrow: false },
               region: { x: inner.x, y: inner.y + headH + SPACE.xs, w: inner.w, h: 2 },
@@ -1437,7 +1681,11 @@ export function buildScenes(deck) {
           } else if (heading) {
             cellBlocks = [heading, ...sec.blocks];
           }
-          const flowed = flowBlocks(cellBlocks, flowRegion, { paginate: false })[0];
+          const flowed = flowBlocks(
+            alignBlocks(inkBlocks(cellBlocks, block), P.align),
+            flowRegion,
+            { paginate: false, density: P.density },
+          )[0];
           flowed.forEach((el) => {
             el.group = k;
           }); // animation: one cell = one step
@@ -1472,11 +1720,9 @@ export function buildScenes(deck) {
               group: k,
             });
           }
-          const spec = panels[k % panels.length];
-          const panel = SEMANTIC_KINDS.includes(spec)
-            ? { variant: 'semantic', kind: spec }
-            : { variant: spec };
-          elements.push({ block: { type: 'panel', ...panel }, region: { ...col }, group: k });
+          const panel = panelFrom(panels[k % panels.length]);
+          const block = { type: 'panel', ...panel, ...(P.radius ? { radius: P.radius } : {}) };
+          elements.push({ block, region: { ...col }, group: k });
           const padTop = panel.variant === 'pillar' ? SPACE.md : SPACE.sm; // room for the accent
           const inner = {
             x: col.x + SPACE.sm,
@@ -1484,14 +1730,17 @@ export function buildScenes(deck) {
             w: col.w - 2 * SPACE.sm,
             h: col.h - padTop - SPACE.sm,
           };
-          const ink = panel.variant === 'semantic' ? SEMANTIC[panel.kind].text : null;
+          const ink = panelStyle(block).ink;
           const stepBlocks = sec.heading
             ? [
                 { type: 'heading', depth: 2, runs: sec.heading, ...(ink ? { color: ink } : {}) },
                 ...sec.blocks,
               ]
             : sec.blocks;
-          const flowed = flowBlocks(stepBlocks, inner, { paginate: false })[0];
+          const flowed = flowBlocks(inkBlocks(stepBlocks, block), inner, {
+            paginate: false,
+            density: P.density,
+          })[0];
           flowed.forEach((el) => {
             el.group = k;
           }); // animation: one step at a time
@@ -1523,7 +1772,7 @@ export function buildScenes(deck) {
           depth: 1,
           runs: msg.runs,
           size,
-          ...(align === 'center' ? { align } : {}),
+          ...alignAttr(align),
         };
         const msgH = blockHeight(msgBlock, area.w);
         // message area: the whole content area, or its upper half if context
@@ -1539,10 +1788,13 @@ export function buildScenes(deck) {
         const elements = [];
         if (P.accent !== false) {
           const barW = CHROME.cover.barW;
+          // the bar sits over the message, so it follows it: an accent still
+          // pinned left above a right-aligned message reads as a stray rule
+          const barX = { center: area.x + (area.w - barW) / 2, right: area.x + area.w - barW };
           elements.push({
             block: { type: 'panel', variant: 'accent' },
             region: {
-              x: align === 'center' ? area.x + (area.w - barW) / 2 : area.x,
+              x: barX[align] ?? area.x,
               y: msgY - SPACE.md,
               w: barW,
               h: CHROME.cover.barH,
@@ -1583,7 +1835,7 @@ export function buildScenes(deck) {
             : s.blocks;
           return grouped ? blocks.map((b) => ({ ...b, group: si })) : blocks;
         });
-        const pages = flowBlocks(withHeadings, area);
+        const pages = flowBlocks(alignBlocks(withHeadings, P.align), area, { density: P.density });
         pages.forEach((elements, p) => {
           stretchTrailingVisual(elements, area);
           push({

@@ -96,6 +96,8 @@ import {
   TREND_INK,
   SEMANTIC,
   deriveTokens,
+  luminance,
+  contrastRatio,
 } from './tokens.mjs';
 import { closest } from './suggest.mjs';
 import { readKit, KIT_MANIFEST, KIT_NAME_RE } from './kit.mjs';
@@ -231,22 +233,14 @@ export function applyTheme(theme = null) {
 }
 
 // ---------------------------------------------------------------------------
-// WCAG contrast (shared with test/contrast.test.mjs)
+// WCAG contrast
+//
+// The computation moved to tokens.mjs, which needs it to CHOOSE the ink of a
+// saturated tint while deriving. Re-exported from here because this is where
+// the accessibility surface of a theme lives, and where the tests reach for it.
 // ---------------------------------------------------------------------------
 
-/** WCAG 2.x relative luminance of a 6-digit hex color (without #). */
-export function luminance(hex) {
-  const [r, g, b] = [0, 2, 4].map((i) => {
-    const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-export function contrastRatio(a, b) {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
-}
+export { luminance, contrastRatio };
 
 /**
  * Checks, on the LIVE tokens (after applyTheme), the thresholds the brand
@@ -285,12 +279,21 @@ export function themeContrastDiagnostics() {
   LAYER_SHADES.forEach((s, k) =>
     check(contrastRatio(s.ink, s.fill), 4.5, `ink of layer ${k + 1} (#${s.ink} on #${s.fill})`),
   );
-  for (const [kind, sem] of Object.entries(SEMANTIC))
+  for (const [kind, sem] of Object.entries(SEMANTIC)) {
     check(
       contrastRatio(sem.text, sem.fill),
       4.5,
       `text of the :::${kind} callout (#${sem.text} on #${sem.fill})`,
     );
+    // the solid tone is the pair a kit breaks without noticing: it repaints
+    // `colors.positive` for its brand green and the chip ink stays where the
+    // recipe put it
+    check(
+      contrastRatio(sem.solidText, sem.solid),
+      4.5,
+      `text of a solid ${kind} panel (#${sem.solidText} on #${sem.solid})`,
+    );
+  }
   for (const [kind, ink] of Object.entries(TREND_INK))
     check(
       contrastRatio(ink, COLORS.ground),

@@ -50,9 +50,19 @@ const TWO_SECTIONS = '## Before\n\n- slow\n\n## After\n\n- fast\n';
 
 test('layoutParams: generator defaults, overridden by the alias definition', (t) => {
   t.after(resetUserLayouts);
-  assert.deepEqual(layoutParams('comparison'), { panels: ['muted', 'highlight'], pad: 16 });
+  assert.deepEqual(layoutParams('comparison'), {
+    panels: ['muted', 'highlight'],
+    pad: 16,
+    density: 'comfortable',
+    radius: null,
+  });
   registerLayout({ name: 'p-duel', base: 'comparison', pad: 32 });
-  assert.deepEqual(layoutParams('p-duel'), { panels: ['muted', 'highlight'], pad: 32 });
+  assert.deepEqual(layoutParams('p-duel'), {
+    panels: ['muted', 'highlight'],
+    pad: 32,
+    density: 'comfortable',
+    radius: null,
+  });
   assert.deepEqual(layoutParams('unknown'), {});
   assert.equal(layoutParamSchema('unknown'), null);
   assert.deepEqual(layoutParamSchema('cover'), {}, 'layout with no parameters → empty schema');
@@ -62,7 +72,7 @@ test('registerLayout refuses out-of-domain values, with precise messages', (t) =
   t.after(resetUserLayouts);
   assert.throws(
     () => registerLayout({ name: 'p-a', base: 'comparison', sidepanels: ['muted'] }),
-    /unknown parameter "sidepanels" for base "comparison" \(parameters: panels, pad\)/,
+    /unknown parameter "sidepanels" for base "comparison" \(parameters: panels, pad, density, radius\)/,
   );
   assert.throws(
     () => registerLayout({ name: 'p-a2', base: 'comparison', panel: ['muted'] }),
@@ -138,6 +148,7 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
   const caps = capabilities();
   assert.deepEqual(Object.keys(caps.layoutParams).sort(), [
     'comparison',
+    'content',
     'focus',
     'grid',
     'layers',
@@ -151,6 +162,129 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
   assert.equal(caps.layoutParams.comparison.pad.default, 16);
   assert.deepEqual(caps.layoutParams.swot.kinds.values, ['info', 'success', 'warning', 'danger']);
   assert.equal(caps.layoutParams.timeline.orientation.type, 'enum');
+});
+
+test('density: rejected with a suggestion on a typo, published on every panel-bearing generator', (t) => {
+  t.after(resetUserLayouts);
+  resetUserLayouts();
+  // the text scale is author-facing intent, so a near-miss has to be repaired
+  // by the "did you mean" the enum machinery already provides — no new
+  // validation code was written for it, and this is what proves it
+  assert.throws(
+    () => registerLayout({ name: 'p-densse', base: 'grid', density: 'densse' }),
+    /"densse" invalid — did you mean "dense"\? \(values: comfortable, compact, dense\)/,
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-num', base: 'grid', density: 9 }),
+    /"9" invalid \(values: comfortable, compact, dense\)/,
+    'a point size is not an intent word: the enum refuses it without a suggestion',
+  );
+  const caps = capabilities();
+  // the seven generators that flow text into a BOUNDED region — the places a
+  // 14 pt body runs out of room
+  for (const base of ['grid', 'comparison', 'pillars', 'steps', 'swot', 'layers', 'content']) {
+    const spec = caps.layoutParams[base]?.density;
+    assert.ok(spec, `"${base}" does not publish a density parameter`);
+    assert.equal(spec.type, 'enum', `${base}.density: enum expected`);
+    assert.deepEqual(spec.values, ['comfortable', 'compact', 'dense'], `${base}.density values`);
+    assert.equal(
+      spec.default,
+      'comfortable',
+      `${base}.density must default to the historical size`,
+    );
+  }
+});
+
+test('align: refused outside its enum, and stamped on the blocks the generator places', (t) => {
+  t.after(resetUserLayouts);
+  resetUserLayouts();
+  // `align` has exactly two producers — the table delimiter row and a layout
+  // definition. On the layout side it is the enum machinery that guards it,
+  // which is why nothing new was written to validate it
+  assert.throws(
+    () => registerLayout({ name: 'p-centre', base: 'content', align: 'centre' }),
+    /"centre" invalid — did you mean "center"\? \(values: left, center, right\)/,
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-just', base: 'grid', align: 'justify' }),
+    /"justify" invalid \(values: left, center, right\)/,
+    'justified text is out of scope: it reads badly at projection sizes',
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-mid', base: 'metrics', align: 'middle' }),
+    /"middle" invalid/,
+    'vertical wording must not slip in: valign is deliberately not a block property',
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-nope', base: 'swot', align: 'center' }),
+    /unknown parameter "align" for base "swot"/,
+    'align is offered only where it means something',
+  );
+
+  const caps = capabilities();
+  for (const base of ['content', 'grid', 'metrics']) {
+    const spec = caps.layoutParams[base]?.align;
+    assert.ok(spec, `"${base}" does not publish an align parameter`);
+    assert.deepEqual(spec.values, ['left', 'center', 'right'], `${base}.align values`);
+    assert.equal(spec.default, 'left', `${base}.align must default to the natural rendering`);
+  }
+  // focus is the exception, and stays one: its key message is centered
+  assert.equal(caps.layoutParams.focus.align.default, 'center');
+  assert.deepEqual(caps.layoutParams.focus.align.values, ['left', 'center', 'right']);
+
+  registerLayout({ name: 'p-centered', base: 'content', align: 'center' });
+  const [scene] = scenesFor('p-centered', '## Result\n\ntext\n\n- one\n');
+  for (const type of ['heading', 'para', 'bullets']) {
+    const el = scene.elements.find((e) => e.block.type === type);
+    assert.equal(el?.block.align, 'center', `${type} must carry the layout's alignment`);
+  }
+  // and the default asks for nothing, so it must WRITE nothing: an
+  // `align: "left"` on every block of every deck would move every golden
+  registerLayout({ name: 'p-plain', base: 'content' });
+  const [plain] = scenesFor('p-plain', '## Result\n\ntext\n');
+  for (const el of plain.elements) assert.equal('align' in el.block, false);
+});
+
+test('solid tones and radius: enum names, so validation and capabilities follow without new code', (t) => {
+  t.after(resetUserLayouts);
+  resetUserLayouts();
+  // the solid tone is a VARIANT NAME rather than a `tone` parameter precisely
+  // so that the enum-list machinery — domain, "did you mean", publication —
+  // covers it; a near-miss must therefore be repaired, not just refused
+  assert.throws(
+    () => registerLayout({ name: 'p-succes', base: 'grid', panels: ['succes-solid'] }),
+    /"succes-solid" invalid — did you mean "success-solid"\?/,
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-solid', base: 'grid', panels: ['muted-solid'] }),
+    /"muted-solid" invalid/,
+    'only the semantic tints have a saturated tone',
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-rad', base: 'steps', radius: 'pil' }),
+    /"pil" invalid — did you mean "pill"\? \(values: sm, md, lg, pill\)/,
+  );
+  const caps = capabilities();
+  for (const base of ['grid', 'comparison', 'pillars', 'steps']) {
+    assert.deepEqual(
+      caps.layoutParams[base].panels.values,
+      [
+        'muted',
+        'highlight',
+        'pillar',
+        'info',
+        'success',
+        'warning',
+        'danger',
+        'info-solid',
+        'success-solid',
+        'warning-solid',
+        'danger-solid',
+      ],
+      `${base}.panels does not publish the solid tones`,
+    );
+    assert.equal(caps.layoutParams[base].radius.default, null, `${base}.radius: per variant`);
+  }
 });
 
 // ---------------------------------------------------------------------------

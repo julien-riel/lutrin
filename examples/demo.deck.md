@@ -371,3 +371,31 @@ Installing an organization's brand means copying a directory. Its heart is a
 - Example gallery
 - Visual regression tests
 - Incremental compilation cache
+
+# Where the programme stands
+
+<!-- layout: status-list -->
+
+## Delivery
+
+:::progress success
+100 %
+Online services
+Delivered in April
+:::
+
+:::progress warning
+45 %
+Paper forms
+Under analysis
+:::
+
+## Commitments
+
+:::status
+Scope, Schedule, Quality
+!Budget
+!!Recruitment
+:::
+
+Each commitment carries an ==Owner==; one that slips is tagged ==!At risk==.

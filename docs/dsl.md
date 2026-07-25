@@ -24,7 +24,7 @@ Contents:
 [official layouts](#official-layouts) ·
 [custom layouts](#custom-layouts-layoutsjson) ·
 [text](#text-lists-tables-quotes) ·
-[callouts and metrics](#callouts-and-metrics) ·
+[callouts, metrics, progress, status](#callouts-metrics-progress-and-status) ·
 [images and icons](#images-icons-diagrams) ·
 [charts](#charts) ·
 [equations](#equations-latex) ·
@@ -164,7 +164,7 @@ will leave gaps).
 
 ## Official layouts
 
-Ten layouts shipped with the compiler
+Eleven layouts shipped with the compiler
 (`packages/core/design/layouts/*.json`). They are parameterized structured
 layouts — **data**, not code — and they are always available.
 
@@ -180,6 +180,7 @@ layouts — **data**, not code — and they are always available.
 | `pyramid` | layers as a pyramid | a hierarchy, from apex to foundations |
 | `key-message` | focus | the figure or the sentence that must stick |
 | `portfolio` | grid, 3 columns with headers | projects or services as a mosaic |
+| `status-list` | grid, 1 column, dense | a status board: progress bars and badges, stacked |
 
 Validation **suggests** them when the content betrays the intent: sections
 "Pros" / "Cons" propose `pros-cons`, headings "Probability" / "Severity"
@@ -225,22 +226,72 @@ Parameters published by the bases (exact types, domains and defaults in
 | Base | Parameters |
 |---|---|
 | `split` | `ratio` (0.2–0.8, default 0.42), `side` (`right`/`left`) |
-| `metrics` | `max` (1–6, default 4), `cardHeight` (120–320 px, default 176) |
-| `comparison` | `panels` (list of variants), `pad` (0–48 px) |
-| `pillars` | `panels`, `accent` (boolean) |
+| `metrics` | `max` (1–6, default 4), `cardHeight` (120–320 px, default 176), `align` |
+| `comparison` | `panels` (list of variants), `pad` (0–48 px), `density`, `radius` |
+| `pillars` | `panels`, `accent` (boolean), `density`, `radius` |
 | `timeline` | `dot` (20–48 px), `arrow`, `numbered`, `orientation` (`horizontal`/`vertical`) |
-| `layers` | `ratios`, `shades`, `shape` (`stack`/`funnel`/`pyramid`) |
-| `swot` | `kinds` (tint per quadrant) |
-| `grid` | `cols` (1–4), `panels`, `kinds`, `headed` |
-| `steps` | `connector` (`arrow`/`line`/`none`), `panels` |
-| `focus` | `align` (`center`/`left`), `accent`, `scale` (0.5–2.5) |
+| `layers` | `ratios`, `shades`, `shape` (`stack`/`funnel`/`pyramid`), `density` |
+| `swot` | `kinds` (tint per quadrant), `density` |
+| `grid` | `cols` (1–4), `panels`, `kinds`, `headed`, `density`, `radius`, `align` |
+| `steps` | `connector` (`arrow`/`line`/`none`), `panels`, `density`, `radius` |
+| `content` | `density`, `align` |
+| `focus` | `align` (default `center`), `accent`, `scale` (0.5–2.5) |
+
+`panels` takes the neutral variants (`muted`, `highlight`, `pillar`) and the
+four tints in two tones: `warning` is the pale callout surface, `warning-solid`
+the saturated chip — a status pill, a state bar, a coloured band. The ink
+follows the tone (the theme picks it per tint, always at 4.5:1) and a
+saturated panel imposes it on every block that writes straight onto it —
+paragraphs, lists, headings, tables, quotes, the label of a bar — so the text
+is legible without anyone naming a colour. Blocks that bring a surface of
+their own keep their own ink, measured against that surface: a callout, a
+metric card, a code block, a badge. `radius` — `sm`, `md`, `lg` or `pill` —
+overrides the radius each variant has by default; `pill` is half the shorter
+side, whatever the panel's size.
+
+`align` — `left` (default), `center` or `right` — is the horizontal alignment
+of the text the layout places: the blocks in the flow (`content`), the text
+inside the cells (`grid`), what is written under the cards (`metrics`), the key
+message (`focus`, centered by default). It exists **only** as a layout setting:
+a deck never aligns a paragraph of its own, because choosing where the ink sits
+in a region is the engine's job, not the author's. The one exception is a table
+column, whose alignment comes from the Markdown itself (see below).
+
+`density` — `comfortable` (default), `compact` or `dense` — is the text scale
+of the blocks the layout places: paragraphs, lists, tables and callouts are
+sized down from the theme's own tokens (× 0.78 and × 0.64, rounded to the half
+point, never below 7 pt). It is what a dashboard of six panels needs, and it
+is expressed as an intent word in the layout definition: a point size never
+appears in the deck itself.
+
+It is also the engine's **auto-fit** lever. Where a region is bounded — a
+panel, a column, a cell, anything a layout places without pagination — content
+that does not fit is re-flowed one step down the scale, and a second step if it
+still does not. The whole region steps down together (three type sizes in one
+panel would read as a bug, not as a fit), and the steps are the three above,
+nothing in between. Only what the scale touches makes a region shrinkable: one
+holding nothing but an image, a diagram or a code block is left exactly as it
+is, since announcing a densification the rendering would deny is worse than
+saying nothing. `dense` is the floor: below it the engine stops and
+`BLOCK_OVERFLOW` says so, with the clause "already at the densest step" so the
+advice does not repeat what the compiler has already done. Every densified
+region is reported by `SLIDE_DENSIFIED` (info) — an automatic size is a
+decision, and the author has to be able to refuse it by shortening the text.
+
+**Pagination wins over auto-fit.** In a flowing layout (`content` and its
+"(cont.)" slides) nothing is ever densified: a flow has somewhere to put the
+overflow, and shrinking it instead would trade a legible second slide for a
+cramped single one.
 
 Like the structured layouts, they are **never inferred**: always asked for
 with `<!-- layout: … -->`. An invalid definition produces
 `LAYOUT_DEF_INVALID`; an unknown parameter produces `LAYOUT_DEF_ADJUSTED` and
 the deck compiles without it.
 
-A complete example, ready to copy: `examples/kit-slate/layouts/`.
+A complete example, ready to copy: `examples/kit-slate/layouts/`. A dashboard
+definition using `density`, `radius`, `align` and the saturated panel tints,
+with the deck that goes with it:
+[the dashboard guide](dashboard-guide.md#building-a-dashboard-layout).
 
 ---
 
@@ -253,6 +304,30 @@ Lists and tables that run too long are **paginated** automatically into
 "(cont.)" slides — do not shorten the content to "make it fit" (the
 `SLIDE_PAGINATED` diagnostic, purely informational).
 
+A table's **delimiter row is honoured**: `|---:|` right-aligns the column,
+`|:-:|` centres it, in both outputs. Saying "this column holds figures" is
+content, like `**bold**` — the alignment is read once per column, from the
+header, because Markdown has no per-cell syntax.
+
+```markdown
+| Line     | Share | Amount |
+|----------|:-----:|-------:|
+| Licences |  42 % |  1 517 |
+```
+
+In the HTML a right-aligned column also gets tabular figures
+(`font-variant-numeric: tabular-nums`), so the thousands line up under one
+another and not just the last digit. The `.pptx` does not: DrawingML run
+properties carry no OpenType feature switch, and the only OOXML mechanism that
+would do it — a decimal tab stop — means writing tab characters into the cells.
+The default body face (Arial) has tabular figures anyway, so the two outputs
+agree unless a kit ships a font with proportional digits.
+
+Inside a sentence, `==Action==` marks a **badge** — a status word set off from
+the prose, tinted by an optional prefix (`==!At risk==`). See
+[status badges](#status-badges) for the prefixes and for what the `.pptx` can
+and cannot draw.
+
 A quote, with optional attribution: the last paragraph of a quote block that
 starts with a dash becomes the source.
 
@@ -264,9 +339,9 @@ starts with a dash becomes the source.
 
 ---
 
-## Callouts and metrics
+## Callouts, metrics, progress and status
 
-Five directives, written as `:::` blocks:
+Seven directives, written as `:::` blocks:
 
 ```markdown
 :::info
@@ -307,6 +382,75 @@ Major incidents
 
 Beyond the layout's ceiling (4 cards by default), the surplus is removed and
 reported by `METRICS_DROPPED`.
+
+### Progress bars
+
+`:::progress` reads like a metric card: the share first, then the label, then
+an optional caption. The word after the directive is the **tint** — the same
+four words a callout takes, never a colour; with no word at all the bar is
+drawn in `info`.
+
+```markdown
+:::progress success
+100 %
+Online leisure services
+15 April 2026 — delivered
+:::
+```
+
+The share accepts `75 %`, `75%`, `0.75` and `3/4`. A figure outside 0–100 % is
+**clamped** (a typo in the figure, not in the syntax); a first line that is not
+a share at all degrades the card to the paragraph you wrote and reports
+`INVALID_PROGRESS`, the way an unparsable `chart` falls back to a code block.
+An unknown tint is reported by `UNKNOWN_PROGRESS_KIND` with a "did you mean"
+suggestion, and the bar falls back to `info` rather than being refused.
+
+The percentage rides **inside** the fill when the fill is wide enough to hold
+it and beside it otherwise; the threshold is the engine's, identical in both
+outputs.
+
+### Status badges
+
+`:::status` is a **row** of badges, one per comma. The severity travels on the
+item itself: nothing = success, `!` = caution, `!!` = critical, `?` = for
+information. Writing one severity per line is a reading convenience, not
+syntax.
+
+```markdown
+:::status
+Scope, Schedule, Quality, HR
+!Budget, !Stakeholders
+!!Risks
+:::
+```
+
+The row wraps on its own, over as many lines as it needs, and reports the
+height it really occupies — so pagination and `BLOCK_OVERFLOW` see the truth.
+
+A badge also exists **inline**, inside a sentence, with the same prefixes:
+
+```markdown
+Each commitment carries an ==Owner==; one that slips is tagged ==!At risk==.
+```
+
+The two marks must close on the same line. A `==` inside a code span, an
+unclosed one and a longer run (`====`) stay the characters you typed — a badge
+is a word set off from the prose, not a way of colouring a paragraph.
+
+The HTML draws it as a rounded pill. The `.pptx` **cannot**: DrawingML gives a
+text run no rounded background, so the run is emitted with a `highlight` — the
+tint and the readable ink survive, the pill shape does not. That degradation is
+deliberate and stated here rather than left to be discovered when the file is
+opened.
+
+One more difference between the two, for the block forms: a label too long for
+the room it was measured in is **clipped** in the browser and **overruns** in
+PowerPoint, which has no equivalent of `overflow: hidden`. Neither is pretty;
+both are visible, which is the point — shorten the label.
+
+Assembling these two directives into a whole status board — the layout that
+holds them, what the engine fits by itself, and what is still out of reach —
+is the subject of [the dashboard guide](dashboard-guide.md).
 
 ---
 
@@ -462,16 +606,19 @@ The main ones:
 | `ORPHAN_DIRECTIVE` | warning | `<!-- layout/notes/animate -->` that no slide follows |
 | `UNKNOWN_LAYOUT` | error | layout does not exist (with a suggestion) |
 | `LAYOUT_SECTIONS` | warning | `##` section count outside the layout's bounds |
-| `BLOCK_OVERFLOW` | warning | a block overflows its region in a non-paginated layout |
+| `BLOCK_OVERFLOW` | warning | a block overflows its region in a non-paginated layout, the text scale spent |
 | `METRICS_DROPPED` | warning | more `:::metric` cards than the layout displays |
 | `MISSING_IMAGE`, `UNKNOWN_ICON` | warning | resource not found |
 | `INVALID_CHART`, `CHART_DATA_IGNORED` | warning | `chart` specification could not be parsed, or data dropped |
+| `INVALID_PROGRESS` | warning | `:::progress` value unreadable — the card falls back to a paragraph |
+| `UNKNOWN_PROGRESS_KIND` | warning | unknown tint after `:::progress` |
 | `ALERT_CONTENT_DROPPED` | warning | block not rendered inside a callout |
 | `UNKNOWN_ANIMATE` | warning | unknown animation effect |
 | `KIT_*`, `THEME_*` | error/warning | kit not found or invalid theme entry |
 | `THEME_CONTRAST` | warning | WCAG threshold not met by the applied theme |
 | `LAYOUT_SUGGESTION` | info | the content betrays a structured intent |
 | `SLIDE_PAGINATED` | info | the slide is split into "(cont.)" |
+| `SLIDE_DENSIFIED` | info | a region was re-flowed a step down the text scale to fit |
 | `IMAGE_UPSCALED` | info | local image stretched beyond its native size |
 
 Complete list: `capabilities().diagnostics`.

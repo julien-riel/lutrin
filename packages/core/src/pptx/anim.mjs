@@ -35,6 +35,9 @@ export const PRESET_BY_KIND = {
   panel: 'wipe',
   'timeline-dot': 'zoom',
   metric: 'zoom',
+  // a bar fills, it does not appear: the wipe is the movement the shape
+  // already describes
+  progress: 'wipe',
 };
 
 export const presetFor = (kind, override) => override ?? PRESET_BY_KIND[kind] ?? 'fade';

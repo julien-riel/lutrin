@@ -111,6 +111,94 @@ export const TYPE = {
 
 export const LINE_HEIGHT = 1.4; // structural, not themable (scalar export)
 
+/** Points → pixels on the 1280 × 720 grid (96 dpi / 72 pt per inch). */
+export const PT_TO_PX = 96 / 72;
+
+/** Average advance width (px) of one character at `pt`. A crude 0.52 em, and
+ *  deliberately so: measuring for real would mean loading the kit's font
+ *  metrics into `src/deck/`, which knows no output format. Both the height
+ *  estimator (textHeight, layout.mjs) and the components that must place text
+ *  side by side (badgeLayout, progressLayout) read it, so an approximation
+ *  that drifts drifts identically everywhere. */
+export const charWidth = (pt) => pt * PT_TO_PX * 0.52;
+
+/** Rough width (px) of a text at `pt` — see charWidth on why it is an estimate. */
+export const textWidth = (text, pt) => String(text).length * charWidth(pt);
+
+/**
+ * Discrete text scale a layout can ask for. Three steps and not a continuous
+ * range: a panel's text has to stay comparable to its neighbour's, and
+ * "this panel is dense and still overflows" is actionable where "this panel
+ * is at 0.83" is not. FACTORS, not absolute sizes — a kit shipping a 16 pt
+ * body keeps its own proportions. Structural, like LINE_HEIGHT: a theme
+ * changes the tokens the factors apply to, never the factors.
+ */
+export const TEXT_DENSITY = { comfortable: 1, compact: 0.78, dense: 0.64 };
+
+/** Floor of the scale (pt): under this the deliverable stops being
+ *  projectable, and clamping is the honest place to say so. */
+const TEXT_SIZE_FLOOR = 7;
+
+/** The scale's only rounding — half a point, floored. Centralized so a size
+ *  stamped by the layout engine and the same size recomputed by a renderer
+ *  can never differ by a fraction of a point. */
+const roundSize = (pt) => Math.max(TEXT_SIZE_FLOOR, Math.round(pt * 2) / 2);
+
+/**
+ * A theme token scaled to a density step. `comfortable` — and any step the
+ * scale does not know — returns the token untouched, so the caller has
+ * nothing to stamp and the scene of a deck that asked for nothing stays
+ * byte-identical.
+ */
+export function scaleTextToken(pt, density) {
+  const factor = TEXT_DENSITY[density];
+  return factor == null || factor === 1 ? pt : roundSize(pt * factor);
+}
+
+/** Theme token a block's text is drawn from. `part` picks a block's SECONDARY
+ *  text — the sub-level of a bullet list, the label of a callout — which the
+ *  theme sizes independently of the body. */
+function textToken(type, part) {
+  switch (type) {
+    case 'bullets':
+      return part === 'nested' ? TYPE.bulletNested : TYPE.bullet;
+    case 'table':
+      return TYPE.tableBody;
+    case 'heading':
+      return TYPE.sectionHeading;
+    case 'code':
+      return TYPE.code;
+    case 'quote':
+      return TYPE.quote;
+    case 'alert':
+      return part === 'label' ? TYPE.small : TYPE.body;
+    default:
+      return TYPE.body;
+  }
+}
+
+/**
+ * Effective font size (pt) of a text block.
+ *
+ * `block.size` is a SYNTHESIZED IR field: the layout engine writes it (a
+ * layout's `density`, the key message of `focus`), an author never does —
+ * a point size in the deck's prose would be positioning by another name.
+ * Absent, the theme's token for the block's kind applies.
+ *
+ * Both renderers AND blockHeight() go through here: a block that renders
+ * smaller must also MEASURE smaller, or pagination places it wrong, and two
+ * renderers reading the same accessor cannot drift apart.
+ */
+export function blockFontSize(block, part = 'body') {
+  const token = textToken(block.type, part);
+  if (!block.size) return token;
+  if (part === 'body') return block.size;
+  // secondary text keeps the RATIO the theme gave it, rather than a fixed
+  // offset: "size - 1" would flatten a kit whose sub-level is two points
+  // below its body, and would drive a 16 pt kit onto the floor at `dense`
+  return roundSize((block.size * token) / textToken(block.type, 'body'));
+}
+
 /** 8 px grid (DESIGN.md: xs 8 · sm 16 · md 24 · lg 32 · xl 40 · xxl 48). */
 export const SPACE = { xs: 8, sm: 16, md: 24, lg: 32, xl: 40, xxl: 48 };
 
@@ -126,7 +214,10 @@ export const PAGE = {
   footerHeight: SPACE.lg, // 32 px
 };
 
-/** Utility radii (px). PPTX rectangles take a 0–1 ratio. */
+/** Utility radii, in px on the 1280 × 720 grid like every other geometry
+ *  token: px() converts them for the PPTX `rectRadius`, which takes an
+ *  absolute length (it is the OOXML `adj` underneath that is a ratio of the
+ *  shorter side, and PptxGenJS computes it). */
 export const ROUNDED = { sm: 2, md: 4, lg: 8, pill: 64 };
 
 /**
@@ -206,6 +297,51 @@ export const TREND_INK = {};
  *  fill/text derived from COLORS (deriveTokens); label localizable. */
 export const SEMANTIC = {};
 
+// ---------------------------------------------------------------------------
+// WCAG contrast — here rather than in theme.mjs (which re-exports it) because
+// deriveTokens() has to CHOOSE an ink against a fill it has just computed, and
+// tokens.mjs is the module nothing else may depend on.
+// ---------------------------------------------------------------------------
+
+/** WCAG 2.x relative luminance of a 6-digit hex color (without #). */
+export function luminance(hex) {
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function contrastRatio(a, b) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Ink for a SATURATED tint: the first candidate that clears AA, in order of
+ * preference — the family's own dark ink (which keeps the chip inside its
+ * hue), then white, then the deck's ordinary ink.
+ *
+ * A rule rather than four literals, because the literals were only right for
+ * the palette they were read off. A kit repainting `colors.positive` used to
+ * keep the ink chosen for the default green and fell under AA — and, since
+ * themeContrastDiagnostics() measures the pair, it warned twice on every build
+ * of a deck that used no saturated tint at all. Preference before maximum on
+ * purpose: the amber clears AA with its own brown (4.84:1) and would otherwise
+ * take the near-black that scores higher and belongs to no family.
+ *
+ * Nothing clears 4.5:1 → the best of the three, and THEME_CONTRAST says so.
+ */
+export function solidInk(fill, familyDark) {
+  const candidates = [familyDark, COLORS.ground, COLORS.neutralPrimary].filter(Boolean);
+  return (
+    candidates.find((ink) => contrastRatio(ink, fill) >= 4.5) ??
+    candidates.reduce((best, ink) =>
+      contrastRatio(ink, fill) > contrastRatio(best, fill) ? ink : best,
+    )
+  );
+}
+
 /**
  * Recipes for the groups derived from COLORS/SPACE: run when the module
  * loads, then re-run by applyTheme() AFTER a theme is merged so that
@@ -234,35 +370,196 @@ export function deriveTokens() {
     neutral: COLORS.neutralSecondary,
   });
 
+  // Two tones per tint: `fill`/`text` is the pale callout surface, and
+  // `solid`/`solidText` the saturated chip — a status pill, a state bar, a
+  // full-bleed band. The four saturated tokens are nowhere near equally dark
+  // (white clears AA on the blue and the red, and collapses on the amber at
+  // 1.73:1 and the green at 3.19:1), so the ink is COMPUTED per tint by
+  // solidInk() rather than written down: a kit repaints the palette, and four
+  // literals would go on describing the palette they were read off.
   Object.assign(SEMANTIC, {
-    info: { fill: COLORS.informativeLight, text: COLORS.informativeDark, label: 'Info' },
-    success: { fill: COLORS.positiveLight, text: COLORS.positiveDark, label: 'Key point' },
-    warning: { fill: COLORS.warningLight, text: COLORS.warningDark, label: 'Caution' },
-    danger: { fill: COLORS.negativeLight, text: COLORS.negativeDark, label: 'Important' },
+    info: {
+      fill: COLORS.informativeLight,
+      text: COLORS.informativeDark,
+      solid: COLORS.informative,
+      solidText: solidInk(COLORS.informative, COLORS.informativeDark),
+      label: 'Info',
+    },
+    success: {
+      fill: COLORS.positiveLight,
+      text: COLORS.positiveDark,
+      solid: COLORS.positive,
+      solidText: solidInk(COLORS.positive, COLORS.positiveDark),
+      label: 'Key point',
+    },
+    warning: {
+      fill: COLORS.warningLight,
+      text: COLORS.warningDark,
+      solid: COLORS.warning,
+      solidText: solidInk(COLORS.warning, COLORS.warningDark),
+      label: 'Caution',
+    },
+    danger: {
+      fill: COLORS.negativeLight,
+      text: COLORS.negativeDark,
+      solid: COLORS.negative,
+      solidText: solidInk(COLORS.negative, COLORS.negativeDark),
+      label: 'Important',
+    },
   });
 }
 deriveTokens();
 
 /**
  * Panel styles of the structured layouts (comparison, pillars, layers,
- * swot): fill + rule per variant — a flat system, no shadow. Shared by
+ * swot): fill + rule + ink per variant — a flat system, no shadow. Shared by
  * both renderers to guarantee identical rendering.
+ *
+ * `ink` is the colour the text placed ON the panel must take, and `null`
+ * means "the deck's ordinary ink" — a near-white surface imposes nothing, and
+ * a layout that stamped neutralPrimary on it would write a colour into every
+ * scene that has one. It is a returned slot rather than a call-site guess
+ * because the tone changes the answer for one and the same tint, and the
+ * saturated ink is not deducible from the pale one — see deriveTokens().
  */
 export function panelStyle(block) {
   switch (block.variant) {
     case 'accent':
       // solid accent bar (focus layout) — same ink as the title rule
-      return { fill: COLORS.primary, line: null };
+      return { fill: COLORS.primary, line: null, ink: COLORS.ground };
     case 'highlight':
-      return { fill: COLORS.highlightLight, line: { color: COLORS.primary, width: 1.25 } };
+      return {
+        fill: COLORS.highlightLight,
+        line: { color: COLORS.primary, width: 1.25 },
+        ink: null,
+      };
     case 'pillar':
-      return { fill: COLORS.ground, line: { color: COLORS.neutralStroke, width: 1 } };
-    case 'semantic':
-      return { fill: (SEMANTIC[block.kind] ?? SEMANTIC.info).fill, line: null };
-    case 'layer':
-      return { fill: (LAYER_SHADES[block.shade] ?? LAYER_SHADES[0]).fill, line: null };
+      return { fill: COLORS.ground, line: { color: COLORS.neutralStroke, width: 1 }, ink: null };
+    case 'semantic': {
+      const sem = SEMANTIC[block.kind] ?? SEMANTIC.info;
+      return block.tone === 'solid'
+        ? { fill: sem.solid, line: null, ink: sem.solidText }
+        : { fill: sem.fill, line: null, ink: sem.text };
+    }
+    case 'layer': {
+      // a theme may replace layerShades with a shorter array (or an empty
+      // one): fall back rather than read `.fill` of undefined mid-render
+      const shade = LAYER_SHADES[block.shade] ?? LAYER_SHADES[0];
+      return {
+        fill: shade?.fill ?? COLORS.underground1,
+        line: null,
+        ink: shade?.ink ?? COLORS.neutralPrimary,
+      };
+    }
     case 'muted':
     default:
-      return { fill: COLORS.underground1, line: { color: COLORS.neutralStroke, width: 1 } };
+      return {
+        fill: COLORS.underground1,
+        line: { color: COLORS.neutralStroke, width: 1 },
+        ink: null,
+      };
   }
+}
+
+/**
+ * Corner radius (px) of a panel. One source for both renderers rather than
+ * the same three-way ternary written twice: the accent bar is all but square,
+ * the tinted surfaces (architecture layers, semantic quadrants) take the
+ * medium radius, the framed panels the large one — unless the layout asked
+ * for a radius, which then wins.
+ *
+ * `pill` is measured, not looked up: half the shorter side is what makes the
+ * ends semicircular at any height, and a token could only be right for one
+ * size. ROUNDED.pill is the answer for a caller with no box to measure.
+ */
+export function panelRadius(block, region) {
+  if (block.radius === 'pill') return region ? Math.min(region.w, region.h) / 2 : ROUNDED.pill;
+  if (block.radius) return ROUNDED[block.radius] ?? ROUNDED.lg;
+  switch (block.variant) {
+    case 'accent':
+      return ROUNDED.sm;
+    case 'layer':
+    case 'semantic':
+      return ROUNDED.md;
+    default:
+      return ROUNDED.lg;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Internal geometry of the two composite blocks (progress, badge)
+//
+// Both are drawn from several shapes, and the two renderers must place those
+// shapes at the SAME coordinates — otherwise a bar whose percentage sits
+// inside the fill in the HTML and beside it in the .pptx is a divergence no
+// dispatch-table test can see. So the geometry is computed here, once, in
+// coordinates LOCAL to the block's region: a renderer adds the region's own
+// origin and converts to its unit. blockHeight() reads the same functions,
+// which is what makes pagination agree with what is actually drawn.
+// ---------------------------------------------------------------------------
+
+/** A progress row: label on the left, bar on the right, optional caption
+ *  underneath. Heights are fixed — a bar is an object of known size, and the
+ *  wrapping of a label that does not fit is the layout's problem. */
+const PROGRESS = { rowH: 28, captionH: 18, barH: 20, labelRatio: 0.34 };
+
+export function progressLayout(block, widthPx) {
+  const w = Math.max(1, widthPx);
+  const labelW = Math.round(w * PROGRESS.labelRatio);
+  const barX = labelW + SPACE.sm;
+  const barW = Math.max(1, w - barX);
+  const barY = (PROGRESS.rowH - PROGRESS.barH) / 2;
+  const value = Math.min(1, Math.max(0, block.value ?? 0));
+  const fillW = Math.round(barW * value);
+  const text = `${Math.round(value * 100)} %`;
+  const pctW = Math.ceil(textWidth(text, TYPE.small));
+  // the percentage rides INSIDE the fill as soon as the fill can hold it with
+  // its padding, and sits beside it otherwise. One threshold, read by both
+  // renderers: the number must not be in two different places in the two
+  // deliverables.
+  const inside = fillW >= pctW + 2 * SPACE.xs;
+  const bar = { x: barX, y: barY, w: barW, h: PROGRESS.barH };
+  return {
+    h: block.caption ? PROGRESS.rowH + PROGRESS.captionH : PROGRESS.rowH,
+    label: { x: 0, y: 0, w: labelW, h: PROGRESS.rowH },
+    bar,
+    fill: { ...bar, w: fillW },
+    pct: inside
+      ? { text, inside, align: 'right', x: barX, y: barY, w: fillW - SPACE.xs, h: PROGRESS.barH }
+      : {
+          text,
+          inside,
+          align: 'left',
+          // clamped: a fill just under the threshold must not push the number
+          // out of the block's own region
+          x: Math.min(barX + fillW + SPACE.xs, Math.max(barX, w - pctW)),
+          y: barY,
+          w: pctW,
+          h: PROGRESS.barH,
+        },
+    ...(block.caption ? { caption: { x: 0, y: PROGRESS.rowH, w, h: PROGRESS.captionH } } : {}),
+  };
+}
+
+/** A row of badges, wrapped over as many lines as the width needs. The wrap
+ *  lives here rather than in a CSS `flex-wrap`, because the .pptx has no
+ *  flow layout at all: shapes are placed absolutely, and blockHeight() must
+ *  know the answer before either renderer runs. */
+const BADGE = { h: 26, padX: 10, gapX: SPACE.xs, gapY: 6 };
+
+export function badgeLayout(block, widthPx) {
+  const w = Math.max(1, widthPx);
+  const items = [];
+  let x = 0;
+  let y = 0;
+  for (const it of block.items ?? []) {
+    const itemW = Math.min(w, Math.ceil(textWidth(it.text, TYPE.small)) + 2 * BADGE.padX);
+    if (x && x + itemW > w) {
+      x = 0;
+      y += BADGE.h + BADGE.gapY;
+    }
+    items.push({ ...it, x, y, w: itemW, h: BADGE.h });
+    x += itemW + BADGE.gapX;
+  }
+  return { items, h: items.length ? y + BADGE.h : 0 };
 }

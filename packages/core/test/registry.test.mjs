@@ -81,6 +81,7 @@ const OFFICIALS = [
   'pyramid',
   'risk-map',
   'roadmap',
+  'status-list',
 ];
 
 test('the live views LAYOUTS / LAYOUT_SECTIONS reflect built-ins + officials by default', () => {

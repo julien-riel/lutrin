@@ -26,6 +26,7 @@ import path from 'node:path';
 import { BLOCK_RENDERERS as PPTX } from '../src/pptx/render.mjs';
 import { BLOCK_RENDERERS as HTML } from '../src/html/render.mjs';
 import { blockHeight } from '../src/deck/layout.mjs';
+import { SEMANTIC } from '../src/deck/tokens.mjs';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeck } from '../src/pptx/render.mjs';
@@ -65,8 +66,8 @@ function record(table, seen) {
 
 // The net that was missing. An entry of BLOCK_RENDERERS could be deleted,
 // emptied or broken without a single test flinching, because nothing rendered a
-// deck containing all sixteen types. So we count the calls, at the source.
-test('rendering the fixture ACTUALLY calls each of the sixteen entries, in both formats', async (t) => {
+// deck containing all eighteen types. So we count the calls, at the source.
+test('rendering the fixture ACTUALLY calls each of the eighteen entries, in both formats', async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-parity-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
@@ -85,6 +86,193 @@ test('rendering the fixture ACTUALLY calls each of the sixteen entries, in both 
   const expected = Object.keys(PPTX).sort();
   assert.deepEqual([...seenPptx].sort(), expected, 'PPTX entries never called by the fixture');
   assert.deepEqual([...seenHtml].sort(), expected, 'HTML entries never called by the fixture');
+});
+
+// The text scale (plan 1) is a SIZE that crosses the two renderers: PPTX
+// writes it as a fontSize, HTML as an inline font-size. Two literals in two
+// files would drift on the first kit that changes `type.body` — hence
+// blockFontSize() in deck/tokens.mjs, and hence this net, which reads what
+// each side actually emitted for one block of every sizeable type.
+test('a `size` on a block reaches both renderers, at the same value', () => {
+  const runs = [{ text: 'Scaled text' }];
+  const SIZE = 9;
+  const blocks = [
+    { type: 'para', runs, size: SIZE },
+    { type: 'bullets', items: [{ runs, level: 0 }], size: SIZE },
+    { type: 'table', header: [runs], rows: [[runs]], size: SIZE },
+    { type: 'alert', kind: 'info', blocks: [{ type: 'para', runs }], size: SIZE },
+  ];
+  const region = { x: 48, y: 120, w: 400, h: 200 };
+
+  for (const block of blocks) {
+    const html = HTML[block.type](block, region, {});
+    assert.match(
+      html,
+      new RegExp(`font-size:${SIZE}pt`),
+      `HTML "${block.type}" does not emit the size it was given`,
+    );
+
+    // the PPTX facade: every renderer goes through addText/addShape/addTable,
+    // and it is the fontSize of those calls we compare with the CSS
+    const opts = [];
+    const slide = {
+      addText: (_t, o) => opts.push(o),
+      addShape: (_s, o) => opts.push(o),
+      addTable: (_r, o) => opts.push(o),
+    };
+    PPTX[block.type](slide, block, region, {});
+    assert.ok(
+      opts.some((o) => o.fontSize === SIZE),
+      `PPTX "${block.type}" emits no fontSize of ${SIZE} (got ${opts.map((o) => o.fontSize)})`,
+    );
+    // a size without its matching pitch reintroduces the spcPct bug addPara
+    // warns about — the table is the documented exception (no lineSpacing in
+    // TableCellProps, see addTable)
+    if (block.type !== 'table') {
+      const text = opts.find((o) => o.fontSize === SIZE);
+      assert.ok(
+        text.lineSpacing > SIZE && text.lineSpacing <= SIZE * 1.4,
+        `PPTX "${block.type}": fontSize ${SIZE} shipped with lineSpacing ${text.lineSpacing}`,
+      );
+    }
+  }
+});
+
+// The panel radius (plan 2) is a GEOMETRY that crosses the two renderers, and
+// they express it in different units: CSS border-radius in px, pptxgenjs
+// rectRadius in inches. The ternary used to be written twice — one renderer
+// could have learned `pill` and the other not. panelRadius() is the single
+// source, and this reads back what each side emitted, converted to px.
+test('a panel radius describes the same geometry in both renderers', () => {
+  const region = { x: 48, y: 120, w: 400, h: 96 };
+  const block = { type: 'panel', variant: 'semantic', kind: 'info' };
+  // sm/md/lg are tokens; `pill` is the interesting one — half the shorter
+  // side, which is the only value that keeps the ends semicircular
+  const expected = { sm: 2, md: 4, lg: 8, pill: region.h / 2 };
+
+  for (const [radius, px] of Object.entries(expected)) {
+    const html = HTML.panel({ ...block, radius }, region, {});
+    assert.match(
+      html,
+      new RegExp(`border-radius:${px}px`),
+      `HTML panel "${radius}": ${px}px expected`,
+    );
+
+    const shapes = [];
+    PPTX.panel({ addShape: (_s, o) => shapes.push(o) }, { ...block, radius }, region, {});
+    assert.equal(
+      Math.round(shapes[0].rectRadius * 96 * 1000) / 1000,
+      px,
+      `PPTX panel "${radius}": rectRadius must be ${px} px expressed in inches`,
+    );
+  }
+
+  // and with no radius asked for, both keep the variant's own value
+  assert.match(HTML.panel(block, region, {}), /border-radius:4px/);
+  const shapes = [];
+  PPTX.panel({ addShape: (_s, o) => shapes.push(o) }, block, region, {});
+  assert.equal(shapes[0].rectRadius * 96, 4);
+});
+
+// The column alignment (plan 4) is the one IR field that is INDEXED: the
+// delimiter row gives one entry per column, and each renderer has to put it
+// back on the right cell. An off-by-one on one side only is exactly the kind
+// of divergence nothing else in the suite would see, so this reads back the
+// column INDEX each format aligned, not merely that it aligned something.
+test('a table column aligns on the same index in both renderers', () => {
+  const cell = (t) => [{ text: t }];
+  const block = {
+    type: 'table',
+    header: [cell('Item'), cell('Share'), cell('Amount')],
+    rows: [[cell('Licences'), cell('42 %'), cell('1 517')]],
+    align: ['left', 'center', 'right'],
+  };
+  const region = { x: 48, y: 120, w: 800, h: 200 };
+
+  // HTML: the style travels with the cell (no class could select a column of
+  // an absolutely positioned table), so the nth cell of each row carries it
+  const html = HTML.table(block, region, {});
+  // the space is part of the pattern: `<thead>` also starts with "<th"
+  const cells = [...html.matchAll(/<t[hd]((?: [^>]*)?)>/g)].map((m) => m[1]);
+  assert.equal(cells.length, 6, 'header + one body row, three columns each');
+  for (const k of [0, 3]) assert.equal(cells[k], '', 'column 0 is left: no style at all');
+  for (const k of [1, 4]) assert.match(cells[k], /text-align:center/);
+  for (const k of [2, 5]) assert.match(cells[k], /text-align:right/);
+
+  // PPTX: same alignment, expressed as a cell option
+  const tables = [];
+  PPTX.table({ addTable: (rows, o) => tables.push({ rows, o }) }, block, region, {});
+  assert.equal(tables.length, 1);
+  for (const row of tables[0].rows) {
+    assert.equal(row[0].options.align, undefined, 'column 0 is left: nothing imposed');
+    assert.equal(row[1].options.align, 'center');
+    assert.equal(row[2].options.align, 'right');
+  }
+});
+
+// A progress bar is drawn from four pieces, and the ONE decision that is not
+// pure geometry is where the percentage goes: inside the fill when it fits,
+// beside it otherwise. Two renderers deciding that separately would put the
+// number in two different places in the two deliverables — so the threshold
+// lives in deck/tokens.mjs and this reads back what each side did with it.
+test('a progress bar puts its percentage in the same place in both renderers', () => {
+  const region = { x: 48, y: 120, w: 600, h: 28 };
+  const seen = new Set();
+  for (const value of [0, 0.02, 0.05, 0.1, 0.5, 1]) {
+    const block = { type: 'progress', value, label: 'Form', kind: 'success' };
+    const html = HTML.progress(block, region, {});
+    // inside the fill the ink is the tint's own, outside it is the deck's:
+    // reading the colour back is reading the decision, not restating it
+    const htmlInside = html.includes(`color:#${SEMANTIC.success.solidText}`);
+
+    const texts = [];
+    PPTX.progress(
+      { addShape: () => {}, addText: (t, o) => texts.push({ t, o }) },
+      block,
+      region,
+      {},
+    );
+    const pct = texts.find((x) => /%/.test(x.t));
+    const pptxInside = pct.o.color === SEMANTIC.success.solidText;
+
+    assert.equal(htmlInside, pptxInside, `value ${value}: the two disagree on where the % sits`);
+    // …and at the same x, to the pixel (px → inches on the PPTX side)
+    const left = Number(html.match(/class="progress-pct" style="left:(-?\d+)px/)[1]);
+    assert.equal(Math.round(pct.o.x * 96) - region.x, left, `value ${value}: different x`);
+    seen.add(pptxInside);
+  }
+  assert.equal(seen.size, 2, 'the sweep must exercise BOTH sides of the threshold');
+});
+
+// The inline badge (plan 3) is the one feature that DEGRADES rather than
+// travels: the HTML gets a pill, the .pptx a run highlight, because DrawingML
+// gives a run no rounded background. CONTRIBUTING.md allows that; what it
+// forbids is diverging in silence. So this asserts that both renderers emit
+// something carrying the SAME semantic tint for the same run — never identity.
+test('an inline badge is semantically tinted in both renderers, by different means', () => {
+  const region = { x: 48, y: 120, w: 400, h: 60 };
+  for (const kind of ['info', 'success', 'warning', 'danger']) {
+    const block = { type: 'para', runs: [{ text: 'Owner', badge: kind }] };
+    const sem = SEMANTIC[kind];
+
+    const html = HTML.para(block, region, {});
+    assert.match(
+      html,
+      new RegExp(`<span class="badge badge-${kind}">Owner</span>`),
+      `HTML: the ${kind} badge must carry its tint as a class`,
+    );
+
+    const opts = [];
+    PPTX.para({ addText: (t, o) => opts.push({ t, o }) }, block, region, {});
+    const run = opts[0].t.find((x) => x.text === 'Owner');
+    assert.equal(run.options.highlight, sem.solid, `PPTX: ${kind} highlighted in its tint`);
+    assert.equal(run.options.color, sem.solidText, `PPTX: ${kind} ink readable on its highlight`);
+  }
+  // and a run with no badge gains neither key: an existing deck must not grow
+  // a highlight because the feature exists
+  const plain = [];
+  PPTX.para({ addText: (t) => plain.push(...t) }, { type: 'para', runs: [{ text: 'x' }] }, region);
+  assert.equal(plain[0].options.highlight, undefined);
 });
 
 test('blockHeight returns a finite number for every block of the demo', () => {

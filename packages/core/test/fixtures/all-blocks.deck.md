@@ -1,6 +1,6 @@
 ---
 title: Renderer coverage fixture
-subtitle: One instance of each of the sixteen block types
+subtitle: One instance of each of the eighteen block types
 footer: Fixture ZQFOOTER
 ---
 
@@ -41,6 +41,28 @@ ZQVALUE
 Sample metric ZQLABEL
 ↑ +12 % ZQTREND
 :::
+
+# Progress
+
+:::progress success
+100 %
+Complete bar ZQFULL
+Shipped ZQPROGCAPTION
+:::
+
+:::progress
+0 %
+Empty bar ZQEMPTY
+:::
+
+# Status
+
+:::status
+Scope ZQBADGE, Quality
+!Budget ZQWARNBADGE
+:::
+
+Inline ==Action ZQINLINE== and ==!!Urgent ZQINLINEWARN== in a sentence.
 
 # Quote
 

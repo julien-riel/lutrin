@@ -1,5 +1,5 @@
 /**
- * Scenes → deliverable translation, for the SIXTEEN block types.
+ * Scenes → deliverable translation, for the EIGHTEEN block types.
  *
  * This file fills a measured hole: the suite froze the IR (goldens), the
  * geometry (blockHeight) and the parity of the dispatch tables, but half of
@@ -45,7 +45,7 @@ import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeck } from '../src/pptx/render.mjs';
 import { renderDeckHtml } from '../src/html/render.mjs';
 import { rasterAvailable, renderMermaidCached } from '../src/deck/assets.mjs';
-import { SEMANTIC } from '../src/deck/tokens.mjs';
+import { COLORS, SEMANTIC } from '../src/deck/tokens.mjs';
 import { ALL_BLOCKS_DIR, readAllBlocks } from './helpers.mjs';
 
 /** mmdc is an optional peerDependency: without it, `mermaid` switches to its
@@ -134,7 +134,7 @@ function firstLine(xml) {
 // PPTX: every block type leaves its trace in the XML of ITS slide
 // ---------------------------------------------------------------------------
 
-test('pptx: each of the sixteen block types leaves its marker in the XML', async (t) => {
+test('pptx: each of the eighteen block types leaves its marker in the XML', async (t) => {
   const { stats, zip, xmlOf } = await renderFixture(t);
   assert.deepEqual(stats.warnings, [], 'the fixture must compile without giving anything up');
 
@@ -188,6 +188,49 @@ test('pptx: each of the sixteen block types leaves its marker in the XML', async
   assert.match(metric, /ZQLABEL/, 'metric: the label');
   assert.match(metric, /ZQTREND/, 'metric: the trend');
 
+  // progress: the label alone would go green on a bar drawn at 0 %. So we
+  // require the TRACK and the FILL — two roundRects on this slide, one of them
+  // in the tint asked for — plus the percentage of the 0 % bar, which is
+  // written OUTSIDE the fill and would vanish if the threshold were inverted.
+  const bars = await xmlOf('Progress');
+  assert.match(bars, /ZQFULL/, 'progress: the label of the full bar');
+  assert.match(bars, /ZQPROGCAPTION/, 'progress: the caption');
+  assert.match(bars, /ZQEMPTY/, 'progress: the label of the empty bar');
+  assert.match(bars, /<a:t>100 %<\/a:t>/, 'progress: the percentage of the full bar');
+  assert.match(bars, /<a:t>0 %<\/a:t>/, 'progress: the percentage of the empty bar');
+  assert.match(
+    bars,
+    new RegExp(`srgbClr val="${SEMANTIC.success.solid}"`),
+    'progress: the fill takes the tint of :::progress success',
+  );
+  assert.match(
+    bars,
+    new RegExp(`srgbClr val="${COLORS.underground2}"`),
+    'progress: the empty track behind the fill',
+  );
+
+  // badge: presence alone lets a permutation through, and the CONTENT says
+  // nothing about the SEVERITY — hence the order AND two different tints
+  const badges = await xmlOf('Status');
+  assertOrder(
+    badges,
+    ['ZQBADGE', 'Quality', 'ZQWARNBADGE'],
+    'badge: order of the items in the row',
+  );
+  assert.match(
+    badges,
+    new RegExp(`srgbClr val="${SEMANTIC.warning.solid}"`),
+    'badge: the "!" item is drawn in the warning tint',
+  );
+  // inline badges degrade to a run highlight in the .pptx (no rounded run
+  // background in DrawingML) — the tint must survive the degradation
+  assert.match(badges, /ZQINLINE/, 'badge: the inline badge text');
+  assert.match(
+    badges,
+    new RegExp(`<a:highlight><a:srgbClr val="${SEMANTIC.danger.solid}"`),
+    'badge: the inline "!" badge is highlighted in its tint',
+  );
+
   const quote = await xmlOf('Quote');
   assert.match(quote, /ZQQUOTE/, 'quote: the text');
   assert.match(quote, /ZQSOURCE/, 'quote: the attribution');
@@ -236,10 +279,10 @@ test('pptx: each of the sixteen block types leaves its marker in the XML', async
 });
 
 // ---------------------------------------------------------------------------
-// HTML: the same sixteen types, the same markers, another translation
+// HTML: the same eighteen types, the same markers, another translation
 // ---------------------------------------------------------------------------
 
-test('html: each of the sixteen block types leaves its marker in the document', async (t) => {
+test('html: each of the eighteen block types leaves its marker in the document', async (t) => {
   const { htmlStats, htmlOf } = await renderFixture(t);
   assert.deepEqual(htmlStats.warnings, [], 'the fixture must compile without giving anything up');
 
@@ -284,6 +327,43 @@ test('html: each of the sixteen block types leaves its marker in the document', 
   assert.match(metric, /class="metric-value">ZQVALUE</, 'metric: the value');
   assert.match(metric, /class="metric-label">Sample metric ZQLABEL</, 'metric: label');
   assert.match(metric, /class="metric-trend"[^>]*>[^<]*ZQTREND/, 'metric: the trend');
+
+  // progress: same three things as the .pptx — the track, the fill in the
+  // tint that was asked for, and the percentage of the 0 % bar written
+  // outside a fill that does not exist
+  const bars = htmlOf('Progress');
+  assert.match(bars, /class="progress-label"[^>]*>Complete bar ZQFULL</, 'progress: the label');
+  assert.match(bars, /class="progress-caption"[^>]*>Shipped ZQPROGCAPTION</, 'progress: caption');
+  assert.match(bars, /class="progress-track"/, 'progress: the empty track');
+  assert.match(
+    bars,
+    new RegExp(`class="progress-fill"[^>]*background:#${SEMANTIC.success.solid}`),
+    'progress: the fill takes the tint of :::progress success',
+  );
+  assert.match(bars, /class="progress-pct"[^>]*>100 %</, 'progress: percentage of the full bar');
+  assert.match(bars, /class="progress-pct"[^>]*>0 %</, 'progress: percentage of the empty bar');
+  // the 0 % bar draws NO fill: a zero-width pill is an artefact, and its
+  // percentage is the one that has to sit outside
+  assert.equal(bars.match(/class="progress-fill"/g).length, 1, 'progress: no fill at 0 %');
+
+  const badges = htmlOf('Status');
+  assertOrder(
+    badges,
+    ['ZQBADGE', 'Quality', 'ZQWARNBADGE'],
+    'badge: order of the items in the row',
+  );
+  assert.match(
+    badges,
+    /class="badge badge-warning badge-item"[^>]*>Budget ZQWARNBADGE</,
+    'badge: the "!" item is a warning badge',
+  );
+  // inline: a real pill here, where the .pptx only gets a run highlight
+  assert.match(badges, /<span class="badge badge-success">Action ZQINLINE<\/span>/, 'badge inline');
+  assert.match(
+    badges,
+    /<span class="badge badge-danger">Urgent ZQINLINEWARN<\/span>/,
+    'badge: the inline "!!" badge keeps its tint',
+  );
 
   const quote = htmlOf('Quote');
   assert.match(quote, /<blockquote>Sample quote ZQQUOTE\.<\/blockquote>/, 'quote: text');

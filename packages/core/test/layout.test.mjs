@@ -13,7 +13,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes, blockHeight, registerLayout, resetUserLayouts } from '../src/deck/layout.mjs';
-import { COLORS, LAYER_SHADES, contentArea, deriveTokens } from '../src/deck/tokens.mjs';
+import {
+  COLORS,
+  LAYER_SHADES,
+  SEMANTIC,
+  SPACE,
+  contentArea,
+  deriveTokens,
+} from '../src/deck/tokens.mjs';
 import { readDemo, strip, assertGolden } from './helpers.mjs';
 
 /** Scenes of a single-slide deck written on the fly. */
@@ -322,6 +329,378 @@ test('layers: an empty palette falls back to a neutral ink without crashing', (t
     .filter((el) => el.block.type === 'heading')
     .map((el) => el.block.color);
   assert.deepEqual(inks, [COLORS.neutralPrimary, COLORS.neutralPrimary, COLORS.neutralPrimary]);
+});
+
+// ---------------------------------------------------------------------------
+// text scale (plan 1): a layout's `density` stamps a synthesized `size`
+// ---------------------------------------------------------------------------
+
+/** Every `size` present in a scene tree, path included — so an omission can be
+ *  asserted over the WHOLE structure and not over the blocks one thought of. */
+function sizesIn(value, path = '') {
+  if (Array.isArray(value)) return value.flatMap((v, i) => sizesIn(v, `${path}[${i}]`));
+  if (value === null || typeof value !== 'object') return [];
+  return Object.entries(value).flatMap(([k, v]) =>
+    k === 'size' ? [`${path}.size=${v}`] : sizesIn(v, `${path}.${k}`),
+  );
+}
+
+const DENSITY_BODY = '## Cell\n\nA paragraph.\n\n- a bullet\n  - nested\n\n## Other\n\ntext\n';
+
+test('density: the layout stamps `size` on the text blocks it flows — and stamps NOTHING at the default', (t) => {
+  t.after(resetUserLayouts);
+  resetUserLayouts();
+  registerLayout({ name: 'p-dense-grid', base: 'grid', density: 'dense' });
+
+  const [dense] = scenesFor(`# Board\n\n<!-- layout: p-dense-grid -->\n\n${DENSITY_BODY}`);
+  const sized = dense.elements.filter((el) => el.block.size != null).map((el) => el.block.type);
+  assert.deepEqual(
+    [...new Set(sized)].sort(),
+    ['bullets', 'para'],
+    'the text blocks of the cells carry a size',
+  );
+  // 14 pt × 0.64 = 8.96 → 9 pt (half-point rounding), and it is the SAME
+  // number the renderers will read back through blockFontSize
+  assert.equal(dense.elements.find((el) => el.block.type === 'para').block.size, 9);
+  assert.equal(
+    dense.elements.find((el) => el.block.type === 'heading').block.size,
+    undefined,
+    'a slot title is not scaled with the body: the hierarchy has to survive',
+  );
+
+  // THE guarantee that protects every existing deck: a deck that asks for
+  // nothing must produce a scene without a single `size` key anywhere — an
+  // optional key OMITTED, never set to a default. This is what keeps the two
+  // goldens byte-identical.
+  const plain = scenesFor(`# Board\n\n<!-- layout: grid -->\n\n${DENSITY_BODY}`);
+  assert.deepEqual(sizesIn(plain), [], 'the default density must leave no trace in the scene');
+  // and on the deck the goldens are frozen from — an EXACT set, so a layout
+  // that started stamping sizes on its own would show here rather than in a
+  // 3000-line golden: the key message of `focus`, and the paragraph of the
+  // status board, whose `status-list` layout asks for the dense step
+  const demoElements = buildScenes(parseDeck(readDemo())).flatMap((s) => s.elements);
+  const demoSized = demoElements.filter((el) => el.block.size != null).map((el) => el.block.type);
+  assert.deepEqual(
+    [...new Set(demoSized)].sort(),
+    ['heading', 'para'],
+    'unexpected size in the demo',
+  );
+  // auto-fit stamps its own sizes: a demo region the engine had to shrink would
+  // move the goldens, and would mean the deck the whole suite is frozen from no
+  // longer fits at the size it claims
+  assert.deepEqual(
+    demoElements.filter((el) => el.densified).map((el) => el.block.type),
+    [],
+    'no region of the demo may be densified',
+  );
+});
+
+test('blockHeight: the same paragraph measures strictly smaller at dense than at comfortable', () => {
+  const para = {
+    type: 'para',
+    runs: [{ text: 'A sentence long enough to wrap over a few lines.' }],
+  };
+  const comfortable = blockHeight(para, 260);
+  const compact = blockHeight({ ...para, size: 11 }, 260);
+  const dense = blockHeight({ ...para, size: 9 }, 260);
+  assert.ok(comfortable > 0 && dense > 0, 'both heights must be positive');
+  assert.ok(
+    comfortable > compact && compact > dense,
+    `the estimate must follow the scale: ${comfortable} > ${compact} > ${dense}`,
+  );
+  // a block that renders smaller has to MEASURE smaller, otherwise pagination
+  // reserves room nothing occupies — which is the whole point of the accessor
+  const bullets = {
+    type: 'bullets',
+    items: [
+      { runs: [{ text: 'top level item, long enough to wrap' }], level: 0 },
+      { runs: [{ text: 'nested item, also long enough to wrap' }], level: 1 },
+    ],
+  };
+  assert.ok(blockHeight({ ...bullets, size: 9 }, 260) < blockHeight(bullets, 260));
+});
+
+// Alignment (plan 4) changes where the ink sits inside a region, never how
+// much room the region needs. The estimator and the cell rendering are read
+// from the same block, though, and a width divided per column "because the
+// alignment says so" would silently move pagination on every table in every
+// deck — hence this guard rather than trust.
+test('blockHeight: a table measures the same aligned and unaligned', () => {
+  const cell = (t) => [{ text: t }];
+  const table = {
+    type: 'table',
+    header: [cell('Item'), cell('Amount')],
+    rows: [
+      [cell('Licences, support and hosting'), cell('1 517')],
+      [cell('Training'), cell('147')],
+    ],
+  };
+  for (const align of [
+    ['left', 'right'],
+    ['center', 'center'],
+    ['right', 'right'],
+  ]) {
+    assert.equal(
+      blockHeight({ ...table, align }, 520),
+      blockHeight(table, 520),
+      `align ${align.join('/')} must not move the height estimate`,
+    );
+  }
+});
+
+// A progress bar and a badge row are the two blocks whose height is NOT
+// derived from a font metric: the bar is a fixed-size object, the row wraps.
+// `blockHeight` has a silent `default: return 0`, so a type it does not know
+// is placed at zero height and overlaps its neighbour without a single test
+// flinching — hence an assertion on the real numbers, not on finiteness.
+test('blockHeight: a progress bar is a constant, a badge row grows by a line when it wraps', () => {
+  const bar = { type: 'progress', value: 0.4, label: 'A label long enough to wrap on its own' };
+  assert.equal(blockHeight(bar, 600), 28);
+  assert.equal(blockHeight(bar, 200), 28, 'the width changes nothing: the bar is an object');
+  assert.equal(
+    blockHeight({ ...bar, caption: 'Under analysis' }, 600),
+    46,
+    'a caption adds its line, and only its line',
+  );
+
+  const row = {
+    type: 'badge',
+    items: ['Scope', 'Schedule', 'Quality', 'Budget'].map((text) => ({ text, kind: 'success' })),
+  };
+  const wide = blockHeight(row, 900);
+  const narrow = blockHeight(row, 220);
+  assert.ok(narrow > wide, `wrapping must cost a row: ${narrow} vs ${wide}`);
+  assert.equal(
+    blockHeight({ type: 'badge', items: [] }, 900) < wide,
+    true,
+    'an empty row reserves next to nothing',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// auto-fit (plan 5): a bounded region that overflows is re-flowed a step down
+// the scale rather than left to run over its neighbour. The policy, in three
+// clauses — the whole region steps down, the step is discrete, and the floor
+// is honest — plus the one branch that is a policy call: pagination wins.
+// ---------------------------------------------------------------------------
+
+/** Lowest pixel a set of placed elements reaches. */
+const bottomOf = (els) => els.reduce((m, el) => Math.max(m, el.region.y + el.region.h), 0);
+
+/** Room the blocks would ask for at the deck's DEFAULT size — what the region
+ *  had to hold before the engine touched it: the estimates the flow works from,
+ *  plus the gap it leaves between two blocks. */
+const roomAtDefault = (els) =>
+  els.reduce((h, el) => h + blockHeight({ ...el.block, size: undefined }, el.region.w), 0) +
+  SPACE.sm * Math.max(0, els.length - 1);
+
+const FILLER = 'The column carries a sentence long enough to run past its own panel. ';
+
+/** The elements of a `comparison` slide whose first column holds `text`. */
+const comparisonColumn = (text) => {
+  const [scene] = scenesFor(
+    `# Board\n\n<!-- layout: comparison -->\n\n## Now\n\n${text}\n\n## Next\n\n- short\n`,
+  );
+  const col = scene.elements.filter((el) => el.group === 0);
+  return { scene, panel: col.find((el) => el.block.type === 'panel'), flowed: col.slice(1) };
+};
+
+test('auto-fit: a panel a fifth too full is re-flowed one step down, and then fits', () => {
+  // 663 px of content asked into a 552 px panel — a fifth too much
+  const { scene, panel, flowed } = comparisonColumn(FILLER.repeat(18));
+  // the rescue was NEEDED: at the deck's default size the column asks for more
+  // room than the panel has — without this the test would pass on a deck that
+  // never overflowed
+  assert.ok(
+    roomAtDefault(flowed) > panel.region.h,
+    `the column must not fit at the default size (${Math.round(roomAtDefault(flowed))} px in ${panel.region.h})`,
+  );
+
+  assert.ok(
+    flowed.every((el) => el.densified === 'compact'),
+    'the WHOLE region steps down, never the offending block on its own',
+  );
+  assert.equal(
+    flowed.find((el) => el.block.type === 'para').block.size,
+    11,
+    '14 pt × 0.78 = 10.92 → 11 pt: a step of the scale, not a best-fit factor',
+  );
+  assert.equal(
+    flowed.find((el) => el.block.type === 'heading').block.size,
+    undefined,
+    'a slot title keeps its size: the hierarchy has to survive the fit',
+  );
+  // and it fits: nothing crosses the bottom of the panel it was flowed into,
+  // which is the neighbour it used to land on
+  assert.ok(
+    bottomOf(flowed) <= panel.region.y + panel.region.h,
+    `content down to ${Math.round(bottomOf(flowed))}, panel down to ${panel.region.y + panel.region.h}`,
+  );
+
+  // the second column never overflowed: the step is per REGION, and a slide
+  // where one panel is dense and the others are not is the point
+  const other = scene.elements.filter((el) => el.group === 1);
+  assert.ok(
+    other.every((el) => el.densified === undefined && el.block.size === undefined),
+    'a region that fits is left strictly alone',
+  );
+});
+
+test('auto-fit: the floor is honest — past `dense` the engine stops and the overflow stays visible', () => {
+  const { flowed } = comparisonColumn(FILLER.repeat(40));
+  assert.ok(
+    flowed.every((el) => el.densified === 'dense'),
+    'two steps down and no further: 6 pt text is not a fit, it is a failure with the evidence hidden',
+  );
+  const para = flowed.find((el) => el.block.type === 'para');
+  assert.equal(para.block.size, 9, '14 pt × 0.64 = 8.96 → 9 pt');
+  assert.ok(
+    blockHeight(para.block, para.region.w) > para.region.h,
+    'the overflow survives the densest step — BLOCK_OVERFLOW is left to say so',
+  );
+});
+
+test('auto-fit: pagination wins — a flowing slide splits rather than shrinks', () => {
+  // a flow layout has somewhere to put the overflow; densifying instead would
+  // trade a legible second slide for a cramped single one
+  const items = Array.from({ length: 40 }, (_, k) => `- item number ${k + 1}`).join('\n');
+  const scenes = scenesFor(`# Long list\n\n${items}\n`);
+  assert.ok(
+    scenes.some((s) => s.continued),
+    'the 40-bullet list must paginate',
+  );
+  assert.deepEqual(sizesIn(scenes), [], 'a paginated flow carries no size at all');
+  assert.ok(
+    scenes.every((s) => s.elements.every((el) => !el.densified)),
+    'nothing on a paginated slide may be marked densified',
+  );
+});
+
+// The case that failed. The first render of the real project dashboard put
+// these four follow-up items in one panel of a board of narrow columns: at
+// 14 pt the descriptions ran out of the panel and over what sat below, and the
+// fix was to shorten them by hand, one word at a time, until the line count
+// came out right. They are reproduced here UNSHORTENED.
+const FOLLOW_UP = [
+  [
+    'Inspection strand',
+    'Due Q3',
+    'Monitoring begins. Findings and recommendations due for the September board.',
+  ],
+  [
+    'Municipal consent',
+    'Due Q4',
+    'Requirement under analysis. Scope to be confirmed: processing strand, finance strand, portal integration.',
+  ],
+  [
+    'CT integration',
+    'Due Q4',
+    'Awaiting confirmation for the two boroughs running the terrace-permit pilot.',
+  ],
+  [
+    'Request from project 911PG',
+    'Due Q3',
+    'Live connection of the fire-service dispatch system to the deck data. Date to be determined.',
+  ],
+];
+
+test('auto-fit: the follow-up panel of the real dashboard fits, unshortened', (t) => {
+  t.after(resetUserLayouts);
+  resetUserLayouts();
+  registerLayout({ name: 'board-4', base: 'grid', cols: 4 });
+
+  const body = FOLLOW_UP.map(([what, due, detail]) => `**${what}** — ${due}\n${detail}`).join(
+    '\n\n',
+  );
+  const [scene] = scenesFor(
+    `# Project board\n\n<!-- layout: board-4 -->\n\n## Progress\n\nOn track.\n\n## Risks\n\nNone raised.\n\n## Budget\n\nWithin envelope.\n\n## Follow-up items\n\n${body}\n`,
+  );
+  const cell = scene.elements.filter((el) => el.group === 3);
+  const panel = cell.find((el) => el.block.type === 'panel');
+  const flowed = cell.slice(1);
+
+  // all four items are still there: auto-fit shrinks, it never truncates —
+  // losing an author's words silently is worse than overflowing visibly
+  assert.equal(flowed.filter((el) => el.block.type === 'para').length, 4);
+  assert.ok(
+    roomAtDefault(flowed) > panel.region.h,
+    'the panel must be the one that used to overflow, or this test proves nothing',
+  );
+
+  // no overlap: each element starts below the previous one and the last one
+  // stops inside the panel — that is what "rendered without overlap" means
+  for (const [k, el] of flowed.entries()) {
+    if (k) {
+      const prev = flowed[k - 1];
+      assert.ok(
+        el.region.y >= prev.region.y + prev.region.h,
+        `"${el.block.type}" at ${Math.round(el.region.y)} overlaps the block above, which ends at ${Math.round(prev.region.y + prev.region.h)}`,
+      );
+    }
+  }
+  assert.ok(
+    bottomOf(flowed) <= panel.region.y + panel.region.h,
+    `the content runs down to ${Math.round(bottomOf(flowed))}, the panel to ${panel.region.y + panel.region.h}`,
+  );
+  assert.ok(
+    flowed.every((el) => el.densified === 'compact'),
+    'one step was enough: the engine spends the scale one rung at a time',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// solid tones (plan 2): the tone decides the ink, and the engine reads it back
+// from panelStyle() instead of guessing it at the call site
+// ---------------------------------------------------------------------------
+
+test('panels: a `-solid` variant stamps `tone` and the ink that goes WITH the tone', (t) => {
+  t.after(resetUserLayouts);
+  resetUserLayouts();
+  registerLayout({ name: 'p-alert-grid', base: 'grid', panels: ['danger-solid'], radius: 'pill' });
+
+  const body = '## Blocked\n\nthree services down\n';
+  const [solid] = scenesFor(`# Status\n\n<!-- layout: p-alert-grid -->\n\n${body}`);
+  const panel = solid.elements.find((el) => el.block.type === 'panel');
+  assert.deepEqual(panel.block, {
+    type: 'panel',
+    variant: 'semantic',
+    kind: 'danger',
+    tone: 'solid',
+    radius: 'pill',
+  });
+  const heading = solid.elements.find((el) => el.block.type === 'heading');
+  assert.equal(
+    heading.block.color,
+    SEMANTIC.danger.solidText,
+    'the title on a saturated panel takes solidText',
+  );
+  assert.notEqual(
+    heading.block.color,
+    SEMANTIC.danger.text,
+    'the pale-tint ink on a saturated fill is the bug this closes',
+  );
+  // the body too: a white title over near-black body text on the same red is
+  // a panel repainted halfway
+  assert.equal(
+    solid.elements.find((el) => el.block.type === 'para').block.color,
+    SEMANTIC.danger.solidText,
+    'a saturated panel imposes its ink on the blocks it holds, not on its title alone',
+  );
+
+  // the pale twin: same tint, other tone — and an IR that carries neither key
+  registerLayout({ name: 'p-pale-grid', base: 'grid', panels: ['danger'] });
+  const [pale] = scenesFor(`# Status\n\n<!-- layout: p-pale-grid -->\n\n${body}`);
+  const paleBlock = pale.elements.find((el) => el.block.type === 'panel').block;
+  assert.deepEqual(Object.keys(paleBlock).sort(), ['kind', 'type', 'variant']);
+  assert.equal(
+    pale.elements.find((el) => el.block.type === 'heading').block.color,
+    SEMANTIC.danger.text,
+  );
+  assert.equal(
+    pale.elements.find((el) => el.block.type === 'para').block.color,
+    undefined,
+    'a pale tint leaves the body the deck ink: colouring it would move every scene',
+  );
 });
 
 // ---------------------------------------------------------------------------

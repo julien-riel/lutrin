@@ -37,12 +37,17 @@ import {
   FONTS,
   FONT_FILES,
   LOGOS,
+  ROUNDED,
   TYPE,
   SPACE,
   PAGE,
   SEMANTIC,
   TREND_INK,
+  badgeLayout,
+  blockFontSize,
+  panelRadius,
   panelStyle,
+  progressLayout,
 } from '../deck/tokens.mjs';
 import { ALERT_BLOCK_TYPES, parseDeck } from '../deck/parse.mjs';
 import { buildScenes } from '../deck/layout.mjs';
@@ -89,6 +94,10 @@ function runsHtml(runs) {
       if (r.code) s = `<code>${s}</code>`;
       if (r.bold) s = `<strong>${s}</strong>`;
       if (r.italic) s = `<em>${s}</em>`;
+      // inline badge (`==Action==`): a real pill here, a run highlight in the
+      // .pptx — a documented degradation (docs/dsl.md), not a divergence
+      if (r.badge)
+        s = `<span class="badge badge-${SEMANTIC[r.badge] ? r.badge : 'info'}">${s}</span>`;
       if (r.link) s = `<a href="${esc(r.link)}">${s}</a>`;
       return s;
     })
@@ -581,13 +590,25 @@ export function sanitizeSvg(svg) {
 /** Ink imposed by the layout (dark layers, quadrant titles…). */
 const ink = (block) => (block.color ? `color:#${block.color};` : '');
 
+/** Text scale imposed by the layout (`density`) — emitted ONLY when the block
+ *  carries one: the CSS class already declares the theme's token, and
+ *  restating it on every block of every slide would bloat the document for
+ *  nothing. `part` picks a block's secondary text (see blockFontSize). */
+const sizeCss = (block, part = 'body') =>
+  block.size ? `font-size:${blockFontSize(block, part)}pt;` : '';
+
+/** Alignment imposed by a layout (`align` parameter) or, on a table cell, by
+ *  the Markdown delimiter row. Left is the natural rendering and emits
+ *  nothing — see alignAttr in deck/layout.mjs. */
+const alignCss = (block) => (block.align ? `text-align:${block.align};` : '');
+
 function htmlPara(block, r) {
-  return `<p class="para el" style="${at(r)}${ink(block)}">${runsHtml(block.runs)}</p>`;
+  return `<p class="para el" style="${at(r)}${ink(block)}${sizeCss(block)}${alignCss(block)}">${runsHtml(block.runs)}</p>`;
 }
 
 function htmlHeading(block, r) {
-  // `size` (pt) and `align`: key message of the focus layout — otherwise a slot title
-  const extra = `${block.size ? `font-size:${block.size}pt;` : ''}${block.align === 'center' ? 'text-align:center;' : ''}`;
+  // `size` (pt): key message of the focus layout — otherwise a slot title
+  const extra = `${sizeCss(block)}${alignCss(block)}`;
   return `<h3 class="slot-heading el" style="${at(r)}${ink(block)}${extra}">${runsHtml(block.runs)}</h3>`;
 }
 
@@ -597,11 +618,17 @@ function htmlBullets(block, r) {
   // `startAt`: chunk of a numbered list split by pagination. Only the root
   // list resumes the count; sub-lists start again from 1.
   const start = block.ordered && block.startAt > 1 ? ` start="${block.startAt}"` : '';
+  // the scale goes on the <ul>/<ol> themselves, not on the container: the
+  // ".bullets ul" rule is a class selector on the list, and inheriting from
+  // an inline size on the parent div would lose to it. The sub-lists carry
+  // their own, proportionally smaller, size for the same reason.
+  const rootSize = block.size ? ` style="${sizeCss(block)}"` : '';
+  const subSize = block.size ? ` style="${sizeCss(block, 'nested')}"` : '';
   let out = '';
   let level = -1;
   for (const it of block.items) {
     while (level < it.level) {
-      out += `<${tag}${level < 0 ? start : ''}>`;
+      out += `<${tag}${level < 0 ? `${start}${rootSize}` : subSize}>`;
       level++;
     }
     while (level > it.level) {
@@ -614,7 +641,7 @@ function htmlBullets(block, r) {
     out += `</${tag}>`;
     level--;
   }
-  return `<div class="bullets el" style="${at(r)}${ink(block)}">${out}</div>`;
+  return `<div class="bullets el" style="${at(r)}${ink(block)}${alignCss(block)}">${out}</div>`;
 }
 
 function htmlCode(block, r) {
@@ -631,15 +658,36 @@ function htmlCode(block, r) {
       })
       .join(''),
   );
-  return `<pre class="code el" style="${at(r, true)}">${lines.join('\n')}</pre>`;
+  return `<pre class="code el" style="${at(r, true)}${sizeCss(block)}">${lines.join('\n')}</pre>`;
+}
+
+/** Per-column style of a table, emitted ON THE CELL: the table is absolutely
+ *  positioned and its columns carry no identity a stylesheet could hook, so
+ *  there is nothing for a class to select. A right-aligned column also gets
+ *  TABULAR figures — with proportional digits, aligning the right edge still
+ *  leaves the thousands ragged, which is the whole reason a money column is
+ *  right-aligned in the first place. */
+function cellStyle(block, k, isHeader = false) {
+  const a = block.align?.[k];
+  const align = !a || a === 'left' ? '' : `text-align:${a};`;
+  const figures = a === 'right' ? 'font-variant-numeric:tabular-nums;' : '';
+  // On a repainted panel the header's own pale fill has to go with the ink:
+  // `.table th` is a class rule, so it survives the colour inherited from the
+  // table and would leave light text on light grey — worse than the 3.10:1
+  // this repaint exists to fix.
+  const fill = isHeader && block.color ? 'background:transparent;' : '';
+  const css = `${align}${figures}${fill}`;
+  return css ? ` style="${css}"` : '';
 }
 
 function htmlTable(block, r) {
   const row = (cells, tag) =>
-    `<tr>${cells.map((c) => `<${tag}>${runsHtml(c)}</${tag}>`).join('')}</tr>`;
+    `<tr>${cells
+      .map((c, k) => `<${tag}${cellStyle(block, k, tag === 'th')}>${runsHtml(c)}</${tag}>`)
+      .join('')}</tr>`;
   const head = block.header.length ? `<thead>${row(block.header, 'th')}</thead>` : '';
   const body = block.rows.map((cells) => row(cells, 'td')).join('');
-  return `<table class="table el" style="${at(r)}">${head}<tbody>${body}</tbody></table>`;
+  return `<table class="table el" style="${at(r)}${sizeCss(block)}${ink(block)}">${head}<tbody>${body}</tbody></table>`;
 }
 
 function htmlAlert(block, r) {
@@ -654,9 +702,13 @@ function htmlAlert(block, r) {
       return `<ul>${b.items.map((it) => `<li>${runsHtml(it.runs)}</li>`).join('')}</ul>`;
     })
     .join('');
+  // the label has its own class rule (.alert-label), so it needs its own
+  // declaration — inheriting the callout's size would leave it at 11 pt on a
+  // 9 pt body, larger than the text it introduces
+  const label = block.size ? ` style="${sizeCss(block, 'label')}"` : '';
   return (
-    `<div class="alert alert-${kind} el" style="${at(r, true)}">` +
-    `<div class="alert-label">${esc(sem.label)}</div>${inner}</div>`
+    `<div class="alert alert-${kind} el" style="${at(r, true)}${sizeCss(block)}">` +
+    `<div class="alert-label"${label}>${esc(sem.label)}</div>${inner}</div>`
   );
 }
 
@@ -675,6 +727,57 @@ function htmlMetric(block, r) {
   );
 }
 
+/** Box of one inner part of a composite block, in coordinates LOCAL to it:
+ *  the wrapper is a positioned element, so a child resolves against it. */
+const box = (b) =>
+  `left:${Math.round(b.x)}px;top:${Math.round(b.y)}px;width:${Math.round(b.w)}px;height:${Math.round(b.h)}px;`;
+
+function htmlProgress(block, r) {
+  const g = progressLayout(block, r.w);
+  const sem = SEMANTIC[block.kind] ?? SEMANTIC.info;
+  const radius = g.bar.h / 2;
+  const parts = [
+    `<div class="progress-label" style="${box(g.label)}">${esc(block.label ?? '')}</div>`,
+    `<div class="progress-track" style="${box(g.bar)}border-radius:${radius}px"></div>`,
+  ];
+  // a 0 % bar writes no fill at all: a zero-width pill is a visual artefact,
+  // and the empty track already says "nothing done yet"
+  if (g.fill.w > 0) {
+    parts.push(
+      `<div class="progress-fill" style="${box(g.fill)}border-radius:${radius}px;background:#${sem.solid}"></div>`,
+    );
+  }
+  // Inside the fill the ink is the tint's own — the fill is the surface there,
+  // whatever the panel underneath. Outside it, the text writes on the panel:
+  // the deck's secondary ink normally, the panel's own when it repainted us.
+  const outside = block.color ?? COLORS.neutralSecondary;
+  parts.push(
+    `<div class="progress-pct" style="${box(g.pct)}justify-content:${
+      g.pct.align === 'right' ? 'flex-end' : 'flex-start'
+    };color:#${g.pct.inside ? sem.solidText : outside}">${esc(g.pct.text)}</div>`,
+  );
+  if (g.caption) {
+    parts.push(
+      `<div class="progress-caption" style="${box(g.caption)}color:#${outside}">${esc(block.caption)}</div>`,
+    );
+  }
+  // the label carries no colour rule of its own, so it inherits the wrapper's
+  return `<div class="progress el" style="${at(r, true)}${ink(block)}">${parts.join('')}</div>`;
+}
+
+function htmlBadge(block, r) {
+  const items = badgeLayout(block, r.w)
+    .items.map((it) => {
+      const kind = SEMANTIC[it.kind] ? it.kind : 'info';
+      // positioned from the shared wrap rather than left to flex-wrap: the
+      // .pptx has no flow layout, and blockHeight() already committed to a
+      // number of rows — three ways of wrapping would be three geometries
+      return `<span class="badge badge-${kind} badge-item" style="${box(it)}border-radius:${it.h / 2}px">${esc(it.text)}</span>`;
+    })
+    .join('');
+  return `<div class="badge-row el" style="${at(r, true)}">${items}</div>`;
+}
+
 // ---------------------------------------------------------------------------
 // Blocks synthesized by the structured layouts (comparison, pillars,
 // timeline, layers, swot) — never coming straight from the DSL
@@ -683,12 +786,7 @@ function htmlMetric(block, r) {
 function htmlPanel(block, r) {
   const style = panelStyle(block);
   const border = style.line ? `border:${style.line.width}px solid #${style.line.color};` : '';
-  const radius =
-    block.variant === 'accent'
-      ? 2
-      : block.variant === 'layer' || block.variant === 'semantic'
-        ? 4
-        : 8;
+  const radius = panelRadius(block, r);
   const accent =
     block.variant === 'pillar' && block.accent !== false ? '<div class="panel-accent"></div>' : '';
   return (
@@ -709,10 +807,18 @@ function htmlTimelineDot(block, r) {
 }
 
 function htmlQuote(block, r) {
-  const cite = block.cite ? `<figcaption>— ${esc(block.cite)}</figcaption>` : '';
+  // `.quote-mark` and `figcaption` carry colours of their own (the primary
+  // accent, the secondary ink): on a repainted panel those class rules beat
+  // the inherited colour, so each is handed `color:inherit` explicitly.
+  const inherit = block.color ? ' style="color:inherit"' : '';
+  const cite = block.cite ? `<figcaption${inherit}>— ${esc(block.cite)}</figcaption>` : '';
+  // `.quote blockquote` is a class rule and beats what the figure inherits, so
+  // a size has to land on the blockquote itself — the same asymmetry the PPTX
+  // side already avoids by reading blockFontSize() directly.
+  const size = block.size ? ` style="${sizeCss(block)}"` : '';
   return (
-    `<figure class="quote el" style="${at(r, true)}">` +
-    `<div class="quote-mark">"</div><blockquote>${runsHtml(block.runs)}</blockquote>${cite}</figure>`
+    `<figure class="quote el" style="${at(r, true)}${ink(block)}">` +
+    `<div class="quote-mark"${inherit}>"</div><blockquote${size}>${runsHtml(block.runs)}</blockquote>${cite}</figure>`
   );
 }
 
@@ -781,6 +887,8 @@ export const BLOCK_RENDERERS = {
   table: htmlTable,
   alert: htmlAlert,
   metric: htmlMetric,
+  progress: htmlProgress,
+  badge: htmlBadge,
   quote: htmlQuote,
   image: htmlImage,
   mermaid: htmlMermaid,
@@ -965,6 +1073,30 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .metric-value{font-size:${TYPE.metricValue}pt;font-weight:700;color:#${C.primary};line-height:1.05}
 .metric-label{font-size:${TYPE.metricLabel}pt;color:#${C.neutralSecondary};margin-top:6px}
 .metric-trend{font-size:${TYPE.small}pt;font-weight:700;margin-top:8px}
+/* progress bar: every inner part is placed by progressLayout (deck/tokens.mjs),
+   the same function the .pptx and blockHeight read — the classes carry the
+   look only, never the geometry */
+.progress>div{position:absolute}
+.progress-label{display:flex;align-items:center;font-size:${TYPE.body}pt;line-height:1.3;overflow:hidden}
+.progress-track{background:#${C.underground2}}
+.progress-pct{display:flex;align-items:center;font-size:${TYPE.small}pt;font-weight:700;white-space:nowrap}
+.progress-caption{display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
+/* badges — the pill of a :::status row AND of an inline ==Action==. Same
+   host-default hazard as "code" above: an inline badge lands inside a
+   paragraph of a webview, so every surface property is declared here, at a
+   neutral value the tint classes then override. */
+.badge{display:inline-block;padding:1px 8px;border-radius:${ROUNDED.pill}px;background:#${C.underground2};color:#${C.neutralPrimary};font-weight:700;line-height:1.3;white-space:nowrap}
+/* No font-size on .badge: an INLINE badge takes the size of the sentence it
+   sits in — pinned to TYPE.small it rendered 22 % larger than its own
+   paragraph on a densified slide, while the .pptx run kept the paragraph's
+   size and blockHeight() measured a third answer. The BLOCK form is the
+   opposite case: badgeLayout() measured its pills at TYPE.small, so the
+   geometry and the type must agree here or the text leaves the pill. */
+.badge-item{position:absolute;display:flex;align-items:center;justify-content:center;padding:0 8px;font-size:${TYPE.small}pt;overflow:hidden}
+.badge-info{background:#${SEMANTIC.info.solid};color:#${SEMANTIC.info.solidText}}
+.badge-success{background:#${SEMANTIC.success.solid};color:#${SEMANTIC.success.solidText}}
+.badge-warning{background:#${SEMANTIC.warning.solid};color:#${SEMANTIC.warning.solidText}}
+.badge-danger{background:#${SEMANTIC.danger.solid};color:#${SEMANTIC.danger.solidText}}
 
 /* structured layouts: panels, timeline */
 .panel{overflow:hidden}
