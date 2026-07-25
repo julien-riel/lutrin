@@ -26,7 +26,7 @@ import path from 'node:path';
 import { BLOCK_RENDERERS as PPTX } from '../src/pptx/render.mjs';
 import { BLOCK_RENDERERS as HTML } from '../src/html/render.mjs';
 import { blockHeight } from '../src/deck/layout.mjs';
-import { SEMANTIC } from '../src/deck/tokens.mjs';
+import { SEMANTIC, COLORS, contrastRatio } from '../src/deck/tokens.mjs';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeck } from '../src/pptx/render.mjs';
@@ -265,8 +265,18 @@ test('an inline badge is semantically tinted in both renderers, by different mea
     const opts = [];
     PPTX.para({ addText: (t, o) => opts.push({ t, o }) }, block, region, {});
     const run = opts[0].t.find((x) => x.text === 'Owner');
-    assert.equal(run.options.highlight, sem.solid, `PPTX: ${kind} highlighted in its tint`);
-    assert.equal(run.options.color, sem.solidText, `PPTX: ${kind} ink readable on its highlight`);
+    assert.equal(run.options.highlight, sem.fill, `PPTX: ${kind} highlighted in its tint`);
+    assert.equal(run.options.color, sem.text, `PPTX: ${kind} ink readable on its highlight`);
+    assert.equal(run.options.bold, true, `PPTX: ${kind} badge is bold, like the CSS pill`);
+    // The pair is the PALE one on purpose, and this is the assertion that says
+    // why: `highlight` is a PowerPoint extension, dropped on import by Keynote,
+    // QuickLook and LibreOffice. Whatever is emitted must therefore still read
+    // on BARE PAPER — with the saturated pair it was white on white, and two
+    // badges of the demo deck were simply missing from the exported slides.
+    assert.ok(
+      contrastRatio(run.options.color, COLORS.ground) >= 4.5,
+      `PPTX: ${kind} badge is unreadable wherever the highlight is dropped`,
+    );
   }
   // and a run with no badge gains neither key: an existing deck must not grow
   // a highlight because the feature exists

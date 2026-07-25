@@ -95,9 +95,20 @@ function logoImage(file, h, x, y) {
 function toRuns(runs, base = {}) {
   return runs.map((r) => {
     // Inline badge (`==Action==`): DrawingML gives a run no rounded background,
-    // so the pill of the HTML becomes a run HIGHLIGHT here — the tint and the
-    // ink survive, the shape does not. A DELIBERATE degradation, written down
-    // in docs/dsl.md: what CONTRIBUTING.md forbids is diverging in silence.
+    // so the pill of the HTML becomes a run HIGHLIGHT here — a documented
+    // degradation (docs/dsl.md); what CONTRIBUTING.md forbids is diverging in
+    // silence.
+    //
+    // The PALE pair, not the saturated one the HTML pill uses, and that is not
+    // a detail: `highlight` is a PowerPoint extension that Keynote, QuickLook
+    // and LibreOffice drop on import. With the saturated pair, dropping the
+    // background left `solidText` — white on the red and the blue — as white
+    // text on white paper: the badge did not degrade, it VANISHED. Exported
+    // through Keynote, "Blocked" and "FYI" were simply gone from the slide.
+    // The pale pair survives both readings: a pastel marker-pen behind dark
+    // ink in PowerPoint, and the same dark ink, bold and tinted, everywhere
+    // the highlight is ignored. Same reasoning as charts being images —
+    // a deliverable is only as good as the least capable app that opens it.
     //
     // Everything else about the run must match the CSS `.badge`, and the size
     // is why that rule carries none: an inline badge takes the size of the
@@ -113,11 +124,11 @@ function toRuns(runs, base = {}) {
         italic: r.italic || base.italic || false,
         fontFace: r.code ? FONTS.mono : (base.fontFace ?? FONTS.body),
         color: badge
-          ? badge.solidText
+          ? badge.text
           : r.code
             ? COLORS.primaryDarker
             : (base.color ?? COLORS.neutralPrimary),
-        ...(badge ? { highlight: badge.solid } : {}),
+        ...(badge ? { highlight: badge.fill } : {}),
         ...(r.link ? { hyperlink: { url: r.link } } : {}),
       },
     };
