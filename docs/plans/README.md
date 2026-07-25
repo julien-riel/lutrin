@@ -62,6 +62,18 @@ recorded here rather than by rewriting the plan.
 The shared groundwork below landed as well, with wider signatures than
 sketched: `blockFontSize(block, part)` and `panelRadius(block, region)`.
 
+## What was turned down, and how to reopen it
+
+[widgets-next.md](widgets-next.md) is the second review: four business lenses,
+thirty candidates, three judges. Its shortlist shipped; its REJECTED half is
+the longer one and the more useful.
+
+Two of those refusals attract people back — Harvey balls and a person card.
+[reopening-rating-and-person.md](reopening-rating-and-person.md) is the brief
+for reopening either: what the objection actually is, what evidence would
+overturn it, and the work that follows if it does. It exists so the next
+attempt starts from the findings rather than from the idea.
+
 ## Reading order
 
 They are ordered by dependency, not by value.
