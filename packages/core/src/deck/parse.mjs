@@ -90,6 +90,7 @@ export const CHART_TYPES = new Set([
   'radar',
   'waterfall',
   'gantt',
+  'rating',
 ]);
 
 /** Blocks a list item can carry and that a bullet cannot contain (a list's IR
@@ -454,6 +455,17 @@ function parseChartSpec(source) {
       // swallowed, and the rule states in one sentence. `cible` is the French
       // input alias, on the `catégories` precedent below.
       spec.target = Number(val);
+    } else if (
+      lower === 'scale' &&
+      spec.chartType === 'rating' &&
+      Number.isFinite(Number(val)) &&
+      Number(val) > 0
+    ) {
+      // the denominator of a scorecard, DECLARED and never inferred: deriving
+      // it from the largest value seen would let one new `5` rescale every
+      // other row of the deck, so the same source would draw two different
+      // pictures depending on data that has nothing to do with the row
+      spec.scale = Number(val);
     } else if (lower === 'totals' && spec.chartType === 'waterfall') {
       // anchor categories of a bridge — the default (first and last) covers
       // the common case, this key covers a mid-bridge subtotal

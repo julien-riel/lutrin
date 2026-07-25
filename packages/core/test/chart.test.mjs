@@ -441,3 +441,132 @@ test('gantt: a period that resolves to nothing invalidates the spec', () => {
   assert.equal(block.type, 'code');
   assert.equal(block.invalidChart, true);
 });
+
+// ---------------------------------------------------------------------------
+// rating: the scorecard of part-filled discs
+//
+// Rejected in the widgets review because a Harvey ball was assumed to be a
+// glyph (◐ U+25D0 is not in WGL4) or an OOXML shape adjustment (a viewer that
+// ignores it draws the preset's 270° wedge). Drawn as SVG and rasterised like
+// every other figure here, it is neither. These assertions pin the two things
+// that verdict turned on: the disc is a PATH, and the denominator is the
+// author's.
+// ---------------------------------------------------------------------------
+
+/**
+ * Fill fraction of the first Harvey ball in an SVG, read back from the drawing
+ * as an ANGLE — the only thing that carries the score.
+ *
+ * Two earlier versions of this helper were wrong in instructive ways. Reading
+ * the path's first point compares two identical noons, so 2/4 and 2/10 looked
+ * the same. Reading the arc's end point as coordinates then compares positions,
+ * which move when the layout does — adding a second row shifts every disc, and
+ * the assertion failed for a reason that had nothing to do with the scale. The
+ * angle from the disc's own centre is invariant under both.
+ */
+function wedgeFraction(svg) {
+  const m = svg.match(
+    /<path d="M([\d.-]+),([\d.-]+) L[\d.-]+,[\d.-]+ A[\d.]+,[\d.]+ 0 \d 1 ([\d.-]+),([\d.-]+)/,
+  );
+  if (!m) return null;
+  const [cx, cy, x, y] = m.slice(1).map(Number);
+  // the wedge opens clockwise from noon, so shift atan2's origin by a quarter
+  const a = Math.atan2(y - cy, x - cx) + Math.PI / 2;
+  return Math.round((((a + 2 * Math.PI) % (2 * Math.PI)) / (2 * Math.PI)) * 1000) / 1000;
+}
+
+test('rating: one disc per cell, drawn as paths — no glyph, no shape adjustment', () => {
+  const svg = chartSvg(
+    {
+      ...chart(
+        'rating',
+        ['Fit', 'Cost'],
+        [
+          { name: 'Option A', values: [5, 0] },
+          { name: 'Option B', values: [3, 4] },
+        ],
+      ),
+      scale: 5,
+    },
+    600,
+    300,
+  );
+  // four cells: a ring each, plus a solid for the full one and a wedge for the
+  // partial ones. Nothing here is a text glyph — that is the whole point.
+  const rings = [...svg.matchAll(/<circle[^>]*stroke="#/g)];
+  assert.equal(rings.length, 4, 'one ring per cell');
+  assert.ok(!/◐|◔|◕|●|○/.test(svg), 'no disc character anywhere: WGL4 cannot be relied on');
+
+  // 5/5 is a solid disc (a second <circle> with a fill), 0/5 is the bare ring
+  const solids = [...svg.matchAll(/<circle[^>]*fill="#[0-9a-fA-F]{6}"\/>/g)];
+  assert.equal(solids.length, 1, 'exactly one full score is drawn solid');
+  // the two partial scores are wedges, and a wedge is a path from the centre
+  const wedges = [...svg.matchAll(/<path d="M[\d.]+,[\d.]+ L[\d.]+,[\d.]+ A/g)];
+  assert.equal(wedges.length, 2, '3/5 and 4/5 are drawn as arcs');
+});
+
+test('rating: the denominator is the author’s, never the largest value seen', () => {
+  const base = chart('rating', ['A'], [{ name: 'One', values: [2] }]);
+  // the same 2 must draw differently at two declared scales — and identically
+  // whatever ELSE is in the deck, which is what "never inferred" buys
+  assert.equal(wedgeFraction(chartSvg({ ...base, scale: 4 }, 400, 200)), 0.5, '2 of 4 is a half');
+  assert.equal(
+    wedgeFraction(chartSvg({ ...base, scale: 10 }, 400, 200)),
+    0.2,
+    '2 of 10 is a fifth',
+  );
+
+  // adding a bigger value elsewhere changes nothing about this row
+  const withBigger = wedgeFraction(
+    chartSvg(
+      {
+        ...chart(
+          'rating',
+          ['A'],
+          [
+            { name: 'One', values: [2] },
+            { name: 'Two', values: [9] },
+          ],
+        ),
+        scale: 4,
+      },
+      400,
+      200,
+    ),
+  );
+  assert.equal(withBigger, 0.5, 'a bigger score elsewhere must not rescale this one');
+
+  // and the scale is stated on the figure: a reader cannot count it off a disc
+  assert.match(chartSvg({ ...base, scale: 7 }, 400, 200), /\/ 7/);
+});
+
+test('rating: a value past the scale is clamped, and 0 leaves the bare ring', () => {
+  const svg = chartSvg(
+    {
+      ...chart('rating', ['A', 'B'], [{ name: 'One', values: [99, 0] }]),
+      scale: 5,
+    },
+    400,
+    200,
+  );
+  const solids = [...svg.matchAll(/<circle[^>]*fill="#[0-9a-fA-F]{6}"\/>/g)];
+  assert.equal(solids.length, 1, '99/5 is a full disc, not an overrun');
+  const wedges = [...svg.matchAll(/<path d="M[\d.]+,[\d.]+ L/g)];
+  assert.equal(wedges.length, 0, '0/5 draws no wedge at all');
+});
+
+test('rating: `scale:` is reserved only for this type, and only as a number', () => {
+  const spec = (src) =>
+    parseDeck(`# R\n\n\`\`\`chart\n${src}\n\`\`\`\n`).slides[0].sections.flatMap(
+      (s) => s.blocks,
+    )[0];
+
+  assert.equal(spec('type: rating\ncategories: A\nOne: 2\nscale: 4').scale, 4);
+  // on any other type the word is an ordinary series name — a bar chart may
+  // legitimately plot a series called "scale"
+  const bar = spec('type: bar\ncategories: A, B\nscale: 4, 5');
+  assert.equal(bar.scale, undefined);
+  assert.equal(bar.series.at(-1).name, 'scale');
+  // and a non-numeric or non-positive value is not a denominator
+  assert.equal(spec('type: rating\ncategories: A\nOne: 2\nscale: 0').scale, undefined);
+});

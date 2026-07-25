@@ -478,6 +478,89 @@ function gantt(block, W, H) {
 }
 
 // ---------------------------------------------------------------------------
+// Rating: the scorecard of part-filled discs — options down, criteria across.
+//
+// Drawn rather than typeset, and that is the whole design. The two obvious
+// routes both fail somewhere a committee would see: ◐ (U+25D0) is NOT in WGL4,
+// so a kit shipping a narrow face puts a tofu box on the slide (● U+25CF and
+// ○ U+25CB are, which is why the empty and full states would have survived);
+// and PptxGenJS's `angleRange` writes an OOXML shape adjustment that a viewer
+// may ignore, drawing the preset's default 270° wedge — a confidently wrong
+// score, which is worse than a visibly missing one. An SVG rasterised like
+// every other figure here has no glyph to substitute and no adjustment to
+// misread. Same reasoning as the module header: the least capable viewer
+// decides.
+// ---------------------------------------------------------------------------
+
+/** A disc filled clockwise from noon. The BOUNDS LIVE HERE and nowhere else:
+ *  anything at or under 0 is the empty ring, anything at or over 1 the solid
+ *  disc, so a score past its scale reads as full rather than wrapping round.
+ *  A caller that clamped as well would be dead code — a mutation run proved
+ *  exactly that, so the clamp was removed there rather than doubled. */
+function harveyBall(cx, cy, r, frac, fill) {
+  const ring = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${bg()}" stroke="${fill}" stroke-width="1.5"/>`;
+  if (frac <= 0) return ring;
+  if (frac >= 1) return `${ring}<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>`;
+  const a = -Math.PI / 2 + frac * 2 * Math.PI;
+  const [x, y] = [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const large = frac > 0.5 ? 1 : 0;
+  return `${ring}<path d="M${cx},${cy} L${cx},${cy - r} A${r},${r} 0 ${large} 1 ${x},${y} z" fill="${fill}"/>`;
+}
+
+function rating(block, W, H, locale) {
+  const { categories: cats, series } = block;
+  // the denominator is the author's, never the observed maximum (see the
+  // `scale:` branch in parse.mjs). Five is the idiom's own default; at
+  // `scale: 4` the fills land exactly on the quarters everyone draws by hand.
+  const scale = block.scale > 0 ? block.scale : 5;
+  const labelW = Math.min(W * 0.34, Math.max(...series.map((s) => textW(s.name, 11))) + 24);
+  const headH = 26;
+  const plot = { x: labelW + 8, y: headH, w: W - labelW - 20, h: H - headH - 22 };
+  const colW = plot.w / Math.max(cats.length, 1);
+  // A Harvey ball is a MARK, not a pie: capped at 22 px however much room the
+  // slot offers, or a three-by-four scorecard on a full slide draws twelve
+  // dinner plates. The rows are then packed to what the discs need and the
+  // block centred in what is left, rather than spread to fill it.
+  const r = Math.min(Math.min(colW, plot.h / Math.max(series.length, 1)) * 0.3, 22);
+  const rowH = Math.min(plot.h / Math.max(series.length, 1), r * 3.4);
+  const top = plot.y + Math.max(0, (plot.h - rowH * series.length) / 2);
+  const p = [];
+
+  // the column heads sit just above the FIRST ROW, not at the top of the slot:
+  // rows are centred in the space, and a header pinned to the frame drifts away
+  // from the grid it names as soon as the slot is tall
+  const headY = top + rowH / 2 - r - 12;
+  cats.forEach((c, i) => {
+    p.push(
+      `<text x="${plot.x + colW * (i + 0.5)}" y="${headY}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="middle">${esc(c)}</text>`,
+    );
+  });
+
+  series.forEach((s, si) => {
+    const cy = top + rowH * (si + 0.5);
+    p.push(
+      `<text x="${plot.x - 12}" y="${cy + 4}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(s.name)}</text>`,
+    );
+    // ONE hue for every disc: the row is already named on the left, so the
+    // fill carries a VALUE and never an identity — cycling CHART_COLORS would
+    // say "these two scores are different things" when they are the same
+    // judgement on two options
+    shownValues(s, cats).forEach((v, i) => {
+      // bounds are harveyBall's, not ours — see its comment
+      const frac = v / scale;
+      p.push(harveyBall(plot.x + colW * (i + 0.5), cy, r, frac, `#${COLORS.primary}`));
+    });
+  });
+
+  // the denominator, said once and quietly: a reader cannot count a fraction
+  // off a disc, and a scorecard whose scale is a mystery is a decoration
+  p.push(
+    `<text x="${W - 12}" y="${H - 6}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(`/ ${fmt(scale, locale)}`)}</text>`,
+  );
+  return p.join('\n');
+}
+
+// ---------------------------------------------------------------------------
 // Circular: pie, doughnut — color follows the share (a single series)
 // ---------------------------------------------------------------------------
 
@@ -608,7 +691,9 @@ export function chartSvg(block, W, H, { locale = DEFAULT_LOCALE } = {}) {
           ? waterfall(block, W, H, locale)
           : block.chartType === 'gantt'
             ? gantt(block, W, H)
-            : cartesian(block, W, H, locale);
+            : block.chartType === 'rating'
+              ? rating(block, W, H, locale)
+              : cartesian(block, W, H, locale);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <rect width="${W}" height="${H}" fill="${bg()}"/>
 ${body}

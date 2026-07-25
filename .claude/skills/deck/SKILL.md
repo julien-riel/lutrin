@@ -477,7 +477,7 @@ Actual: 110, 155, 175, 190
 
 - `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
   `share-bar`, `share-barh` (each category normalised to 100 %), `line`,
-  `area`, `pie`, `doughnut`, `radar`, `waterfall`, `gantt`. Each
+  `area`, `pie`, `doughnut`, `radar`, `waterfall`, `gantt`, `rating`. Each
   `Name: v1, v2, …` line is a series (decimals with a **point**).
   `pie`/`doughnut`: a single series.
 - `target:` (or `cible:`) — the line a series is judged against (an SLA, a
@@ -487,6 +487,9 @@ Actual: 110, 155, 175, 190
   last categories are the anchors, `totals:` names them when there is a
   mid-bridge subtotal. The one chart where hue carries the SIGN (rise, fall)
   rather than the identity.
+- `rating` — a scorecard of part-filled discs, options × criteria. `scale:`
+  declares the denominator and is never inferred from the largest value seen;
+  at `scale: 4` the fills land on the quarters. Drawn, not typeset.
 - `gantt` — lanes spanning periods: `Discovery: Q1 - Q2`, both ends included,
   a comma for several bars on one lane, `now:` for the "we are here" rule. The
   only way to draw a DURATION in this DSL.
