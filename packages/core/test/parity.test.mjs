@@ -26,7 +26,7 @@ import path from 'node:path';
 import { BLOCK_RENDERERS as PPTX } from '../src/pptx/render.mjs';
 import { BLOCK_RENDERERS as HTML } from '../src/html/render.mjs';
 import { blockHeight } from '../src/deck/layout.mjs';
-import { SEMANTIC, COLORS, contrastRatio } from '../src/deck/tokens.mjs';
+import { SEMANTIC, COLORS, LINE_HEIGHT, TYPE, contrastRatio } from '../src/deck/tokens.mjs';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeck } from '../src/pptx/render.mjs';
@@ -211,6 +211,18 @@ test('an icon size word yields the same square in both renderers, and the height
   const plain = { type: 'icon', name: 'compass', color: 'primary' };
   assert.match(HTML.icon(plain, region, ctx), /width:160px;height:160px/);
   assert.equal(blockHeight(plain, region.w), 112);
+
+  // `line` is the one word that is NOT a factor: one line of body text, so it
+  // has to come out the same on both sides AND measure the same, at a size
+  // nothing in this file states — 14 pt × 96/72 × 1.4
+  const line = { type: 'icon', name: 'compass', color: 'primary', size: 'line' };
+  const lineH = Math.round(TYPE.body * (96 / 72) * LINE_HEIGHT);
+  assert.match(HTML.icon(line, region, ctx), new RegExp(`width:${lineH}px;height:${lineH}px`));
+  const lineImgs = [];
+  PPTX.icon({ addImage: (o) => lineImgs.push(o) }, line, region, ctx);
+  assert.equal(lineImgs[0].w * 96, lineH, 'PPTX: the same line, to the pixel');
+  assert.equal(blockHeight(line, region.w), lineH, 'and it reserves exactly one line');
+  assert.ok(lineH < 112, 'it is the smallest of the four words');
 
   // the word ADJUSTS, it never positions: a slot narrower than the square
   // still governs, on both sides and at every word

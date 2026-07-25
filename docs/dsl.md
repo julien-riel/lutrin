@@ -506,15 +506,25 @@ unknown name produces `UNKNOWN_ICON`.
 The alt slot of an icon carries **intent words**, in any order: an ink and a
 size. The ink is the theme's `primary` by default; `neutral`, `secondary` and
 `white` are the others allowed (`white` for dark panels only). The size is
-`small`, `medium` (the default) or `large` — words, never points: they are
-factors on the size the slot already governs, so a column narrower than the
-icon still wins.
+`line`, `small`, `medium` (the default) or `large` — words, never points, and
+the slot always keeps the last say: a column narrower than the icon wins.
 
 ```markdown
 ![](lucide:leaf)                icon in the primary ink, at the slot's size
 ![large](lucide:leaf)           the same, one step up
 ![neutral small](lucide:leaf)   both words, either order
+![line](lucide:leaf)            as tall as one line of body text
 ```
+
+`small`, `medium` and `large` are factors on the size the engine derives from
+the slot. `line` is the smallest and follows a different rule: it is the height
+of **one line of body text**, read from the theme — a kit with a 16 pt body
+gets a taller icon without asking. Use it for an icon standing *beside* text at
+the head of a line or in a cramped panel. It is not an inline icon: a run of
+text carries no image in either output, and **a table cell renders text only**
+— an icon written in one is dropped, with `TABLE_CONTENT_DROPPED` saying so.
+For a status column in a table, use an inline badge (`==Delivered==`,
+`==!At risk==`); for a whole matrix of marks, `type: heat` or `type: rating`.
 
 A word that names neither an ink nor a size is reported by
 `UNKNOWN_ICON_WORD`, with the nearest word suggested — the icon still draws.
@@ -721,6 +731,8 @@ The main ones:
 | `INVALID_PROGRESS` | warning | `:::progress` value unreadable — the card falls back to a paragraph |
 | `UNKNOWN_PROGRESS_KIND` | warning | unknown tint after `:::progress` |
 | `ALERT_CONTENT_DROPPED` | warning | block not rendered inside a callout |
+| `QUOTE_CONTENT_DROPPED` | warning | block not rendered inside a quotation |
+| `TABLE_CONTENT_DROPPED` | warning | an image or icon written in a table cell, which renders text only |
 | `UNKNOWN_ANIMATE` | warning | unknown animation effect |
 | `KIT_*`, `THEME_*` | error/warning | kit not found or invalid theme entry |
 | `THEME_CONTRAST` | warning | WCAG threshold not met by the applied theme |

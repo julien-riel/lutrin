@@ -351,6 +351,8 @@ test("an icon's alt slot carries intent words: an ink, a size, in any order", ()
   assert.equal(icon('large').color, 'primary', 'a size alone leaves the ink at its default');
   assert.equal(icon('neutral').size, undefined, 'an ink alone adds no size key');
 
+  assert.equal(icon('line').size, 'line', 'the fourth word, sized on a line of text');
+
   const both = icon('neutral small');
   assert.equal(both.color, 'neutral');
   assert.equal(both.size, 'small');
@@ -396,6 +398,42 @@ test('UNKNOWN_ICON_WORD names the word that was dropped, and suggests the neares
     ).length,
     0,
   );
+});
+
+// A cell holds runs, and pushRun has always dropped an image inside one — the
+// natural place to put a status icon, and the one place the loss was mute.
+test('an image in a table cell is recorded as dropped, never swallowed in silence', () => {
+  const table = (cell) =>
+    blocksOf(parseDeck(`# T\n\n| Item | State |\n|---|---|\n| Permits | ${cell} |\n`))[0];
+
+  assert.deepEqual(table('![](lucide:check)').dropped, ['icon']);
+  assert.deepEqual(table('![A chart](chart.png)').dropped, ['image']);
+  // the cell still renders whatever text sat beside it
+  const mixed = table('![](lucide:check) done');
+  assert.deepEqual(mixed.dropped, ['icon']);
+  assert.equal(mixed.rows[0][1][0].text.trim(), 'done');
+  // one entry per TYPE, not per occurrence: three icons are one sentence to read
+  assert.deepEqual(table('![](lucide:a) ![](lucide:b) ![](c.png)').dropped, ['icon', 'image']);
+
+  // and a table with no image at all carries no key — every existing golden
+  assert.equal(table('==Delivered==').dropped, undefined);
+});
+
+test('TABLE_CONTENT_DROPPED names the alternative that does work', () => {
+  const diags = validateDeck(
+    '# T\n\n| Item | State |\n|---|---|\n| Permits | ![](lucide:check) |\n',
+  );
+  const d = diags.find((x) => x.code === 'TABLE_CONTENT_DROPPED');
+  assert.equal(d?.severity, 'warning');
+  assert.equal(d.line, 3);
+  assert.match(d.message, /inline badge/, 'a diagnostic that only says "no" sends nobody anywhere');
+  // the badge it points at is genuinely available in a cell, in both outputs
+  const cell = blocksOf(
+    parseDeck('# T\n\n| Item | State |\n|---|---|\n| Permits | ==!At risk== |\n'),
+  )[0].rows[0][1];
+  assert.equal(cell.length, 1);
+  assert.equal(cell[0].text, 'At risk');
+  assert.equal(cell[0].badge, 'warning');
 });
 
 test('emphasis continues on both sides of an image', () => {

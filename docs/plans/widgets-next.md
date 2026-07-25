@@ -777,6 +777,66 @@ spelling and a rule none of them had.
   greyscale, needs no key, and would not collide with task-list syntax if that
   is ever added.
 
+### Closed by a measured experiment — an image inside a table cell
+
+**Asked for on 25 July 2026:** an icon small enough to sit in a table cell, its
+height following the text line. The size word shipped (`![line](lucide:…)`);
+the table cell did not, and this is the evidence, because the question comes
+back every time someone wants a status column.
+
+Three walls, and editing the `.pptx` XML by hand — which this codebase already
+does twice, `canonicalizeTitlePlaceholders` and `embedSlideTitles` — only
+removes the first.
+
+1. **PptxGenJS.** `TableCell` is `{ text, options }` and `TableCellProps` has
+   no image; `addImage` is a method on the *slide*. Removed by writing the XML.
+2. **The content model.** A cell is `<a:tc><a:txBody/><a:tcPr/></a:tc>`. A
+   `<p:pic>` is not a legal child, which is also why PowerPoint's own UI
+   refuses to paste a picture into a cell. Not removed by anything.
+3. **Vertical geometry.** The engine writes `<a:tr h="0">` and lets the viewer
+   size the rows; `h` is a *minimum* in OOXML anyway. The columns, by contrast,
+   are pinned (`<a:gridCol w="2819400"/>`), so x is known and y is not — and y
+   is the axis a table stacks along.
+
+Two routes get past wall 2, and **a probe measured both in Keynote**
+(`probe-inject.mjs`, four slides, eight variants):
+
+- **A — the picture as the cell's FILL** (`a:tcPr/a:blipFill`, what PowerPoint's
+  "Shading → Picture" writes). Placement is expressed relative to the cell
+  (`a:stretch/a:fillRect`, thousandths of a per cent), so it should not need the
+  row height. **Keynote draws it and ignores the insets entirely.** Three cells
+  carrying three different `fillRect` sets — none, a centred 26 px square, a
+  20 px image held left — came out at the *same* horizontal extent: `pdfimages
+  -list` reports 62 ppi across and 732 ppi down for all three, an aspect ratio
+  of **11.8:1** on a square source (14.5:1 in the cell that also holds text).
+  62 ppi on a 384 px source is 6.19 in = 594 px rendered, which is the 592 px
+  cell to within a rounding: the insets were not merely equal to each other,
+  they were not read at all.
+  The check mark renders as a flat zigzag spanning the column. That is not a
+  degradation, it is a confidently wrong picture — finding no. 1 below, one step
+  worse than the vanished badge. PowerPoint would very likely honour the insets,
+  since it writes them; that makes it worse, not better, because the author
+  would see the right thing and the committee the smear.
+- **B — the picture FLOATED over the cell**, at coordinates derived from the
+  engine's own row-height estimate. **It drifts, as predicted, and by how much
+  is the useful number:** the icon was placed at y = 277 px for a row the engine
+  measured at 36.4 px; Keynote gave the row ~45 px and put its text centre at
+  313 px. The 26 px icon landed centred on 290 px — straddling the rule between
+  two rows, **23 px out on a 26 px mark**, after only one preceding row. The
+  error is per-row and accumulates downward.
+
+**Verdict: closed.** Not on cost — on rendering, measured. The answers that do
+work are already shipped: an inline badge for a status column (`==Delivered==`,
+`==!At risk==`, which the same probe renders correctly in Keynote as bold
+tinted text once the highlight is dropped), and `type: heat` or `type: rating`
+for a whole matrix of marks, drawn as SVG for exactly this reason. A cell that
+eats an image now says so — `TABLE_CONTENT_DROPPED` — and names those two.
+
+What would reopen it: a viewer survey showing `a:fillRect` insets honoured
+everywhere that matters, or a decision to draw tables as shapes the way charts
+are drawn — which costs the real OOXML table (no row editing, no cell
+selection) and is a regression as the default for every table.
+
 ### Do not build this — write a layout
 
 - **`:::source`**, in both its forms. A provenance line set as a caption under

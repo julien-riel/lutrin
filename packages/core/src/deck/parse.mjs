@@ -75,8 +75,10 @@ const IMAGE_ROLES = new Set(['cover', 'background', 'left', 'right']);
 export const ICON_COLORS = new Set(['primary', 'neutral', 'secondary', 'white']);
 /** The size words an icon's alt slot accepts, beside the ink. Words, never
  *  points: the factors they stand for belong to the engine (tokens.mjs,
- *  ICON_SCALE), and an author who could write "24 pt" would be positioning. */
-export const ICON_SIZES = new Set(['small', 'medium', 'large']);
+ *  ICON_SCALE), and an author who could write "24 pt" would be positioning.
+ *  `line` is the odd one and the smallest: it means "as tall as one line of
+ *  body text", so it follows the theme rather than a factor. */
+export const ICON_SIZES = new Set(['line', 'small', 'medium', 'large']);
 /** The modifier comes FIRST in the stacked names (`stacked-barh`, not
  *  `barh-stacked`): the existing `barh` token stays whole, and the `h` keeps
  *  meaning "horizontal" everywhere it appears. */
@@ -990,6 +992,12 @@ export function parseDeck(source) {
         const header = [];
         const rows = [];
         const align = [];
+        // A cell holds RUNS, and an image is not a run: pushRun has always
+        // dropped it (there is no block for it to become inside a cell). The
+        // types dropped are kept so validation can say so, exactly as a
+        // quotation does — an author placing a status icon in a column had no
+        // way of learning why the cell came out empty.
+        const dropped = new Set();
         let inHead = false;
         let row = null;
         i++;
@@ -1005,7 +1013,12 @@ export function parseDeck(source) {
           // it per cell would invent one the author cannot write.
           else if (inHead && u.type === 'th_open')
             align.push(u.attrGet('style')?.replace('text-align:', '') ?? 'left');
-          else if (u.type === 'inline') row.push(inlineRuns(u));
+          else if (u.type === 'inline') {
+            for (const c of u.children ?? [])
+              if (c.type === 'image')
+                dropped.add(/^(?:lucide|icon):/i.test(c.attrGet('src') ?? '') ? 'icon' : 'image');
+            row.push(inlineRuns(u));
+          }
           i++;
         }
         i++;
@@ -1016,6 +1029,7 @@ export function parseDeck(source) {
           // omitted when the delimiter row says nothing: an all-left table is
           // the table every existing deck already compiled to
           ...(align.some((a) => a !== 'left') ? { align } : {}),
+          ...(dropped.size ? { dropped: [...dropped] } : {}),
         };
       }
       case 'html_block': {
