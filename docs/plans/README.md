@@ -74,6 +74,17 @@ for reopening either: what the objection actually is, what evidence would
 overturn it, and the work that follows if it does. It exists so the next
 attempt starts from the findings rather than from the idea.
 
+## Asked for next
+
+[logos-testimonial-icons.md](logos-testimonial-icons.md) — a logo wall, a
+customer testimonial, and icons that carry a size. The first two share a
+prerequisite (the deep block walker the person-card brief declined to build for
+one speculative user: these two carry an image inside a block, so the objection
+is answered). The third is three requests with three different verdicts — a
+semantic size is an afternoon, an inline icon is most likely closed by OOXML,
+and a true drop cap is closed by the absence of a text flow engine, with a
+`split` layout as the honest answer.
+
 ## Reading order
 
 They are ordered by dependency, not by value.
