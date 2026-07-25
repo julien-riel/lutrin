@@ -65,8 +65,13 @@ frontmatter takes precedence over the last two.
    at the warnings before going on. Validation includes a **geometric
    quality check** ("deck doctor"):
    - `BLOCK_OVERFLOW` (warning) — a block overflows its region in an
-     unpaginated layout (column, panel): follow the advice in the message
-     (trim, split, switch layouts);
+     unpaginated layout (column, panel) even after the engine has spent the
+     text scale on it: follow the advice in the message (trim, split, switch
+     layouts) — nothing automatic is left to try;
+   - `SLIDE_DENSIFIED` (info) — a region did not fit and was re-flowed a
+     step down the text scale (`compact`, then `dense`). The deck is correct
+     as it stands; shorten that region if you want the deck's default size
+     back;
    - `LAYOUT_SUGGESTION` (info) — the content betrays a structured intent
      (SWOT, before/after, dated milestones): apply the `<!-- layout: … -->`
      that is proposed, unless there is a reason not to;
@@ -154,7 +159,10 @@ frontmatter takes precedence over the last two.
 What follows is the working crib sheet. **The complete and current reference
 is `docs/dsl.md`** (at the root of the repository): read it as soon as a
 detail is missing here — frontmatter edge cases, exact layout parameters,
-diagnostic semantics. When in doubt about what the installed version
+diagnostic semantics. For a status board or a dense one-pager, read
+`docs/dashboard-guide.md`: it holds the accepted `:::progress` values, the
+badge prefixes, the text scale step by step and a copy-pasteable dashboard
+layout. When in doubt about what the installed version
 supports, `npx lutrin capabilities <deck.md>` is authoritative on both —
 **with the deck as an argument**: the bare form knows neither the
 frontmatter's kit nor the neighbouring `layouts/*.json`, and would report
@@ -220,7 +228,7 @@ number of sections does not fit).
 
 ### Official layouts (shipped catalog, pure data)
 
-Ten named layouts, built on the bases above with parameters
+Eleven named layouts, built on the bases above with parameters
 (`packages/core/design/layouts/*.json`), always available — ask for them with
 `<!-- layout: … -->` just like the built-in layouts. They document the bases
 by example:
@@ -237,6 +245,7 @@ by example:
 | `pyramid` | layers as a pyramid | hierarchy, from apex to foundations |
 | `key-message` | focus | the figure or the sentence that must stick |
 | `portfolio` | 3-column grid with headers | projects / services as a mosaic |
+| `status-list` | 1-column grid, dense text | a status board: progress bars and badges, stacked |
 
 Validation suggests them when the content betrays the intent ("Pros / Cons"
 headings → `pros-cons`, "Probability / Severity" → `risk-map`). List and
@@ -322,13 +331,40 @@ consult them rather than inventing. Overview: `comparison.panels/pad`,
 `pillars.panels/accent`, `timeline.dot/arrow/numbered/orientation`,
 `layers.ratios/shades/shape` (stack, funnel, pyramid), `swot.kinds`,
 `split.ratio/side`, `metrics.max/cardHeight`, `grid.cols/panels/kinds/headed`,
-`steps.connector/panels`, `focus.align/accent/scale`. Semantic values
-reference **design tokens** (panel variants, info/success/warning/danger
-tints, layer shades) — never raw colors: the layout picks the variant, the
-theme defines its color. Never inferred — always requested with
-`<!-- layout: … -->`. Invalid definition → `LAYOUT_DEF_INVALID`; unknown
-parameter → `LAYOUT_DEF_ADJUSTED` (the deck compiles without it). Living
-example: `examples/kit-slate/layouts/` (the same layouts, shipped in a kit).
+`steps.connector/panels`, `focus.align/accent/scale`. Four parameters govern
+how the text and the surfaces look, and they are the **only** sanctioned way
+to ask for any of it:
+
+- `density` (`comfortable` / `compact` / `dense`) — on `grid`, `comparison`,
+  `pillars`, `steps`, `swot`, `layers` and `content`. Scales the paragraphs,
+  lists, tables and callouts the layout places: the lever for a board of six
+  panels, and the only way to ask for smaller body text (a point size is never
+  written in a deck). The engine pulls the same lever by itself — a bounded
+  region (panel, column, cell) that overflows is re-flowed one step down, two
+  at most, and says so through `SLIDE_DENSIFIED`; a flowing `content` slide is
+  paginated instead and never densified. So setting `density` by hand is about
+  the look wanted, not about making things fit.
+- `panels` — a variant per panel: the neutral ones (`muted`, `highlight`,
+  `pillar`) or a tint in one of two tones, `warning` (pale callout surface) or
+  `warning-solid` (saturated chip: status pill, state bar, coloured band). The
+  ink follows the tone by itself, and a solid panel imposes it on every block
+  it holds.
+- `radius` (`sm` / `md` / `lg` / `pill`) — on `comparison`, `pillars`, `grid`
+  and `steps`; overrides the radius the variant has by default, `pill` being
+  half the shorter side.
+- `align` (`left` / `center` / `right`) — on `content`, `grid`, `metrics` and
+  `focus` (centered by default there). The ONLY way to align text: a deck
+  never aligns a paragraph of its own. The sole exception is a table column,
+  aligned by its Markdown delimiter row (`|---:|` right, `|:-:|` centre),
+  which both outputs honour.
+
+Semantic values reference **design tokens** (panel variants,
+info/success/warning/danger tints, layer shades) — never raw colors: the
+layout picks the variant, the theme defines its color. Never inferred —
+always requested with `<!-- layout: … -->`. Invalid definition →
+`LAYOUT_DEF_INVALID`; unknown parameter → `LAYOUT_DEF_ADJUSTED` (the deck
+compiles without it). Living example: `examples/kit-slate/layouts/` (the same
+layouts, shipped in a kit).
 
 ### Components
 
@@ -357,6 +393,38 @@ Major incidents
 ↓ -38% (+)
 :::
 ```
+
+**Progress bars and status badges** — the two components of a status board.
+Write these rather than a table of "Item | % | Status": a table says the same
+thing and shows none of it.
+
+```markdown
+:::progress success
+100 %
+Online services
+Delivered in April
+:::
+
+:::status
+Scope, Schedule, Quality
+!Budget
+!!Recruitment
+:::
+```
+
+`:::progress` takes the share on the first line (`75 %`, `0.75` or `3/4` — a
+figure out of range is clamped), then the label, then an optional caption; the
+word after the directive is the tint (`info` — the default — `success`,
+`warning` or `danger`). A first line that is no share at all is not guessed
+at: the card degrades to the paragraph written and `INVALID_PROGRESS` says so.
+`:::status` is a **row** of badges, one per comma: nothing = success, `!` =
+caution, `!!` = critical, `?` = information. The same badge exists inline —
+`Each commitment carries an ==Owner==; one that slips is ==!At risk==.` — as a
+pill in the HTML and, PowerPoint having no rounded background for a text run,
+as a highlighted run in the `.pptx`: a documented degradation, not a bug.
+
+`<!-- layout: status-list -->` stacks such sections into a status board, one
+band per `##`.
 
 ### Images and diagrams
 

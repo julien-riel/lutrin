@@ -142,7 +142,7 @@ Markdown → AST (markdown-it) → IR → layout engine → scene → renderer
 | `src/worker/worker.mjs` | IPC worker of the editor hosts (types in `protocol.d.ts`) |
 | `src/vendor.mjs` | `lutrin vendor` — freezing the deck's external dependencies |
 | `design/themes/default.json` | canonical mirror of the default theme, a template to copy |
-| `design/layouts/*.json` | the catalog of the ten official layouts |
+| `design/layouts/*.json` | the catalog of the eleven official layouts |
 
 `src/deck/` is the core: it knows no output format and imports no backend
 library — `test/boundary.test.mjs` verifies it.

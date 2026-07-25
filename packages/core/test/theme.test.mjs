@@ -33,6 +33,8 @@ import {
   LAYER_SHADES,
   TREND_INK,
   SEMANTIC,
+  blockFontSize,
+  scaleTextToken,
 } from '../src/deck/tokens.mjs';
 import {
   applyTheme,
@@ -160,6 +162,32 @@ test('applyTheme(null) fully restores the default theme after a theme (no leak b
   assert.deepEqual(liveTokens(), before);
 });
 
+test('the text scale is a FACTOR on the theme token, not on the default (a 16 pt kit body gives 10 pt at dense)', (t) => {
+  t.after(() => applyTheme(null));
+  assert.equal(scaleTextToken(TYPE.body, 'dense'), 9, 'default kit: 14 × 0.64 = 8.96 → 9 pt');
+  applyTheme({ type: { body: 16, bullet: 16, bulletNested: 14, tableBody: 14 } });
+  // 16 × 0.64 = 10.24 → 10 pt. Anything reading the default's 14 pt — a
+  // snapshot taken when the module loaded, an absolute step table — answers 9
+  // here, and a kit that chose a bigger body silently loses its proportions.
+  assert.equal(scaleTextToken(TYPE.body, 'dense'), 10);
+  assert.equal(scaleTextToken(TYPE.bullet, 'compact'), 12.5, '16 × 0.78 = 12.48 → 12.5 pt');
+  assert.equal(scaleTextToken(TYPE.tableBody, 'dense'), 9, '14 × 0.64 → 9 pt, its own token');
+  // and the accessor both renderers read gives that same number back
+  assert.equal(blockFontSize({ type: 'para', size: 10 }), 10);
+  assert.equal(blockFontSize({ type: 'para' }), 16, 'no size: the kit token, live');
+  // the secondary tokens keep the kit's own ratio (16 → 14 here), rather than
+  // the one-point offset of the default theme
+  assert.equal(blockFontSize({ type: 'bullets', size: 10, items: [] }, 'nested'), 9);
+  // and the floor holds: a kit with a small body cannot be scaled into
+  // something no projector resolves
+  applyTheme({ type: { body: 10 } });
+  assert.equal(
+    scaleTextToken(TYPE.body, 'dense'),
+    7,
+    '10 × 0.64 = 6.4 → clamped at the 7 pt floor',
+  );
+});
+
 test('the derived groups follow the theme palette (LAYER_SHADES, SEMANTIC, TREND_INK)', (t) => {
   t.after(() => applyTheme(null));
   applyTheme({
@@ -173,6 +201,31 @@ test('the derived groups follow the theme palette (LAYER_SHADES, SEMANTIC, TREND
   );
   assert.equal(SEMANTIC.success.fill, 'EEFFEE');
   assert.equal(TREND_INK.positive, '00420A', 'the trend ink follows positiveDark');
+});
+
+test('the solid tone follows the palette too, and an explicit override wins over the recipe', (t) => {
+  t.after(() => applyTheme(null));
+  // a kit that repaints its brand green gets the matching chip for free…
+  applyTheme({ colors: { positive: '0B735F' } });
+  assert.equal(SEMANTIC.success.solid, '0B735F', 'the solid fill follows colors.positive');
+  assert.equal(
+    SEMANTIC.success.fill,
+    COLORS.positiveLight,
+    'the pale tone keeps its own token: the two tones are independent',
+  );
+  // …and a kit that knows better still has the last word, since `semantic` is
+  // merged AFTER deriveTokens()
+  applyTheme({ semantic: { success: { solid: '004225', solidText: 'FFFFFF' } } });
+  assert.equal(SEMANTIC.success.solid, '004225');
+  assert.equal(SEMANTIC.success.solidText, 'FFFFFF');
+  assert.deepEqual(themeContrastDiagnostics(), [], 'that pair clears AA');
+
+  // the pair a kit is most likely to break: a brand green too light for the
+  // ink the recipe chose must be REPORTED, not shipped
+  applyTheme({ semantic: { success: { solid: 'B9F6CA', solidText: 'FFFFFF' } } });
+  const solidDiag = themeContrastDiagnostics().find((d) => /solid success/.test(d.message));
+  assert.ok(solidDiag, 'an illegible solid chip must produce a THEME_CONTRAST diagnostic');
+  assert.equal(solidDiag.code, 'THEME_CONTRAST');
 });
 
 test('an explicit override of a derived group wins over the recomputation — page.margin/gutter/footerHeight included', (t) => {

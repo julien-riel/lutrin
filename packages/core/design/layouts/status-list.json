@@ -1,0 +1,7 @@
+{
+  "name": "status-list",
+  "base": "grid",
+  "cols": 1,
+  "density": "dense",
+  "description": "A status board: one band per theme, stacked — progress bars and badges read as a single column."
+}

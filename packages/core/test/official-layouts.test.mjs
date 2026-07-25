@@ -42,6 +42,7 @@ const OFFICIALS = [
   'portfolio',
   'pros-cons',
   'pyramid',
+  'status-list',
 ];
 
 const FOUR_SECTIONS = '## One\n\n- a\n\n## Two\n\n- b\n\n## Three\n\n- c\n\n## Four\n\n- d\n';
@@ -83,6 +84,8 @@ test('every official layout compiles a demo deck (named scene, never a crash)', 
     pyramid: '## Vision\n\n## Programs\n\n## Operations\n',
     'key-message': '87% satisfaction\n\n2026 survey of 2,400 respondents.\n',
     portfolio: FOUR_SECTIONS,
+    'status-list':
+      '## Delivery\n\n:::progress success\n100 %\nForm\n:::\n\n## Compliance\n\n:::status\nScope\n!Budget\n:::\n',
   };
   for (const name of OFFICIALS) {
     const scenes = scenesFor(name, BODIES[name]);

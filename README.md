@@ -66,9 +66,13 @@ is the command, and [`@lutrin/core`](https://www.npmjs.com/package/@lutrin/core)
 is the compiler behind it — depend on the latter to call the compiler from your
 own code.
 
-The DSL — inferred layouts, `:::metric` / `:::warning` directives,
-` ```chart ` charts, Mermaid, LaTeX, Lucide icons, animations, notes — is
-documented in [docs/dsl.md](docs/dsl.md).
+The DSL — inferred layouts, `:::metric` / `:::warning` directives, status
+boards (`:::progress`, `:::status`), ` ```chart ` charts, Mermaid, LaTeX,
+Lucide icons, animations, notes — is documented in [docs/dsl.md](docs/dsl.md).
+For a status board or a dense one-pager — progress bars, badges, aligned
+figure columns, the text scale and what the engine fits by itself — start with
+the task-by-task guide in
+[docs/dashboard-guide.md](docs/dashboard-guide.md).
 
 A deck written for [Marp](https://marp.app) compiles as it is: `marp: true`
 in the frontmatter switches the parser to the Marp dialect — `---` slide
@@ -314,7 +318,7 @@ their diff: see [CONTRIBUTING.md](CONTRIBUTING.md).
 ```text
 packages/core/                 the compiler + CLI (bin: lutrin)
 packages/core/design/themes/   default.json — canonical mirror of the default theme
-packages/core/design/layouts/  the catalog of the ten official layouts
+packages/core/design/layouts/  the catalog of the eleven official layouts
 packages/core/src/kit/         .deckkit archives (pack, download, install)
 packages/core/src/worker/      the single IPC worker of the editor hosts (+ protocol.d.ts)
 packages/core/test/            the node:test harness (goldens, parity, validation, kits)

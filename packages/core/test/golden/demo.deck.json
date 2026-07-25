@@ -1944,6 +1944,104 @@
         }
       ],
       "line": 362
+    },
+    {
+      "title": "Where the programme stands",
+      "titleRuns": [
+        {
+          "text": "Where the programme stands"
+        }
+      ],
+      "layout": "status-list",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Delivery"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "progress",
+              "value": 1,
+              "label": "Online services",
+              "caption": "Delivered in April",
+              "kind": "success",
+              "line": 381
+            },
+            {
+              "type": "progress",
+              "value": 0.45,
+              "label": "Paper forms",
+              "caption": "Under analysis",
+              "kind": "warning",
+              "line": 387
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Commitments"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "badge",
+              "items": [
+                {
+                  "text": "Scope",
+                  "kind": "success"
+                },
+                {
+                  "text": "Schedule",
+                  "kind": "success"
+                },
+                {
+                  "text": "Quality",
+                  "kind": "success"
+                },
+                {
+                  "text": "Budget",
+                  "kind": "warning"
+                },
+                {
+                  "text": "Recruitment",
+                  "kind": "danger"
+                }
+              ],
+              "line": 395
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Each commitment carries an "
+                },
+                {
+                  "text": "Owner",
+                  "badge": "success"
+                },
+                {
+                  "text": "; one that slips is tagged "
+                },
+                {
+                  "text": "At risk",
+                  "badge": "warning"
+                },
+                {
+                  "text": "."
+                }
+              ],
+              "line": 401
+            }
+          ]
+        }
+      ],
+      "line": 375,
+      "layoutLine": 377
     }
   ]
 }

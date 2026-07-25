@@ -62,6 +62,42 @@ test('fragment mode: inline code and blockquote declare their surface, host defa
   for (const prop of ['background:transparent', 'border:0', 'padding:0']) {
     assert.ok(quoteRule.includes(prop), `blockquote rule must declare ${prop} — got: ${quoteRule}`);
   }
+  // same hazard for the inline badge: it is a <span> INSIDE a paragraph, the
+  // one place a host stylesheet reaches. Its whole point is a coloured pill —
+  // an undeclared property here means a badge repainted by the editor's theme.
+  const badgeRule = css.match(/\.badge\{([^}]*)\}/)?.[1];
+  assert.ok(badgeRule, 'the fragment CSS must carry a bare `.badge` rule');
+  for (const prop of ['background:', 'color:', 'padding:', 'border-radius:', 'font-weight:']) {
+    assert.ok(badgeRule.includes(prop), `badge rule must declare ${prop} — got: ${badgeRule}`);
+  }
+});
+
+// Right-aligning a money column is only half the job: with PROPORTIONAL digits
+// the right edge lines up and the thousands do not — which is the very thing
+// one right-aligns a numeric column for. The tabular figures therefore ride
+// with the alignment, and only with the RIGHT one: a centered or left column
+// has no units to line up, and asking for tabular digits there would change
+// the look of ordinary prose for nothing.
+test('tables: tabular figures are requested on right-aligned columns, and only there', async () => {
+  const { slides } = await compileHtml(
+    '# Budget\n\n| Line | Share | Amount |\n|---|:-:|--:|\n| Licences | 42 % | 1 517 |\n',
+    { fragment: true },
+  );
+  // the space is part of the pattern: `<thead>` also starts with "<th"
+  const cells = [...slides.join('\n').matchAll(/<t[hd]((?: [^>]*)?)>/g)].map((m) => m[1]);
+  assert.equal(cells.length, 6, 'header + one body row, three columns each');
+
+  for (const k of [0, 3]) {
+    assert.equal(cells[k], '', 'a left column asks for nothing and must emit nothing');
+  }
+  for (const k of [1, 4]) {
+    assert.match(cells[k], /text-align:center/);
+    assert.doesNotMatch(cells[k], /tabular-nums/, 'a centered column has no units to align');
+  }
+  for (const k of [2, 5]) {
+    assert.match(cells[k], /text-align:right/);
+    assert.match(cells[k], /font-variant-numeric:tabular-nums/);
+  }
 });
 
 // ---------------------------------------------------------------------------

@@ -45,6 +45,53 @@ test('miscapitalized directive → UNKNOWN_DIRECTIVE suggesting the lowercase fo
   assert.match(d.message, /lowercase/);
 });
 
+// A bar drawn at a share nobody wrote is worse than no bar: the card degrades
+// to the author's own text, and this diagnostic is the only place that says so.
+test(':::progress with an unreadable value → INVALID_PROGRESS, positioned', () => {
+  const d = validateDeck('# P\n\n:::progress\nalmost done\nForm\n:::\n').find(
+    (x) => x.code === 'INVALID_PROGRESS',
+  );
+  assert.ok(d, 'INVALID_PROGRESS expected');
+  assert.equal(d.severity, 'warning');
+  assert.equal(d.line, 3);
+  assert.match(d.message, /75 %/, 'the message must show the accepted spellings');
+  // and a share that IS readable says nothing at all
+  assert.equal(
+    validateDeck('# P\n\n:::progress\n3/4\nForm\n:::\n').find((x) => x.code === 'INVALID_PROGRESS'),
+    undefined,
+  );
+});
+
+test(':::progress with an unknown tint → UNKNOWN_PROGRESS_KIND with a suggestion', () => {
+  const d = validateDeck('# P\n\n:::progress warnign\n75 %\nForm\n:::\n').find(
+    (x) => x.code === 'UNKNOWN_PROGRESS_KIND',
+  );
+  assert.ok(d, 'UNKNOWN_PROGRESS_KIND expected');
+  assert.equal(d.severity, 'warning');
+  assert.equal(d.line, 3);
+  assert.equal(d.suggestion, 'warning');
+  // the four tints of a callout are the four tints of a bar: no new vocabulary
+  for (const kind of ['info', 'success', 'warning', 'danger']) {
+    assert.equal(
+      validateDeck(`# P\n\n:::progress ${kind}\n75 %\nForm\n:::\n`).find(
+        (x) => x.code === 'UNKNOWN_PROGRESS_KIND',
+      ),
+      undefined,
+      `":::progress ${kind}" must be accepted in silence`,
+    );
+  }
+});
+
+// capabilities() is the whole introspection surface for agents and hosts, and
+// its diagnostics list is hand-maintained: a code that is pushed but never
+// listed passes the entire suite while every agent is told it does not exist.
+test('INVALID_PROGRESS and UNKNOWN_PROGRESS_KIND are published by capabilities()', () => {
+  assert.ok(capabilities().diagnostics.includes('INVALID_PROGRESS'));
+  assert.ok(capabilities().diagnostics.includes('UNKNOWN_PROGRESS_KIND'));
+  assert.ok(capabilities().directives.includes('progress'));
+  assert.ok(capabilities().directives.includes('status'));
+});
+
 test('correctly written directive → no directive diagnostic', () => {
   const diags = validateDeck('# D\n\n:::info\ntext\n:::\n');
   assert.deepEqual(
@@ -151,16 +198,71 @@ test('capabilities() reflects the engine sources of truth', () => {
 
 // ------ deck doctor --------------------------------------------------------
 
-test('doctor: overloaded column → BLOCK_OVERFLOW warning with a figure', () => {
+/** A three-column slide whose first column carries `n` long lines. */
+const overloadedColumn = (n) => {
   const long = Array.from(
-    { length: 14 },
+    { length: n },
     () => 'A REASONABLY LONG LINE OF TEXT THAT COMPLETELY FILLS THE COLUMN',
   ).join(' ');
-  const source = `# Three columns\n\n## A\n\n${long}\n\n## B\n\n- b\n\n## C\n\n- c\n`;
-  const d = validateDeck(source).find((x) => x.code === 'BLOCK_OVERFLOW');
+  return `# Three columns\n\n## A\n\n${long}\n\n## B\n\n- b\n\n## C\n\n- c\n`;
+};
+
+// This column used to be the BLOCK_OVERFLOW fixture: it overflowed, the
+// compiler said so, and the author had to shorten it by hand. The engine now
+// re-flows it a step down instead — and reports what it did, because a size
+// chosen by the compiler is a decision the author must be able to refuse.
+test('doctor: an overloaded column is densified, and the engine says so', () => {
+  const diags = validateDeck(overloadedColumn(14));
+  const d = diags.find((x) => x.code === 'SLIDE_DENSIFIED');
+  assert.ok(d, 'SLIDE_DENSIFIED expected');
+  assert.equal(d.severity, 'info');
+  assert.match(d.message, /The "A" region was rendered at the "compact" text scale/);
+  assert.match(d.message, /three-columns layout/);
+  assert.equal(
+    diags.find((x) => x.code === 'BLOCK_OVERFLOW'),
+    undefined,
+    'a region the engine fitted is not an overflow',
+  );
+  // the diagnostic points at the paragraph, not at the top of the slide
+  assert.equal(d.line, 5);
+});
+
+test('doctor: a column that overflows even at the densest step → BLOCK_OVERFLOW, with a figure', () => {
+  const diags = validateDeck(overloadedColumn(60));
+  const d = diags.find((x) => x.code === 'BLOCK_OVERFLOW');
   assert.ok(d, 'BLOCK_OVERFLOW expected');
   assert.equal(d.severity, 'warning');
   assert.match(d.message, /overflows its region by about \d+ px/);
+  // the clause that keeps the advice honest: the engine has already spent the
+  // scale, so "trim the content" would be telling the author to redo its work
+  assert.match(d.message, /already at the densest step — cut the content or split the slide/);
+  assert.match(
+    diags.find((x) => x.code === 'SLIDE_DENSIFIED').message,
+    /"dense" text scale, the densest the engine has/,
+  );
+});
+
+test('doctor: the "densest step" clause appears ONLY once the scale is spent', () => {
+  // a code block is out of the scale's reach on purpose (its surface is a fixed
+  // frame): the column overflows at the deck's own size, nothing is densified,
+  // and the advice stays the ordinary one — the clause must not turn into
+  // boilerplate carried by every overflow
+  const lines = Array.from({ length: 40 }, (_, k) => `const line${k} = ${k};`).join('\n');
+  const source = `# Split\n\n<!-- layout: two-columns -->\n\n## A\n\n\`\`\`js\n${lines}\n\`\`\`\n\n## B\n\n- b\n`;
+  const diags = validateDeck(source);
+  const d = diags.find((x) => x.code === 'BLOCK_OVERFLOW');
+  assert.ok(d, 'BLOCK_OVERFLOW expected');
+  assert.equal(d.severity, 'warning');
+  assert.doesNotMatch(d.message, /densest step/);
+  assert.equal(
+    diags.find((x) => x.code === 'SLIDE_DENSIFIED'),
+    undefined,
+    'a region the scale cannot shrink must not be reported as densified',
+  );
+});
+
+test('SLIDE_DENSIFIED is published by capabilities()', () => {
+  assert.ok(capabilities().diagnostics.includes('SLIDE_DENSIFIED'));
 });
 
 test('doctor: overloaded SWOT quadrant → BLOCK_OVERFLOW (bound = bottom of the panel)', () => {

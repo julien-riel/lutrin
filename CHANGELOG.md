@@ -9,6 +9,71 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ## [Unreleased]
 
+### Added
+
+- **A text scale — `density`.** A layout definition can now place its text one
+  or two steps under the theme's own sizes: `comfortable` (the default),
+  `compact` and `dense`, on `grid`, `comparison`, `pillars`, `steps`, `swot`,
+  `layers` and `content`. They are factors applied to each block's own token
+  (× 0.78 and × 0.64, rounded to the half point, never under 7 pt), so a kit
+  shipping a 16 pt body keeps its proportions, and they are asked for by an
+  intent word in a JSON layout — a point size still appears nowhere in a deck.
+  Paragraphs, lists, tables and callouts follow the scale in both outputs
+  **and** in the height estimate pagination trusts, which is what keeps a
+  block that renders smaller from being placed as if it had not.
+- **Solid semantic tints, and a radius a layout can choose.** Each of the four
+  tints gained a saturated fill and the ink that goes with it, measured at
+  4.5:1 tint by tint rather than assumed — white on the amber sits near 1.8:1
+  and was never an option. A `panels` entry names the tone: `warning` is the
+  pale callout surface, `warning-solid` the saturated chip (status pill, state
+  bar, coloured band), and a solid panel imposes its ink on every block it
+  holds, so nothing is half-repainted. `radius` — `sm`, `md`, `lg` or `pill` —
+  overrides the radius a variant carries by default, `pill` being half the
+  shorter side whatever the panel measures.
+- **Progress bars — `:::progress`.** The share on the first line (`75 %`,
+  `75%`, `0.75` or `3/4`, clamped to 0–100 %), then the label, then an
+  optional caption; the word after the directive names the tint, the same
+  four a callout takes. The percentage rides inside the fill when the fill can
+  hold it and beside it otherwise — one threshold, computed in the engine, so
+  the number is never in two different places in the two outputs. A value that
+  cannot be read degrades the card to the paragraph the author wrote and says
+  so (`INVALID_PROGRESS`); an unknown tint says so too
+  (`UNKNOWN_PROGRESS_KIND`).
+- **Status badges — `:::status`.** A row of badges, one per comma, each
+  carrying its own severity: nothing = success, `!` = caution, `!!` =
+  critical, `?` = information. The row wraps itself and reports the height it
+  really occupies, so pagination and `BLOCK_OVERFLOW` see the truth. The same
+  badge exists **inline** — `==Owner==`, `==!At risk==` — as a rounded pill in
+  the HTML and, DrawingML having no rounded background for a text run, as a
+  highlighted run in the `.pptx`: a degradation that is documented in
+  `docs/dsl.md` rather than discovered when the file is opened.
+- **`status-list`**, an eleventh official layout (grid, one column, dense
+  text): a status board, one band per `##` section.
+- **Alignment.** A table's delimiter row is honoured at last: `|---:|`
+  right-aligns the column and `|:-:|` centres it, in both outputs. Saying "this
+  column holds figures" is content, like `**bold**` — until now markdown-it
+  resolved it and the engine dropped it without a word. A right-aligned column
+  also gets tabular figures in the HTML, so the thousands line up under one
+  another; the `.pptx` does not, DrawingML run properties carrying no OpenType
+  feature switch. Layouts gained an `align` parameter (`content`, `grid`,
+  `metrics`, and `focus`, whose key message can now sit right as well as
+  centred). A deck still cannot align a paragraph of its own: where the ink
+  sits in a region is the engine's decision, not the author's.
+- **Auto-fit — a bounded region no longer overflows in silence.** Where a
+  layout places content without pagination (a panel, a column, a cell), text
+  that does not fit is re-flowed one step down the text scale, and a second
+  step if it still does not. The whole region steps down together — three type
+  sizes in one panel would read as a bug rather than as a fit — the steps are
+  the three the scale declares and nothing in between, and `dense` is the
+  floor: below it the engine stops and `BLOCK_OVERFLOW` fires, now with the
+  clause "already at the densest step" so its advice no longer suggests what
+  the compiler has already done. Every region the engine shrank is reported by
+  `SLIDE_DENSIFIED` (info): an automatic size is a decision, and the author has
+  to be able to refuse it. **Pagination wins**: a flowing `content` slide is
+  split into "(cont.)" slides and is never densified — a flow layout has
+  somewhere to put the overflow, and shrinking it instead would trade a
+  legible second slide for a cramped single one.
+
 ## [1.1.1] — 2026-07-22
 
 A deck that leaves the machine now survives the trip: every fix below was

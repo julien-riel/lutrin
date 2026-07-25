@@ -48,6 +48,131 @@ test(':::metric — value, label, signed trend', () => {
   assert.equal(metric.trend?.dir, 'up');
 });
 
+test(':::progress — the four spellings of a share, and the tint that follows the name', () => {
+  const bar = (body) => blocksOf(parseDeck(`# P\n\n:::progress${body}\n:::\n`))[0];
+  // the four an author actually writes — all of them the same three quarters
+  for (const written of ['75 %', '75%', '0.75', '3/4']) {
+    assert.deepEqual(
+      bar(`\n${written}\nLabel`),
+      { type: 'progress', value: 0.75, label: 'Label', line: 3 },
+      `"${written}" must read as a three-quarter share`,
+    );
+  }
+  // caption = whatever follows the label; tint = the word after the directive
+  assert.deepEqual(bar(' success\n50 %\nLabel\nUnder analysis'), {
+    type: 'progress',
+    value: 0.5,
+    label: 'Label',
+    caption: 'Under analysis',
+    kind: 'success',
+    line: 3,
+  });
+  // a tint the theme does not know is kept for the diagnostic, never rendered
+  assert.equal(bar(' turquoise\n50 %\nL').unknownKind, 'turquoise');
+  assert.equal(bar(' turquoise\n50 %\nL').kind, undefined);
+});
+
+test(':::progress — an out-of-range value is clamped, an unreadable one degrades', () => {
+  const bar = (value) => blocksOf(parseDeck(`# P\n\n:::progress\n${value}\nLabel\n:::\n`))[0];
+  assert.equal(
+    bar('150 %').value,
+    1,
+    'a figure past 100 % is a typo in the figure, not the syntax',
+  );
+  assert.equal(bar('-2').value, 0);
+  assert.equal(bar('1/0').value, undefined, 'a division by zero is not a share');
+  // unreadable → the paragraph the author wrote, flagged for INVALID_PROGRESS
+  const degraded = bar('almost done');
+  assert.equal(degraded.type, 'para');
+  assert.equal(degraded.invalidProgress, true);
+  assert.equal(runsToText(degraded.runs), 'almost done Label');
+});
+
+test(':::status — one badge per comma, its severity carried by its own prefix', () => {
+  const badge = blocksOf(
+    parseDeck('# S\n\n:::status\nScope, Schedule\n!Budget, ?Note\n!!Risks\n!\n:::\n'),
+  )[0];
+  assert.deepEqual(badge.items, [
+    { text: 'Scope', kind: 'success' },
+    { text: 'Schedule', kind: 'success' },
+    { text: 'Budget', kind: 'warning' },
+    { text: 'Note', kind: 'info' },
+    { text: 'Risks', kind: 'danger' },
+    // a prefix with no label produces no badge at all
+  ]);
+});
+
+// The inline rule is hand-rolled (no plugin), so the hostile inputs are the
+// test: each one must leave the `==` as the literal text it is, without
+// swallowing the rest of the paragraph.
+test('==badge== inline: the tint travels on the run, and the hostile inputs stay literal', () => {
+  const runs = (src) => blocksOf(parseDeck(`# B\n\n${src}\n`))[0].runs;
+
+  const ok = runs('An ==Action== and an ==!Urgent== one.');
+  assert.deepEqual(
+    ok.filter((r) => r.badge),
+    [
+      { text: 'Action', badge: 'success', bold: undefined, italic: undefined, link: undefined },
+      { text: 'Urgent', badge: 'warning', bold: undefined, italic: undefined, link: undefined },
+    ],
+  );
+  // the markers and the prefix are syntax: they never reach the slide
+  assert.equal(runsToText(ok), 'An Action and an Urgent one.');
+
+  // A `==` inside a code span is never badged — the span is one token by the
+  // time the cursor could reach it. Two pairs, so the case cannot pass merely
+  // for want of a closing marker.
+  const code = runs('Compare `a == b == c` here.');
+  assert.ok(!code.some((r) => r.badge), 'no badge inside a code span');
+  assert.ok(code.some((r) => r.code && r.text === 'a == b == c'));
+
+  // The other direction, and this one IS a choice: a badge that opens before a
+  // span takes the span with it, backticks and all, and its label keeps them
+  // literally. Someone who wants code inside a badge has to know it will not
+  // come out as code.
+  const swallow = runs('==A `x` B== after.');
+  assert.deepEqual(
+    swallow.filter((r) => r.badge).map((r) => r.text),
+    ['A `x` B'],
+  );
+  assert.ok(!swallow.some((r) => r.code), 'the span inside a badge is not a code run');
+
+  // A run of `=` longer than the marker declines, and — the part that makes
+  // the guard load-bearing — declines WITHOUT eating the badge that follows.
+  // Ungarded, the rule reopens at the second `=` and pairs it with the next
+  // `==` in the paragraph, badging "= signs and".
+  const after = runs('Four ==== signs and ==Action== after.');
+  const badged = after.filter((r) => r.badge);
+  assert.equal(badged.length, 1, 'the real badge after the run of "=" survives');
+  assert.equal(badged[0].text, 'Action');
+  assert.equal(runsToText(after), 'Four ==== signs and Action after.');
+
+  // The same guard seen from the other side: the later `==` pair is a badge,
+  // and it is the one the author wrote — not the text between the run of `=`
+  // and it. Unguarded this badges "= b" and the sentence loses its middle.
+  const run3 = runs('a === b == c == d');
+  assert.deepEqual(
+    run3.filter((r) => r.badge).map((r) => r.text),
+    ['c'],
+  );
+  assert.equal(runsToText(run3), 'a === b c d');
+
+  for (const [src, why] of [
+    ['An ==unclosed badge.', 'unclosed'],
+    ['Four ==== signs.', 'a longer run of "=" is not a marker'],
+    ['x ===Weird=== y', 'three "=" is not a marker either, on both sides'],
+    ['Empty == == markers.', 'nothing but blanks between the markers'],
+    ['A bare ==!== prefix.', 'a prefix with no label'],
+    ['Across ==a\nline== break.', 'a badge never spans a line'],
+  ]) {
+    const out = runs(src);
+    assert.ok(!out.some((r) => r.badge), `${why}: no badge expected in ${JSON.stringify(src)}`);
+    // and the text is given back whole — a rule that swallowed the rest of the
+    // paragraph would also produce "no badge"
+    assert.equal(runsToText(out).replace(/\s+/g, ' '), src.replace(/\s+/g, ' '), why);
+  }
+});
+
 test('animate: presets and their French aliases are normalized', () => {
   const deck = parseDeck(
     '# A\n\n<!-- animate: fondu -->\n\n- a\n\n# B\n\n<!-- animate: zoom -->\n\n- b\n\n# C\n\n<!-- animate: none -->\n\n- c\n',
@@ -75,6 +200,27 @@ test('table: header and rows as runs', () => {
   assert.equal(table.header.length, 2);
   assert.equal(table.rows.length, 1);
   assert.equal(table.rows[0][1][0].text, '2');
+});
+
+test('table: the delimiter row is read as a per-column alignment', () => {
+  const tableOf = (src) =>
+    parseDeck(`# T\n\n${src}`)
+      .slides[0].sections.flatMap((s) => s.blocks)
+      .find((b) => b.type === 'table');
+
+  // the four forms Markdown offers, in one table: no colon, left, both, right
+  const aligned = tableOf('| a | b | c | d |\n|---|:--|:-:|--:|\n| 1 | 2 | 3 | 4 |\n');
+  assert.deepEqual(aligned.align, ['left', 'left', 'center', 'right']);
+
+  // a plain delimiter row asks for nothing, and must therefore CHANGE nothing:
+  // an `align: ["left", "left"]` here would move every existing scene
+  const plain = tableOf('| a | b |\n|---|---|\n| 1 | 2 |\n');
+  assert.equal('align' in plain, false, 'an unstyled table must carry no align key');
+
+  // the column is recorded ONCE, from the header: markdown-it repeats the same
+  // style on every body cell, and one entry per cell would suggest a per-cell
+  // syntax that Markdown does not have
+  assert.equal(aligned.align.length, aligned.header.length);
 });
 
 // ------ review findings: regressions ---------------------------------------

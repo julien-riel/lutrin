@@ -60,6 +60,22 @@ Three corollaries:
   without which a stale configuration would block projects that asked for
   nothing.
 
+### The one carve-out
+
+A table's delimiter row (`|---:|`) sets the alignment of its column, and that
+is the single place where something written in the `.md` decides where ink
+sits. It is a carve-out, recorded here rather than argued from the code:
+right-aligning a money column is standard GitHub-Flavored Markdown, the engine
+already accepts the syntax, and silently dropping what an author wrote is its
+own kind of surprise.
+
+It stays a carve-out, not a precedent. It does not license an alignment
+attribute on a paragraph, and `align` still has exactly two producers — this
+delimiter row and a layout definition. Note also what the carve-out costs: a
+right-aligned column is read as "this column holds figures" and gets tabular
+figures, which means presentation is standing in for meaning. Better would be
+to detect the numbers.
+
 ## Code expectations
 
 - **English** for comments, diagnostic messages and documentation.

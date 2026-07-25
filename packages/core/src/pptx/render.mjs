@@ -26,7 +26,11 @@ import {
   PAGE,
   SEMANTIC,
   TREND_INK,
+  badgeLayout,
+  blockFontSize,
+  panelRadius,
   panelStyle,
+  progressLayout,
   px,
   LINE_HEIGHT,
 } from '../deck/tokens.mjs';
@@ -49,6 +53,20 @@ import { highlightLine } from '../deck/highlight.mjs';
 import { embedFonts } from './fonts.mjs';
 import { embedAnimations } from './anim.mjs';
 import { embedMorph } from './morph.mjs';
+
+/**
+ * Text inset of a shape whose box the layout engine sized to the text itself.
+ *
+ * Left unsaid, OOXML applies its own default `lIns`/`rIns` of 91440 EMU —
+ * 9.6 px a side, 19.2 px of the width gone. On the roomy boxes (a paragraph,
+ * a slot title) that is invisible; on a box measured to fit its string it is
+ * fatal: the "0 %" of an empty bar is emitted 23 px wide, which leaves 3.8 px
+ * of usable text width, and PowerPoint breaks the number at its space and
+ * stacks it out of a 20 px bar. The HTML twins are `white-space:nowrap` in a
+ * box of exactly the same width, so the inset is also what pushes every label
+ * 9.6 px off the coordinate both renderers were handed.
+ */
+const TEXT_INSET = 0;
 
 /** addImage options for a logo at an imposed height, width at its native ratio
  *  (the paths come from LOGOS — themable, so the ratio is never presumed).
@@ -75,16 +93,35 @@ function logoImage(file, h, x, y) {
 // ---------------------------------------------------------------------------
 
 function toRuns(runs, base = {}) {
-  return runs.map((r) => ({
-    text: r.text,
-    options: {
-      bold: r.bold || base.bold || false,
-      italic: r.italic || base.italic || false,
-      fontFace: r.code ? FONTS.mono : (base.fontFace ?? FONTS.body),
-      color: r.code ? COLORS.primaryDarker : (base.color ?? COLORS.neutralPrimary),
-      ...(r.link ? { hyperlink: { url: r.link } } : {}),
-    },
-  }));
+  return runs.map((r) => {
+    // Inline badge (`==Action==`): DrawingML gives a run no rounded background,
+    // so the pill of the HTML becomes a run HIGHLIGHT here — the tint and the
+    // ink survive, the shape does not. A DELIBERATE degradation, written down
+    // in docs/dsl.md: what CONTRIBUTING.md forbids is diverging in silence.
+    //
+    // Everything else about the run must match the CSS `.badge`, and the size
+    // is why that rule carries none: an inline badge takes the size of the
+    // sentence it sits in. Pinned to TYPE.small on one side only, it rendered
+    // 22 % LARGER than its own paragraph in a densified HTML slide and at the
+    // paragraph's size in the .pptx — and blockHeight() measured the third
+    // answer. The weight is stated here because the CSS states it too.
+    const badge = r.badge ? (SEMANTIC[r.badge] ?? SEMANTIC.info) : null;
+    return {
+      text: r.text,
+      options: {
+        bold: !!badge || r.bold || base.bold || false,
+        italic: r.italic || base.italic || false,
+        fontFace: r.code ? FONTS.mono : (base.fontFace ?? FONTS.body),
+        color: badge
+          ? badge.solidText
+          : r.code
+            ? COLORS.primaryDarker
+            : (base.color ?? COLORS.neutralPrimary),
+        ...(badge ? { highlight: badge.solid } : {}),
+        ...(r.link ? { hyperlink: { url: r.link } } : {}),
+      },
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -142,33 +179,39 @@ function containRect(dims, r) {
 // ---------------------------------------------------------------------------
 
 function addPara(slide, block, r) {
+  // `size` (pt): text scale imposed by the layout (`density`) — otherwise the
+  // theme's body token
+  const size = blockFontSize(block);
   slide.addText(toRuns(block.runs, { color: block.color }), {
     x: px(r.x),
     y: px(r.y),
     w: px(r.w),
     h: px(r.h),
-    fontSize: TYPE.body,
+    fontSize: size,
     fontFace: FONTS.body,
     color: block.color ?? COLORS.neutralPrimary,
-    align: 'left',
+    // `align`: imposed by a layout (`align` parameter) — left otherwise, and
+    // stated rather than inherited (see the cover title's inheritance trap)
+    align: block.align ?? 'left',
     valign: 'top',
     // exact points, never a multiple: OOXML's spcPct multiplies the FONT'S
     // own line metrics, so a kit font with tall ascenders rendered ~20%
     // taller than blockHeight() measured and crowded whatever followed.
     // spcPts pins the pitch to what the layout engine and the HTML (.para
-    // line-height 1.4) both assume, whatever font the kit ships.
-    lineSpacing: TYPE.body * LINE_HEIGHT,
+    // line-height 1.4) both assume, whatever font the kit ships. A size
+    // shipped without its matching pitch brings the bug back, smaller.
+    lineSpacing: size * LINE_HEIGHT,
   });
 }
 
 function addHeading(slide, block, r) {
-  // `size` (pt) and `align`: key message of the focus layout — otherwise a slot title
+  // `size` (pt): key message of the focus layout — otherwise a slot title
   slide.addText(toRuns(block.runs, { bold: true, color: block.color }), {
     x: px(r.x),
     y: px(r.y),
     w: px(r.w),
     h: px(r.h),
-    fontSize: block.size ?? TYPE.sectionHeading,
+    fontSize: blockFontSize(block),
     fontFace: FONTS.body,
     color: block.color ?? COLORS.neutralPrimary,
     bold: true,
@@ -181,6 +224,10 @@ function addHeading(slide, block, r) {
 }
 
 function addBullets(slide, block, r) {
+  // `size` (pt): text scale imposed by the layout (`density`); the sub-level
+  // keeps the ratio the theme gave it — see blockFontSize
+  const size = blockFontSize(block);
+  const nestedSize = blockFontSize(block, 'nested');
   const runs = [];
   // `startAt`: a chunk of a numbered list split by pagination. In OOXML,
   // `buAutoNum/@startAt` RESTARTS the counter at the paragraph that carries
@@ -204,9 +251,9 @@ function addBullets(slide, block, r) {
     if (it.level) {
       // nested items: same size and pitch as the HTML (.bullets ul ul)
       itemRuns.forEach((run) => {
-        run.options.fontSize = TYPE.bulletNested;
+        run.options.fontSize = nestedSize;
       });
-      itemRuns[0].options.lineSpacing = TYPE.bulletNested * 1.3;
+      itemRuns[0].options.lineSpacing = nestedSize * 1.3;
     }
     itemRuns[0] = {
       ...itemRuns[0],
@@ -232,13 +279,14 @@ function addBullets(slide, block, r) {
     y: px(r.y),
     w: px(r.w),
     h: px(r.h),
-    fontSize: TYPE.bullet,
+    fontSize: size,
     fontFace: FONTS.body,
     color: block.color ?? COLORS.neutralPrimary,
     valign: 'top',
+    ...(block.align ? { align: block.align } : {}),
     // exact pitch and gap of the HTML (.bullets: line-height 1.3, li
     // margin-bottom 6px) — spcPts + 4.5 pt (= 6 px); see addPara
-    lineSpacing: TYPE.bullet * 1.3,
+    lineSpacing: size * 1.3,
     paraSpaceAfter: 4.5,
   });
 }
@@ -273,10 +321,10 @@ function addCode(slide, block, r) {
     y: px(r.y + SPACE.xs),
     w: px(r.w - 2 * SPACE.sm),
     h: px(r.h - 2 * SPACE.xs),
-    fontSize: TYPE.code,
+    fontSize: blockFontSize(block),
     valign: 'top',
     // exact pitch of the HTML (.code line-height 1.3); see addPara
-    lineSpacing: TYPE.code * 1.3,
+    lineSpacing: blockFontSize(block) * 1.3,
   });
 }
 
@@ -287,23 +335,51 @@ function addTable(slide, block, r) {
     { pt: 0.75, color: COLORS.neutralStroke },
     { type: 'none' },
   ];
-  const headerRow = block.header.map((cell) => ({
-    text: toRuns(cell, { bold: true }),
+  // Per-column alignment (the Markdown delimiter row) is threaded PER CELL:
+  // `colW` aside, PptxGenJS has no per-column option, and a cell value beats
+  // the table's. The object is rebuilt for every cell on purpose — PptxGenJS
+  // writes the inherited keys back INTO the options it is handed, so one
+  // shared per-column object would leak those mutations across the column.
+  //
+  // No tabular-figure request goes with it, unlike the CSS: DrawingML run
+  // properties carry no OpenType feature switch, and the only OOXML mechanism
+  // that lines digits up — a decimal tab stop — would mean pushing tab
+  // characters into the author's cells. The default body face (Arial) already
+  // ships tabular lining figures, so PowerPoint lines them up on its own; the
+  // divergence is documented in docs/dsl.md rather than papered over.
+  const align = (k) =>
+    block.align?.[k] && block.align[k] !== 'left' ? { align: block.align[k] } : {};
+  // `block.color`: the panel repainted us (a saturated tone). The header's own
+  // pale fill has to go with the ink — light text on light grey is worse than
+  // the under-AA contrast the repaint exists to fix — and both rows take the
+  // panel's ink rather than the deck's.
+  const ink = block.color ?? COLORS.neutralPrimary;
+  const headerRow = block.header.map((cell, k) => ({
+    text: toRuns(cell, { bold: true, color: block.color }),
     options: {
       bold: true,
-      fill: { color: COLORS.underground1 },
+      ...(block.color ? {} : { fill: { color: COLORS.underground1 } }),
       border,
-      color: COLORS.neutralPrimary,
+      color: ink,
+      ...align(k),
     },
   }));
   const bodyRows = block.rows.map((row) =>
-    row.map((cell) => ({ text: toRuns(cell), options: { border, color: COLORS.neutralPrimary } })),
+    row.map((cell, k) => ({
+      text: toRuns(cell, { color: block.color }),
+      options: { border, color: ink, ...align(k) },
+    })),
   );
   slide.addTable([...(headerRow.length ? [headerRow] : []), ...bodyRows], {
     x: px(r.x),
     y: px(r.y),
     w: px(r.w),
-    fontSize: TYPE.tableBody,
+    // no lineSpacing: TableCellProps has none, and a table-level one is not
+    // among the options PptxGenJS pushes down into the cells. The row heights
+    // are PowerPoint's own (no `h`, no `rowH`), so the pitch stays the font's
+    // — blockHeight() estimates against the same size and nothing else can be
+    // pinned here.
+    fontSize: blockFontSize(block),
     fontFace: FONTS.body,
     valign: 'middle',
     margin: 6,
@@ -313,6 +389,10 @@ function addTable(slide, block, r) {
 
 function addAlert(slide, block, r) {
   const sem = SEMANTIC[block.kind] ?? SEMANTIC.info;
+  // `size` (pt): text scale imposed by the layout (`density`); the label
+  // keeps the ratio the theme gave it — see blockFontSize
+  const size = blockFontSize(block);
+  const labelSize = blockFontSize(block, 'label');
   slide.addShape('roundRect', {
     x: px(r.x),
     y: px(r.y),
@@ -327,10 +407,10 @@ function addAlert(slide, block, r) {
       text: sem.label,
       options: {
         bold: true,
-        fontSize: TYPE.small,
+        fontSize: labelSize,
         color: sem.text,
         breakLine: true,
-        lineSpacing: TYPE.small * 1.3,
+        lineSpacing: labelSize * 1.3,
       },
     },
   ];
@@ -356,12 +436,12 @@ function addAlert(slide, block, r) {
     y: px(r.y + SPACE.xs),
     w: px(r.w - 2 * SPACE.sm),
     h: px(r.h - 2 * SPACE.xs),
-    fontSize: TYPE.body,
+    fontSize: size,
     fontFace: FONTS.body,
     valign: 'top',
     // exact pitch of the HTML (.alert line-height 1.3); the label paragraph
     // carries its own smaller pitch in its run options — see addPara
-    lineSpacing: TYPE.body * 1.3,
+    lineSpacing: size * 1.3,
   });
 }
 
@@ -420,6 +500,114 @@ function addMetric(slide, block, r) {
   }
 }
 
+/**
+ * Progress bar: two rounded rectangles plus text. OOXML has no progress
+ * shape, and none is wanted — a drawn bar renders identically in PowerPoint,
+ * Keynote and QuickLook, the same reasoning that made the charts images.
+ * Every coordinate comes from progressLayout(), which the HTML renderer and
+ * blockHeight() also read.
+ */
+function addProgress(slide, block, r) {
+  const g = progressLayout(block, r.w);
+  const sem = SEMANTIC[block.kind] ?? SEMANTIC.info;
+  const radius = px(g.bar.h / 2); // pill: rectRadius is an absolute length
+  const bar = (box, color) =>
+    slide.addShape('roundRect', {
+      x: px(r.x + box.x),
+      y: px(r.y + box.y),
+      w: px(box.w),
+      h: px(box.h),
+      fill: { color },
+      line: { type: 'none' },
+      rectRadius: radius,
+    });
+  bar(g.bar, COLORS.underground2);
+  // a 0 % bar writes no fill: a zero-width pill is an artefact, and the empty
+  // track already says what there is to say
+  if (g.fill.w > 0) bar(g.fill, sem.solid);
+  // `block.color`: the panel repainted us. It governs everything that writes
+  // on the panel — the label, the caption, the percentage when it sits OUTSIDE
+  // the fill. The percentage inside the fill keeps the tint's own ink: there
+  // the surface is the fill, whatever the panel underneath.
+  const onPanel = block.color ?? COLORS.neutralSecondary;
+  slide.addText(block.label ?? '', {
+    x: px(r.x + g.label.x),
+    y: px(r.y + g.label.y),
+    w: px(g.label.w),
+    h: px(g.label.h),
+    fontSize: TYPE.body,
+    color: block.color ?? COLORS.neutralPrimary,
+    fontFace: FONTS.body,
+    valign: 'middle',
+    // exact pitch, never a multiple — see addPara
+    lineSpacing: TYPE.body * 1.3,
+    margin: TEXT_INSET,
+  });
+  slide.addText(g.pct.text, {
+    x: px(r.x + g.pct.x),
+    y: px(r.y + g.pct.y),
+    w: px(g.pct.w),
+    h: px(g.pct.h),
+    fontSize: TYPE.small,
+    bold: true,
+    color: g.pct.inside ? sem.solidText : onPanel,
+    fontFace: FONTS.body,
+    align: g.pct.align,
+    valign: 'middle',
+    lineSpacing: TYPE.small * 1.3,
+    margin: TEXT_INSET,
+    // progressLayout sized this box to the number and nothing more, and the
+    // HTML counterpart is `white-space:nowrap`: left free to wrap, PowerPoint
+    // stacks "0" over "%" out of a 20 px bar
+    wrap: false,
+  });
+  if (g.caption) {
+    slide.addText(block.caption, {
+      x: px(r.x + g.caption.x),
+      y: px(r.y + g.caption.y),
+      w: px(g.caption.w),
+      h: px(g.caption.h),
+      fontSize: TYPE.caption,
+      color: onPanel,
+      fontFace: FONTS.body,
+      valign: 'middle',
+      lineSpacing: TYPE.caption * 1.3,
+      margin: TEXT_INSET,
+    });
+  }
+}
+
+/** Row of badges: one pill + one text per item, at the positions the shared
+ *  wrap (badgeLayout) computed — the .pptx has no flow layout, so the wrap
+ *  cannot be left to the renderer. */
+function addBadge(slide, block, r) {
+  for (const it of badgeLayout(block, r.w).items) {
+    const sem = SEMANTIC[it.kind] ?? SEMANTIC.info;
+    const box = { x: px(r.x + it.x), y: px(r.y + it.y), w: px(it.w), h: px(it.h) };
+    slide.addShape('roundRect', {
+      ...box,
+      fill: { color: sem.solid },
+      line: { type: 'none' },
+      rectRadius: px(it.h / 2),
+    });
+    slide.addText(it.text, {
+      ...box,
+      fontSize: TYPE.small,
+      bold: true,
+      color: sem.solidText,
+      fontFace: FONTS.body,
+      align: 'center',
+      valign: 'middle',
+      // same pitch as the CSS .badge (1.3), in exact points — see addPara
+      lineSpacing: TYPE.small * 1.3,
+      margin: TEXT_INSET,
+      // badgeLayout sized the pill to the label plus its padding, and the HTML
+      // counterpart is `white-space:nowrap`: a wrapped label leaves the pill
+      wrap: false,
+    });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Blocks synthesized by the structured layouts (comparison, pillars,
 // timeline, layers, swot) — never produced directly by the DSL
@@ -434,13 +622,11 @@ function addPanel(slide, block, r) {
     h: px(r.h),
     fill: { color: style.fill },
     line: style.line ? { color: style.line.color, width: style.line.width } : { type: 'none' },
-    rectRadius: px(
-      block.variant === 'accent'
-        ? 2
-        : block.variant === 'layer' || block.variant === 'semantic'
-          ? 4
-          : 8,
-    ),
+    // pptxgenjs 4 takes rectRadius as an ABSOLUTE length in the shape's own
+    // unit (it computes the OOXML `adj` ratio itself), so the px value the
+    // HTML writes as border-radius travels here unchanged — a pill is half
+    // the shorter side on both sides, not a magic 0.5 on this one
+    rectRadius: px(panelRadius(block, r)),
   });
   if (block.variant === 'pillar' && block.accent !== false) {
     // accent at the head of the pillar — the only use of green in the panel
@@ -527,6 +713,10 @@ function addTimelineDot(slide, block, r) {
 }
 
 function addQuote(slide, block, r) {
+  // `block.color`: the panel repainted us. The mark and the attribution carry
+  // colours of their own (the primary accent, the secondary ink) — both are
+  // measured against the deck's ground, so both follow the ink onto a
+  // saturated surface, exactly as the HTML gives them `color:inherit`.
   slide.addText('“', {
     x: px(r.x),
     y: px(r.y),
@@ -534,21 +724,21 @@ function addQuote(slide, block, r) {
     h: px(96),
     fontSize: 72,
     bold: true,
-    color: COLORS.primary,
+    color: block.color ?? COLORS.primary,
     fontFace: FONTS.body,
   });
-  slide.addText(toRuns(block.runs, { italic: true }), {
+  slide.addText(toRuns(block.runs, { italic: true, color: block.color }), {
     x: px(r.x + 96),
     y: px(r.y),
     w: px(r.w - 128),
     h: px(r.h - 64),
-    fontSize: TYPE.quote,
+    fontSize: blockFontSize(block),
     italic: true,
-    color: COLORS.neutralPrimary,
+    color: block.color ?? COLORS.neutralPrimary,
     fontFace: FONTS.body,
     valign: 'middle',
     // exact pitch of the HTML (.quote blockquote line-height 1.4); see addPara
-    lineSpacing: TYPE.quote * LINE_HEIGHT,
+    lineSpacing: blockFontSize(block) * LINE_HEIGHT,
   });
   if (block.cite) {
     slide.addText(`— ${block.cite}`, {
@@ -557,7 +747,7 @@ function addQuote(slide, block, r) {
       w: px(r.w - 128),
       h: px(40),
       fontSize: TYPE.body,
-      color: COLORS.neutralSecondary,
+      color: block.color ?? COLORS.neutralSecondary,
       fontFace: FONTS.body,
       align: 'right',
     });
@@ -747,6 +937,8 @@ const SHAPE_LABELS = {
   table: 'Table',
   alert: 'Callout',
   metric: 'Key figure',
+  progress: 'Progress bar',
+  badge: 'Status badges',
   quote: 'Quotation',
   image: 'Image',
   mermaid: 'Diagram',
@@ -805,6 +997,8 @@ export const BLOCK_RENDERERS = {
   table: addTable,
   alert: addAlert,
   metric: addMetric,
+  progress: addProgress,
+  badge: addBadge,
   quote: addQuote,
   image: addImage,
   mermaid: addMermaid,
