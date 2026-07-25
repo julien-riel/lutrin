@@ -96,20 +96,57 @@ are invisible in Keynote — a drawn disc has nothing left to substitute or
 misinterpret. Which makes a scorecard a **chart type** rather than a block, at
 a tenth of the cost the rejection was weighed against.
 
-## Reading order
+## Order to build — what is left
 
-They are ordered by dependency, not by value.
+Everything in the two reviews above has shipped: plans 1–5, and the six items
+of the widgets shortlist. What follows is the queue, ordered by value ÷ cost
+with the dependencies respected. Nothing here is committed to; it is the order
+to take them in if they are taken.
 
-- **1 → 5**: auto-fit needs a typographic scale to fall back on. Plan 5 is the
-  policy, plan 1 is the lever it pulls.
-- **2 → 3**: badges and progress bars are painted with the fills plan 2 adds.
-  Shipping 3 first would mean two blocks that can only be drawn in the primary
-  hue — the exact defect the dashboard exposed, moved somewhere new.
-- **4** stands alone and is the cheapest.
+| # | What | Where | Cost | Depends on |
+|---|---|---|---|---|
+| 1 | `opener` layout — the honest answer to "drop cap" | [logos-testimonial-icons.md](logos-testimonial-icons.md) §3c | a JSON file | — |
+| 2 | Semantic icon size (`![large](lucide:…)`) | [build-logos-and-icons.md](build-logos-and-icons.md) §1 | an afternoon | — |
+| 3 | `type: rating`, and look at `type: heat` with it | [reopening-rating-and-person.md](reopening-rating-and-person.md) | a branch in `chart.mjs` | — |
+| 4 | The deep block walker | [build-logos-and-icons.md](build-logos-and-icons.md) §2 | small, but its own change | — |
+| 5 | The logo wall | [build-logos-and-icons.md](build-logos-and-icons.md) §3 | a block | 4 |
+| 6 | The customer testimonial | [logos-testimonial-icons.md](logos-testimonial-icons.md) §2 | try it as a property of `quote` first | 4 |
+| 7 | The inline-icon experiment | [build-logos-and-icons.md](build-logos-and-icons.md) §4 | an hour, to close a question | — |
+| 8 | `:::person` | [reopening-rating-and-person.md](reopening-rating-and-person.md) | a block, and still contested | 4 |
 
-Highest value for the least code: **1 + 2**. Together they cover most of the
-visible gap between `dashboard-ir.html` and the source screenshot, and neither
-introduces a block type.
+Why in that order:
+
+- **1–3 depend on nothing and cost almost nothing.** A JSON layout, an intent
+  word, and one branch in `chart.mjs`. Together they close three requests that
+  keep coming back.
+- **3 jumped the queue, and the reason is recorded.** `:::rating` scored last
+  of thirty candidates, because a Harvey ball was assumed to be a glyph or an
+  OOXML shape and both fail somewhere. It is neither: this engine already draws
+  charts as SVG and rasterises them, precisely because native OOXML charts are
+  invisible in Keynote. As a chart type it costs a tenth of what the rejection
+  was weighed against, and the `chart` grammar declares its own scale.
+- **4 before 5 and 6.** Both carry an image inside a block, which the asset
+  prepass cannot see. Land the walker alone, with the assertion that no golden
+  moves.
+- **7 is not a feature, it is a verdict.** Run it to bank the answer, expect it
+  to be no, and record it in `widgets-next.md` either way.
+- **8 last, and only if someone answers the objection** it was rejected on: a
+  `grid` cell with an image, a heading and a paragraph already draws a
+  governance slide.
+
+Until the walker lands, the standing risk is a *silent* one — a future block
+carrying a nested image would fail with a placeholder and no diagnostic. A
+fifteen-line test asserting that no asset-bearing block appears nested in a
+scene turns that into a loud failure, and is worth having whether or not item 4
+is ever taken.
+
+### The order the first five were built in
+
+Kept because the dependencies are instructive: **1 → 5** (auto-fit needs a
+typographic scale to fall back on — plan 5 is the policy, plan 1 the lever it
+pulls) and **2 → 3** (badges and bars are painted with the fills plan 2 adds;
+shipping 3 first would have meant two components drawable only in the primary
+hue — the exact defect the dashboard exposed, moved somewhere new).
 
 ## What every one of them must honour
 
