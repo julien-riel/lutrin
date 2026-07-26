@@ -800,7 +800,7 @@ removes the first.
 
 Two routes get past wall 2, and **a probe measured both in Keynote** (four
 slides, eight variants — the throwaway harness has since been removed from the
-tree; its numbers are below, and `git show cfc2440` still has it):
+tree; its numbers are below, and `git show c1ee84c` still has it):
 
 - **A — the picture as the cell's FILL** (`a:tcPr/a:blipFill`, what PowerPoint's
   "Shading → Picture" writes). Placement is expressed relative to the cell
