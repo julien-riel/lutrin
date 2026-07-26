@@ -182,7 +182,6 @@ layouts — **data**, not code — and they are always available.
 | `portfolio` | grid, 3 columns with headers | projects or services as a mosaic |
 | `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | grid, 1 column, dense | a status board: progress bars and badges, stacked |
-| `opener` | split, narrow visual column | an icon opening a passage — what a drop cap is for |
 
 Validation **suggests** them when the content betrays the intent: sections
 "Pros" / "Cons" propose `pros-cons`, headings "Probability" / "Severity"
@@ -518,16 +517,27 @@ the slot always keeps the last say: a column narrower than the icon wins.
 
 `small`, `medium` and `large` are factors on the size the engine derives from
 the slot. `line` is the smallest and follows a different rule: it is the height
-of **one line of body text**, read from the theme — a kit with a 16 pt body
-gets a taller icon without asking. Use it for an icon standing *beside* text at
-the head of a line or in a cramped panel. It is not an inline icon: a run of
-text carries no image in either output, and **a table cell renders text only**
-— an icon written in one is dropped, with `TABLE_CONTENT_DROPPED` saying so.
-For a status column in a table, use an inline badge (`==Delivered==`,
-`==!At risk==`); for a whole matrix of marks, `type: heat` or `type: rating`.
+of **one line of body text** — the theme's, and the step a crowded region was
+re-flowed at, so the icon matches the line it stands beside even where the
+engine had to densify. Use it for an icon *beside* text, at the head of a line
+or in a cramped panel.
 
-A word that names neither an ink nor a size is reported by
-`UNKNOWN_ICON_WORD`, with the nearest word suggested — the icon still draws.
+It is not an *inline* icon: **a run of text renders text only**, in a table
+cell, in a bullet and in a heading alike. An icon written inside one of them is
+dropped and reported — `TABLE_CONTENT_DROPPED`, `LIST_CONTENT_DROPPED`,
+`HEADING_CONTENT_DROPPED`. Write it on its own line instead: above the list,
+under the heading. For a status column in a table, use an inline badge
+(`==Delivered==`, `==!At risk==`); for a whole matrix of marks, `type: heat` or
+`type: rating`.
+
+The slot is intent **or** description, never half of each: the words apply only
+when the alt is nothing but vocabulary. `![A white arrow](lucide:arrow-right)`
+is a sentence, so it is read as no intent at all (the icon draws in `primary`)
+— an ink picked out of a description drew white on white. A lone word is always
+an intent, since an icon's alt is rendered nowhere: `![big](lucide:leaf)` is
+reported by `UNKNOWN_ICON_WORD`, with the nearest word suggested, and the icon
+still draws. Two inks or two sizes: the first wins, `ICON_WORD_CONFLICT` names
+the other. Casing does not matter (`![Large]` = `![large]`).
 
 **Mermaid** — a ```` ```mermaid ```` block is rendered as an image, using a
 browser already installed on the machine (Chrome, Edge, Brave or Chromium; set
@@ -726,13 +736,14 @@ The main ones:
 | `BLOCK_OVERFLOW` | warning | a block overflows its region in a non-paginated layout, the text scale spent |
 | `METRICS_DROPPED` | warning | more `:::metric` cards than the layout displays |
 | `MISSING_IMAGE`, `UNKNOWN_ICON` | warning | resource not found |
-| `UNKNOWN_ICON_WORD` | warning | a word in an icon's alt names neither an ink nor a size |
+| `IMAGE_PATH_ESCAPE` | error | image outside the deck's directory — the build writes no file |
+| `UNKNOWN_ICON_WORD`, `ICON_WORD_CONFLICT` | warning | an icon's alt names neither an ink nor a size, or names two of one |
 | `INVALID_CHART`, `CHART_DATA_IGNORED` | warning | `chart` specification could not be parsed, or data dropped |
 | `INVALID_PROGRESS` | warning | `:::progress` value unreadable — the card falls back to a paragraph |
 | `UNKNOWN_PROGRESS_KIND` | warning | unknown tint after `:::progress` |
 | `ALERT_CONTENT_DROPPED` | warning | block not rendered inside a callout |
 | `QUOTE_CONTENT_DROPPED` | warning | block not rendered inside a quotation |
-| `TABLE_CONTENT_DROPPED` | warning | an image or icon written in a table cell, which renders text only |
+| `TABLE_CONTENT_DROPPED`, `LIST_CONTENT_DROPPED`, `HEADING_CONTENT_DROPPED` | warning | an image or icon written into a cell, a bullet or a heading, which render text only |
 | `UNKNOWN_ANIMATE` | warning | unknown animation effect |
 | `KIT_*`, `THEME_*` | error/warning | kit not found or invalid theme entry |
 | `THEME_CONTRAST` | warning | WCAG threshold not met by the applied theme |

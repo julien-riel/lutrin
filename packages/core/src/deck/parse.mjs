@@ -231,10 +231,13 @@ function splitFrontmatter(src) {
   return { meta, body: src.slice(m[0].length), lineOffset: (m[0].match(/\n/g) ?? []).length };
 }
 
+const isIconSrc = (src) => /^(?:lucide|icon):/i.test(src ?? '');
+
 /** Accumulates a markdown-it inline token into `runs`, keeping the emphasis
  *  state `state` up to date. The state is carried by the caller: it therefore
- *  survives an image that cuts the paragraph into two fragments. */
-function pushRun(runs, t, state) {
+ *  survives an image that cuts the paragraph into two fragments.
+ *  `dropped` is an optional Set collecting the TYPES a run cannot hold. */
+function pushRun(runs, t, state, dropped) {
   switch (t.type) {
     case 'strong_open':
       state.bold++;
@@ -263,7 +266,27 @@ function pushRun(runs, t, state) {
       break;
     case 'image':
       // outside a paragraph (list, cell, heading) an image has no block to go
-      // into; inside one, inlineParagraphBlocks() intercepts it first.
+      // into; inside one, inlineParagraphBlocks() intercepts it first. The
+      // TYPE is handed to whoever is collecting, so the container reports the
+      // loss instead of swallowing it — a cell, a bullet and a heading all
+      // lose it here, and only the cell used to say so.
+      dropped?.add(isIconSrc(t.attrGet('src')) ? 'icon' : 'image');
+      break;
+    case 'html_inline':
+      // `html: true` lets an <img> through as raw HTML, and it is the same
+      // loss as the Markdown spelling: recorded, not PRINTED — the tag itself
+      // rendered as visible text was the worst of the three outcomes. Any
+      // other inline HTML stays the text run it has always been.
+      if (/^<img\b/i.test(t.content)) {
+        dropped?.add('image');
+        break;
+      }
+      runs.push({
+        text: t.content,
+        bold: state.bold > 0 || undefined,
+        italic: state.italic > 0 || undefined,
+        link: state.link || undefined,
+      });
       break;
     case 'badge_inline':
       // an explicit case, BEFORE the default: a token this switch does not
@@ -291,40 +314,75 @@ function pushRun(runs, t, state) {
 }
 
 /** Flattens markdown-it's inline children into styled "runs". */
-function inlineRuns(token) {
+function inlineRuns(token, dropped) {
   const runs = [];
   const state = { bold: 0, italic: 0, link: null };
-  for (const t of token.children ?? []) pushRun(runs, t, state);
+  for (const t of token.children ?? []) pushRun(runs, t, state, dropped);
   return runs;
 }
 
 export const runsToText = (runs) => runs.map((r) => r.text).join('');
 
+/** Reads an inline token as runs and records into `into` the types the
+ *  container could not hold. The whitespace an extracted image leaves behind
+ *  goes with it: a bullet that lost its icon reads "Done", not " Done". */
+function runsWithLosses(token, into) {
+  const here = new Set();
+  const runs = inlineRuns(token, here);
+  if (!here.size) return runs;
+  for (const kind of here) into.add(kind);
+  return trimEdgeRuns(runs);
+}
+
+/** The intent an icon's alt slot carries — an ink (`neutral`) and a size
+ *  (`large`), in any order.
+ *
+ *  ALL OR NOTHING, and that rule is the whole design: the words apply only
+ *  when the alt is NOTHING BUT vocabulary. "A white arrow" is a sentence
+ *  someone wrote for a reader, and picking `white` out of it drew the icon
+ *  white on a white slide with nothing said — a sentence is prose, and prose
+ *  is ignored here exactly as it was before the slot held any word at all.
+ *
+ *  A LONE word is always read as an intent, prose or not: an icon's alt is
+ *  rendered nowhere (both renderers build the accessible text from the icon's
+ *  NAME), so `![big]` can only be a size its author expected, and it is
+ *  reported rather than dropped.
+ *
+ *  Words are matched lowercased, like the icon name on the same line. A second
+ *  word of a category already named is not silently discarded either — it
+ *  travels as `duplicateWords`, and validation says which one lost. */
+function iconIntent(alt) {
+  const words = alt.split(/\s+/).filter(Boolean);
+  const lower = words.map((w) => w.toLowerCase());
+  const known = (w) => ICON_COLORS.has(w) || ICON_SIZES.has(w);
+  if (words.length > 1 && !lower.every(known)) return { color: 'primary' };
+  const inks = lower.filter((w) => ICON_COLORS.has(w));
+  const sizes = lower.filter((w) => ICON_SIZES.has(w));
+  return {
+    color: inks[0] ?? 'primary',
+    // no word, no key: a deck that asked for nothing must produce the block it
+    // produced before this feature existed — goldens included
+    ...(sizes[0] ? { size: sizes[0] } : {}),
+    // reported as the author WROTE them, casing included
+    ...(lower.every(known) ? {} : { unknownWords: words }),
+    ...(inks.length > 1 || sizes.length > 1
+      ? { duplicateWords: [...inks.slice(1), ...sizes.slice(1)] }
+      : {}),
+  };
+}
+
 /** markdown-it `image` token → `image` or `icon` block.
  *  `![role](…)`: the alt carries the role when it names one, otherwise the
- *  alternative text; `lucide:`/`icon:` switches to an icon.
- *
- *  An icon's alt slot is a set of INTENT WORDS, in any order: an ink
- *  (`neutral`) and a size (`large`). A word that names neither is not silently
- *  dropped — it travels on the block as `unknownWords` and validation reports
- *  it with a "did you mean", the same contract as an unknown progress tint. */
+ *  alternative text; `lucide:`/`icon:` switches to an icon (see iconIntent). */
 function imageBlock(img) {
   const alt = img.content ?? '';
   const src = img.attrGet('src') ?? '';
   const icon = src.match(/^(?:lucide|icon):(.+)$/i);
   if (icon) {
-    const words = alt.split(/\s+/).filter(Boolean);
-    const color = words.find((w) => ICON_COLORS.has(w));
-    const size = words.find((w) => ICON_SIZES.has(w));
-    const unknown = words.filter((w) => !ICON_COLORS.has(w) && !ICON_SIZES.has(w));
     return {
       type: 'icon',
       name: icon[1].trim().toLowerCase(),
-      color: color ?? 'primary',
-      // no word, no key: a deck that asked for nothing must produce the block
-      // it produced before this feature existed — goldens included
-      ...(size ? { size } : {}),
-      ...(unknown.length ? { unknownWords: unknown } : {}),
+      ...iconIntent(alt),
     };
   }
   return {
@@ -716,6 +774,16 @@ export function parseDeck(source) {
     return slide;
   };
   const curSection = () => slide.sections[slide.sections.length - 1];
+  /** A heading holds runs, so an image written into one is dropped (pushRun).
+   *  The types travel with the heading wherever it lands — a slide title or a
+   *  section's — so validation names the loss at the line it happened on,
+   *  instead of leaving an author to notice the icon is simply not there. */
+  const headingLoss = (block) =>
+    block.dropped ? { headingDropped: block.dropped, headingLine: block.line } : {};
+  const setHeading = (section, block) => {
+    section.heading = block.runs;
+    Object.assign(section, headingLoss(block));
+  };
   const pushSlide = () => {
     if (slide) slides.push(slide);
     slide = null;
@@ -855,15 +923,23 @@ export function parseDeck(source) {
        *  one. The flag is read per chunk: a list cut in two by a nested block
        *  keeps each half's own markers. */
       let fragmented = false;
+      /** Types an item could not hold — an icon written into a bullet is
+       *  dropped by pushRun exactly as it is in a cell, and used to be the one
+       *  place nobody was told. Per CHUNK: a list cut by a nested block
+       *  reports each half's own losses, beside its own line. */
+      let dropped = new Set();
       /** Closes the current list chunk to let a block through. */
       const flushBullets = () => {
         const frag = fragmented;
         fragmented = false;
+        const lost = dropped;
+        dropped = new Set();
         if (!items.length) return;
         const b = { type: 'bullets', ordered, items };
         if (marp && frag) b.fragmented = true;
         if (ordered && rank > 1) b.startAt = rank;
         if (itemsLine != null) b.line = itemsLine;
+        if (lost.size) b.dropped = [...lost];
         rank += items.filter((it) => !it.level).length;
         out.push(b);
         items = [];
@@ -918,7 +994,7 @@ export function parseDeck(source) {
         if (u.type === 'inline' && para > 0) {
           // nesting level: roughly (token level - base level) / 2
           const lvl = Math.max(0, Math.floor((u.level - t.level - 2) / 2));
-          items.push({ runs: inlineRuns(u), level: Math.min(lvl, 2) });
+          items.push({ runs: runsWithLosses(u, dropped), level: Math.min(lvl, 2) });
           itemsLine ??= lineOf(u);
         }
         i++;
@@ -943,8 +1019,11 @@ export function parseDeck(source) {
         const depth = Number(t.tag.slice(1));
         const inline = tokens[i + 1];
         i += 3;
-        const runs = inline?.type === 'inline' ? inlineRuns(inline) : [];
-        return { type: 'heading', depth, runs };
+        // a heading holds runs, and an image is not one: the same loss as a
+        // cell, reported the same way rather than left to be discovered
+        const dropped = new Set();
+        const runs = inline?.type === 'inline' ? runsWithLosses(inline, dropped) : [];
+        return { type: 'heading', depth, runs, ...(dropped.size ? { dropped: [...dropped] } : {}) };
       }
       case 'fence': {
         i++;
@@ -1013,12 +1092,7 @@ export function parseDeck(source) {
           // it per cell would invent one the author cannot write.
           else if (inHead && u.type === 'th_open')
             align.push(u.attrGet('style')?.replace('text-align:', '') ?? 'left');
-          else if (u.type === 'inline') {
-            for (const c of u.children ?? [])
-              if (c.type === 'image')
-                dropped.add(/^(?:lucide|icon):/i.test(c.attrGet('src') ?? '') ? 'icon' : 'image');
-            row.push(inlineRuns(u));
-          }
+          else if (u.type === 'inline') row.push(runsWithLosses(u, dropped));
           i++;
         }
         i++;
@@ -1190,15 +1264,16 @@ export function parseDeck(source) {
           if (!slide.title && !marpSlideHasContent(slide) && block.depth <= 2) {
             slide.titleRuns = block.runs;
             slide.title = runsToText(block.runs).trim();
+            Object.assign(slide, headingLoss(block));
             slide.marpTitleDepth = block.depth;
           } else {
             if (slide.marpTitleDepth != null && block.depth > slide.marpTitleDepth) {
               slide.marpSectionDepth ??= block.depth;
             }
             if (curSection().heading !== null || curSection().blocks.length) {
-              slide.sections.push({ heading: block.runs, blocks: [] });
+              slide.sections.push({ heading: block.runs, ...headingLoss(block), blocks: [] });
             } else {
-              curSection().heading = block.runs;
+              setHeading(curSection(), block);
             }
           }
           continue;
@@ -1210,6 +1285,7 @@ export function parseDeck(source) {
         ensureSlide();
         slide.titleRuns = block.runs;
         slide.title = runsToText(block.runs);
+        Object.assign(slide, headingLoss(block));
         slide.line ??= block.line;
         continue;
       }
@@ -1225,9 +1301,9 @@ export function parseDeck(source) {
       if (block.type === 'heading' && block.depth === 2) {
         // new section (potential slot)
         if (curSection().heading !== null || curSection().blocks.length) {
-          slide.sections.push({ heading: block.runs, blocks: [] });
+          slide.sections.push({ heading: block.runs, ...headingLoss(block), blocks: [] });
         } else {
-          curSection().heading = block.runs;
+          setHeading(curSection(), block);
         }
         continue;
       }

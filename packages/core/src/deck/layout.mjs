@@ -34,7 +34,6 @@ import {
   charWidth,
   contentArea,
   iconFlowHeight,
-  iconSize,
   panelStyle,
   progressLayout,
   scaleTextToken,
@@ -286,9 +285,17 @@ const SIZED_BLOCKS = new Set(['para', 'bullets', 'table', 'alert']);
  */
 function scaleBlocks(blocks, density) {
   if (!density || density === 'comfortable') return blocks;
-  return blocks.map((b) =>
-    SIZED_BLOCKS.has(b.type) ? { ...b, size: scaleTextToken(blockFontSize(b), density) } : b,
-  );
+  return blocks.map((b) => {
+    if (SIZED_BLOCKS.has(b.type)) return { ...b, size: scaleTextToken(blockFontSize(b), density) };
+    // An icon carries no point size — its `size` is a WORD, and stamping one
+    // there would collide with it. What `line` needs is the STEP: it means one
+    // line of body text, and a body stepped down to 9 pt beside a 26 px icon
+    // is not one line but one and a half, in a region the engine has just
+    // declared too tight. The factor words are factors on a constant of the
+    // engine, so they are left alone.
+    if (b.type === 'icon' && b.size === 'line') return { ...b, density };
+    return b;
+  });
 }
 
 /**
@@ -1322,42 +1329,44 @@ export function buildScenes(deck) {
         break;
       }
       case 'split': {
-        // An icon counts as the visual HERE, and not in inferLayout(): asking
-        // for a split-based layout with an icon in it can only mean the icon
-        // takes the visual column (this is what `opener` is), whereas
-        // inferring `split` from an icon would move every existing slide that
-        // heads a column with one — the demo's three pillars first of all.
         const isVisual = (b) =>
           b.type === 'mermaid' ||
           b.type === 'chart' ||
-          b.type === 'icon' ||
           (b.type === 'image' && b.role !== 'background');
-        const visuals = blocks.filter(isVisual);
-        const text = blocks.filter((b) => !isVisual(b));
+        // A "##" is CONTENT, not decoration, and flat() does not carry it: a
+        // split flowing only section.blocks dropped the heading its author
+        // wrote, in both outputs and without a word. `content` has always
+        // turned it back into a block — the same treatment here, in the text
+        // column where it belongs.
+        const written = slide.sections
+          .filter((s) => s.heading || s.blocks.length)
+          .flatMap((s) =>
+            s.heading ? [{ type: 'heading', depth: 2, runs: s.heading }, ...s.blocks] : s.blocks,
+          );
+        const visuals = written.filter(isVisual);
+        const text = written.filter((b) => !isVisual(b));
         const flip = P.side === 'left' || visuals.some((b) => b.role === 'left'); // visual left
         const leftW = Math.round((area.w - PAGE.gutter) * (P.ratio ?? 0.42));
         const rightW = area.w - PAGE.gutter - leftW;
-        const textRegion = flip
-          ? { x: area.x + rightW + PAGE.gutter, y: area.y, w: leftW, h: area.h }
-          : { x: area.x, y: area.y, w: leftW, h: area.h };
+        // No visual, no column: a layout whose `ratio`/`side` reserve a narrow
+        // strip left a hollow gutter down the slide when the slide it was
+        // applied to had nothing to put in it. The text takes the area back.
+        const textRegion = !visuals.length
+          ? { ...area }
+          : flip
+            ? { x: area.x + rightW + PAGE.gutter, y: area.y, w: leftW, h: area.h }
+            : { x: area.x, y: area.y, w: leftW, h: area.h };
         const visRegion = flip
           ? { x: area.x, y: area.y, w: rightW, h: area.h }
           : { x: area.x + leftW + PAGE.gutter, y: area.y, w: rightW, h: area.h };
         const elements = flowBlocks(text, textRegion, { paginate: false })[0];
         const visH = (visRegion.h - (visuals.length - 1) * PAGE.gutter) / visuals.length;
-        visuals.forEach((v, k) => {
-          // An icon holds an intrinsic square size, where a chart or an image
-          // fills whatever slot it is given. Stretched over the whole column
-          // it centred itself halfway down the slide, beside nothing —
-          // `opener` wants it against the first line of the passage. Its share
-          // is therefore trimmed to the square it will actually draw.
-          const h =
-            v.type === 'icon' ? Math.min(visH, iconSize(v, { w: visRegion.w, h: visH })) : visH;
+        visuals.forEach((v, k) =>
           elements.push({
             block: v,
-            region: { ...visRegion, y: visRegion.y + k * (visH + PAGE.gutter), h },
-          });
-        });
+            region: { ...visRegion, y: visRegion.y + k * (visH + PAGE.gutter), h: visH },
+          }),
+        );
         push({ elements });
         break;
       }

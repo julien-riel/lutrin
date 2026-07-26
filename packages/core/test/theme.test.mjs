@@ -1680,3 +1680,31 @@ test('an icon sized `line` follows the theme body, not a constant', (t) => {
   // the sizes that ARE factors stay put: the theme moves the text, not the grid
   assert.equal(iconSize({ ...icon, size: 'large' }, region), 224);
 });
+
+// A column asked to hold more visuals than it has room for hands out a
+// NEGATIVE share. A negative side is not a small icon: it is an `<a:ext>`
+// outside ST_PositiveCoordinate, i.e. a .pptx PowerPoint offers to repair.
+test('an icon is never drawn at zero or a negative side, whatever the slot says', () => {
+  const icon = { type: 'icon', name: 'check', color: 'primary' };
+  assert.ok(iconSize(icon, { w: 400, h: -9.4 }) > 0);
+  assert.ok(iconSize(icon, { w: 400, h: 0 }) > 0);
+  assert.ok(iconSize({ ...icon, size: 'large' }, { w: -100, h: -100 }) > 0);
+});
+
+// `line` follows the body ALL the way, the auto-fit step included: a region
+// re-flowed at 9 pt beside a 26 px icon is not "one line of text", it is one
+// and a half — in the region the engine has just declared too tight.
+test('an icon sized `line` follows the step a densified region was re-flowed at', () => {
+  const region = { x: 0, y: 0, w: 400, h: 400 };
+  const icon = { type: 'icon', name: 'cpu', color: 'primary', size: 'line' };
+  const comfortable = iconSize(icon, region);
+  const dense = iconSize({ ...icon, density: 'dense' }, region);
+  assert.ok(dense < comfortable, `dense must shrink the icon (${dense} vs ${comfortable})`);
+  assert.equal(dense, Math.round(scaleTextToken(TYPE.body, 'dense') * (96 / 72) * LINE_HEIGHT));
+  // a factor word is a factor on a constant of the engine: the step is not its
+  // business, and it must not move
+  assert.equal(
+    iconSize({ ...icon, size: 'large', density: 'dense' }, region),
+    iconSize({ ...icon, size: 'large' }, region),
+  );
+});

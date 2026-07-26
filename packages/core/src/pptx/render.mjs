@@ -28,6 +28,7 @@ import {
   TREND_INK,
   badgeLayout,
   blockFontSize,
+  ICON_SCALE,
   iconSize,
   panelRadius,
   panelStyle,
@@ -1468,7 +1469,16 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
           `Icon "${iconLabel(b.name)}" not found — name unknown to Lucide, or the lucide-static package is absent and there is no network. The slide is rendered without it.`;
         return;
       }
-      const out = await svgToPng(svg, ICON_RASTER_PX);
+      // The raster follows the size WORD the author asked for: a `large` icon
+      // is PLACED 1.4× bigger, and a fixed density behind it dropped the
+      // source-to-placement ratio from 2.4× to 1.7× — the most prominent icon
+      // on the slide, and the softest of them all, while the HTML (which
+      // inlines the SVG) stayed sharp. Never below the base density: a
+      // smaller icon costs nothing to oversample.
+      const out = await svgToPng(
+        svg,
+        Math.round(ICON_RASTER_PX * Math.max(1, ICON_SCALE[b.size] ?? 1)),
+      );
       if (out) icons.set(b, writeTmpPng(tmp(), `icon-${k}-${iconSlug(b.name)}`, out.png));
     }),
   );

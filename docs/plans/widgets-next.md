@@ -798,8 +798,9 @@ removes the first.
    are pinned (`<a:gridCol w="2819400"/>`), so x is known and y is not — and y
    is the axis a table stacks along.
 
-Two routes get past wall 2, and **a probe measured both in Keynote**
-(`probe-inject.mjs`, four slides, eight variants):
+Two routes get past wall 2, and **a probe measured both in Keynote** (four
+slides, eight variants — the throwaway harness has since been removed from the
+tree; its numbers are below, and `git show cfc2440` still has it):
 
 - **A — the picture as the cell's FILL** (`a:tcPr/a:blipFill`, what PowerPoint's
   "Shading → Picture" writes). Placement is expressed relative to the cell

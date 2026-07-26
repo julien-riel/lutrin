@@ -224,6 +224,16 @@ what it is for, document it as the answer to "drop cap", and record the true
 wrap as refused with the reason. If the visual difference turns out to matter
 to a real deck, that is new evidence and the question reopens.
 
+> **Outcome: shipped, then withdrawn.** The layout was a JSON file, but the
+> "two lines in `split`" it needed were not free: counting an icon as the
+> visual applied to INFERRED splits too, so every slide already pairing an icon
+> with a photo or a chart lost half its visual, silently. `opener` is also a
+> name a kit is likely to have taken, and a collision hands the official
+> geometry a deck it was never written for, with a warning and exit code 0.
+> The composition remains legitimate — a deck that wants it can name it in its
+> own `layouts/*.json`, which costs one file and reserves nothing. The true
+> wrap-around stays refused, for the reason above.
+
 ---
 
 ## What holds for all of it

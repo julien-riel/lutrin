@@ -200,6 +200,11 @@ test('capabilities() reflects the engine sources of truth', () => {
   // ate an icon and nobody could find out why
   assert.ok(caps.diagnostics.includes('TABLE_CONTENT_DROPPED'));
   assert.ok(caps.diagnostics.includes('QUOTE_CONTENT_DROPPED'));
+  assert.ok(caps.diagnostics.includes('LIST_CONTENT_DROPPED'));
+  assert.ok(caps.diagnostics.includes('HEADING_CONTENT_DROPPED'));
+  // the one image diagnostic that ABORTS the build: an agent enumerating this
+  // list could not explain the only failure that writes no file
+  assert.ok(caps.diagnostics.includes('IMAGE_PATH_ESCAPE'));
   assert.deepEqual(caps.iconSizes, ['line', 'small', 'medium', 'large']);
   assert.deepEqual(caps.iconColors, ['primary', 'neutral', 'secondary', 'white']);
   assert.deepEqual(caps.outputs, ['pptx', 'html']);

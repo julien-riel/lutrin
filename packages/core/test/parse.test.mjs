@@ -360,12 +360,18 @@ test("an icon's alt slot carries intent words: an ink, a size, in any order", ()
   assert.equal(reversed.color, 'neutral', 'the order of the words is free');
   assert.equal(reversed.size, 'small');
 
-  // a word that names neither is not silently swallowed: it travels to
+  // a LONE word that names neither is not silently swallowed: it travels to
   // validation, and the icon still draws
   const wrong = icon('big');
   assert.deepEqual(wrong.unknownWords, ['big']);
   assert.equal(wrong.size, undefined);
   assert.equal(wrong.color, 'primary');
+
+  // the words are matched lowercased, exactly like the icon name beside them —
+  // sentence-casing an alt is the habit of a slot that used to hold prose
+  assert.equal(icon('Large').size, 'large');
+  assert.equal(icon('Neutral Small').color, 'neutral');
+  assert.equal(icon('Neutral Small').size, 'small');
 
   // an image is NOT an icon: its alt slot is a role or alternative text, and
   // "large" there is what a screen reader will read out
@@ -373,6 +379,31 @@ test("an icon's alt slot carries intent words: an ink, a size, in any order", ()
   assert.equal(image.type, 'image');
   assert.equal(image.alt, 'large');
   assert.equal(image.size, undefined);
+});
+
+// The rule that keeps the slot usable: a sentence is prose, and prose is read
+// as nothing at all. Picking one vocabulary word out of a description drew a
+// white icon on a white slide, and said nothing — the alt was a description in
+// every deck written before the words existed.
+test("an icon's alt is intent ONLY when it is nothing but intent", () => {
+  const icon = (alt) => blocksOf(parseDeck(`# S\n\n![${alt}](lucide:arrow-right)\n`))[0];
+
+  const prose = icon('A white arrow');
+  assert.equal(prose.color, 'primary', 'the ink inside a sentence is a word, not an intent');
+  assert.equal(prose.size, undefined);
+  assert.equal(prose.unknownWords, undefined, 'and prose is not a wall of warnings either');
+  assert.equal(icon('the neutral zone').color, 'primary');
+
+  // one word away from being vocabulary is still prose
+  assert.equal(icon('white arrow').color, 'primary');
+  assert.equal(icon('white arrow').unknownWords, undefined);
+
+  // a second word of a category already named loses, and says so
+  const two = icon('neutral white');
+  assert.equal(two.color, 'neutral', 'the first word written wins');
+  assert.deepEqual(two.duplicateWords, ['white']);
+  assert.deepEqual(icon('small large').duplicateWords, ['large']);
+  assert.equal(icon('neutral small').duplicateWords, undefined, 'one of each is not a conflict');
 });
 
 test('UNKNOWN_ICON_WORD names the word that was dropped, and suggests the nearest one', () => {
@@ -385,18 +416,90 @@ test('UNKNOWN_ICON_WORD names the word that was dropped, and suggests the neares
   assert.match(diags[0].message, /"lrage"/);
   assert.equal(diags[0].suggestion, 'large');
 
-  // two bad words, two diagnostics — an author fixing one must still see the other
-  assert.equal(
-    validateDeck('# S\n\n![huge bleu](lucide:leaf)\n').filter((d) => d.code === 'UNKNOWN_ICON_WORD')
-      .length,
-    2,
-  );
-  // and nothing at all for the words that ARE the vocabulary
+  // nothing at all for the words that ARE the vocabulary
   assert.equal(
     validateDeck('# S\n\n![white large](lucide:leaf)\n').filter(
       (d) => d.code === 'UNKNOWN_ICON_WORD',
     ).length,
     0,
+  );
+  // nor for a description: it is read as nothing, so there is nothing to
+  // report — ONE warning per alt at the very most, never one per word
+  assert.equal(
+    validateDeck('# S\n\n![A green leaf, growing](lucide:leaf)\n').filter(
+      (d) => d.code === 'UNKNOWN_ICON_WORD',
+    ).length,
+    0,
+  );
+});
+
+test('ICON_WORD_CONFLICT names the word that lost, and the one that won', () => {
+  const diags = validateDeck('# S\n\n![neutral white](lucide:leaf)\n').filter(
+    (d) => d.code === 'ICON_WORD_CONFLICT',
+  );
+  assert.equal(diags.length, 1);
+  assert.equal(diags[0].severity, 'warning', 'the icon still draws');
+  assert.equal(diags[0].line, 3);
+  assert.match(diags[0].message, /"white" is ignored/);
+  assert.match(diags[0].message, /"neutral" was written first/);
+  // a size conflict reads as a size conflict
+  assert.match(
+    validateDeck('# S\n\n![small large](lucide:leaf)\n').find(
+      (d) => d.code === 'ICON_WORD_CONFLICT',
+    ).message,
+    /two sizes/,
+  );
+  assert.equal(
+    validateDeck('# S\n\n![neutral small](lucide:leaf)\n').filter(
+      (d) => d.code === 'ICON_WORD_CONFLICT',
+    ).length,
+    0,
+  );
+});
+
+// A bullet, a heading and a cell all hold RUNS, and pushRun drops an image in
+// each of them the same way. Reporting only the cell sent an author who moved
+// the icon out of the table straight into the next silent loss.
+test('a bullet and a heading record what they had to drop, exactly as a cell does', () => {
+  const blocks = (src) => blocksOf(parseDeck(src));
+
+  const list = blocks('# S\n\n- ![](lucide:check) Done\n- Plain\n')[0];
+  assert.deepEqual(list.dropped, ['icon']);
+  assert.equal(list.items[0].runs[0].text, 'Done', 'and the space the icon left goes with it');
+  assert.equal(list.items[1].runs[0].text, 'Plain');
+  assert.equal(blocks('# S\n\n- one\n- two\n')[0].dropped, undefined, 'no key without a loss');
+
+  // a ### is a block; a ## and a # become a section title and a slide title,
+  // and the loss travels with them to where validation can name it
+  const deep = blocks('# S\n\n### ![A chart](chart.png) Deep\n')[0];
+  assert.deepEqual(deep.dropped, ['image']);
+  assert.equal(runsToText(deep.runs), 'Deep');
+  const section = parseDeck('# S\n\n## ![](lucide:check) Head\n\ntext\n').slides[0].sections[0];
+  assert.deepEqual(section.headingDropped, ['icon']);
+  assert.equal(section.headingLine, 3);
+  const titled = parseDeck('# ![](lucide:check) Title\n\ntext\n').slides[0];
+  assert.deepEqual(titled.headingDropped, ['icon']);
+  assert.equal(titled.title, 'Title');
+});
+
+test('LIST_CONTENT_DROPPED and HEADING_CONTENT_DROPPED name what does work instead', () => {
+  const codes = (src) => validateDeck(src).filter((d) => /_CONTENT_DROPPED$/.test(d.code));
+
+  const list = codes('# S\n\n- ![](lucide:check) Done\n')[0];
+  assert.equal(list.code, 'LIST_CONTENT_DROPPED');
+  assert.equal(list.severity, 'warning');
+  assert.equal(list.line, 3);
+  assert.match(list.message, /badge/, 'a diagnostic that only says "no" sends nobody anywhere');
+
+  const head = codes('# S\n\n## ![](lucide:check) Head\n\ntext\n')[0];
+  assert.equal(head.code, 'HEADING_CONTENT_DROPPED');
+  assert.equal(head.line, 3);
+  assert.match(head.message, /on its own line/);
+
+  assert.deepEqual(
+    codes('# S\n\n- one\n\n## Head\n\ntext\n'),
+    [],
+    'nothing to report, nothing said',
   );
 });
 
@@ -417,6 +520,15 @@ test('an image in a table cell is recorded as dropped, never swallowed in silenc
 
   // and a table with no image at all carries no key — every existing golden
   assert.equal(table('==Delivered==').dropped, undefined);
+
+  // `html: true` accepts an <img> written as raw HTML: the same loss as the
+  // Markdown spelling, and the tag PRINTED as cell text was the worst of the
+  // three outcomes
+  const raw = table('<img src="x.png">');
+  assert.deepEqual(raw.dropped, ['image']);
+  assert.equal(runsToText(raw.rows[0][1]), '', 'the tag itself never reaches the slide');
+  // any other inline HTML stays the text it has always been
+  assert.equal(runsToText(table('a <b>bold</b> word').rows[0][1]), 'a <b>bold</b> word');
 });
 
 test('TABLE_CONTENT_DROPPED names the alternative that does work', () => {
