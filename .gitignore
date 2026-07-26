@@ -19,6 +19,9 @@ examples/assets/remote/
 # (site/demo.html, site/demo.pptx — `npm run site`) stays ignored above
 !site/index.html
 
+# the kit editor SPA shell is source, not a compilation artifact
+!packages/core/design/editor/index.html
+
 # local pointer to a brand kit (see scripts/package.mjs)
 .brandkit
 

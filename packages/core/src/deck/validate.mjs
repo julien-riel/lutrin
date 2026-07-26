@@ -35,9 +35,17 @@ import {
   officialLayouts,
   userLayouts,
 } from './layout.mjs';
-import { hasLucideIcon, imageDims, imageWithinRoots, resolveImagePath } from './assets.mjs';
+import {
+  hasLucideIcon,
+  imageDims,
+  imageWithinRoots,
+  kitImageAlias,
+  kitImageDiagnostic,
+  resolveImagePath,
+  resolveLocalImage,
+} from './assets.mjs';
 import { chartDataDiagnostics } from './chart.mjs';
-import { LAYER_SHADES, PAGE, TEXT_DENSITY, contentArea } from './tokens.mjs';
+import { KIT_IMAGES, LAYER_SHADES, PAGE, TEXT_DENSITY, contentArea } from './tokens.mjs';
 import { prepareDeckContext } from './context.mjs';
 import { THEME_KEYS } from './theme.mjs';
 import { isMarpDeck } from './marp.mjs';
@@ -92,7 +100,12 @@ function* walkBlocks(slide) {
  *                         frontmatter); { deck, scenes } — IR and scenes
  *                         already computed by the host (extension worker) so
  *                         parseDeck/buildScenes are not redone on every
- *                         keystroke.
+ *                         keystroke; { kitData } — in-memory kit overlay
+ *                         ({ theme?, layouts? }, same option as compileHtml —
+ *                         see prepareDeckContext): the diagnostics are the
+ *                         same as for the on-disk content, positioned on the
+ *                         frontmatter's `kit:` line like every THEME_ and
+ *                         KIT_ finding.
  * @returns {Array<{severity:'error'|'warning'|'info', code:string, message:string, line:number, suggestion?:string}>}
  */
 export function validateDeck(
@@ -104,6 +117,7 @@ export function validateDeck(
     imageRoots = [],
     deck = null,
     scenes = null,
+    kitData = null,
   } = {},
 ) {
   // trust roots for local images: the deck's directory + the project/vault
@@ -268,7 +282,7 @@ export function validateDeck(
   // (UNKNOWN_LAYOUT reads the live registry) and before the geometric audits
   // (the estimates must be the theme's). Scenes precomputed by the host were
   // built in the same state by compileHtml.
-  const prep = prepareDeckContext(deck.meta, { baseDir, themePath, defaultTheme });
+  const prep = prepareDeckContext(deck.meta, { baseDir, themePath, defaultTheme, kitData });
   // anchor on the frontmatter line that DESIGNATES the kit — `kit:` today,
   // `theme:` for decks written before. The KIT_* codes, like the THEME_* ones,
   // all speak of that line: forgetting them would send the user back to line 1,
@@ -394,7 +408,15 @@ export function validateDeck(
       }
     }
     for (const b of walkBlocks(slide)) {
-      if (b.type === 'image' && !/^https?:/.test(b.src)) {
+      // `kit:` images: the alias either names a declared image (nothing to
+      // say — theme.mjs already vouched for the file) or it does not, and the
+      // dedicated diagnostic lands on the image's line like MISSING_IMAGE.
+      // A deck compiled without a kit reports the alias too: the default
+      // theme declares no images.
+      if (b.type === 'image' && kitImageAlias(b.src) !== null) {
+        const d = kitImageDiagnostic(b.src);
+        if (d) push(d.severity, d.code, d.message, b.line, d.suggestion);
+      } else if (b.type === 'image' && !/^https?:/.test(b.src)) {
         const file = resolveImagePath(baseDir, b.src);
         if (!imageWithinRoots(file, imageTrustRoots)) {
           push(
@@ -790,10 +812,17 @@ export function validateDeck(
       for (const el of images) {
         const b = el.block;
         if (/^https?:/.test(b.src)) continue;
-        const file = resolveImagePath(baseDir, b.src);
+        // `kit:` alias → the declared path, already confined to the kit by
+        // theme.mjs (an unknown alias has its diagnostic above — nothing to
+        // audit); otherwise the deck-relative resolution
+        const kit = kitImageAlias(b.src) !== null;
+        const file = kit
+          ? resolveLocalImage(imageTrustRoots, b.src)
+          : resolveImagePath(baseDir, b.src);
+        if (!file) continue;
         // an image that escapes: refused for embedding (IMAGE_PATH_ESCAPE
         // already emitted) — nothing to audit about its resolution
-        if (!imageWithinRoots(file, imageTrustRoots)) continue;
+        if (!kit && !imageWithinRoots(file, imageTrustRoots)) continue;
         if (!fs.existsSync(file)) continue;
         const dims = imageDims(file);
         if (!dims?.w) continue;
@@ -838,6 +867,10 @@ export function capabilities() {
     // user layouts of the last prepared deck (layouts/*.json) — their full
     // definition, so that the agent knows where each alias comes from
     userLayouts: userLayouts(),
+    // named images of the last prepared deck's kit ("images" in theme.json) —
+    // referenced from a deck as ![role](kit:<alias>); empty without a kit
+    // that declares any
+    kitImages: Object.keys(KIT_IMAGES),
     layoutSections: Object.fromEntries(
       LAYOUTS.filter((l) => layoutDef(l)?.sections).map((l) => [l, layoutDef(l).sections]),
     ),
@@ -915,6 +948,11 @@ export function capabilities() {
         'a kit carries a kit.json { name, version?, theme?: "./theme.json", layouts?: "./layouts" } at its ' +
         'root (defaults: ./theme.json and ./layouts if it exists) — fonts/logos resolved relative to ' +
         'theme.json, inside the kit; distributed as a directory or as a .deckkit archive',
+      images:
+        'named images of a kit: "images": { "<alias>": "./images/photo.jpg" } in theme.json (aliases ' +
+        'lowercase [a-z][a-z0-9-]{1,31}, files inside the kit) — a deck places one with ![role](kit:<alias>), ' +
+        'which then behaves exactly like a local image; an unknown alias produces KIT_IMAGE_UNKNOWN and a ' +
+        'placeholder. The aliases of the resolved kit are listed under kitImages.',
       keys: THEME_KEYS,
     },
     layoutsDir:
@@ -930,6 +968,7 @@ export function capabilities() {
       'UNKNOWN_ANIMATE',
       'METRICS_DROPPED',
       'MISSING_IMAGE',
+      'KIT_IMAGE_UNKNOWN',
       // the one image diagnostic that ABORTS the build, and the last one that
       // was pushed by the validator and listed nowhere
       'IMAGE_PATH_ESCAPE',

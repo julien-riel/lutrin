@@ -436,6 +436,151 @@ test('CLI kit create: -o without a .deckkit extension — refused BEFORE packagi
 });
 
 // ---------------------------------------------------------------------------
+// kit edit: which kit a name designates, and what --create refuses
+// ---------------------------------------------------------------------------
+
+/** A config root holding one installed kit, plus a cwd bearing an entry of the
+ *  SAME name — the shape in which a local file could shadow the installed kit. */
+function installedKitAndDecoy(t, name) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-kit-edit-cli-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const conf = path.join(dir, 'config');
+  const installed = path.join(conf, 'kits', name);
+  fs.mkdirSync(installed, { recursive: true });
+  fs.writeFileSync(path.join(installed, 'kit.json'), JSON.stringify({ name }));
+  fs.writeFileSync(path.join(installed, 'theme.json'), JSON.stringify({ name: 'Installed' }));
+  const cwd = path.join(dir, 'cwd');
+  fs.mkdirSync(cwd, { recursive: true });
+  fs.writeFileSync(path.join(cwd, name), 'a scratch file, not a kit'); // the decoy
+  return { dir, conf, installed, cwd };
+}
+
+test('CLI kit edit: a bare name designates the INSTALLED kit — a same-named cwd entry does not shadow it', async (t) => {
+  const { conf, installed, cwd } = installedKitAndDecoy(t, 'shadowed');
+  const child = spawn(process.execPath, [CLI, 'kit', 'edit', 'shadowed', '--port', '4941'], {
+    cwd,
+    env: { ...process.env, LUTRIN_CONFIG: conf },
+  });
+  t.after(() => child.kill());
+  const lines = [];
+  const started = await new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`kit edit did not start: ${lines.join(' / ')}`)),
+      20000,
+    );
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stderr.on('data', (c) => lines.push(c));
+    child.stdout.on('data', (chunk) => {
+      lines.push(chunk);
+      const m = lines.join('').match(/http:\/\/localhost:(\d+)/);
+      if (m) {
+        clearTimeout(timer);
+        resolve(Number(m[1]));
+      }
+    });
+    child.on('error', reject);
+    child.on('exit', () => reject(new Error(`kit edit exited: ${lines.join(' / ')}`)));
+  });
+
+  const state = await (await fetch(`http://127.0.0.1:${started}/api/state`)).json();
+  assert.equal(state.name, 'shadowed');
+  assert.equal(state.theme.name, 'Installed', 'the kit served is the installed one');
+  assert.match(lines.join(''), new RegExp(installed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
+test('CLI kit edit: a bare name that is not installed says so, and points at the local path', (t) => {
+  const { conf, cwd } = installedKitAndDecoy(t, 'shadowed');
+  fs.writeFileSync(path.join(cwd, 'ghost-kit'), 'not a kit either');
+  const r = lutrin(['kit', 'edit', 'ghost-kit'], { cwd, env: { LUTRIN_CONFIG: conf } });
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /kit "ghost-kit" is not installed/);
+  assert.match(r.stderr, /Installed: shadowed/);
+  assert.match(
+    r.stderr,
+    /lutrin kit edit \.\/ghost-kit/,
+    'the remedy names the path form, the way --kit resolves',
+  );
+});
+
+test('CLI kit edit --create: a fresh kit scaffolds CLEAN — no self-inflicted diagnostic', async (t) => {
+  const { cwd, conf } = installedKitAndDecoy(t, 'shadowed');
+  const child = spawn(
+    process.execPath,
+    [CLI, 'kit', 'edit', './fresh-kit', '--create', '--port', '4942'],
+    { cwd, env: { ...process.env, LUTRIN_CONFIG: conf } },
+  );
+  t.after(() => child.kill());
+  const lines = [];
+  const started = await new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`kit edit did not start: ${lines.join(' / ')}`)),
+      20000,
+    );
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stderr.on('data', (c) => lines.push(c));
+    child.stdout.on('data', (chunk) => {
+      lines.push(chunk);
+      const m = lines.join('').match(/http:\/\/localhost:(\d+)/);
+      if (m) {
+        clearTimeout(timer);
+        resolve(Number(m[1]));
+      }
+    });
+    child.on('error', reject);
+    child.on('exit', () => reject(new Error(`kit edit exited: ${lines.join(' / ')}`)));
+  });
+
+  const manifest = JSON.parse(fs.readFileSync(path.join(cwd, 'fresh-kit', 'kit.json'), 'utf8'));
+  assert.deepEqual(manifest, { name: 'fresh-kit' }, 'name only — no empty description key');
+  const state = await (await fetch(`http://127.0.0.1:${started}/api/state`)).json();
+  assert.deepEqual(
+    state.kitDiagnostics,
+    [],
+    'a freshly created kit opens without a diagnostic caused by the tool itself',
+  );
+
+  // the scaffold must stay PALETTE-DRIVEN: the derived groups (semantic,
+  // trendInk, layerShades) are recomputed from the colors, and a pinned copy
+  // would silently override the Semantic swatches the editor exposes
+  const theme = JSON.parse(fs.readFileSync(path.join(cwd, 'fresh-kit', 'theme.json'), 'utf8'));
+  for (const g of ['semantic', 'trendInk', 'layerShades'])
+    assert.ok(!(g in theme), `scaffold must not pin the derived group "${g}"`);
+
+  // and prove the effect: editing a semantic palette color reaches the callout
+  const editedTheme = { ...theme, colors: { ...theme.colors, informativeLight: 'FF00FF' } };
+  const compiled = await (
+    await fetch(`http://127.0.0.1:${started}/api/compile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: '# Callout\n\n:::info\nHi\n:::\n', theme: editedTheme }),
+    })
+  ).json();
+  assert.match(
+    (compiled.slides.join('') + compiled.css).toUpperCase(),
+    /FF00FF/,
+    'the informativeLight edit reaches the :::info callout fill',
+  );
+});
+
+test('CLI kit edit --create: an existing FILE is refused with a remedy, not a raw ENOTDIR', (t) => {
+  const { cwd, conf } = installedKitAndDecoy(t, 'brand-new');
+  const r = lutrin(['kit', 'edit', './brand-new', '--create'], {
+    cwd,
+    env: { LUTRIN_CONFIG: conf },
+  });
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /exists and is not a directory/);
+  assert.doesNotMatch(r.stderr, /ENOTDIR/, 'an errno is not a diagnostic');
+  assert.ok(
+    !fs.existsSync(path.join(cwd, 'brand-new', 'layouts')),
+    'nothing may have been written',
+  );
+  assert.equal(fs.readFileSync(path.join(cwd, 'brand-new'), 'utf8'), 'a scratch file, not a kit');
+});
+
+// ---------------------------------------------------------------------------
 // build: diagnostics
 // ---------------------------------------------------------------------------
 

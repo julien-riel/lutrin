@@ -11,6 +11,48 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **`lutrin kit edit` — the kit editor.** A kit could be installed, listed,
+  packed and referenced, but editing one meant hand-writing JSON and compiling
+  a deck to see what it did. `kit edit <name|directory>` serves a local web
+  editor for one kit — tokens, fonts, layouts, images and the manifest's
+  display metadata, each in its own panel — with a preview compiled by the
+  REAL engine on a specimen deck covering every surface a kit restyles, the
+  unsaved state overlaid in memory so nothing touches the disk before "Save
+  kit". The WCAG contrast diagnostics of each compile land under the very
+  color rows they involve; font uploads are `.ttf` + `.woff2` pairs checked
+  against their actual bytes, with the no-embedded-files trap (`.pptx` falls
+  back to the viewer's machine) called out in the panel; a kit layout remains
+  what it always was — a validated, parameterized alias of a generator, never
+  free geometry — built from the base's published parameter schema with its
+  own one-slide live preview; press-and-hold Compare (the button, or `B`)
+  swaps the preview to the last saved state and back. Export produces the same
+  `.deckkit` as `kit create` and surfaces its reproducible SHA-256. The server
+  binds 127.0.0.1 only, refuses non-local `Host` headers and foreign
+  `Origin`s on every mutating request, confines every read and write to the
+  kit directory, caps upload sizes and sniffs magic bytes — a kit stays data,
+  even in its own editor. Port 4322 by default, so a deck preview (4321) runs
+  beside it. The guide: `docs/kit-editor.md`.
+
+- **`kit edit --create` — a kit from nothing.** The scaffold writes `kit.json`
+  (the name derived from the directory, or `--name`), a `theme.json` copied
+  from the engine's default theme — the editor starts from the exact tokens
+  the engine uses, not from an empty object nobody can judge — and the
+  `layouts/`, `images/` and `fonts/` directories. `--create` on a directory
+  already carrying `kit.json` is an error: nothing is ever overwritten.
+
+- **Kit images by alias — `![](kit:hero-photo)`.** A kit's `theme.json` can
+  now declare `"images": { "hero-photo": "./images/hero.jpg" }`, and a deck
+  places one by alias with the usual roles (`left`, `right`, `cover`,
+  `background`). The deck names an intent and the kit owns the file — swap
+  the kit and the imagery follows, no path into someone else's directory
+  layout. Once resolved, the image rides the exact pipeline a local image
+  rides — same placement, embedded in the `.pptx`, inlined in the HTML — and
+  the paths obey the rules the logos already obey: relative to `theme.json`,
+  confined to the kit. An alias the kit does not declare answers
+  `KIT_IMAGE_UNKNOWN` with the nearest declared alias suggested and the usual
+  placeholder; so does `kit:…` compiled without a kit, since the default
+  theme declares no images.
+
 - **`![line](lucide:leaf)` — an icon the height of one line of text.** The
   smallest of the four size words, and the only one that is not a factor on a
   constant of the engine: it is one line of BODY text, read from the theme, so

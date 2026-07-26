@@ -498,6 +498,25 @@ shared across projects; compiling writes nothing into the deck's directory.
 in `assets/remote/` next to the `.md` — useful only if the directory must be
 self-contained.
 
+**Kit images** — `![right](kit:hero-photo)` places an image the active kit
+declares. A kit names its images in its `theme.json`:
+
+```json
+"images": { "hero-photo": "./images/hero.jpg", "team": "./images/team.png" }
+```
+
+Aliases are lowercase (`[a-z][a-z0-9-]{1,31}`; `constructor` and `prototype`
+are reserved); paths are relative to the kit's `theme.json` and confined to
+the kit, exactly like its logos. Once the
+alias is resolved, the image behaves **exactly like a local one**: same roles
+(`left`, `right`, `cover`, `background`), same placement by the engine,
+embedded in the `.pptx` and inlined in the HTML. An alias the kit does not
+declare produces `KIT_IMAGE_UNKNOWN` — with the nearest declared alias
+suggested — and the usual placeholder; so does `kit:…` in a deck compiled
+without a kit, since the default theme declares no images. The kit editor
+(`lutrin kit edit`, [docs/kit-editor.md](kit-editor.md)) manages these
+aliases visually — upload, rename, per-alias preview.
+
 **Lucide icons** — `![](lucide:name)` places an icon from
 [lucide.dev](https://lucide.dev) (`bike`, `house`, `leaf`, `chart-bar`…). An
 unknown name produces `UNKNOWN_ICON`.

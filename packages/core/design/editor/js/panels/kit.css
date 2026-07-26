@@ -1,0 +1,142 @@
+/* Kit panel — everything prefixed .p-kit-*, palette via the shell's custom
+   properties only. */
+
+.p-kit-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px solid var(--paper-line);
+  font-size: 12px;
+}
+.p-kit-row:first-of-type {
+  border-top: 0;
+}
+.p-kit-key {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--paper-text-dim);
+}
+.p-kit-val {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  word-break: break-word;
+}
+.p-kit-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}
+.p-kit-meta-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 10px 0 12px;
+}
+.p-kit-file {
+  display: none;
+}
+.p-kit-logo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--paper-line);
+}
+.p-kit-logo:first-of-type {
+  border-top: 0;
+}
+/* Checkerboard: white or transparent artwork (the canonical section-logo
+   variants) must stay visible against the thumb. */
+.p-kit-logo-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-sm);
+  background: repeating-conic-gradient(var(--paper-inset) 0% 25%, var(--paper-raised) 0% 50%) 0 0 /
+    12px 12px;
+  overflow: hidden;
+}
+.p-kit-logo-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.p-kit-logo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.p-kit-logo-path {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.p-kit-logo-unset {
+  font-size: 12px;
+  color: var(--paper-text-dim);
+}
+.p-kit-logo-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.p-kit-diags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p-kit-diag {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 12px;
+}
+.p-kit-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  align-self: center;
+  border-radius: 50%;
+  background: var(--paper-line);
+}
+.p-kit-diag.is-error .p-kit-dot {
+  background: var(--sev-error);
+}
+.p-kit-diag.is-warning .p-kit-dot {
+  background: var(--sev-warning);
+}
+.p-kit-diag.is-info .p-kit-dot {
+  background: var(--sev-info);
+}
+.p-kit-code {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.p-kit-diag.is-error .p-kit-code {
+  color: var(--sev-error);
+}
+.p-kit-diag.is-warning .p-kit-code {
+  color: var(--sev-warning);
+}
+.p-kit-diag.is-info .p-kit-code {
+  color: var(--sev-info);
+}
+.p-kit-sha {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px 0 0;
+}
+.p-kit-sha-val {
+  font-size: 11px;
+  word-break: break-all;
+}

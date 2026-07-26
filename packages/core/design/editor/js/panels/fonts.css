@@ -1,0 +1,171 @@
+/* Fonts panel — .p-fonts-* only. Rides the socle components (.card, .field,
+   .btn, .mono); here lives only what is specific to pairs, dropzones and the
+   pangram preview. No brass, no animation (contract). */
+
+.p-fonts-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--paper-line);
+  border-left: 3px solid var(--sev-warning);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+}
+.p-fonts-note strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+}
+.p-fonts-note p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--paper-text-dim);
+}
+
+.p-fonts-proposal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 12px;
+  font-size: 12px;
+  color: var(--paper-text-dim);
+}
+.p-fonts-proposal .btn {
+  flex: none;
+}
+
+.p-fonts-sect {
+  margin: 16px 0 8px;
+}
+.p-fonts-sect p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}
+
+.p-fonts-declared {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.p-fonts-declared .mono {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p-fonts-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 12px;
+}
+.p-fonts-status::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--paper-line);
+}
+.p-fonts-status.is-ok::before {
+  background: var(--paper-text);
+}
+.p-fonts-status.is-missing::before {
+  background: var(--sev-warning);
+}
+.p-fonts-status.is-bad::before {
+  background: var(--sev-error);
+}
+.p-fonts-status-note {
+  color: var(--paper-text-dim);
+}
+
+.p-fonts-none {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--paper-text-dim);
+}
+
+.p-fonts-drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px dashed var(--paper-line);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--paper-text-dim);
+}
+.p-fonts-drop.is-drag {
+  border-color: var(--paper-text);
+  background: var(--paper-inset);
+}
+.p-fonts-input {
+  display: none;
+}
+
+.p-fonts-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.p-fonts-progress {
+  width: 120px;
+  height: 6px;
+  accent-color: var(--paper-text-dim);
+}
+
+.p-fonts-preview {
+  margin: 8px 0 2px;
+  font-size: 18px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.p-fonts-preview-src {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}
+
+.p-fonts-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.p-fonts-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid var(--paper-line);
+}
+.p-fonts-file:first-child {
+  border-top: 0;
+}
+.p-fonts-file > .mono:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.p-fonts-size {
+  font-size: 12px;
+  color: var(--paper-text-dim);
+  white-space: nowrap;
+}
+.p-fonts-used {
+  color: var(--paper-text-dim);
+}
+.p-fonts-unused {
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}

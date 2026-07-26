@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lutrin kit editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E%3Crect%20width='16'%20height='16'%20rx='3'%20fill='%231E2126'/%3E%3Cpath%20d='M8%203.2l4.8%204.8L8%2012.8%203.2%208z'%20fill='%23A87F3D'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="editor.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <span class="brand-name">lutrin kit editor</span>
+    </div>
+    <h1 class="topbar-kit" id="kit-name">…</h1>
+    <span class="topbar-dirty" id="dirty-indicator" hidden>Unsaved changes</span>
+    <div class="topbar-actions">
+      <a class="btn btn-ink" id="btn-export" href="/api/export" download>Export .deckkit</a>
+      <button class="btn btn-primary" id="btn-save" type="button" disabled>Save kit</button>
+    </div>
+  </header>
+
+  <div class="banner" id="conflict-banner" hidden>
+    <p>Kit changed on disk while you have unsaved changes.</p>
+    <button class="btn btn-sm" id="btn-conflict-reload" type="button">Reload</button>
+    <button class="btn btn-sm" id="btn-conflict-keep" type="button">Keep mine</button>
+  </div>
+
+  <div class="app-body">
+    <nav class="rail" aria-label="Editor sections">
+      <a class="rail-item" href="#tokens" data-panel="tokens" title="Tokens">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="1.75" y="1.75" width="5" height="5" rx="1"/>
+          <rect x="9.25" y="1.75" width="5" height="5" rx="1"/>
+          <rect x="1.75" y="9.25" width="5" height="5" rx="1"/>
+          <rect x="9.25" y="9.25" width="5" height="5" rx="1"/>
+        </svg>
+        <span>Tokens</span>
+      </a>
+      <a class="rail-item" href="#fonts" data-panel="fonts" title="Fonts">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M3 4.25h10M8 4.25V13M5.75 13h4.5"/>
+        </svg>
+        <span>Fonts</span>
+      </a>
+      <a class="rail-item" href="#layouts" data-panel="layouts" title="Layouts">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="1.75" y="2.25" width="12.5" height="11.5" rx="1.5"/>
+          <path d="M6.75 2.25v11.5M6.75 8.5h7.5"/>
+        </svg>
+        <span>Layouts</span>
+      </a>
+      <a class="rail-item" href="#images" data-panel="images" title="Images">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="1.75" y="2.25" width="12.5" height="11.5" rx="1.5"/>
+          <circle cx="5.5" cy="6" r="1.25"/>
+          <path d="M2.5 12l3.25-3.25 2.25 2.25L10.75 8l3 3.5"/>
+        </svg>
+        <span>Images</span>
+      </a>
+      <a class="rail-item" href="#kit" data-panel="kit" title="Kit">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M8 1.75l6 3.25v6L8 14.25 2 11V5z"/>
+          <path d="M2 5l6 3.25L14 5M8 8.25v6"/>
+        </svg>
+        <span>Kit</span>
+      </a>
+    </nav>
+
+    <main class="panel-host" id="panel-host"></main>
+
+    <section class="preview" aria-label="Preview">
+      <div class="preview-bar">
+        <label class="label" for="slide-select">Slides</label>
+        <select class="select mono" id="slide-select" disabled>
+          <option value="all">All slides</option>
+        </select>
+        <span class="spacer"></span>
+        <button class="btn-compare" id="btn-compare" type="button" disabled
+          title="Hold to show the last saved kit (or hold B)">Compare <kbd>B</kbd></button>
+      </div>
+      <div class="preview-canvas" id="preview-canvas"></div>
+    </section>
+  </div>
+
+  <section class="drawer" aria-label="Diagnostics">
+    <button class="drawer-head" id="drawer-toggle" type="button" aria-expanded="false" aria-controls="drawer-body">
+      <span class="drawer-title">Diagnostics</span>
+      <span class="drawer-counts">
+        <span class="drawer-count sev-error" id="count-error">0</span>
+        <span class="drawer-count sev-warning" id="count-warning">0</span>
+        <span class="drawer-count sev-info" id="count-info">0</span>
+      </span>
+      <svg class="drawer-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M2.5 7.5L6 4l3.5 3.5"/>
+      </svg>
+    </button>
+    <div class="drawer-body" id="drawer-body" hidden>
+      <ul class="drawer-list" id="drawer-list"></ul>
+    </div>
+  </section>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

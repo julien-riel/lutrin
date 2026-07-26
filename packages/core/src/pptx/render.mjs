@@ -42,6 +42,7 @@ import {
   iconSvg,
   ICON_RASTER_PX,
   imageDims,
+  kitImageWarnings,
   renderMath,
   renderMermaidCached,
   rasterAvailable,
@@ -1482,7 +1483,9 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       if (out) icons.set(b, writeTmpPng(tmp(), `icon-${k}-${iconSlug(b.name)}`, out.png));
     }),
   );
-  const assetWarnings = iconWarnings.filter(Boolean);
+  // `kit:` aliases no theme declared join the same channel as the missing
+  // icons: the slide keeps the missing-image placeholder, the author is told
+  const assetWarnings = [...iconWarnings.filter(Boolean), ...kitImageWarnings(allBlocks)];
 
   // LaTeX equations → PNG (MathJax, code fallback if absent)
   const math = new Map();

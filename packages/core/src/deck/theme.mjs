@@ -85,6 +85,7 @@ import {
   COLORS,
   FONTS,
   FONT_FILES,
+  KIT_IMAGES,
   LOGOS,
   TYPE,
   SPACE,
@@ -100,7 +101,7 @@ import {
   contrastRatio,
 } from './tokens.mjs';
 import { closest } from './suggest.mjs';
-import { readKit, KIT_MANIFEST, KIT_NAME_RE } from './kit.mjs';
+import { readKit, insideKit, KIT_MANIFEST, KIT_NAME_RE } from './kit.mjs';
 
 // ---------------------------------------------------------------------------
 // Snapshot of the default values (generic theme from tokens.mjs)
@@ -129,6 +130,7 @@ const ALL_LIVE = {
   chartColors: CHART_COLORS,
   layerShades: LAYER_SHADES,
   logos: LOGOS,
+  kitImages: KIT_IMAGES,
   fontFiles: FONT_FILES,
 };
 
@@ -149,6 +151,7 @@ export const THEME_KEYS = [
   'trendInk',
   'semantic',
   'logos',
+  'images',
 ];
 
 // ---------------------------------------------------------------------------
@@ -217,6 +220,10 @@ export function applyTheme(theme = null) {
   }
   if (theme.logos?.coverSvg) LOGOS.coverSvg = theme.logos.coverSvg;
   if (theme.logos?.sectionSvg) LOGOS.sectionSvg = theme.logos.sectionSvg;
+  // named images (aliases already validated, paths already resolved AND
+  // confined by resolveTheme) — the restore above emptied the map, so a theme
+  // without any leaves exactly the default: no image leaks between decks
+  if (theme.images) Object.assign(KIT_IMAGES, theme.images);
   if (theme.fonts?.files) {
     // the theme defines ITS font: the variants it does not provide must not
     // fall back on the default theme's files (mixed weights)
@@ -647,11 +654,24 @@ function projectKitRef(baseDir) {
  * theme is third-party content, and gives the confinement root for its logos
  * and its fonts (module header). A file theme has a null `kitDir`.
  *
+ * `themeAnchor` is where the kit's theme file lives or WOULD live (the
+ * manifest-declared path, `<kit>/theme.json` by default) even when the file
+ * does not exist on disk — the anchor an in-memory theme overlay resolves its
+ * relative asset paths from (see resolveTheme's `themeData`).
+ *
  * @returns {{ file: string|null, layoutsDir: string|null, kitDir: string|null,
- *             kitName: string|null, error: {code, message}|null }}
+ *             kitName: string|null, themeAnchor: string|null,
+ *             error: {code, message}|null }}
  */
 function resolveThemeRef(ref, fromDir) {
-  const none = { file: null, layoutsDir: null, kitDir: null, kitName: null, error: null };
+  const none = {
+    file: null,
+    layoutsDir: null,
+    kitDir: null,
+    kitName: null,
+    themeAnchor: null,
+    error: null,
+  };
   const asFile = path.resolve(fromDir, ref);
 
   // --- bare name: installed kit --------------------------------------------
@@ -706,6 +726,10 @@ function fromKitDir(dir, ref, none) {
     layoutsDir,
     kitDir: path.resolve(dir),
     kitName: manifest.name,
+    // where the theme file WOULD live if the kit carried none: the manifest's
+    // declared path, already vetted by readKit — the anchor a theme overlay
+    // (kitData.theme) resolves and confines its relative asset paths from
+    themeAnchor: themeFile ?? insideKit(dir, manifest.theme),
     error: null,
   };
 }
@@ -714,6 +738,14 @@ function fromKitDir(dir, ref, none) {
 const PAGE_LOCKED = new Set(['width', 'height']);
 const LOGO_EXTS = new Set(['.png', '.jpg', '.jpeg']);
 const FONT_VARIANTS = ['regular', 'bold', 'italic'];
+
+/** Aliases of the theme's named images — same shape as a layout name.
+ *  Exported for the kit editor's upload route: one regex, one rule. */
+export const IMAGE_ALIAS_RE = /^[a-z][a-z0-9-]{1,31}$/;
+/** Exactly the formats a LOCAL deck image supports today (the MIME map of the
+ *  HTML renderer): the alias must not admit what `![](./x.bmp)` refuses.
+ *  Exported for the kit editor's upload route (same allowlist). */
+export const KIT_IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
 
 /**
  * Loads and validates the theme designated by `themePath` (CLI flag, which
@@ -724,24 +756,45 @@ const FONT_VARIANTS = ['regular', 'bold', 'italic'];
  * directory or a JSON file; `kit: none` forces the default theme (ignoring
  * project, user and host).
  *
+ * `themeData` — in-memory kit overlay (a kit editor previewing an UNSAVED
+ * theme.json): it replaces the CONTENT that would have been read from disk,
+ * never the RESOLUTION. The reference above still designates the kit, the
+ * confinement roots are computed exactly as for the on-disk file, and the
+ * object goes through the same validation (same THEME_* diagnostics).
+ * Relative asset paths (fonts.files, logos, images) stay anchored where the
+ * kit's theme.json lives or WOULD live (the manifest-declared theme path,
+ * `<kit>/theme.json` by default) — so a layouts-only kit plus `themeData`
+ * behaves exactly like the kit once the file is saved. With NO kit resolved
+ * at all (no reference anywhere, or `kit: none` — the overlay is content the
+ * HOST chose to preview, it has no disk location to opt out of), `themeData`
+ * still applies, anchored at the directory the reference would have been
+ * resolved from (the deck's baseDir when nothing names a kit), with the
+ * bare-file confinement roots. A reference that FAILS to resolve keeps its
+ * disk behavior (diagnostic, default theme): replacing content cannot repair
+ * a resolution failure.
+ *
  * @returns {{ theme: object|null, path: string|null,
- *             layoutsDir: string|null, kitName: string|null,
+ *             layoutsDir: string|null, kitName: string|null, failed: boolean,
  *             diagnostics: Array<{severity, code, message, suggestion?}> }}
  *          `theme` is a CLEANED object (invalid entries dropped, colors
  *          normalized, paths resolved) ready for applyTheme;
  *          `layoutsDir`/`kitName` describe the resolved kit (layouts to be
- *          loaded by prepareDeckContext); the diagnostics carry no line —
- *          the caller positions them (the frontmatter's `kit:` line on the
- *          validation side).
+ *          loaded by prepareDeckContext); `path` is the theme file actually
+ *          on disk (null under an overlay that reads none); `failed` is true
+ *          when a reference failed to resolve or its content could not be
+ *          read — the state an overlay must not repair, so prepareDeckContext
+ *          refuses kitData.layouts exactly as themeData was refused; the
+ *          diagnostics carry no line — the caller positions them (the
+ *          frontmatter's `kit:` line on the validation side).
  */
 export function resolveTheme(
   meta = {},
-  { baseDir = process.cwd(), themePath = null, defaultTheme = null } = {},
+  { baseDir = process.cwd(), themePath = null, defaultTheme = null, themeData = null } = {},
 ) {
   const diags = [];
   const push = (severity, code, message, suggestion) =>
     diags.push({ severity, code, message, ...(suggestion ? { suggestion } : {}) });
-  const bare = { theme: null, path: null, layoutsDir: null, kitName: null };
+  const bare = { theme: null, path: null, layoutsDir: null, kitName: null, failed: false };
 
   // frontmatter: `kit:` is the current key, `theme:` a deprecated alias —
   // decks written before kits must keep compiling, but their author must know
@@ -766,6 +819,9 @@ export function resolveTheme(
   // USER_CONFIG_INVALID). A kit chosen by the deck (frontmatter/CLI) or by the
   // project stays an error: the author opted for THIS kit, at THIS scope.
   let fromUserDefault = false;
+  // true when NOTHING designates a kit and an overlay applies anyway: the
+  // overlay is then anchored like a bare theme in the resolution directory
+  let noKit = false;
   if (!ref) {
     const proj = projectKitRef(baseDir);
     if (proj) {
@@ -783,12 +839,19 @@ export function resolveTheme(
         fromUserDefault = true;
       } else if (typeof defaultTheme === 'string' && defaultTheme.trim()) {
         ref = defaultTheme.trim(); // host default
+      } else if (themeData != null) {
+        noKit = true; // overlay with no reference at all — see the JSDoc
       } else {
         return { ...bare, diagnostics: diags };
       }
     }
   }
-  if (ref === 'none') return { ...bare, diagnostics: diags }; // explicit opt-out
+  if (ref === 'none') {
+    // explicit opt-out — but an overlay is content the host chose to preview,
+    // with no disk location to opt out of: it still applies (JSDoc)
+    if (themeData == null) return { ...bare, diagnostics: diags };
+    noKit = true;
+  }
   const sev = fromUserDefault ? 'warning' : 'error';
 
   // The generic fallback is PROMISED only where it actually happens: on the
@@ -803,45 +866,85 @@ export function resolveTheme(
   const withFallback = (msg) =>
     sev === 'warning' ? `${msg} The default theme will be used.` : msg;
 
-  const { file, layoutsDir, kitDir, kitName, error } = resolveThemeRef(ref, fromDir);
-  if (error) {
-    push(sev, error.code, withFallback(error.message));
-    return { ...bare, diagnostics: diags };
+  let file = null;
+  let layoutsDir = null;
+  let kitDir = null;
+  let kitName = null;
+  let themeAnchor = null;
+  if (!noKit) {
+    const resolved = resolveThemeRef(ref, fromDir);
+    if (resolved.error) {
+      push(sev, resolved.error.code, withFallback(resolved.error.message));
+      return { ...bare, failed: true, diagnostics: diags };
+    }
+    ({ file, layoutsDir, kitDir, kitName, themeAnchor } = resolved);
   }
   const found = { layoutsDir, kitName };
 
   // LAYOUTS-ONLY kit: nothing to validate on the token side, but layoutsDir
-  // must come back up — the deck keeps the default theme AND receives the layouts
-  if (!file) return { ...bare, ...found, diagnostics: diags };
+  // must come back up — the deck keeps the default theme AND receives the
+  // layouts. An overlay carries on: its content stands in for the absent file.
+  if (!file && themeData == null) return { ...bare, ...found, diagnostics: diags };
 
-  let raw;
-  try {
-    raw = fs.readFileSync(file, 'utf8');
-  } catch {
-    push(sev, 'THEME_NOT_FOUND', withFallback(`Theme not found: ${ref} (resolved to ${file}).`));
-    return { ...bare, diagnostics: diags };
-  }
   let json;
-  try {
-    json = JSON.parse(raw);
-  } catch (e) {
-    push(
-      sev,
-      'THEME_INVALID',
-      withFallback(`Theme could not be read: ${ref} — invalid JSON (${e?.message ?? e}).`),
-    );
-    return { ...bare, diagnostics: diags };
-  }
-  if (!isPlainObject(json)) {
-    push(
-      sev,
-      'THEME_INVALID',
-      withFallback(`Theme could not be read: ${ref} — a JSON object is expected.`),
-    );
-    return { ...bare, diagnostics: diags };
+  if (themeData != null) {
+    // in-memory overlay: stands in for exactly what readFileSync + JSON.parse
+    // would have produced — everything downstream (validation, confinement,
+    // diagnostics) is the same code path as a theme read from disk. It stands
+    // in for the CONTENT only: a bare-file reference whose file does not
+    // exist is a resolution failure on disk (the readFileSync below), and
+    // replacing content cannot repair it — without this check the overlay
+    // would silently apply, return a nonexistent `path` to hosts that watch
+    // it, and admit the ghost file's directory as an asset-confinement root.
+    // (A kit's `file` was already vetted by readKit; null stays legitimate:
+    // layouts-only kit, or no kit resolved at all.)
+    if (file && !isFile(file)) {
+      push(sev, 'THEME_NOT_FOUND', withFallback(`Theme not found: ${ref} (resolved to ${file}).`));
+      return { ...bare, failed: true, diagnostics: diags };
+    }
+    if (!isPlainObject(themeData)) {
+      push(
+        sev,
+        'THEME_INVALID',
+        withFallback('Theme could not be read: kitData.theme — a JSON object is expected.'),
+      );
+      return { ...bare, failed: true, diagnostics: diags };
+    }
+    json = themeData;
+  } else {
+    let raw;
+    try {
+      raw = fs.readFileSync(file, 'utf8');
+    } catch {
+      push(sev, 'THEME_NOT_FOUND', withFallback(`Theme not found: ${ref} (resolved to ${file}).`));
+      return { ...bare, failed: true, diagnostics: diags };
+    }
+    try {
+      json = JSON.parse(raw);
+    } catch (e) {
+      push(
+        sev,
+        'THEME_INVALID',
+        withFallback(`Theme could not be read: ${ref} — invalid JSON (${e?.message ?? e}).`),
+      );
+      return { ...bare, failed: true, diagnostics: diags };
+    }
+    if (!isPlainObject(json)) {
+      push(
+        sev,
+        'THEME_INVALID',
+        withFallback(`Theme could not be read: ${ref} — a JSON object is expected.`),
+      );
+      return { ...bare, failed: true, diagnostics: diags };
+    }
   }
 
-  const themeDir = path.dirname(file);
+  // Where the theme file lives — or WOULD live: the manifest-declared path
+  // for an overlay on a kit that carries no theme.json yet, the resolution
+  // directory when no kit is involved at all. Relative asset paths anchor
+  // there whether the content came from the disk or from kitData.theme.
+  const anchorFile = file ?? themeAnchor;
+  const themeDir = anchorFile ? path.dirname(anchorFile) : path.resolve(fromDir);
   const theme = {};
 
   // --- confinement of the asset paths (logos, fonts) -----------------------
@@ -1129,10 +1232,60 @@ export function resolveTheme(
     );
   }
 
+  if (json.images != null && isPlainObject(json.images)) {
+    theme.images = {};
+    for (const alias of Object.keys(json.images)) {
+      // "constructor"/"prototype" match IMAGE_ALIAS_RE but stay refused as a
+      // defence in depth (a future consumer forgetting hasOwn) — refused OUT
+      // LOUD like every other rejected alias, never a silent drop
+      if (UNSAFE_KEYS.has(alias)) {
+        push(
+          'warning',
+          'THEME_BAD_VALUE',
+          `Theme: images alias "${alias}" is reserved (built-in JavaScript property name) — pick another name — ignored.`,
+        );
+        continue;
+      }
+      if (!IMAGE_ALIAS_RE.test(alias)) {
+        push(
+          'warning',
+          'THEME_BAD_VALUE',
+          `Theme: images alias "${alias}" is invalid — lowercase letters, digits and hyphens, starting with a letter, 2 to 32 characters ("hero-photo") — ignored.`,
+        );
+        continue;
+      }
+      const rawPath = String(json.images[alias]);
+      const p = path.resolve(themeDir, rawPath);
+      if (!KIT_IMAGE_EXTS.has(path.extname(p).toLowerCase()))
+        push(
+          'warning',
+          'THEME_BAD_VALUE',
+          `Theme: images.${alias} must be a PNG, JPEG, GIF, WebP or SVG (the formats a deck image supports) — ignored.`,
+        );
+      // confinement BEFORE any read: this file leaves in the deliverable
+      else if (!confined(p, `images.${alias}`, rawPath)) {
+        /* reported */
+      } else if (!isFile(p))
+        push(
+          'warning',
+          'THEME_BAD_VALUE',
+          `Theme: image images.${alias} not found (${json.images[alias]}) — ignored.`,
+        );
+      else theme.images[alias] = p;
+    }
+    if (!Object.keys(theme.images).length) delete theme.images;
+  } else if (json.images != null) {
+    push(
+      'warning',
+      'THEME_BAD_VALUE',
+      'Theme: images must be an object mapping aliases to image paths ({ "hero-photo": "./images/hero.jpg" }) — ignored.',
+    );
+  }
+
   // groups emptied by the cleaning: remove them (clean theme, exact no-op)
   for (const k of Object.keys(theme)) {
     if (isPlainObject(theme[k]) && !Object.keys(theme[k]).length) delete theme[k];
   }
 
-  return { theme, path: file, ...found, diagnostics: diags };
+  return { theme, path: file, ...found, failed: false, diagnostics: diags };
 }

@@ -43,8 +43,9 @@ import dns from 'node:dns';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { COLORS, FONTS, FONT_FILES } from './tokens.mjs';
+import { COLORS, FONTS, FONT_FILES, KIT_IMAGES } from './tokens.mjs';
 import { findBrowser } from './browser.mjs';
+import { closest } from './suggest.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const require = createRequire(import.meta.url);
@@ -215,6 +216,82 @@ export function imageWithinRoots(file, roots) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Kit images — `kit:<alias>` sources ("images" map of a kit's theme.json)
+// ---------------------------------------------------------------------------
+
+/**
+ * Alias behind a `kit:` image source, or null when `src` uses another scheme.
+ * The scheme is case-insensitive like `lucide:`; the alias itself is not —
+ * aliases are declared lowercase (theme.mjs), and a mis-cased one is caught
+ * by the KIT_IMAGE_UNKNOWN suggestion rather than matched in silence.
+ *
+ * Percent-decoded before the trim, same policy as resolveImagePath: markdown-it
+ * encodes any space in an `<...>` destination (`![right](<kit: hero-photo>)` →
+ * `kit:%20hero-photo`), and that form must resolve like the local-image
+ * equivalent `![right](<./my pic.png>)` does. Decoding cannot mis-match: a
+ * declared alias never contains `%` (IMAGE_ALIAS_RE, theme.mjs), so decoding is
+ * the identity on every src that would already resolve. The result is only
+ * ever a lookup key (hasOwn below), never a path.
+ */
+export function kitImageAlias(src) {
+  const m = /^kit:(.*)$/i.exec(String(src ?? ''));
+  if (!m) return null;
+  let alias = m[1];
+  try {
+    alias = decodeURIComponent(alias);
+  } catch {
+    // invalid % sequence: the raw form is authoritative
+  }
+  return alias.trim();
+}
+
+/** The declared path of an alias, or null. `hasOwn` + type check: an alias
+ *  like "constructor" must find the kit's image or nothing — never a property
+ *  inherited from Object.prototype. */
+const kitImagePathOf = (alias) =>
+  Object.hasOwn(KIT_IMAGES, alias) && typeof KIT_IMAGES[alias] === 'string'
+    ? KIT_IMAGES[alias]
+    : null;
+
+/**
+ * Diagnostic for a `kit:` src whose alias no active theme declares — null when
+ * the alias is known, or when `src` is not a `kit:` reference at all. One
+ * definition shared by validate (which positions it on the image's line) and
+ * by both renderers' warning channels. Severity aligned with MISSING_IMAGE:
+ * the slide still renders, with a placeholder.
+ */
+export function kitImageDiagnostic(src) {
+  const alias = kitImageAlias(src);
+  if (alias === null || kitImagePathOf(alias)) return null;
+  const declared = Object.keys(KIT_IMAGES);
+  const suggestion = closest(alias, declared);
+  return {
+    severity: 'warning',
+    code: 'KIT_IMAGE_UNKNOWN',
+    message: declared.length
+      ? `Kit image "${alias}" is not declared by the kit (declared: ${declared.join(', ')}) — a placeholder will be displayed.`
+      : `Kit image "${alias}" is unknown: the active theme declares no images ("images" map in its theme.json) — a placeholder will be displayed.`,
+    ...(suggestion ? { suggestion } : {}),
+  };
+}
+
+/**
+ * Warning lines for the `kit:` images of a deck that name no declared alias —
+ * the renderers' channel (stats.warnings) is plain text, so the "did you
+ * mean" travels inside the message. Deduplicated: one line per alias, however
+ * many slides reference it.
+ */
+export function kitImageWarnings(blocks) {
+  const msgs = new Set();
+  for (const b of blocks) {
+    if (b.type !== 'image') continue;
+    const d = kitImageDiagnostic(b.src);
+    if (d) msgs.add(d.suggestion ? `${d.message} Did you mean "${d.suggestion}"?` : d.message);
+  }
+  return [...msgs];
+}
+
 /**
  * Resolves a local image and CONFINES it to the trusted roots.
  *
@@ -222,9 +299,18 @@ export function imageWithinRoots(file, roots) {
  * paths are resolved; the following roots only widen the confinement (an
  * absolute path already under a project/vault root passes).
  *
+ * A `kit:<alias>` source resolves to the path the kit's theme declared for
+ * the alias, WITHOUT the roots' confinement: that path was already resolved
+ * and confined to the kit by resolveTheme (theme.mjs, the same realpath guard
+ * as the logos), and a kit installed outside the project would otherwise be
+ * refused by the very mechanism that vouches for it. An unknown alias
+ * resolves to null — the placeholder path, like a missing file.
+ *
  * @returns {string|null} confined absolute path, or null if the image escapes
  */
 export function resolveLocalImage(roots, src) {
+  const alias = kitImageAlias(src);
+  if (alias !== null) return kitImagePathOf(alias);
   const bases = (Array.isArray(roots) ? roots : [roots]).filter(Boolean);
   if (!bases.length) return null;
   const file = resolveImagePath(bases[0], src);

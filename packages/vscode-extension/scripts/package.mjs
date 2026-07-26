@@ -99,6 +99,7 @@ function installBrandKit() {
         'theme.json',
         'layouts',
         'fonts',
+        'images',
         'logo',
         'DESIGN.md',
         'NOTICE.md',
@@ -132,8 +133,17 @@ if (!fs.existsSync(path.join(extRoot, 'dist', 'extension.js'))) {
   process.exit(1);
 }
 
+// design/editor is the kit-editor SPA (~372 KB of JS + woff2), served ONLY by
+// the CLI's `lutrin kit edit` — the extension has no code path that reaches it,
+// so it would ship as dead weight. It stays in the npm package's `files` list
+// (the npm-installed CLI serves it from there); only the packagers drop it.
+const editorDir = path.join(coreRoot, 'design', 'editor');
+const withoutEditor = (src) => src !== editorDir && !src.startsWith(editorDir + path.sep);
 for (const sub of ['src', 'design']) {
-  fs.cpSync(path.join(coreRoot, sub), path.join(distCore, sub), { recursive: true });
+  fs.cpSync(path.join(coreRoot, sub), path.join(distCore, sub), {
+    recursive: true,
+    filter: withoutEditor,
+  });
 }
 const corePkg = JSON.parse(fs.readFileSync(path.join(coreRoot, 'package.json'), 'utf8'));
 fs.writeFileSync(

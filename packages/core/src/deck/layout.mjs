@@ -587,12 +587,16 @@ export function registerLayout(def) {
 // paramSchema exposes its settings to the JSON layouts (default = historical
 // behaviour, the switch's literals turned into parameters)
 [
-  { name: 'cover' },
-  { name: 'section' },
-  { name: 'hero' },
-  { name: 'quote' },
+  { name: 'cover', description: 'title slide: deck title, subtitle and date on the cover surface' },
+  {
+    name: 'section',
+    description: 'chapter divider: a numbered section title on an accent surface',
+  },
+  { name: 'hero', description: 'full-bleed opener: a background visual under the title block' },
+  { name: 'quote', description: 'a single quotation set large, with its attribution' },
   {
     name: 'metrics',
+    description: 'a row of metric cards: value, label and trend delta',
     paramSchema: {
       max: {
         type: 'number',
@@ -615,6 +619,7 @@ export function registerLayout(def) {
   },
   {
     name: 'split',
+    description: 'text beside a visual, split by an adjustable ratio',
     paramSchema: {
       ratio: {
         type: 'number',
@@ -631,10 +636,19 @@ export function registerLayout(def) {
       },
     },
   },
-  { name: 'two-columns', sections: { min: 2, max: 2 } },
-  { name: 'three-columns', sections: { min: 3, max: 3 } },
+  {
+    name: 'two-columns',
+    description: 'two equal columns, one ## section each',
+    sections: { min: 2, max: 2 },
+  },
+  {
+    name: 'three-columns',
+    description: 'three equal columns, one ## section each',
+    sections: { min: 3, max: 3 },
+  },
   {
     name: 'comparison',
+    description: 'two panels side by side, muted versus highlighted',
     sections: { min: 2, max: 2 },
     paramSchema: {
       panels: panelsParam(['muted', 'highlight'], 'column'),
@@ -652,6 +666,7 @@ export function registerLayout(def) {
   },
   {
     name: 'pillars',
+    description: 'upright panels with an accent bar, one per ## section',
     sections: { min: 2, max: 4 },
     paramSchema: {
       panels: panelsParam(['pillar'], 'pillar'),
@@ -662,6 +677,7 @@ export function registerLayout(def) {
   },
   {
     name: 'timeline',
+    description: 'milestones as dots along an axis, horizontal or vertical',
     sections: { min: 2, max: 6 },
     paramSchema: {
       dot: {
@@ -688,6 +704,7 @@ export function registerLayout(def) {
   },
   {
     name: 'layers',
+    description: 'stacked horizontal bands — also a funnel or a pyramid',
     sections: { min: 2, max: 5 },
     paramSchema: {
       ratios: {
@@ -718,6 +735,7 @@ export function registerLayout(def) {
   },
   {
     name: 'swot',
+    description: 'four semantic quadrants: strengths, weaknesses, opportunities, threats',
     sections: { min: 4, max: 4 },
     paramSchema: {
       kinds: {
@@ -731,6 +749,7 @@ export function registerLayout(def) {
   },
   {
     name: 'grid',
+    description: 'a mosaic of cells over a configurable number of columns',
     sections: { min: 2, max: 8 },
     paramSchema: {
       cols: {
@@ -769,6 +788,7 @@ export function registerLayout(def) {
   },
   {
     name: 'steps',
+    description: 'a left-to-right sequence of steps joined by connectors',
     sections: { min: 2, max: 6 },
     paramSchema: {
       connector: {
@@ -784,6 +804,7 @@ export function registerLayout(def) {
   },
   {
     name: 'focus',
+    description: 'one key message set large in the middle of the slide',
     paramSchema: {
       align: {
         // its own spec rather than alignParam(): the key message is CENTERED
@@ -807,12 +828,13 @@ export function registerLayout(def) {
       },
     },
   },
-  { name: 'table' },
-  { name: 'code' },
-  { name: 'diagram' },
-  { name: 'chart' },
+  { name: 'table', description: 'a slide-wide table from the markdown table' },
+  { name: 'code', description: 'a syntax-highlighted code block on its own slide' },
+  { name: 'diagram', description: 'a mermaid diagram rendered slide-wide' },
+  { name: 'chart', description: 'a chart block rendered slide-wide' },
   {
     name: 'content',
+    description: 'the default flow: headings, bullets and blocks top to bottom',
     paramSchema: { density: densityParam(), align: alignParam('the blocks in the flow') },
   },
 ].forEach((def) => registerLayout({ ...def, builtin: true }));
@@ -912,40 +934,54 @@ function loadLayoutDir(dir, describe, origin = null) {
       });
       continue;
     }
-    if (def && typeof def === 'object' && !Array.isArray(def)) {
-      // accepted keys: the four common ones + the parameters of the base's
-      // generator — if the base does not resolve, nothing is filtered (it is
-      // the base itself that registerLayout will report)
-      const schema = typeof def.base === 'string' ? layoutParamSchema(def.base) : null;
-      if (schema) {
-        const known = new Set([...RESERVED_KEYS, ...Object.keys(schema)]);
-        for (const key of Object.keys(def)) {
-          if (known.has(key)) continue;
-          diags.push({
-            severity: 'warning',
-            code: 'LAYOUT_DEF_ADJUSTED',
-            message: `Layout ${describe(f)}: unknown key "${key}" — ignored.`,
-            ...(closest(key, [...known]) ? { suggestion: closest(key, [...known]) } : {}),
-          });
-          delete def[key];
-        }
-      }
-    }
-    try {
-      // builtin/official/origin forced: a data file cannot register a layout
-      // that would survive the reset (a ghost leaking between the decks of a
-      // warm host), pass itself off as an official one, or claim a
-      // provenance of its own
-      registerLayout({ ...def, builtin: false, official: false, origin });
-    } catch (e) {
-      diags.push({
-        severity: 'warning',
-        code: 'LAYOUT_DEF_INVALID',
-        message: `Layout ${describe(f)}: ${e?.message ?? e} — ignored.`,
-      });
-    }
+    registerUserLayoutDef(def, describe(f), origin, diags);
   }
   return diags;
+}
+
+/**
+ * Validates and registers ONE already-parsed definition — the code shared by
+ * the disk loader (loadLayoutDir) and the in-memory kit overlay
+ * (loadThemeLayoutDefs), so both produce the same registry entries and the
+ * same LAYOUT_DEF_* diagnostics. `label` names the definition in the
+ * messages the way a file path would.
+ */
+function registerUserLayoutDef(def, label, origin, diags) {
+  if (def && typeof def === 'object' && !Array.isArray(def)) {
+    // shallow copy: the unknown-key filter below must never mutate the
+    // caller's object (an in-memory definition belongs to the host)
+    def = { ...def };
+    // accepted keys: the four common ones + the parameters of the base's
+    // generator — if the base does not resolve, nothing is filtered (it is
+    // the base itself that registerLayout will report)
+    const schema = typeof def.base === 'string' ? layoutParamSchema(def.base) : null;
+    if (schema) {
+      const known = new Set([...RESERVED_KEYS, ...Object.keys(schema)]);
+      for (const key of Object.keys(def)) {
+        if (known.has(key)) continue;
+        diags.push({
+          severity: 'warning',
+          code: 'LAYOUT_DEF_ADJUSTED',
+          message: `Layout ${label}: unknown key "${key}" — ignored.`,
+          ...(closest(key, [...known]) ? { suggestion: closest(key, [...known]) } : {}),
+        });
+        delete def[key];
+      }
+    }
+  }
+  try {
+    // builtin/official/origin forced: a data file cannot register a layout
+    // that would survive the reset (a ghost leaking between the decks of a
+    // warm host), pass itself off as an official one, or claim a
+    // provenance of its own
+    registerLayout({ ...def, builtin: false, official: false, origin });
+  } catch (e) {
+    diags.push({
+      severity: 'warning',
+      code: 'LAYOUT_DEF_INVALID',
+      message: `Layout ${label}: ${e?.message ?? e} — ignored.`,
+    });
+  }
 }
 
 /**
@@ -969,6 +1005,29 @@ export function loadUserLayouts(baseDir) {
  */
 export function loadThemeLayouts(dir, kitName) {
   return loadLayoutDir(dir, (f) => `${kitName}/layouts/${f}`, kitName);
+}
+
+/**
+ * Registers KIT layout definitions supplied IN MEMORY (kitData.layouts — a
+ * kit editor previewing unsaved files) in place of the kit's layouts/
+ * directory: same level (user — reset on every compilation), same `origin`
+ * attribution, same LAYOUT_DEF_* diagnostics as loadThemeLayouts. An empty
+ * array is a kit without layouts — nothing is read from disk either way.
+ *
+ * @param {Array<object>} defs  one entry per layouts/*.json file content
+ * @param {string|null} kitName provenance shown in collision messages
+ * @returns {Array<{severity, code, message, suggestion?}>}
+ */
+export function loadThemeLayoutDefs(defs, kitName) {
+  const diags = [];
+  defs.forEach((def, k) => {
+    // label the definition the way a file path would — by its name when it
+    // has one, by its position otherwise (an invalid one may have neither)
+    const name =
+      def && typeof def === 'object' && typeof def.name === 'string' ? def.name : `#${k + 1}`;
+    registerUserLayoutDef(def, `${kitName ?? 'kit'}/layouts/${name}`, kitName, diags);
+  });
+  return diags;
 }
 
 export function inferLayout(slide, index) {

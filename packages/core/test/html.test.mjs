@@ -203,3 +203,30 @@ test('mermaid: labels survive the sanitizer (requires mmdc)', async (t) => {
   assert.match(html, /class="figure mermaid/, 'diagram rendered, no code fallback');
   assert.match(html, /<text[\s>][\s\S]*Parse/, 'label "Parse" present in an SVG <text>');
 });
+
+// The font memo (fontFacesCss) keys on each woff2's path + mtime + size — the
+// fileToDataUri recipe. Without the digest, a warm process (preview server,
+// worker, kit editor) that sees a font file REPLACED under the same path
+// would serve the previous base64 forever: the theme key (family + paths)
+// does not change when only the bytes do.
+test('fonts: a woff2 replaced under the same path is re-embedded on the next compile (warm process)', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-font-swap-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, 'Body.ttf'), 'ttf-bytes');
+  fs.writeFileSync(path.join(dir, 'Body.woff2'), 'woff2-v1');
+  fs.writeFileSync(
+    path.join(dir, 'theme.json'),
+    JSON.stringify({ fonts: { body: 'Swap Test', files: { regular: './Body.ttf' } } }),
+  );
+  const src = '---\nkit: ./theme.json\n---\n\n# Slide\n\ntext\n';
+  const b64 = (s) => Buffer.from(s).toString('base64');
+
+  const v1 = await compileHtml(src, { baseDir: dir, fragment: true });
+  assert.ok(v1.fontsCss.includes(b64('woff2-v1')), 'first compile embeds the original bytes');
+
+  // same path, new bytes — the font file was replaced, theme.json untouched
+  fs.writeFileSync(path.join(dir, 'Body.woff2'), 'woff2-v2-replaced');
+  const v2 = await compileHtml(src, { baseDir: dir, fragment: true });
+  assert.ok(v2.fontsCss.includes(b64('woff2-v2-replaced')), 'the new bytes are embedded');
+  assert.ok(!v2.fontsCss.includes(b64('woff2-v1')), 'the stale base64 is gone');
+});

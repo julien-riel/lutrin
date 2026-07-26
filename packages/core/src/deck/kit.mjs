@@ -9,6 +9,8 @@
  *   ├── theme.json        design tokens (theme schema, see theme.mjs)
  *   ├── layouts/*.json    layouts
  *   ├── fonts/*.woff2     optional
+ *   ├── images/*.png      optional — named images (the "images" map of
+ *   │                     theme.json), placed in a deck as ![role](kit:<alias>)
  *   └── logo/*.svg        optional
  *
  * It is distributed either as is, or compressed into a `.deckkit` file (a zip

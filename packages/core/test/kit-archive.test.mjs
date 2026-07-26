@@ -323,6 +323,21 @@ test('packKit: packs a kit and refuses to put in it what extraction would refuse
   assert.equal(back.manifest.name, 'my-kit');
 });
 
+test('packKit: an images/ directory travels in the archive (named images of the theme)', async (t) => {
+  const dir = tmpDir(t);
+  fs.writeFileSync(path.join(dir, 'kit.json'), JSON.stringify(MANIFEST));
+  fs.writeFileSync(
+    path.join(dir, 'theme.json'),
+    JSON.stringify({ images: { 'hero-photo': './images/hero.png' } }),
+  );
+  fs.mkdirSync(path.join(dir, 'images'));
+  fs.writeFileSync(path.join(dir, 'images', 'hero.png'), 'PNG-BYTES');
+
+  const { entries, skipped } = await packKit(dir);
+  assert.ok(entries.includes('images/hero.png'), 'the named image is packed with the kit');
+  assert.deepEqual(skipped, [], 'nothing to skip: .png is already on the allow-list');
+});
+
 test('packKit: never includes a symbolic link (it would point outside the kit)', async (t) => {
   const outside = tmpDir(t, 'lutrin-outside-');
   fs.writeFileSync(path.join(outside, 'secret.json'), '{"secret":true}');

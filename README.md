@@ -167,7 +167,14 @@ lutrin kit install <file.deckkit | https://…>   # into ~/.config/lutrin/kits/
 lutrin kit list
 lutrin kit remove <name>
 lutrin kit create <directory>                   # produces the .deckkit
+lutrin kit edit <name|directory> [--create]     # local web editor (see below)
 ```
+
+**`lutrin kit edit` opens a kit in a local web editor** — tokens with live
+WCAG contrast checks, embedded fonts, layouts, images, `.deckkit` export —
+with a preview compiled by the real engine, on 127.0.0.1 only. `--create`
+scaffolds a fresh kit from the default theme. The full tour:
+[docs/kit-editor.md](docs/kit-editor.md).
 
 A kit contains only **data** — never code: installation runs nothing, refuses
 any entry that would escape the kit, bounds the size and accepts only `https`.
@@ -200,9 +207,9 @@ Referencing a kit, by decreasing precedence:
 The two pieces of a kit can also be used separately, placed next to the deck:
 
 - **JSON theme** — a file that overrides the design tokens of the default
-  theme (colors, fonts — families and embedded files —, logos, chrome
-  geometry, chart palette…); the derived groups (layers, callouts, trends)
-  follow the palette. Any invalid entry becomes a diagnostic (`THEME_*`), and
+  theme (colors, fonts — families and embedded files —, logos, named images,
+  chrome geometry, chart palette…); the derived groups (layers, callouts,
+  trends) follow the palette. Any invalid entry becomes a diagnostic (`THEME_*`), and
   the WCAG thresholds are checked (`THEME_CONTRAST`). Complete template to
   copy: `packages/core/design/themes/default.json` (canonical mirror of the
   default theme, guaranteed no-op by an anti-drift test); example:

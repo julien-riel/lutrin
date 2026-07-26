@@ -87,6 +87,17 @@ export const LOGOS = {
   sectionSvg: null,
 };
 
+/**
+ * Named images of the theme, themable: alias → absolute path, filled by
+ * applyTheme() from a theme's `images` map (paths resolved relative to the
+ * theme.json and CONFINED by resolveTheme, exactly like the logos). A deck
+ * references them as `![role](kit:<alias>)`; once the alias is substituted,
+ * both renderers treat the path exactly like a local deck image. The default
+ * theme declares none — an empty object, restored between compilations by the
+ * same snapshot mechanism as every other live group.
+ */
+export const KIT_IMAGES = {};
+
 /** Sizes in points, derived from the DESIGN.md scale (px × 0.75 = pt),
  *  bumped up one notch for projection. */
 export const TYPE = {

@@ -13,6 +13,7 @@
  *   lutrin config [--kit <kit|file.json|none>] [--unset]
  *   lutrin kit install <file.deckkit|https://…> [--force] [--name <name>]
  *   lutrin kit list | remove <name> | create <directory> [-o <file.deckkit>]
+ *   lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]
  *   lutrin capabilities [<input.md>] [--kit <kit|file.json|directory>] [--json]
  *
  * `lutrin <input.md> …` with no subcommand = `build` (compatibility).
@@ -66,7 +67,8 @@ import {
   migrateUserConfig,
 } from './deck/theme.mjs';
 import { validateDeck, capabilities } from './deck/validate.mjs';
-import { readKit, parseKitManifest } from './deck/kit.mjs';
+import { readKit, parseKitManifest, KIT_NAME_RE } from './deck/kit.mjs';
+import { createSseHub, listenFromPort, refuseNonLocalHost } from './serve.mjs';
 import {
   readKitArchive,
   packKit,
@@ -98,6 +100,7 @@ const USAGE = `Usage:
   lutrin kit list
   lutrin kit remove <name>
   lutrin kit create <directory> [-o <file.deckkit>]
+  lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]
   lutrin capabilities [<input.md>] [--kit <kit|file.json|directory>] [--json]
   lutrin setup-mermaid [--yes]
   lutrin --version | --help`;
@@ -159,7 +162,17 @@ const FLAG_SPECS = {
   inspect: { ...FLAGS_KIT, o: 'value', output: 'value' },
   vendor: { ...FLAGS_KIT },
   config: { ...FLAGS_KIT, unset: 'boolean' },
-  kit: { name: 'value', o: 'value', output: 'value', force: 'boolean' },
+  // one spec for every kit action (the strict parser refuses per-flag, not
+  // per-action): --port and --create belong to `edit`, --name to install/edit,
+  // -o/--output to create, --force to install
+  kit: {
+    name: 'value',
+    o: 'value',
+    output: 'value',
+    force: 'boolean',
+    port: 'value',
+    create: 'boolean',
+  },
   // `capabilities` takes the same kit flags as the deck commands: the catalog
   // it publishes IS AUTHORITATIVE, so it must be able to be the catalog of the
   // real context (installed kit, layouts/ next to the deck) and not just that
@@ -580,62 +593,19 @@ function cmdInspect(argv) {
 
 const SSE_CLIENT = `<script>new EventSource('/__events').onmessage = () => location.reload();</script>`;
 
-/**
- * Hosts admitted by the preview server.
- *
- * Listening on 127.0.0.1 is NOT enough: a third-party site can have its own
- * domain resolve to the local loopback (DNS rebinding) and have the preview —
- * hence the content of the deck being written — read by the victim's browser.
- * The countermeasure is to refuse any request whose `Host` header is not a local
- * name: a browser ALWAYS sends the name it resolved.
- */
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
-
-/** The host name of a `Host` header (port removed, IPv6 brackets kept). */
-function hostnameOf(header) {
-  if (typeof header !== 'string' || !header) return null;
-  if (header.startsWith('[')) return header.slice(0, header.indexOf(']') + 1) || null;
-  const colon = header.indexOf(':');
-  return (colon === -1 ? header : header.slice(0, colon)).toLowerCase();
-}
-
-/**
- * Listens on the first free port starting from `port`.
- *
- * A busy port surfaced as an uncaught EADDRINUSE — a stack trace for a
- * perfectly ordinary case (two previews open). We announce and we switch; the
- * caller learns the port ACTUALLY listened on.
- */
-function listenFromPort(server, port, attempts = 20) {
-  return new Promise((resolve, reject) => {
-    let current = port;
-    let remaining = attempts;
-    const onError = (e) => {
-      if (e?.code !== 'EADDRINUSE' || remaining-- <= 0) {
-        server.off('error', onError);
-        reject(e);
-        return;
-      }
-      console.log(`⚠ port ${current} busy — switching to ${current + 1}`);
-      current += 1;
-      server.listen(current, '127.0.0.1');
-    };
-    server.on('error', onError);
-    server.once('listening', () => {
-      server.off('error', onError);
-      resolve(current);
-    });
-    server.listen(current, '127.0.0.1');
-  });
+/** The `--port` flag of a serving command: an integer in the TCP range, or
+ *  the command's default. Shared by preview (4321) and kit edit (4322). */
+function portOf(args, fallback) {
+  const requested = args.port ?? String(fallback);
+  if (!/^\d+$/.test(String(requested)) || Number(requested) < 1 || Number(requested) > 65535)
+    fail(`--port expects an integer between 1 and 65535 — got "${requested}".`);
+  return Number(requested);
 }
 
 async function cmdPreview(argv) {
   const args = parseArgs(argv, FLAG_SPECS.preview);
   const input = requireInput(args);
-  const requested = args.port ?? '4321';
-  if (!/^\d+$/.test(String(requested)) || Number(requested) < 1 || Number(requested) > 65535)
-    fail(`--port expects an integer between 1 and 65535 — got "${requested}".`);
-  const port = Number(requested);
+  const port = portOf(args, 4321);
   const absInput = path.resolve(input);
   const baseDir = baseDirOf(input);
   const themePath = themePathOf(args);
@@ -676,30 +646,13 @@ async function cmdPreview(argv) {
   }
   await recompile();
 
-  const clients = new Set();
+  const sse = createSseHub();
   const server = http.createServer((req, res) => {
     // `no-store` everywhere: the deck is recompiled on every keystroke, a page
     // kept in cache would show an already-wrong state on reload
-    const hostname = hostnameOf(req.headers.host);
-    if (!hostname || !LOCAL_HOSTS.has(hostname)) {
-      res.writeHead(403, {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-store',
-      });
-      res.end(
-        `403 — Host header "${req.headers.host ?? '(absent)'}" refused: this preview only answers to localhost / 127.0.0.1.\n`,
-      );
-      return;
-    }
+    if (refuseNonLocalHost(req, res)) return;
     if (req.url === '/__events') {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-store',
-        Connection: 'keep-alive',
-      });
-      res.write(':ok\n\n');
-      clients.add(res);
-      req.on('close', () => clients.delete(res));
+      sse.handle(req, res);
       return;
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -718,7 +671,7 @@ async function cmdPreview(argv) {
     timer = setTimeout(async () => {
       try {
         await recompile();
-        for (const c of clients) c.write('data: reload\n\n');
+        sse.broadcast('reload');
       } catch (e) {
         console.error(`✖ ${e.message}`);
       }
@@ -809,7 +762,7 @@ function cmdConfig(argv) {
 // kit — install, list, remove, pack
 // ---------------------------------------------------------------------------
 
-const KIT_ACTIONS = ['install', 'list', 'remove', 'create'];
+const KIT_ACTIONS = ['install', 'list', 'remove', 'create', 'edit'];
 
 async function cmdKit(argv) {
   const args = parseArgs(argv, FLAG_SPECS.kit);
@@ -819,9 +772,13 @@ async function cmdKit(argv) {
   lutrin kit install <file.deckkit|https://…> [--force] [--name <name>]
   lutrin kit list
   lutrin kit remove <name>
-  lutrin kit create <directory> [-o <file.deckkit>]`);
+  lutrin kit create <directory> [-o <file.deckkit>]
+  lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]`);
     process.exit(1);
   }
+
+  // ------ edit ----------------------------------------------------------------
+  if (action === 'edit') return cmdKitEdit(target, args);
 
   // ------ list --------------------------------------------------------------
   if (action === 'list') {
@@ -952,6 +909,149 @@ async function cmdKit(argv) {
     console.log(`  ${SEVERITY_ICON[d.severity] ?? '•'} ${d.message}`);
   if (!check.manifest) process.exit(1);
   console.log(`  use: lutrin build <deck.md> --kit ${m.name}   or   lutrin config --kit ${m.name}`);
+}
+
+// ---------------------------------------------------------------------------
+// kit edit — local server for the kit editor UI
+// ---------------------------------------------------------------------------
+
+/** The default theme shipped with the engine — the template `--create` copies
+ *  (mirror of the live tokens, anti-drift tested). */
+const defaultThemeFile = () =>
+  path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..',
+    'design',
+    'themes',
+    'default.json',
+  );
+
+/**
+ * Scaffolds a brand-new kit in `dir`: kit.json, theme.json copied from the
+ * default theme (so the editor starts from the exact tokens the engine uses,
+ * not from an empty object), and the three asset directories the editor
+ * writes into. Refusing an EXISTING kit is the caller's job (rule 1: checked
+ * before anything is written).
+ */
+function scaffoldKit(dir, nameFlag) {
+  // the name becomes the manifest's `name`: derived from the directory unless
+  // --name says otherwise, and re-validated either way (KIT_NAME_RE is a
+  // safety constraint — the name is a directory at install time)
+  const derived =
+    typeof nameFlag === 'string' && nameFlag.trim()
+      ? nameFlag.trim()
+      : path
+          .basename(dir)
+          .toLowerCase()
+          .replace(/[\s_]+/g, '-');
+  if (!KIT_NAME_RE.test(derived))
+    fail(
+      `kit edit --create — "${derived}" is not an allowed kit name (lowercase letters, digits and hyphens, e.g. "brand-acme"). Pick one with --name <name>.`,
+    );
+  // rule 1, checked before anything is written: an existing NON-directory (a
+  // scratch file bearing the kit's name) would surface as a raw ENOTDIR from
+  // the mkdir below, with no remedy of its own
+  if (fs.existsSync(dir) && !fs.statSync(dir).isDirectory())
+    fail(
+      `kit edit --create — ${dir} exists and is not a directory. Point at a directory to scaffold (or move that file out of the way).`,
+    );
+  fs.mkdirSync(path.join(dir, 'layouts'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'images'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'fonts'), { recursive: true });
+  // name only: parseKitManifest warns on an empty description, and a fresh
+  // kit must not open on a diagnostic the tool itself caused — the editor's
+  // metadata panel adds the key when the user fills it in
+  fs.writeFileSync(path.join(dir, 'kit.json'), `${JSON.stringify({ name: derived }, null, 2)}\n`);
+  const theme = JSON.parse(fs.readFileSync(defaultThemeFile(), 'utf8'));
+  theme.name = derived;
+  // The DERIVED groups (deriveTokens: theme.mjs) follow the palette — the
+  // engine recomputes them from colors on every compile. default.json spells
+  // them out (it is the anti-drift mirror of tokens.mjs), but a scaffold that
+  // copied them VERBATIM would PIN them: theme.mjs merges an explicit derived
+  // group AFTER deriveTokens, so the pinned block would silently override the
+  // tones the editor's palette edits recompute — the Semantic swatches would
+  // edit nothing. Dropping them keeps a fresh kit palette-driven; a user who
+  // wants explicit tones gets them the moment they touch the Layer/Trend cards.
+  for (const g of ['semantic', 'trendInk', 'layerShades']) delete theme[g];
+  fs.writeFileSync(path.join(dir, 'theme.json'), `${JSON.stringify(theme, null, 2)}\n`);
+  console.log(`✓ kit "${derived}" scaffolded — ${dir}`);
+}
+
+/**
+ * `lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]`
+ * — serves the kit editor (API + UI) for one kit, on 127.0.0.1 only.
+ *
+ * A bare name designates an INSTALLED kit (like `kit remove`); a path
+ * designates a kit directory, which must carry kit.json — unless `--create`
+ * scaffolds one. The name decides ALONE, exactly as `--kit` decides
+ * (themeRefOf): a same-named entry in the current directory does not shadow
+ * an installed kit — that directory is reached as the path it is (`./name`).
+ * Port 4322 by default: a deck preview (4321) and a kit editor must be able to
+ * run side by side.
+ */
+async function cmdKitEdit(target, args) {
+  if (!target) {
+    console.error(
+      'Usage: lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]',
+    );
+    process.exit(1);
+  }
+  const port = portOf(args, 4322);
+
+  let kitDir;
+  if (isKitName(target)) {
+    // bare name → installed kit; same tone and remedy as `kit remove`
+    if (args.create)
+      fail(
+        `kit edit --create expects a directory path — "${target}" reads as an installed-kit name. Point at the directory to scaffold (e.g. ./${target}).`,
+      );
+    const kits = listInstalledKits();
+    const found = kits.find((k) => k.name === target);
+    if (!found) {
+      console.error(`✖ kit "${target}" is not installed.`);
+      if (kits.length) console.error(`  Installed: ${kits.map((k) => k.name).join(', ')}`);
+      if (fs.existsSync(target))
+        console.error(
+          `  A local "${target}" exists here — pass it as a path to edit it in place: lutrin kit edit ./${target}`,
+        );
+      console.error(
+        '  Install it (lutrin kit install <file.deckkit | https://…>), or pass a kit directory to edit it in place.',
+      );
+      process.exit(1);
+    }
+    kitDir = found.path;
+  } else {
+    kitDir = path.resolve(target);
+    const manifestFile = path.join(kitDir, 'kit.json');
+    if (args.create) {
+      // --create on an existing kit is an error (rule 1: nothing overwritten)
+      if (fs.existsSync(manifestFile))
+        fail(`kit edit --create — ${kitDir} already carries kit.json: edit it without --create.`);
+      scaffoldKit(kitDir, args.name);
+    } else if (!fs.existsSync(manifestFile)) {
+      fail(
+        `${kitDir} carries no kit.json — this is not a kit. Scaffold one with: lutrin kit edit ${target} --create`,
+      );
+    }
+  }
+
+  // an unreadable manifest would break every API call: say it here, with the
+  // kit's own diagnostics, rather than as opaque 500s in the editor
+  const check = readKit(kitDir);
+  for (const d of check.diagnostics)
+    console.error(`${SEVERITY_ICON[d.severity] ?? '•'} ${d.code} — ${d.message}`);
+  if (!check.manifest) process.exit(1);
+
+  const { startKitEditServer } = await import('./kit/edit-server.mjs');
+  const { close, port: listening } = await startKitEditServer(kitDir, { port });
+  console.log(`Kit editor: http://localhost:${listening}  (Ctrl-C to quit)`);
+  console.log(`  kit "${check.manifest.name}" — ${kitDir}`);
+  // clean Ctrl-C: close the watcher, the SSE clients and the server before
+  // exiting — a killed process leaves no half-written file (every write in the
+  // API is a single writeFileSync), but it must not leave the port in doubt
+  process.on('SIGINT', () => {
+    close().finally(() => process.exit(0));
+  });
 }
 
 // ---------------------------------------------------------------------------

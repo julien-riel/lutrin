@@ -1,0 +1,784 @@
+/* Lutrin kit editor — chrome stylesheet.
+   The preview (real compiled slides) is the artwork; this chrome is the
+   gallery wall: graphite ink bars, a paper panel, a plaster canvas. One
+   accent (brass) is reserved for: focus ring, active nav marker, the
+   primary button and Compare. Nothing here competes with a kit's colors. */
+
+/* ---------------------------------------------------------------- fonts */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('fonts/Fraunces-400_700.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('fonts/IBMPlexSans-400.woff2') format('woff2');
+  font-weight: 400; /* 500-700 synthesize from this file — wanted for labels */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('fonts/IBMPlexMono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('fonts/IBMPlexMono-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --------------------------------------------------------------- tokens */
+:root {
+  /* graphite chrome (topbar, rail) */
+  --ink: #1e2126;
+  --ink-raised: #272b31;
+  --ink-text: #e8e6e1;
+  --ink-text-dim: #9a9891;
+  --ink-line: #33363c;
+  /* paper panel */
+  --paper: #fafaf8;
+  --paper-inset: #f1f0ec;
+  --paper-raised: #ffffff;
+  --paper-text: #26282c;
+  --paper-text-dim: #6b6e74;
+  --paper-line: #d8d6d0;
+  /* preview canvas */
+  --canvas: #edece8;
+  /* the single accent */
+  --brass: #a87f3d;
+  --brass-hover: #c09857;
+  /* diagnostic severities */
+  --sev-error: #b4483e;
+  --sev-warning: #b07c22;
+  --sev-info: #4a6fa5;
+
+  --font-ui: 'IBM Plex Sans', -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  --radius: 5px;
+  --radius-sm: 4px;
+  --shadow-1: 0 1px 2px rgba(30, 33, 38, 0.07), 0 2px 8px rgba(30, 33, 38, 0.05);
+  --shadow-2: 0 2px 6px rgba(30, 33, 38, 0.12), 0 10px 28px rgba(30, 33, 38, 0.1);
+}
+
+/* ---------------------------------------------------------------- reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font: 400 13px/1.5 var(--font-ui);
+  color: var(--paper-text);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 1px;
+}
+/* [hidden] must beat any component display value (flex, grid, …). */
+[hidden] {
+  display: none !important;
+}
+::selection {
+  background: rgba(168, 127, 61, 0.28);
+}
+
+/* ------------------------------------------------------------ app frame */
+.app {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: 100vh;
+}
+/* Rows pinned explicitly: the conflict banner is display:none most of the
+   time, and auto-placement would shift everything below it up one row. */
+.topbar {
+  grid-row: 1;
+}
+.banner {
+  grid-row: 2;
+}
+.app-body {
+  grid-row: 3;
+}
+.drawer {
+  grid-row: 4;
+}
+.app-body {
+  display: grid;
+  grid-template-columns: auto clamp(340px, 30vw, 440px) minmax(0, 1fr);
+  min-height: 0;
+}
+
+/* ----------------------------------------------------------------- topbar */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 14px 0 16px;
+  background: var(--ink);
+  color: var(--ink-text);
+  border-bottom: 1px solid var(--ink-line);
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.brand-mark {
+  color: var(--brass);
+  font-size: 12px;
+}
+.brand-name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-text-dim);
+}
+.topbar-kit {
+  margin: 0;
+  font: 600 17px/1 var(--font-display);
+  color: var(--ink-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.topbar-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-text-dim);
+  white-space: nowrap;
+}
+.topbar-dirty::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brass);
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* -------------------------------------------------------------- nav rail */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 168px;
+  padding: 10px 8px;
+  background: var(--ink);
+  border-right: 1px solid var(--ink-line);
+  overflow-y: auto;
+}
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  color: var(--ink-text-dim);
+  text-decoration: none;
+  font-size: 13px;
+}
+.rail-item svg {
+  flex: none;
+}
+.rail-item:hover {
+  color: var(--ink-text);
+  background: var(--ink-raised);
+}
+.rail-item.is-active {
+  color: var(--ink-text);
+  background: var(--ink-raised);
+  border-left-color: var(--brass);
+}
+@media (max-width: 1099px) {
+  .rail {
+    width: 52px;
+    padding: 10px 6px;
+  }
+  .rail-item {
+    justify-content: center;
+    padding: 0;
+  }
+  .rail-item span {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------ panel host */
+.panel-host {
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--paper);
+  border-right: 1px solid var(--paper-line);
+  padding: 16px;
+}
+
+/* --------------------------------------------------------------- preview */
+.preview {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  background: var(--canvas);
+}
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--paper-line);
+}
+.preview-bar .spacer {
+  flex: 1;
+}
+.preview-canvas {
+  min-height: 0;
+}
+.preview-canvas iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Compare — the one deliberate flourish: hold to see the saved kit. */
+.btn-compare {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--brass);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--brass);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.btn-compare:hover:not(:disabled) {
+  border-color: var(--brass-hover);
+  color: var(--brass-hover);
+}
+.btn-compare.is-holding {
+  background: var(--brass);
+  color: var(--ink);
+}
+.btn-compare:disabled {
+  border-color: var(--paper-line);
+  color: var(--paper-text-dim);
+  cursor: default;
+}
+.btn-compare kbd {
+  font: 500 10px var(--font-mono);
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 3px;
+  opacity: 0.75;
+}
+
+/* --------------------------------------------------------------- buttons */
+/* Paper-surface buttons (panels). On graphite chrome use .btn-ink. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  color: var(--paper-text);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  background: var(--paper-inset);
+}
+.btn:disabled {
+  color: var(--paper-text-dim);
+  cursor: default;
+}
+.btn-ink {
+  border-color: var(--ink-line);
+  background: transparent;
+  color: var(--ink-text);
+}
+.btn-ink:hover:not(:disabled) {
+  background: var(--ink-raised);
+}
+.btn-ink:disabled {
+  color: var(--ink-text-dim);
+}
+.btn-primary {
+  border-color: var(--brass);
+  background: var(--brass);
+  color: var(--ink);
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) {
+  border-color: var(--brass-hover);
+  background: var(--brass-hover);
+}
+/* Disabled primary on paper surfaces: recede, never outrank enabled controls. */
+.btn-primary:disabled {
+  border-color: var(--paper-line);
+  background: var(--paper-inset);
+  color: var(--paper-text-dim);
+}
+/* On the graphite topbar the same state stays quietly dark. */
+.topbar .btn-primary:disabled {
+  border-color: var(--ink-line);
+  background: var(--ink-raised);
+  color: var(--ink-text-dim);
+}
+.btn-danger {
+  border-color: var(--sev-error);
+  background: var(--paper-raised);
+  color: var(--sev-error);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--sev-error);
+  color: #fff;
+}
+.btn-sm {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------- fields */
+.label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--paper-text-dim);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+}
+.field .hint {
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}
+.field .error {
+  font-size: 11px;
+  color: var(--sev-error);
+}
+.input,
+.select,
+.textarea {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  color: var(--paper-text);
+  font-size: 13px;
+}
+.textarea {
+  height: auto;
+  min-height: 72px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline-offset: 0;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--paper-text-dim);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.input[type='color'] {
+  padding: 2px;
+  width: 36px;
+}
+
+/* ----------------------------------------------------- segmented control */
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: var(--paper-inset);
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius);
+}
+.seg button {
+  height: 22px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--paper-text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.seg button:hover {
+  color: var(--paper-text);
+}
+.seg button[aria-pressed='true'] {
+  background: var(--paper-raised);
+  color: var(--paper-text);
+  font-weight: 600;
+  box-shadow: var(--shadow-1);
+}
+
+/* ---------------------------------------------------------------- toggle */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 17px;
+  flex: none;
+}
+.toggle input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.toggle .track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--paper-line);
+  pointer-events: none;
+}
+.toggle .track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-1);
+}
+.toggle input:checked + .track {
+  background: var(--paper-text);
+}
+.toggle input:checked + .track::after {
+  left: 15px;
+}
+.toggle input:focus-visible + .track {
+  outline: 2px solid var(--brass);
+  outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------------ tags */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--paper-line);
+  border-radius: 3px;
+  background: var(--paper-inset);
+  font: 400 12px var(--font-mono);
+  color: var(--paper-text);
+}
+.tag button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--paper-text-dim);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tag button:hover {
+  color: var(--sev-error);
+}
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+}
+.tag-input input {
+  flex: 1;
+  min-width: 80px;
+  border: 0;
+  outline: none;
+  background: none;
+  font: 400 12px var(--font-mono);
+  padding: 2px;
+}
+
+/* ----------------------------------------------------------------- cards */
+.card {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  box-shadow: var(--shadow-1);
+  padding: 12px;
+  margin: 0 0 12px;
+}
+.card-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--paper-text-dim);
+}
+
+/* ----------------------------------------------------------- empty state */
+.empty {
+  padding: 48px 24px;
+  text-align: center;
+}
+.empty-title {
+  margin: 0 0 6px;
+  font: 600 20px/1.3 var(--font-display);
+  color: var(--paper-text);
+}
+.empty p {
+  margin: 0;
+  color: var(--paper-text-dim);
+}
+
+/* --------------------------------------------------------- conflict banner */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--paper-line);
+  border-left: 3px solid var(--sev-warning);
+}
+.banner p {
+  margin: 0;
+  flex: 1;
+}
+.banner[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------ diagnostics drawer */
+.drawer {
+  background: var(--paper);
+  border-top: 1px solid var(--paper-line);
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.drawer-head:hover {
+  background: var(--paper-inset);
+}
+.drawer-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--paper-text-dim);
+}
+.drawer-counts {
+  display: flex;
+  gap: 10px;
+}
+.drawer-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 500 12px var(--font-mono);
+  color: var(--paper-text-dim);
+}
+.drawer-count::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--paper-line);
+}
+.drawer-count.has-some {
+  color: var(--paper-text);
+}
+.drawer-count.sev-error.has-some::before {
+  background: var(--sev-error);
+}
+.drawer-count.sev-warning.has-some::before {
+  background: var(--sev-warning);
+}
+.drawer-count.sev-info.has-some::before {
+  background: var(--sev-info);
+}
+.drawer-chevron {
+  margin-left: auto;
+  color: var(--paper-text-dim);
+}
+.drawer-head[aria-expanded='true'] .drawer-chevron {
+  transform: rotate(180deg);
+}
+.drawer-body {
+  max-height: 200px;
+  overflow-y: auto;
+  border-top: 1px solid var(--paper-line);
+}
+.drawer-list {
+  margin: 0;
+  padding: 6px 8px;
+  list-style: none;
+}
+.drawer-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  font: 400 12px/1.5 var(--font-mono);
+  color: var(--paper-text);
+}
+.drawer-item[data-target] {
+  cursor: pointer;
+}
+.drawer-item[data-target]:hover {
+  background: var(--paper-inset);
+}
+.drawer-item .code {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.drawer-item.sev-error .code {
+  color: var(--sev-error);
+}
+.drawer-item.sev-warning .code {
+  color: var(--sev-warning);
+}
+.drawer-item.sev-info .code {
+  color: var(--sev-info);
+}
+.drawer-item .where {
+  margin-left: auto;
+  color: var(--paper-text-dim);
+  white-space: nowrap;
+}
+.drawer-empty {
+  padding: 10px 16px;
+  color: var(--paper-text-dim);
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------- toasts */
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+}
+/* Neutral edge by default: brass stays reserved for the four sanctioned roles
+   (focus ring, active rail marker, primary button, Compare). */
+.toast {
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--ink-text-dim);
+  background: var(--ink);
+  color: var(--ink-text);
+  font-size: 13px;
+  box-shadow: var(--shadow-2);
+}
+.toast.kind-error {
+  border-left-color: var(--sev-error);
+}
+.toast.kind-info {
+  border-left-color: var(--sev-info);
+}
+
+/* ---------------------------------------------------------------- dialog */
+.dialog {
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--paper-text);
+  box-shadow: var(--shadow-2);
+  padding: 16px;
+  max-width: 380px;
+}
+.dialog::backdrop {
+  background: rgba(30, 33, 38, 0.4);
+}
+.dialog p {
+  margin: 0 0 14px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

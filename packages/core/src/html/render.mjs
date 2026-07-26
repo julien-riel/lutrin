@@ -58,6 +58,7 @@ import { highlightLine } from '../deck/highlight.mjs';
 import {
   fetchRemoteImage,
   iconSvg,
+  kitImageWarnings,
   mathSvg,
   renderMermaidCached,
   resolveLocalImage,
@@ -991,12 +992,22 @@ function contentHtml(scene, num, footerText, ctx) {
 // ---------------------------------------------------------------------------
 
 // ~300 kB of base64 woff2: encoded once per process — memo KEYED BY THEME
-// (family + files): a theme that changes the fonts within the same process
-// (preview, warm worker) must not serve the previous ones again
+// (family + files) AND by each woff2's digest (path + mtime + size, the
+// fileCacheKey recipe): a theme that changes the fonts within the same
+// process (preview, warm worker) must not serve the previous ones again, and
+// neither must a font file REPLACED under the same path (a kit editor
+// uploading new glyphs) — the same warm-process staleness fileToDataUri was
+// fixed for
 let _fontFaces = null;
 let _fontFacesKey = null;
 function fontFacesCss() {
-  const key = [FONTS.body, FONT_FILES.regular, FONT_FILES.bold, FONT_FILES.italic].join('|');
+  const key = [
+    FONTS.body,
+    ...FONT_FACE_VARIANTS.map((f) => {
+      const ttf = FONT_FILES[f.key];
+      return typeof ttf === 'string' ? fileCacheKey(ttf.replace(/\.ttf$/i, '.woff2')) : '';
+    }),
+  ].join('|');
   if (_fontFaces && _fontFacesKey === key) return _fontFaces;
   const faces = [];
   for (const f of FONT_FACE_VARIANTS) {
@@ -1640,7 +1651,9 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
     slides,
     stats: {
       slideCount: scenes.length,
-      warnings: [], // filled in by the caller (theme fallbacks, etc.)
+      // `kit:` aliases no theme declared (the slide keeps a placeholder);
+      // the caller appends its own (theme fallbacks, etc.)
+      warnings: kitImageWarnings(allBlocks),
       fontsEmbedded: fontFacesCss().count,
       animatedSlides: scenes.filter((s) => s.animSteps).length,
       mermaidRendered: mermaid.size,
@@ -1700,6 +1713,12 @@ ${scenes.some((s) => s.animSteps) ? `<script>${animScript()}</script>` : ''}
  * `{ slides, css, fontsCss, … }` — one standalone fragment per slide, the
  * stylesheet returned separately, and NO script (the host provides fit/animations; HTML
  * injected through innerHTML would not run its <script> anyway).
+ *
+ * `kitData: { theme?, layouts? }` (in-memory kit overlay — a kit editor
+ * previewing an UNSAVED state): the kit is still resolved from
+ * themePath/frontmatter as usual, kitData only replaces the CONTENT read from
+ * its disk — see prepareDeckContext. Leaves no trace: the next compileHtml
+ * without it reads the disk again.
  */
 export async function compileHtml(
   source,
@@ -1710,12 +1729,13 @@ export async function compileHtml(
     defaultTheme = null,
     vendor = undefined,
     imageRoots = [],
+    kitData = null,
   } = {},
 ) {
   const deck = parseDeck(source);
   // theme + user layouts of the deck — BEFORE buildScenes (the geometry of the
   // scenes depends on the design tokens)
-  const prep = prepareDeckContext(deck.meta, { baseDir, themePath, defaultTheme });
+  const prep = prepareDeckContext(deck.meta, { baseDir, themePath, defaultTheme, kitData });
   const scenes = buildScenes(deck);
   if (fragment) {
     const { slides, stats } = await renderSlideFragments(scenes, deck.meta, baseDir, {

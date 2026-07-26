@@ -1,0 +1,174 @@
+/* Images panel — everything prefixed .p-images-*, palette via the shell's
+   custom properties only. */
+
+.p-images-file {
+  display: none;
+}
+.p-images-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  border: 1.5px dashed var(--paper-line);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.p-images-drop.is-over {
+  border-color: var(--paper-text);
+  background: var(--paper-inset);
+}
+.p-images-drop-lead {
+  margin: 0;
+  font-weight: 600;
+}
+.p-images-drop-sub {
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}
+.p-images-section {
+  margin: 18px 0 8px;
+}
+.p-images-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--paper-text-dim);
+}
+.p-images-note-inline {
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}
+.p-images-help-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+.p-images-help-list li {
+  margin: 2px 0;
+}
+.p-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.p-images-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  box-shadow: var(--shadow-1);
+}
+/* Checkerboard: white or transparent images must stay visible in the thumb. */
+.p-images-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88px;
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-sm);
+  background: repeating-conic-gradient(var(--paper-inset) 0% 25%, var(--paper-raised) 0% 50%) 0 0 /
+    12px 12px;
+  overflow: hidden;
+}
+.p-images-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.p-images-alias {
+  font: 500 12px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.p-images-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--paper-text-dim);
+}
+.p-images-missing {
+  padding: 0 4px;
+  border: 1px solid var(--sev-error);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sev-error);
+}
+.p-images-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+}
+.p-images-orphan {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--paper-line);
+}
+.p-images-orphan-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-sm);
+  background: repeating-conic-gradient(var(--paper-inset) 0% 25%, var(--paper-raised) 0% 50%) 0 0 /
+    12px 12px;
+  overflow: hidden;
+}
+.p-images-orphan-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.p-images-orphan-path {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+/* Exact syntax tokens never break mid-token. */
+.p-images-token {
+  white-space: nowrap;
+}
+.p-images-error {
+  display: block;
+  min-height: 14px;
+  font-size: 11px;
+  color: var(--sev-error);
+}
+.p-images-name-file {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 10px;
+  word-break: break-all;
+}
+.p-images-name-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.p-images-preview-dialog {
+  width: min(920px, 92vw);
+  max-width: none;
+}
+.p-images-preview-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--paper-text-dim);
+}
+.p-images-preview-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+  margin: 0 0 12px;
+}
