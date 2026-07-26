@@ -348,6 +348,26 @@ test('pptx: an icon name containing a slash does not take the export down', asyn
   assert.match(await zip.file('ppt/slides/slide2.xml').async('string'), /descr="Icon coffee\/"/);
 });
 
+// The .pptx rasterizes an icon; the HTML inlines the SVG and is sharp at any
+// size. A fixed raster density behind a size word therefore made the LARGE
+// icon — the one the word exists to make prominent — the softest mark on the
+// slide, and the two formats diverged on the same deck.
+test('pptx: the icon raster follows the size word, so `large` is not the blurriest', async (t) => {
+  const source =
+    '---\ntitle: Icons\n---\n\n# Large\n\n![large](lucide:coffee)\n\n# Plain\n\n![](lucide:coffee)\n';
+  const { zip } = await compilePptx(t, source);
+  // PNG header: width is the big-endian uint32 at offset 16
+  const widths = [];
+  for (const name of Object.keys(zip.files).filter((f) => /^ppt\/media\/.*\.png$/.test(f)))
+    widths.push((await zip.file(name).async('nodebuffer')).readUInt32BE(16));
+  widths.sort((a, b) => a - b);
+  assert.equal(widths.length, 2, 'one raster per icon');
+  assert.ok(
+    widths[1] > widths[0],
+    `the large icon must be rasterized larger (${widths.join(' vs ')})`,
+  );
+});
+
 // markdown-it percent-encodes the source of an image: `lucide:café-emoji`
 // arrives as "caf%c3%a9-emoji". A diagnostic that copied that as is would be
 // telling the author about a string they never wrote.

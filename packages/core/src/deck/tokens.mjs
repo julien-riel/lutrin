@@ -607,7 +607,12 @@ export const ICON_SCALE = { small: 0.7, medium: 1, large: 1.4 };
  * free. That is why it cannot be a fourth entry in ICON_SCALE.
  */
 function iconIntrinsic(block, base) {
-  if (block?.size === 'line') return TYPE.body * PT_TO_PX * LINE_HEIGHT;
+  // `line` follows the body text ALL the way: the theme's token, and the step
+  // the region was re-flowed at when auto-fit had to densify it (scaleBlocks
+  // stamps it). Reading the un-densified token drew an icon 1.5× the line it
+  // labels, exactly where the space was scarcest.
+  if (block?.size === 'line')
+    return scaleTextToken(TYPE.body, block.density) * PT_TO_PX * LINE_HEIGHT;
   return base * (ICON_SCALE[block?.size] ?? 1);
 }
 
@@ -615,9 +620,14 @@ function iconIntrinsic(block, base) {
  * Side of the square an icon is drawn in, in px — the ONE answer both
  * renderers read. Two `Math.min` written twice drifted apart the first time
  * one of them gained a factor; this is the same lesson badgeLayout() banked.
+ *
+ * Never zero, never negative: an over-subscribed column hands out a negative
+ * share, and a negative extent is not a small icon — it is a `<a:ext>` outside
+ * ST_PositiveCoordinate, i.e. a .pptx PowerPoint offers to repair. The floor
+ * keeps the file valid; the overflow it stands for is reported elsewhere.
  */
 export const iconSize = (block, region) =>
-  Math.round(Math.min(region.w, region.h, iconIntrinsic(block, ICON.max)));
+  Math.max(1, Math.round(Math.min(region.w, region.h, iconIntrinsic(block, ICON.max))));
 
 /** Height an icon reserves when it flows in a region (blockHeight). Same rule
  *  as the drawing: an icon that DRAWS larger must also MEASURE larger, or the

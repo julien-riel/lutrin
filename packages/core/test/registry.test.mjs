@@ -75,7 +75,6 @@ const OFFICIALS = [
   'funnel',
   'journey',
   'key-message',
-  'opener',
   'portfolio',
   'priority-matrix',
   'pros-cons',

@@ -15,8 +15,7 @@ footer: New in the compiler · one source, two deliverables
 - A **text scale** a layout can ask for — and the engine pulls by itself
 - Six chart types: **stacked**, **share**, **waterfall**, **gantt**, **heat**
   and **rating** — plus the **target line** a series is judged against
-- An **icon that carries its own size**, and the `opener` layout that answers
-  what a drop cap was for
+- An **icon that carries its own size**
 - Everything below is in **this one file**, compiled to `.pptx` and to HTML
 
 <!-- notes: the same source produced both deliverables; open them side by side. -->
@@ -524,32 +523,10 @@ Synchronous replication
 
 <!-- notes: this is where `line` earns its name — an icon the height of the text it labels, one per specification. And it is a GRID because it cannot be a table: a cell renders text only in both formats, so an icon written into one is dropped and reported (TABLE_CONTENT_DROPPED). A probe measured both ways round it in Keynote — as a cell fill the picture is stretched to 12:1, as a floated image it drifts 23 px on a 26 px mark — and the verdict is banked in docs/plans/widgets-next.md. Here the engine places the icon itself, so it lands where it was put. `portfolio` is an official layout: no file to write. -->
 
-# What a drop cap was actually for
-
-<!-- layout: opener -->
-
-![large](lucide:compass)
-
-Text that flows around a shape needs a text flow engine, and this compiler has
-none: it places blocks in rectangles and estimates their heights. The HTML
-could fake it with a `float`; a DrawingML text box is a rectangle and could
-not fake it at all — and building it on one side only is the divergence the
-contract forbids.
-
-But look at what a drop cap is *for*: an icon set large at the head of a
-passage, the text beside it. That is a composition, not a text engine, and
-`opener` is a JSON file naming a base, a ratio and a side — the icon in the
-narrow column, the passage in the wide one.
-
-The icon opposite is the `large` of the previous slide, and the layout is the
-only thing this slide had to name: no width, no side, no coordinate.
-
-<!-- notes: the icon is trimmed to the square it draws rather than stretched down its column — stretched, it centred itself halfway down the slide, beside nothing. The true wrap-around is recorded as refused, with the reason. -->
-
 # One source, two deliverables
 
 Everything in this deck came out of one `.md` file and five small JSON layouts
-— plus four from the official catalog, which are files nobody had to write.
+— plus three from the official catalog, which are files nobody had to write.
 The `.pptx` and the HTML are born of the same scene: the same geometry to the
 pixel, the same tints, the same wrap.
 

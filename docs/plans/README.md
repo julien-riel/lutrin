@@ -105,7 +105,7 @@ to take them in if they are taken.
 
 | # | What | Where | Cost | Depends on |
 |---|---|---|---|---|
-| ~~1~~ | ~~`opener` layout — the honest answer to "drop cap"~~ — **shipped** | [logos-testimonial-icons.md](logos-testimonial-icons.md) §3c | a JSON file, plus two lines in `split` | — |
+| ~~1~~ | ~~`opener` layout — the honest answer to "drop cap"~~ — **shipped, then withdrawn**: the two lines in `split` re-laid-out every inferred split carrying an icon, and the layout's own name collided with a natural kit name. The drop cap stays refused | [logos-testimonial-icons.md](logos-testimonial-icons.md) §3c | a JSON file, plus two lines in `split` | — |
 | ~~2~~ | ~~Semantic icon size (`![large](lucide:…)`)~~ — **shipped** | [build-logos-and-icons.md](build-logos-and-icons.md) §1 | an afternoon | — |
 | ~~3~~ | ~~`type: rating` and `type: heat`~~ — **both shipped**, and they turned out to be one feature: the same matrix frame, filled in one and tinted in the other | [reopening-rating-and-person.md](reopening-rating-and-person.md) | a branch in `chart.mjs` | — |
 | 4 | The deep block walker | [build-logos-and-icons.md](build-logos-and-icons.md) §2 | small, but its own change | — |

@@ -46,6 +46,19 @@ import { closest } from './suggest.mjs';
 /** Candidates for animation preset suggestions (names + French aliases). */
 const ANIM_CANDIDATES = [...ANIM_PRESETS, ...ANIM_PRESET_ALIASES];
 
+/** A bullet, a heading and a table cell all hold RUNS, and an image is not a
+ *  run: it is dropped at parse time in all three. Each message names what does
+ *  work in that place — a diagnostic that only says "no" sends nobody
+ *  anywhere, and the alternatives differ per container. */
+const listLoss = (kind) =>
+  kind === 'icon'
+    ? 'A bullet renders text only: the icon it contains will be ignored — put the icon on its own line above the list, or mark the item with an inline badge (`==Delivered==`, `==!At risk==`).'
+    : 'A bullet renders text only: the image it contains will be ignored — place it outside the list.';
+const headingLoss = (kind) =>
+  kind === 'icon'
+    ? 'A heading renders text only: the icon it contains will be ignored — put the icon on its own line under the heading, where a column head normally carries it.'
+    : 'A heading renders text only: the image it contains will be ignored — place it outside the heading.';
+
 // ---------------------------------------------------------------------------
 // Walking the blocks of the IR (the :::… callouts nest blocks)
 // ---------------------------------------------------------------------------
@@ -270,6 +283,13 @@ export function validateDeck(
   }
 
   for (const slide of deck.slides) {
+    // a title and a `##` are headings that never become blocks: their loss is
+    // carried on the slide and on the section (parse.mjs, headingLoss)
+    for (const t of slide.headingDropped ?? [])
+      push('warning', 'HEADING_CONTENT_DROPPED', headingLoss(t), slide.headingLine ?? slide.line);
+    for (const s of slide.sections)
+      for (const t of s.headingDropped ?? [])
+        push('warning', 'HEADING_CONTENT_DROPPED', headingLoss(t), s.headingLine ?? slide.line);
     if (slide.layout && !LAYOUTS.includes(slide.layout)) {
       push(
         'error',
@@ -404,15 +424,36 @@ export function validateDeck(
       // names neither was ignored in silence, which is how "![big]" drew a
       // default icon and left the author looking for the size they had asked
       // for. The icon still draws: this says which word was dropped.
+      //
+      // ONE diagnostic for the alt, never one per word: the words are read
+      // together (parse.mjs, iconIntent) and an alt that is a SENTENCE is read
+      // as no intent at all, so only a lone word ever arrives here. A
+      // description used to raise one warning per word it contained, none of
+      // them actionable.
       if (b.type === 'icon' && b.unknownWords) {
         const vocabulary = [...ICON_COLORS, ...ICON_SIZES];
-        for (const word of b.unknownWords) {
+        const word = b.unknownWords.join(' ');
+        push(
+          'warning',
+          'UNKNOWN_ICON_WORD',
+          `"${word}" in the alt of an icon names neither an ink (${[...ICON_COLORS].join(', ')}) nor a size (${[...ICON_SIZES].join(', ')}) — the icon draws with its defaults. An icon's alt is an intent, not alternative text: both formats describe an icon by its name.`,
+          b.line,
+          closest(word.toLowerCase(), vocabulary) ?? undefined,
+        );
+      }
+      // two inks, or two sizes: the first one written wins, and the loser is
+      // named rather than dropped in silence — the same contract as the word
+      // that names nothing above
+      if (b.type === 'icon' && b.duplicateWords) {
+        for (const word of b.duplicateWords) {
+          const kind = ICON_COLORS.has(word) ? 'ink' : 'size';
           push(
             'warning',
-            'UNKNOWN_ICON_WORD',
-            `Unknown word "${word}" in the alt of an icon (inks: ${[...ICON_COLORS].join(', ')}; sizes: ${[...ICON_SIZES].join(', ')}) — it will be ignored.`,
+            'ICON_WORD_CONFLICT',
+            `The alt of an icon names two ${kind}s — "${word}" is ignored, "${
+              kind === 'ink' ? b.color : b.size
+            }" was written first.`,
             b.line,
-            closest(word, vocabulary) ?? undefined,
           );
         }
       }
@@ -489,6 +530,17 @@ export function validateDeck(
             b.line,
           );
         }
+      }
+      // A bullet and a heading hold runs too, and pushRun drops an image in
+      // all three the same way. Only the cell used to say so — so an author
+      // told "move it out of the table" moved it into a list and lost it
+      // again, this time without a word.
+      if (b.type === 'bullets' && b.dropped?.length) {
+        for (const t of b.dropped) push('warning', 'LIST_CONTENT_DROPPED', listLoss(t), b.line);
+      }
+      if (b.type === 'heading' && b.dropped?.length) {
+        for (const t of b.dropped)
+          push('warning', 'HEADING_CONTENT_DROPPED', headingLoss(t), b.line);
       }
       // cartesian and radar: chart.mjs truncates each series to the number of
       // categories BEFORE computing its scale (otherwise the surplus, never
@@ -878,8 +930,12 @@ export function capabilities() {
       'UNKNOWN_ANIMATE',
       'METRICS_DROPPED',
       'MISSING_IMAGE',
+      // the one image diagnostic that ABORTS the build, and the last one that
+      // was pushed by the validator and listed nowhere
+      'IMAGE_PATH_ESCAPE',
       'UNKNOWN_ICON',
       'UNKNOWN_ICON_WORD',
+      'ICON_WORD_CONFLICT',
       'INVALID_CHART',
       'INVALID_PROGRESS',
       'UNKNOWN_PROGRESS_KIND',
@@ -893,6 +949,8 @@ export function capabilities() {
       // capabilities() was told they did not exist
       'QUOTE_CONTENT_DROPPED',
       'TABLE_CONTENT_DROPPED',
+      'LIST_CONTENT_DROPPED',
+      'HEADING_CONTENT_DROPPED',
       'CHART_DATA_IGNORED',
       'QUOTE_EMPTY',
       'LAYERS_SHADE_MISSING',

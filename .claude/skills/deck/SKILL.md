@@ -247,7 +247,6 @@ by example:
 | `portfolio` | 3-column grid with headers | projects / services as a mosaic |
 | `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | 1-column grid, dense text | a status board: progress bars and badges, stacked |
-| `opener` | split, narrow visual column | an icon opening a passage — the answer to "a drop cap" |
 
 Validation suggests them when the content betrays the intent ("Pros / Cons"
 headings → `pros-cons`, "Probability / Severity" → `risk-map`). List and
@@ -460,7 +459,7 @@ band per `##`.
 e.g. `bike`, `house`, `leaf`, `chart-bar`). Resolution:
 `node_modules/lucide-static` → user cache `~/.cache/lutrin/icons/lucide/` →
 unpkg download (cached). Ideal at the head of a column (`## title`, then icon,
-then text), or in the narrow column of the `opener` layout.
+then text).
 
 The alt slot holds **intent words**, in any order — an ink and a size:
 
@@ -477,18 +476,30 @@ The alt slot holds **intent words**, in any order — an ink and a size:
 
 Sizes are words, never points: `small`/`medium`/`large` are factors on the size
 the slot already governs, so a narrow column still wins over a `large` icon.
-`line` is the smallest and follows the theme's body text instead of a factor —
-for an icon standing beside text. Any other word is reported by
-`UNKNOWN_ICON_WORD` and ignored. Never write a point size — the engine owns
-dimensions.
+`line` is the smallest and follows the body text instead of a factor — the
+theme's, and the step a crowded region was re-flowed at — for an icon standing
+beside text. Never write a point size: the engine owns dimensions.
 
-**An icon cannot go inside a table cell or inside a sentence.** A cell and a
-text run hold text in both formats — a DrawingML cell is a text body, and the
-engine leaves row heights to PowerPoint, so there is no geometry to float an
-image against. An icon written in a cell is dropped and reported
-(`TABLE_CONTENT_DROPPED`). For a status column, use an inline badge
-(`==Delivered==`, `==!At risk==`); for a matrix of marks, `type: heat` or
-`type: rating`.
+The slot is intent **or** description, never half of each: the words apply only
+if the alt is nothing but vocabulary. `![A white arrow](lucide:arrow-right)` is
+a sentence and is read as no intent at all — do not expect `white` inside one
+to tint anything, and do not write a description hoping it will be read out
+(both formats describe an icon by its NAME). A lone unknown word IS taken for
+an intent and reported: `![big]` → `UNKNOWN_ICON_WORD` with the nearest word
+suggested. Two inks or two sizes: the first wins, `ICON_WORD_CONFLICT` names
+the other. Casing is free (`![Large]` = `![large]`).
+
+An icon is never the visual of a `split`: it flows with the text, at the head
+of its column. The visual column is for a chart, a diagram or a photo.
+
+**An icon cannot go inside a sentence** — nor a table cell, a bullet or a
+heading, which are sentences too. A run of text holds text in both formats: a
+DrawingML cell is a text body, and the engine leaves row heights to PowerPoint,
+so there is no geometry to float an image against. An icon written into one is
+dropped and reported (`TABLE_CONTENT_DROPPED`, `LIST_CONTENT_DROPPED`,
+`HEADING_CONTENT_DROPPED`) — write it on its own line, above the list or under
+the heading. For a status column, use an inline badge (`==Delivered==`,
+`==!At risk==`); for a matrix of marks, `type: heat` or `type: rating`.
 
 ### Charts (bars, pie, lines…)
 

@@ -14,20 +14,31 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 - **`![line](lucide:leaf)` — an icon the height of one line of text.** The
   smallest of the four size words, and the only one that is not a factor on a
   constant of the engine: it is one line of BODY text, read from the theme, so
-  a kit with a 16 pt body gets a taller icon without asking. For an icon
-  standing *beside* text. It cannot go *inside* a table cell — see below.
+  a kit with a 16 pt body gets a taller icon without asking — and read at the
+  STEP the region was re-flowed at, so a panel auto-fit had to densify gets an
+  icon that still matches its line rather than one and a half. For an icon
+  standing *beside* text. It cannot go *inside* a run of text — see below.
 
-- **A table cell that eats an image now says so — `TABLE_CONTENT_DROPPED`.** A
-  cell holds runs, and an image has never been one: `![](lucide:check)` written
-  in a status column was dropped at parse time and the cell came out empty,
-  with nothing in the log. Neither format can hold it — a DrawingML cell is a
-  text body, and this engine deliberately leaves row heights to PowerPoint, so
-  there is no geometry to float an image against; it is the inline-icon finding
-  one step worse, since one long cell shifts every row below it. The diagnostic
-  names what does work: an inline badge for a status column, `type: heat` or
-  `type: rating` for a matrix of marks. `QUOTE_CONTENT_DROPPED`, pushed since
-  the quotation shipped, was missing from the published list for the same
-  reason nobody noticed this one.
+- **A run of text that eats an image now says so — in a cell, in a bullet and
+  in a heading.** A cell holds runs, and an image has never been one:
+  `![](lucide:check)` written in a status column was dropped at parse time and
+  the cell came out empty, with nothing in the log. Neither format can hold it
+  — a DrawingML cell is a text body, and this engine deliberately leaves row
+  heights to PowerPoint, so there is no geometry to float an image against; it
+  is the inline-icon finding one step worse, since one long cell shifts every
+  row below it. A bullet and a heading lose it in exactly the same place
+  (`pushRun`), so reporting the cell alone sent an author told "move it out of
+  the table" into the next silent loss: hence `TABLE_CONTENT_DROPPED`,
+  `LIST_CONTENT_DROPPED` and `HEADING_CONTENT_DROPPED`, each naming what does
+  work there — an inline badge for a status column, `type: heat` or `type:
+  rating` for a matrix of marks, the icon on its own line above the list or
+  under the heading. The whitespace the image leaves behind goes with it, so a
+  bullet reads "Done" and not " Done". An `<img>` written as raw HTML — which
+  `html: true` accepts — counts as the same loss instead of being PRINTED as
+  visible text. `QUOTE_CONTENT_DROPPED`, pushed since the quotation shipped,
+  and `IMAGE_PATH_ESCAPE`, the one image error that aborts the build, were
+  missing from the published list for the same reason nobody noticed this
+  one.
 
 - **A semantic size for icons — `![large](lucide:leaf)`.** The alt slot already
   carried an ink; it now carries a size in the same slot, in any order:
@@ -36,21 +47,34 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
   the square still wins, and an author never writes a dimension. The factor
   reaches the two renderers AND `blockHeight()` through one accessor: an icon
   that draws 1.4× larger must also measure 1.4× larger, or the next block in
-  the flow lands on top of it. A word that names neither an ink nor a size used
-  to be swallowed in silence — which is how `![big]` drew a default icon and
-  left its author hunting; it is now `UNKNOWN_ICON_WORD`, with the nearest word
-  suggested and the icon still drawn.
+  the flow lands on top of it — and the .pptx rasterizes it 1.4× denser too,
+  or the icon the word exists to make prominent is the softest mark on the
+  slide while the HTML, which inlines the SVG, stays sharp. The slot is intent **or** description and never
+  half of each: the words apply only when the alt is nothing but vocabulary, so
+  `![A white arrow](lucide:arrow-right)` stays the sentence someone wrote —
+  reading `white` out of it drew the icon white on a white slide, and said
+  nothing. A LONE word is always read as an intent, prose or not, because an
+  icon's alt is rendered nowhere (both formats describe it by its name): that
+  is how `![big]` used to draw a default icon and leave its author hunting, and
+  it is now `UNKNOWN_ICON_WORD` — one diagnostic per alt, never one per word,
+  with the nearest word suggested and the icon still drawn. Name two inks or
+  two sizes and the first wins, with `ICON_WORD_CONFLICT` naming the other.
 
-- **The `opener` layout — what a drop cap was actually for.** An icon in a
-  narrow left column, the passage in the wide one. Text that flows *around* a
-  shape needs a text flow engine, which this compiler deliberately lacks: the
-  HTML could fake it with a `float`, a DrawingML text box is a rectangle and
-  could not, and one-sided is the divergence the contract forbids. But an icon
-  set large at the head of a passage is a composition, and this one is a JSON
-  file. An icon now counts as the visual of a `split` — only there, never in
-  the inference, which would move every slide that heads a column with one —
-  and it is trimmed to the square it draws rather than stretched down its
-  column, where it centred itself halfway down the slide beside nothing.
+- **A `split` no longer swallows the `##` heading its author wrote.** `flat()`
+  hands a generator the blocks of every section and not the headings, so a
+  split flowed the text and dropped the title above it — in both outputs, with
+  nothing in the log, on the very layout whose columns invite one. It is turned
+  back into a block the way `content` has always done, at the head of its text
+  column. In the same pass, a split whose visual column has nothing to put in
+  it gives the width back to the text instead of leaving a hollow strip down
+  the side of the slide.
+
+  The drop cap that this layout family was asked for is still **refused**, and
+  for the reason it always was: text flowing *around* a shape needs a text flow
+  engine this compiler deliberately lacks — the HTML could fake it with a
+  `float`, a DrawingML text box is a rectangle and could not, and one-sided is
+  the divergence the contract forbids. An icon is not the visual of a split
+  either: it flows with the text, where it has always been.
 
 - **`type: heat` — the tinted matrix.** Coverage, maturity, risk: rows are
   series, columns are categories, and each cell takes one of the theme's five
