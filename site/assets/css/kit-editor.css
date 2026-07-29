@@ -1,0 +1,249 @@
+/* Lutrin — the kit editor page.
+ *
+ * Loaded AFTER main.css, which owns the type systems, the colour tokens, the
+ * nav, the buttons, `.cmd`, `.chores`, `.grid4`/`.panel` and the footer. This
+ * file only adds what a page built around screenshots needs, and it keeps
+ * main.css's two rules: mono for what you type, Fraunces for what the engine
+ * gives back; every colour a token of the product's own theme.
+ *
+ * The screenshots are the argument, so they are treated as evidence rather
+ * than decoration: a hairline frame, the editor's own dark chrome behind them,
+ * and a mono caption that says what the shot proves. They are shipped at 2×
+ * (2880 × 1800 for a 1440 × 900 window) — hence the `width`/`height`
+ * attributes on every <img>, which reserve the box before the bytes arrive so
+ * the page never jumps while a reader is mid-sentence.
+ */
+
+/* ----------------------------------------------------------------- shots */
+.shot {
+  margin: 2.2rem 0 0;
+}
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  /* The editor's chrome is graphite on paper; the shots sit on a slightly
+     cooler ground so the frame reads as a window, not as page background. */
+  background: var(--wash);
+  box-shadow: 0 1px 2px rgba(11, 19, 34, 0.06), 0 12px 30px -12px rgba(11, 19, 34, 0.18);
+}
+.shot figcaption {
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted-strong);
+  max-width: 74ch;
+  margin-top: 0.9rem;
+}
+.shot figcaption code {
+  font-size: 0.95em;
+  color: var(--ink);
+}
+
+/* A close-up of one card: never full width — it is ~400 CSS px of UI, and
+   stretching it past its own resolution would look like a blur, not a zoom. */
+.shot-detail img {
+  max-width: 560px;
+  border-radius: 8px;
+}
+.shot-detail figcaption {
+  max-width: 60ch;
+}
+
+/* ------------------------------------------------------------------ hero */
+.ke-hero {
+  padding: clamp(2.6rem, 6vw, 4.5rem) 0 clamp(3rem, 6vw, 5rem);
+  background: radial-gradient(110% 80% at 82% 4%, rgba(29, 78, 216, 0.07), transparent 62%),
+    var(--paper);
+}
+.ke-hero h1 {
+  font-size: clamp(2.3rem, 5.6vw, 3.9rem);
+}
+.ke-sub {
+  font-size: 1.15rem;
+  color: var(--muted-strong);
+  max-width: 60ch;
+  margin: 1.4rem 0 2rem;
+}
+.ke-sub code,
+.ke-sub strong {
+  color: var(--ink);
+}
+.ke-hero .cmd {
+  max-width: 34rem;
+}
+.shot-hero {
+  margin-top: 2.8rem;
+}
+
+/* The disclosure that this page is not the editor. Set in mono at aside
+   weight: it is a fact about the page, not a pitch. */
+.ke-honest {
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--muted-strong);
+  max-width: 78ch;
+  margin: 2.2rem 0 0;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--line);
+}
+
+/* ------------------------------------------------------------------ loop */
+.ke-loop {
+  padding: clamp(3rem, 6vw, 5rem) 0;
+  background: var(--wash);
+}
+.ke-loop .chores li code {
+  color: inherit;
+}
+
+/* ---------------------------------------------------------------- panels */
+.ke-panels {
+  padding: clamp(3.2rem, 7vw, 5.5rem) 0 clamp(2rem, 4vw, 3rem);
+}
+.ke-panel {
+  padding-top: clamp(2.2rem, 4vw, 3.4rem);
+}
+.ke-panel + .ke-panel {
+  margin-top: clamp(1.6rem, 3vw, 2.6rem);
+  border-top: 1px solid var(--line);
+}
+.ke-panel h3 {
+  font-size: 1.7rem;
+  margin-bottom: 0.7rem;
+}
+.ke-panel > p {
+  font-size: 1.04rem;
+  color: var(--muted-strong);
+  max-width: 68ch;
+  margin: 0;
+}
+.ke-panel > p code,
+.ke-panel > p strong {
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------- answers */
+/* The one dark section: the editor's own chrome is graphite, and the moment
+   this section is about — the engine answering a bad colour — is the page's
+   turning point. */
+.ke-answers {
+  padding: clamp(3.4rem, 7vw, 5.5rem) 0;
+  background: var(--night);
+  color: #fff;
+}
+.ke-answers h2,
+.ke-answers h3 {
+  color: #fff;
+}
+.ke-answers .lead {
+  max-width: 66ch;
+}
+.ke-answers a {
+  color: var(--accent-bright);
+}
+.ke-answers .shot img {
+  border-color: var(--line-night);
+  background: var(--night-2);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+}
+.ke-answers .shot figcaption {
+  color: var(--dust);
+}
+.ke-answers .shot figcaption code,
+.ke-answers .shot figcaption em {
+  color: #fff;
+}
+.ke-answers .shot-dark {
+  margin-top: 2.6rem;
+}
+.ke-answers .panel {
+  border-top-color: #fff;
+}
+.ke-answers .panel p {
+  color: var(--dust);
+}
+.ke-answers .panel p code,
+.ke-answers .panel p em {
+  color: #fff;
+}
+.ke-answers .grid4 {
+  margin-top: clamp(2.6rem, 5vw, 3.6rem);
+}
+.ke-answers kbd {
+  padding: 0.1rem 0.34rem;
+  border: 1px solid var(--line-night);
+  border-radius: 3px;
+  color: #fff;
+}
+
+/* ------------------------------------------------------------------- run */
+.ke-run {
+  padding: clamp(3.2rem, 7vw, 5rem) 0;
+}
+.ke-cmds {
+  margin: 2rem 0 2.6rem;
+  max-width: 46rem;
+}
+.ke-cmds .cmd + .ke-cmd-note {
+  margin: 0.85rem 0 2rem;
+}
+.ke-cmd-note {
+  font-size: 0.95rem;
+  color: var(--muted-strong);
+  max-width: 68ch;
+}
+.ke-cmd-note code {
+  color: var(--ink);
+}
+.ke-security {
+  margin-top: 2.6rem;
+  padding: clamp(1.6rem, 3vw, 2.2rem) clamp(1.4rem, 3vw, 2.2rem);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--wash);
+}
+.ke-security h3 {
+  font-size: 1.28rem;
+  margin-bottom: 1.1rem;
+}
+.ke-security ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted-strong);
+  font-size: 0.99rem;
+}
+.ke-security li + li {
+  margin-top: 0.6rem;
+}
+.ke-security li code,
+.ke-security li strong {
+  color: var(--ink);
+}
+.ke-security .aside {
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------ data */
+.ke-data {
+  padding: clamp(3rem, 6vw, 5rem) 0 clamp(3.4rem, 7vw, 5.5rem);
+  background: var(--wash);
+}
+.ke-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+}
+
+@media (max-width: 640px) {
+  .shot-detail img {
+    max-width: 100%;
+  }
+  .ke-honest {
+    font-size: 0.78rem;
+  }
+}

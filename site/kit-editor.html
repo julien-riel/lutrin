@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The kit editor — Lutrin</title>
+<meta name="description" content="lutrin kit edit opens your brand kit in a local web editor: every colour, font, layout and logo beside a specimen deck the real engine just compiled.">
+<link rel="canonical" href="https://julien-riel.github.io/lutrin/kit-editor.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The kit editor — Lutrin">
+<meta property="og:description" content="Every colour, next to the slide it repaints. A local editor for the kit that carries your brand.">
+<meta property="og:url" content="https://julien-riel.github.io/lutrin/kit-editor.html">
+<meta property="og:image" content="https://julien-riel.github.io/lutrin/assets/img/kit-editor/overview.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/kit-editor.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="index.html">Lutrin</a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="index.html">Home</a>
+    <a href="#panels">The panels</a>
+    <a href="#answers">Diagnostics</a>
+    <a href="#run">Run it</a>
+    <a href="https://github.com/julien-riel/lutrin/blob/main/docs/kit-editor.md">Docs</a>
+    <a class="nav-gh" href="https://github.com/julien-riel/lutrin">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<!-- ================================================================ hero -->
+<section class="ke-hero">
+  <div class="wrap">
+    <p class="eyebrow">lutrin kit edit</p>
+    <h1>Every colour, next to<br>the slide it&nbsp;<em>repaints.</em></h1>
+    <p class="ke-sub">A kit is data: a theme, a few layouts, some fonts and
+      logos. Editing one used to mean changing a hex, recompiling a deck and
+      squinting at the result. The kit editor puts every token beside a
+      specimen deck the <strong>real engine</strong> just compiled — the same
+      compiler that runs <code>lutrin build</code> — and answers before you
+      save anything.</p>
+
+    <div class="cmd" role="group" aria-label="Command">
+      <code>lutrin kit edit brand-acme</code>
+      <button class="copy" data-copy="lutrin kit edit brand-acme" aria-live="polite">copy</button>
+    </div>
+    <p class="hero-meta">A local server · binds 127.0.0.1 only · nothing leaves your machine</p>
+
+    <figure class="shot shot-hero">
+      <img src="assets/img/kit-editor/overview.png" width="2880" height="1800"
+           alt="The kit editor: the Tokens panel on the left with the Brand, Neutrals and Surfaces colour groups; on the right, a compiled slide showing a bar chart in the kit's palette.">
+      <figcaption>The Tokens panel and the compiled specimen. The chart's bars
+        are the kit's <code>chartColors</code>, in order.</figcaption>
+    </figure>
+
+    <p class="ke-honest">These are screenshots, not a live demo — the editor is
+      a UI in front of a local Node server that compiles and writes files, and
+      this page is static bytes on GitHub Pages. Every shot below is the real
+      SPA, driven by
+      <a href="https://github.com/julien-riel/lutrin/blob/main/scripts/kit-editor-shots.mjs"><code>scripts/kit-editor-shots.mjs</code></a>,
+      with previews compiled by the engine at <code>HEAD</code>. Nothing is
+      mocked up or retouched. To use it, run the command above.</p>
+  </div>
+</section>
+
+<!-- ================================================================ loop -->
+<section class="ke-loop">
+  <div class="wrap">
+    <p class="eyebrow">what it replaces</p>
+    <h2>A kit is JSON. That was the&nbsp;problem.</h2>
+    <p class="lead">Nothing about the format changed — a kit is still
+      <code>kit.json</code>, <code>theme.json</code>,
+      <code>layouts/*.json</code> and the files under <code>fonts/</code> and
+      <code>images/</code>. What changed is that you no longer have to hold the
+      result in your head:</p>
+
+    <ul class="chores reveal">
+      <li>pick a hex, save the file, recompile a deck, squint</li>
+      <li>find out at delivery that the accent can't carry white text</li>
+      <li>ship a font name the <code>.pptx</code> can't honour</li>
+      <li>hand-write a layout definition the compiler then refuses</li>
+      <li>lose track of which image in <code>images/</code> anything still uses</li>
+    </ul>
+
+    <p class="verdict">Every one of those is now answered while you are still
+      deciding. The editor reads and writes the same files you always could,
+      and everything it produces can still be written by hand.</p>
+  </div>
+</section>
+
+<!-- ============================================================== panels -->
+<section class="ke-panels" id="panels">
+  <div class="wrap">
+    <p class="eyebrow">five panels</p>
+    <h2>One panel per thing a kit&nbsp;owns.</h2>
+    <p class="lead">Colours, type, layouts, images, identity. The preview on
+      the right is always the same specimen deck — metrics, splits, charts,
+      callouts, tables, timelines: every surface a kit restyles, on one deck —
+      compiled with your working state overlaid in memory.</p>
+  </div>
+
+  <article class="ke-panel wrap">
+    <h3>Tokens</h3>
+    <p>The theme's colours, grouped by the domains they actually serve — brand,
+      neutrals, surfaces, highlights, semantic — plus the chart palette
+      (ordered, and reorderable), the layer shades and the trend inks. Each row
+      pairs a native colour picker with a hex field, and each group can be
+      reset to the engine's default.</p>
+    <figure class="shot">
+      <img loading="lazy" src="assets/img/kit-editor/tokens.png" width="2880" height="1800"
+           alt="The Tokens panel beside a slide of four tinted callouts — info, success, warning and danger — each drawing its semantic colour family.">
+      <figcaption>Edit a semantic token and all four callout fills follow.</figcaption>
+    </figure>
+  </article>
+
+  <article class="ke-panel wrap">
+    <h3>Fonts</h3>
+    <p>Two family choices — body and mono — and three embedded variants.
+      <strong>Each variant is a <code>.ttf</code> plus a <code>.woff2</code>
+      twin of the same name</strong>: the <code>.ttf</code> is what gets
+      embedded in the <code>.pptx</code>, the <code>.woff2</code> is what the
+      HTML output inlines. The panel shows the pair status of every declared
+      variant and names a missing twin for what it is. Uploads are checked
+      against their actual bytes, and the family name read from the
+      <code>.ttf</code> itself is proposed when it disagrees with the theme.</p>
+    <figure class="shot">
+      <img loading="lazy" src="assets/img/kit-editor/fonts.png" width="2880" height="1800"
+           alt="The Fonts panel: body and mono family fields, then three variant cards — regular, bold, italic — each with a drop zone for a .ttf and its .woff2 twin.">
+      <figcaption>A family name with no embedded files is a promise the
+        <code>.pptx</code> cannot keep — the panel says so rather than letting
+        you find out on someone else's machine.</figcaption>
+    </figure>
+  </article>
+
+  <article class="ke-panel wrap">
+    <h3>Layouts</h3>
+    <p>A kit layout is a <strong>named preset of one of the engine's
+      generators</strong> — a base plus the parameters that base publishes —
+      never free geometry: the engine still owns placement, exactly as it does
+      in a deck. "New layout" picks a base, then fills a form generated from
+      that base's parameter schema, with its own live preview. Definitions are
+      validated by the very code that loads kit layouts, so what the editor
+      refuses is exactly what a compile would refuse.</p>
+    <figure class="shot">
+      <img loading="lazy" src="assets/img/kit-editor/layouts.png" width="2880" height="1800"
+           alt="The layout editor for a layout named finding-recommendation: its identity, its base (comparison, 2 to 2 sections) and its parameters — panel tints as chips, padding on a slider.">
+      <figcaption>Editing a layout: the base it presets, the sections it
+        accepts, and the parameters that base publishes.</figcaption>
+    </figure>
+  </article>
+
+  <article class="ke-panel wrap">
+    <h3>Images</h3>
+    <p>Every image the theme names, plus the orphans sitting in
+      <code>images/</code> that nothing references yet. An upload ends in an
+      <strong>alias</strong> written into the theme, and decks then place it
+      with the usual roles — <code>![right](kit:hero-photo)</code>. Once
+      resolved, a kit image behaves exactly like a local one: same placement by
+      the engine, embedded in the <code>.pptx</code>, inlined in the HTML.</p>
+    <figure class="shot">
+      <img loading="lazy" src="assets/img/kit-editor/images.png" width="2880" height="1800"
+           alt="The Images panel: a drop zone, a reminder of the kit: alias syntax, and two image cards named signature and texture, each offering copy markdown, preview in a slide, rename and delete.">
+      <figcaption>Each card copies the markdown that places it, previews it on
+        a throwaway slide, or adopts an orphan under a fresh alias.</figcaption>
+    </figure>
+  </article>
+
+  <article class="ke-panel wrap">
+    <h3>Kit</h3>
+    <p>The manifest's display metadata — version, description, author, homepage
+      — written straight to <code>kit.json</code>. The <strong>name is
+      locked</strong>: it is the kit's install identity, so renaming is a new
+      kit, not an edit. The four logo slots live here too, cover and section,
+      each with a bitmap for <code>.pptx</code> exports and an SVG variant for
+      HTML. <strong>Export .deckkit</strong> packs the same archive
+      <code>lutrin kit create</code> produces and surfaces its SHA-256 — the
+      digest <code>kit install</code> prints on the receiving side.</p>
+    <figure class="shot">
+      <img loading="lazy" src="assets/img/kit-editor/kit.png" width="2880" height="1800"
+           alt="The Kit panel: name locked, version, description, author and homepage fields, then the four logo slots with upload and clear controls.">
+      <figcaption>The identity a kit installs under, and the archive it travels
+        as.</figcaption>
+    </figure>
+  </article>
+</section>
+
+<!-- ============================================================= answers -->
+<section class="ke-answers" id="answers">
+  <div class="wrap">
+    <p class="eyebrow-dark eyebrow">the point of the whole thing</p>
+    <h2>It answers while you are still&nbsp;picking.</h2>
+    <p class="lead lead-dark">The engine checks the WCAG thresholds on every
+      recompile — main text on the page, chart colours, layer inks, callout and
+      trend inks. So a colour that breaks legibility does not wait for a
+      review: the warning lands under the row that caused it, named, measured,
+      with the pair it failed on.</p>
+
+    <figure class="shot shot-detail">
+      <img loading="lazy" src="assets/img/kit-editor/contrast-detail.png" width="1197" height="828"
+           alt="The Brand token group with primary set to a pale E8D9A0. Under the row, a warning: section slide title, white on the primary background, contrast 1.41:1 against a 3:1 threshold.">
+      <figcaption>A pale accent, typed into <code>primary</code>. The engine
+        measured it against the brand's own threshold and said which surface
+        breaks.</figcaption>
+    </figure>
+
+    <figure class="shot shot-dark">
+      <img loading="lazy" src="assets/img/kit-editor/contrast.png" width="2880" height="1800"
+           alt="The whole editor with the pale accent applied: unsaved-changes marker in the top bar, the warning anchored under the primary row, and the diagnostics drawer open at the bottom listing two THEME_CONTRAST findings.">
+      <figcaption>Same edit, whole window: two findings in the drawer, and
+        <em>Unsaved changes</em> in the top bar — nothing has touched the disk.</figcaption>
+    </figure>
+
+    <div class="grid4">
+      <article class="panel reveal">
+        <h3>Compare, press&#8209;and&#8209;hold</h3>
+        <p>Hold the Compare button — or the <kbd>B</kbd> key — to see the last
+          <em>saved</em> kit; release to come back to your edits. A
+          before/after on the same slides.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>Drafts, then a save</h3>
+        <p>Theme and layout edits drive the preview immediately and touch
+          nothing on disk until <em>Save kit</em>. File uploads are immediate:
+          a binary either is in the kit or is not.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>It watches the folder</h3>
+        <p>An edit made outside — your text editor, a <code>git checkout</code>
+          — reloads when nothing is at stake, and raises a conflict banner when
+          you have unsaved work.</p>
+      </article>
+      <article class="panel reveal">
+        <h3>Clickable findings</h3>
+        <p>The drawer counts errors, warnings and infos from the kit and from
+          the last compile. Clicking one jumps to the panel it points at.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= run -->
+<section class="ke-run" id="run">
+  <div class="wrap">
+    <p class="eyebrow">running it</p>
+    <h2>One command, and a port that stays&nbsp;home.</h2>
+
+    <div class="ke-cmds">
+      <div class="cmd" role="group" aria-label="Edit an installed kit">
+        <code>lutrin kit edit brand-acme</code>
+        <button class="copy" data-copy="lutrin kit edit brand-acme" aria-live="polite">copy</button>
+      </div>
+      <p class="ke-cmd-note">A bare name designates an installed kit — the ones
+        <code>lutrin kit list</code> shows. Pass a path
+        (<code>./brand-acme</code>) to edit a directory in place.</p>
+
+      <div class="cmd" role="group" aria-label="Scaffold a new kit">
+        <code>lutrin kit edit ./brand-acme --create</code>
+        <button class="copy" data-copy="lutrin kit edit ./brand-acme --create" aria-live="polite">copy</button>
+      </div>
+      <p class="ke-cmd-note">Scaffolds a brand-new kit: <code>kit.json</code>, a
+        <code>theme.json</code> copied from the engine's default theme — so you
+        start from the exact tokens the engine uses, not an empty object — and
+        the <code>layouts/</code>, <code>images/</code> and
+        <code>fonts/</code> directories. It never overwrites an existing kit.</p>
+    </div>
+
+    <p class="lead">The default port is <strong>4322</strong>, so a deck
+      preview (4321) and a kit editor run side by side; a busy port moves to the
+      next free one and says so.</p>
+
+    <div class="ke-security">
+      <h3>It writes to your disk, so the server is built for that</h3>
+      <ul>
+        <li>binds <strong>127.0.0.1 only</strong>, and refuses requests whose
+          <code>Host</code> is not local — the DNS-rebinding guard it shares
+          with <code>lutrin preview</code>;</li>
+        <li>refuses any mutating request whose <code>Origin</code> is not the
+          editor's own, so a malicious page in the same browser cannot rewrite
+          your kit through you;</li>
+        <li>every read and write is <strong>confined to the kit
+          directory</strong> — an escaping path or symlink is a 404;</li>
+        <li>uploads are size-capped and checked against <strong>magic
+          bytes</strong>: the extension promises a format, the first bytes must
+          keep the promise;</li>
+        <li>kit files are served <strong>inert</strong> — a strict CSP, nothing
+          executable — because a kit is data even when displayed.</li>
+      </ul>
+      <p class="aside">It is a workbench, not a service: do not expose the port
+        beyond the machine. The guards above assume a local browser.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ data -->
+<section class="ke-data">
+  <div class="wrap">
+    <p class="eyebrow">the deal, again</p>
+    <h2>Data, never&nbsp;code.</h2>
+    <p class="lead">A kit stays what it always was. The editor reads and writes
+      plain files, and an installed kit still runs nothing — that promise is
+      what makes it safe to accept one from someone else. Everything the editor
+      produces can be written by hand, and everything written by hand shows up
+      in the editor.</p>
+    <div class="ke-ctas">
+      <a class="btn btn-primary" href="https://github.com/julien-riel/lutrin/blob/main/docs/kit-editor.md">Read the guide</a>
+      <a class="btn btn-ghost" href="index.html">Back to Lutrin</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== footer -->
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="wordmark">Lutrin</p>
+      <p class="footer-tag">A lectern for your Markdown:<br>you bring the words,
+        it holds them up.</p>
+    </div>
+    <nav class="footer-links" aria-label="Project links">
+      <a href="index.html">The landing page</a>
+      <a href="https://github.com/julien-riel/lutrin">GitHub</a>
+      <a href="https://www.npmjs.com/package/lutrin">npm · lutrin</a>
+      <a href="https://github.com/julien-riel/lutrin/blob/main/docs/kit-editor.md">Kit editor guide</a>
+      <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Syntax reference</a>
+      <a href="demo.html" target="_blank" rel="noopener">The demo deck</a>
+    </nav>
+  </div>
+  <div class="wrap footer-fine">
+    <p>MIT license · © Julien Riel · Set in Fraunces &amp; IBM Plex (SIL OFL)</p>
+    <p>The kit in the screenshots is <code>examples/kit-slate</code>, the
+      repository's fictional example kit — no third-party brand is published
+      here. Regenerate every shot with
+      <code>node scripts/kit-editor-shots.mjs</code>.</p>
+  </div>
+</footer>
+
+</main>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

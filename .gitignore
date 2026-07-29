@@ -15,9 +15,10 @@ packages/obsidian-plugin/dist/
 *.deckkit
 examples/assets/remote/
 
-# the landing page itself is source, not an artifact; its demo deck
-# (site/demo.html, site/demo.pptx — `npm run site`) stays ignored above
+# the landing pages themselves are source, not artifacts; the demo deck they
+# embed (site/demo.html, site/demo.pptx — `npm run site`) stays ignored above
 !site/index.html
+!site/kit-editor.html
 
 # the kit editor SPA shell is source, not a compilation artifact
 !packages/core/design/editor/index.html

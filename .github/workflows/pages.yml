@@ -1,10 +1,21 @@
-# The landing page — https://julien-riel.github.io/lutrin/
+# The site — https://julien-riel.github.io/lutrin/
 #
-# The slides the page shows are not screenshots: _site/demo.html is compiled
-# from examples/demo.deck.md by the engine at HEAD on every push to main, so
-# the page can never drift from what the compiler actually produces. Same for
-# demo.pptx — the "Download the .pptx" button hands out a file built by this
-# very commit.
+# Two pages: index.html (the landing page) and kit-editor.html (a tour of
+# `lutrin kit edit`). Both are plain source under site/ and travel with the
+# `cp -R site/.` below; nothing here needs to know they exist.
+#
+# The slides the landing page shows are not screenshots: _site/demo.html is
+# compiled from examples/demo.deck.md by the engine at HEAD on every push to
+# main, so the page can never drift from what the compiler actually produces.
+# Same for demo.pptx — the "Download the .pptx" button hands out a file built
+# by this very commit.
+#
+# The kit-editor page IS built from screenshots, because the editor is a UI in
+# front of a local server this deploy cannot host. They are committed under
+# site/assets/img/kit-editor/ and regenerated on demand with
+# `node scripts/kit-editor-shots.mjs` (needs a local Chrome) — deliberately not
+# on every push: they would be a 1.7 MB churn in every diff for a UI that
+# changes far less often than the deck does.
 #
 # The deck's two remote images are downloaded from Wikimedia at build time
 # (examples/assets/remote/ is a vendor cache, deliberately unversioned), and

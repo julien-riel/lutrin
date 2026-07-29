@@ -174,7 +174,8 @@ lutrin kit edit <name|directory> [--create]     # local web editor (see below)
 WCAG contrast checks, embedded fonts, layouts, images, `.deckkit` export —
 with a preview compiled by the real engine, on 127.0.0.1 only. `--create`
 scaffolds a fresh kit from the default theme. The full tour:
-[docs/kit-editor.md](docs/kit-editor.md).
+[docs/kit-editor.md](docs/kit-editor.md), or
+[see it in pictures](https://julien-riel.github.io/lutrin/kit-editor.html).
 
 A kit contains only **data** — never code: installation runs nothing, refuses
 any entry that would escape the kit, bounds the size and accepts only `https`.
