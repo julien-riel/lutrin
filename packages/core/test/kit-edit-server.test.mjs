@@ -304,13 +304,21 @@ test('PUT /api/layouts/<name> — an invalid name is refused BEFORE any write, e
   // context.mjs skips when the kit fails to resolve — the verdict came back
   // empty, and the name went straight into a join()
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-kit-broken-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  // One hook, closing then removing: the server watches `dir` recursively, and
+  // a removal registered ahead of the close would run first (hooks are FIFO)
+  // and could fail on the handle the watcher holds — after which the close
+  // behind it never runs. See the same trap, met for real, in cli.test.mjs.
+  const open = [];
+  t.after(async () => {
+    for (const s of open) await s.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
   const broken = path.join(dir, 'nest', 'broken-kit');
   fs.mkdirSync(path.join(broken, 'layouts'), { recursive: true });
   fs.writeFileSync(path.join(broken, 'kit.json'), JSON.stringify({ name: 'broken-kit' }));
   fs.writeFileSync(path.join(broken, 'theme.json'), '{\n  "name": "Broken",\n}\n'); // trailing comma
   const srv = await startKitEditServer(broken, { port: 0 });
-  t.after(() => srv.close());
+  open.push(srv);
 
   // sent verbatim: fetch would normalize the traversal away before it leaves
   const traversal = await new Promise((resolve, reject) => {

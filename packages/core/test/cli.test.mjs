@@ -20,6 +20,7 @@ import './setup.mjs'; // hermetic even under direct invocation (see setup.mjs)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, spawn } from 'node:child_process';
+import { once } from 'node:events';
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -443,7 +444,35 @@ test('CLI kit create: -o without a .deckkit extension — refused BEFORE packagi
  *  SAME name — the shape in which a local file could shadow the installed kit. */
 function installedKitAndDecoy(t, name) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-kit-edit-cli-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  /**
+   * Servers to stop BEFORE the directory goes, through `stopFirst()` — and the
+   * order is the whole point, not tidiness.
+   *
+   * `after` hooks run in registration order, and a hook that THROWS cancels
+   * those registered behind it. With the removal registered first, Windows
+   * answers `EBUSY` on `<dir>/cwd` — the working directory of a child still
+   * alive — the `child.kill()` behind it never runs, and the surviving server
+   * keeps a referenced handle that stops the test PROCESS from ever exiting.
+   * The runner then waits on a file that will never report: both Windows cells
+   * of the matrix sat there until the six-hour job limit, and a run cancelled
+   * by the next push reads as "pushed too fast" rather than as a hang.
+   *
+   * Unix removes a live process's cwd without complaint, which is why the same
+   * code is green on Linux and macOS and always will be.
+   */
+  const running = [];
+  const stopFirst = (child) =>
+    running.push(async () => {
+      if (child.exitCode !== null || child.signalCode !== null) return; // already gone
+      child.kill();
+      await once(child, 'exit');
+    });
+  t.after(async () => {
+    for (const stop of running) await stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   const conf = path.join(dir, 'config');
   const installed = path.join(conf, 'kits', name);
   fs.mkdirSync(installed, { recursive: true });
@@ -452,16 +481,16 @@ function installedKitAndDecoy(t, name) {
   const cwd = path.join(dir, 'cwd');
   fs.mkdirSync(cwd, { recursive: true });
   fs.writeFileSync(path.join(cwd, name), 'a scratch file, not a kit'); // the decoy
-  return { dir, conf, installed, cwd };
+  return { dir, conf, installed, cwd, stopFirst };
 }
 
 test('CLI kit edit: a bare name designates the INSTALLED kit — a same-named cwd entry does not shadow it', async (t) => {
-  const { conf, installed, cwd } = installedKitAndDecoy(t, 'shadowed');
+  const { conf, installed, cwd, stopFirst } = installedKitAndDecoy(t, 'shadowed');
   const child = spawn(process.execPath, [CLI, 'kit', 'edit', 'shadowed', '--port', '4941'], {
     cwd,
     env: { ...process.env, LUTRIN_CONFIG: conf },
   });
-  t.after(() => child.kill());
+  stopFirst(child);
   const lines = [];
   const started = await new Promise((resolve, reject) => {
     const timer = setTimeout(
@@ -504,13 +533,13 @@ test('CLI kit edit: a bare name that is not installed says so, and points at the
 });
 
 test('CLI kit edit --create: a fresh kit scaffolds CLEAN — no self-inflicted diagnostic', async (t) => {
-  const { cwd, conf } = installedKitAndDecoy(t, 'shadowed');
+  const { cwd, conf, stopFirst } = installedKitAndDecoy(t, 'shadowed');
   const child = spawn(
     process.execPath,
     [CLI, 'kit', 'edit', './fresh-kit', '--create', '--port', '4942'],
     { cwd, env: { ...process.env, LUTRIN_CONFIG: conf } },
   );
-  t.after(() => child.kill());
+  stopFirst(child);
   const lines = [];
   const started = await new Promise((resolve, reject) => {
     const timer = setTimeout(
