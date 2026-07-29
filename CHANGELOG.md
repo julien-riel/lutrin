@@ -242,6 +242,18 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
   somewhere to put the overflow, and shrinking it instead would trade a
   legible second slide for a cramped single one.
 
+### Fixed
+
+- **Mermaid diagrams render in the packaged hosts.** The VS Code extension and
+  the Obsidian plugin assemble their own `dist/core`, and both copied `src` and
+  `design` only — the vendored Mermaid bundle (`vendor/mermaid/`), which the
+  renderer injects into the browser it drives, never travelled. Every diagram
+  in an installed extension therefore degraded to its source as a code block,
+  on every machine, however well provisioned, while the development mode — where
+  `dist/core` is a symlink to the repository — rendered them perfectly. The two
+  packagers now share one payload list (`core/scripts/core-payload.mjs`), and a
+  build whose `dist/core` lacks the bundle fails instead of shipping.
+
 ## [1.1.1] — 2026-07-22
 
 A deck that leaves the machine now survives the trip: every fix below was

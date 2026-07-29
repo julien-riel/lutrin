@@ -5,6 +5,16 @@ This file covers the VS Code extension; the compiler's own changes are in the
 [repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
 The extension's version tracks the `@lutrin/core` compiler it embeds.
 
+## [Unreleased]
+
+### Fixed
+
+- **Mermaid diagrams render in the preview and the export.** The packaged
+  extension never carried the Mermaid bundle its renderer injects into the
+  browser it drives: every diagram fell back to its source as a code block,
+  captioned "run `lutrin setup-mermaid`" — advice that could not help, since
+  nothing was missing from the machine. The bundle now travels inside the VSIX.
+
 ## [1.1.1] — 2026-07-22
 
 Windows decks now look like the preview. Every fix below was invisible on

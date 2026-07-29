@@ -20,6 +20,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
+import { CORE_SUBDIRS } from '../scripts/core-payload.mjs';
 import { findBrowser, resetBrowserCache, browserCacheDir } from '../src/deck/browser.mjs';
 import { mermaidConfig, renderMermaidCached, lastMermaidError } from '../src/deck/assets.mjs';
 
@@ -63,6 +64,29 @@ test('the Mermaid bundle is vendored, and published with the package', () => {
     fs.existsSync(path.join(VENDOR, 'LICENSE')),
     'the MIT licence must travel with the copied code',
   );
+});
+
+test('the packaged hosts embed the bundle too, and go through one shared list', () => {
+  // `files` above covers the npm tarball. The VS Code extension and the
+  // Obsidian plugin do NOT install the core from npm: each assembles its own
+  // dist/core by copying subdirectories, and each used to copy `src` and
+  // `design` only. The bundle therefore never reached a VSIX, every diagram in
+  // an installed extension degraded to a code block, and the dev mode — where
+  // dist/core is a symlink to this repository, vendor included — rendered them
+  // perfectly. Green here, broken there.
+  assert.ok(CORE_SUBDIRS.includes('vendor'), 'a packaged host without vendor/ renders no diagram');
+  assert.ok(CORE_SUBDIRS.includes('src'), 'src/ carries the renderer child itself');
+
+  // One list, or the hole reopens in whichever packager was not updated.
+  const PACKAGERS = ['vscode-extension', 'obsidian-plugin'];
+  for (const host of PACKAGERS) {
+    const script = fs.readFileSync(path.join(CORE, '..', host, 'scripts', 'package.mjs'), 'utf8');
+    assert.match(
+      script,
+      /copyCorePayload\(/,
+      `${host} must copy the core through core-payload.mjs, not a list of its own`,
+    );
+  }
 });
 
 test('the vendored bundle matches the SHA-256 recorded next to it', () => {

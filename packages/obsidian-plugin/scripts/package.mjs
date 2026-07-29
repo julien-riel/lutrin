@@ -7,7 +7,8 @@
  *               imports resolve their dependencies through the node_modules
  *               hoisted to the root of the monorepo.
  *
- *   --release   a real copy of packages/core/{src,design} into dist/core,
+ *   --release   a real copy of the core payload (core/scripts/core-payload.mjs
+ *               — src, design, vendor) into dist/core,
  *               with a reduced package.json + `npm install --omit=dev` INSIDE
  *               dist/core: the runtime dependencies travel with the plugin —
  *               including the native resvg prebuilds of EVERY supported
@@ -26,6 +27,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { copyCorePayload } from '../../core/scripts/core-payload.mjs';
 import { installResvgPrebuilds } from '../../core/scripts/resvg-prebuilds.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -55,32 +57,9 @@ if (mode === 'dev') {
   fs.symlinkSync(path.relative(dist, coreRoot), distCore, 'dir');
   console.log(`✓ dist/ (dev) — core symlinked to ${path.relative(pluginRoot, coreRoot)}`);
 } else {
-  // design/editor is the kit-editor SPA (~372 KB of JS + woff2), served ONLY by
-  // the CLI's `lutrin kit edit` — the plugin has no code path that reaches it,
-  // so it would ship as dead weight. It stays in the npm package's `files` list
-  // (the npm-installed CLI serves it from there); only the packagers drop it.
-  const editorDir = path.join(coreRoot, 'design', 'editor');
-  const withoutEditor = (src) => src !== editorDir && !src.startsWith(editorDir + path.sep);
-  for (const sub of ['src', 'design']) {
-    fs.cpSync(path.join(coreRoot, sub), path.join(distCore, sub), {
-      recursive: true,
-      filter: withoutEditor,
-    });
-  }
-  const corePkg = JSON.parse(fs.readFileSync(path.join(coreRoot, 'package.json'), 'utf8'));
-  fs.writeFileSync(
-    path.join(distCore, 'package.json'),
-    JSON.stringify(
-      {
-        name: corePkg.name,
-        version: corePkg.version,
-        type: 'module',
-        dependencies: corePkg.dependencies,
-      },
-      null,
-      2,
-    ),
-  );
+  // what travels, what does not, and why the Mermaid bundle is part of it:
+  // core/scripts/core-payload.mjs
+  copyCorePayload(coreRoot, distCore);
   console.log('installing the core runtime dependencies into dist/core…');
   execSync('npm install --omit=dev --no-package-lock --no-audit --no-fund', {
     cwd: distCore,
