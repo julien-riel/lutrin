@@ -1,155 +1,301 @@
 ---
-title: A presentation compiler
-subtitle: Enriched Markdown → PowerPoint and standalone HTML
+title: Write the deck. Don't design it.
+subtitle: Lutrin — a presentation compiler for people with something to say
 author: Lutrin
 date: July 2026
-footer: Presentation compiler · demonstration
+footer: Lutrin · written in Markdown, compiled to this
 assets: vendor
 ---
 
-# Why a compiler?
+# Two kinds of time
 
-- Markdown is not the final format: it is a description **DSL**
-- Content is kept separate from page layout
-- One canonical intermediate representation (IR)
-- Analysis passes: layout selection, pagination, validation
-- Several possible rendering engines (PPTX, HTML, PDF…)
+<!-- layout: section -->
 
-<!-- notes: Stress the analogy with a classic compiler. -->
+<!-- notes: Open on the cost, not on the tool. Everyone in the room has lost an afternoon to a deck. -->
 
-# The pipeline
+# Every deck costs you twice
 
-## Front end
+- Once to work out **what you have to say**
+- Once to nudge the box two pixels to the left
+- Pick the blue again, off the slide that already had it
+- Shrink the text until it fits — differently on every slide
+- Redo all of it when the numbers change on Thursday
 
-- Enriched Markdown
-- markdown-it
-- AST → IR
+Only the first one was ever your job.
 
-## Back end
+<!-- notes: The second list is deliberately mundane. Recognition is the argument. -->
 
-- Layout engine
-- PowerPoint scene
-- PptxGenJS
+# You write the content. The engine does the geometry.
 
-# Architecture
+<!-- layout: key-message -->
 
-- The front end produces the IR
-- The layout engine places each block in a slot
-- Pagination splits whatever overflows
-- The renderer applies the brand
+# How a deck gets made
+
+<!-- layout: before-after -->
+
+## By hand
+
+- Duplicate yesterday's slide
+- Delete its content, keep its boxes
+- Drag, align, resize, recolour
+- Discover on the projector that one title wrapped
+
+## By compiler
+
+- Write the content in Markdown
+- Run `lutrin build deck.md`
+- Read the diagnostics, if any
+- Hand over a `.pptx` anyone can open
+
+# The trade
+
+<!-- layout: pros-cons -->
+
+## What you get
+
+- Layouts chosen for you, from what you wrote
+- The brand applied by construction, not by discipline
+- A deck that rebuilds itself when the numbers change
+- Text and figures under version control, diffable
+
+## What you give up
+
+- Placing one element at one exact spot
+- CSS overrides and escape hatches
+- Art direction on a single slide
+- Any argument about which blue it was
+
+# How it works
+
+<!-- layout: section -->
+
+# A compiler, in the literal sense
+
+<!-- layout: split -->
+
+Not a converter with a stylesheet attached. A front end, one intermediate
+representation, analysis passes, and two renderers that share a single
+geometry.
 
 ```mermaid
-flowchart LR
-  A[Markdown] --> B[IR]
-  B --> C[Layout]
-  C --> D[Scene]
-  D --> E[.pptx]
+flowchart TD
+  MD[Markdown] --> AST[AST]
+  AST --> IR[IR]
+  IR --> LAY[Layout engine]
+  LAY --> SCENE[Positioned scene]
+  SCENE --> PPTX[.pptx]
+  SCENE --> HTML[HTML]
 ```
 
-# One thing at a time
+# The five passes
 
-<!-- animate -->
+<!-- layout: journey -->
 
-The content of this slide appears on click, one step after another.
+## Parse
 
-- Lists reveal themselves point by point
-- Each block is a distinct step
-- Columns and sections appear as a whole
+Markdown, plus directives, into an AST.
 
-:::success
-The same steps work in PowerPoint (native animations) and in the HTML
-preview (click on the slide).
-:::
+## Lower
 
-<!-- notes: Demonstration of the appearance animations. -->
+Deck, slides, sections, blocks — source positions kept.
 
-# Comparing the approaches
+## Layout
 
-| Criterion | Classic converter | Compiler |
-|---|---|---|
-| Page layout | Approximate CSS | Declarative layouts |
-| Overflow | Truncated text | Automatic pagination |
-| Diagrams | Frozen image | AST → SVG → shapes |
-| Theme | Style sheet | Declarative tokens |
-| Outputs | A single one | PPTX, HTML, PDF… |
+A layout inferred, every block given a slot.
 
-# Indicators
+## Scene
 
-:::metric
-19
-Layouts planned
-↑ +5 this release
-:::
+One positioned geometry, in absolute units.
 
-:::metric
-100%
-Output parity
-→ stable
-:::
+## Render
 
-:::metric
-0
-Broken slides
-↓ -100% (+)
-:::
+Two outputs from that one scene.
 
-:::warning
-The trend on a `:::metric` card is colored according to its direction: `↑`
-turns green, `↓` turns red. The `(+)` suffix inverts that reflex and forces
-green — to say that here a fall is good news, as in "zero broken".
-:::
+<!-- notes: Insist on "one scene, two renderers". That is what makes the outputs agree. -->
 
-# Before / after
-
-<!-- layout: comparison -->
-
-## Classic converter
-
-- Approximate CSS, truncated text
-- A single output
-- Theme by style sheet
-
-## Compiler
-
-- Declarative layouts, automatic pagination
-- PPTX, HTML, PDF…
-- Validated design tokens
-
-# Roadmap
-
-<!-- layout: timeline -->
-
-## Q3 2026
-
-Structured layouts and metric trends.
-
-## Q4 2026
-
-Interchangeable declarative themes.
-
-## Q1 2027
-
-Open-source release and example gallery.
-
-# A layered architecture
+# Where each piece lives
 
 <!-- layout: layers -->
 
 ## Outputs
 
-.pptx PowerPoint, standalone HTML, VS Code preview.
+`.pptx` for PowerPoint and Keynote, one standalone HTML file for the browser.
 
 ## Renderers
 
-PptxGenJS and HTML — same scene, same geometry.
+Native shapes, text boxes and tables — or inlined SVG and CSS.
 
 ## Engine
 
-Layout inference, slot placement, pagination.
+Layout inference, slot placement, pagination, auto-fit.
 
-## IR
+## Representation
 
-deck → slides → sections → blocks, source positions.
+`deck → slides → sections → blocks`, each carrying its source position.
+
+# What you write becomes what you see
+
+<!-- layout: table -->
+
+| You write | The engine draws |
+|---|---|
+| `# Heading` | A new slide, titled |
+| `## Section` | A slot: column, panel, band or quadrant |
+| `- item` | A bullet, sized to the room left |
+| `:::metric` | An indicator card with its trend |
+| ` ```chart ` | A chart, in the brand's palette |
+| `<!-- layout: swot -->` | Four quadrants, aligned |
+
+# One scene, two outputs
+
+<!-- layout: two-columns -->
+
+## PowerPoint
+
+Native shapes, real text boxes, real tables. Fonts embedded. The recipient
+corrects a figure and moves on — no repository to clone, no toolchain to
+install.
+
+## Standalone HTML
+
+One file, everything inlined. Press <kbd>P</kbd> to present, <kbd>N</kbd> for
+speaker notes and a timer. Nothing is fetched from the network.
+
+# The compiler talks back
+
+:::info
+`SLIDE_PAGINATED` — the content did not fit, so it continues on a second slide.
+:::
+
+:::success
+`2/2 remote images` — both photographs were fetched and embedded. The deck is self-contained.
+:::
+
+:::warning
+`IMAGE_UPSCALED` — the image is smaller than the area it fills; it will look soft.
+:::
+
+:::danger
+`BLOCK_OVERFLOW` — already at the densest step, and it still does not fit. Cut something.
+:::
+
+<!-- notes: These four are real diagnostics, quoted verbatim. Forty-odd exist. -->
+
+# What it draws
+
+<!-- layout: section -->
+
+# Indicators
+
+:::metric
+33
+Layouts available
+↑ +2 this release
+:::
+
+:::metric
+15
+Chart types
+↑ +7 this release
+:::
+
+:::metric
+0
+Coordinates in this file
+→ by design
+:::
+
+# Budget by quarter
+
+The chart is drawn by the engine, in the brand's colours, on a palette checked
+for contrast and colour blindness.
+
+```chart
+type: bar
+categories: Q1, Q2, Q3, Q4
+Planned: 120, 150, 180, 210
+Actual: 110, 155, 175, 190
+target: 165
+```
+
+# Breakdown of spending
+
+```chart
+type: doughnut
+categories: Salaries, Infrastructure, Services, Other
+Spending: 45, 25, 20, 10
+```
+
+# From opening to closing balance
+
+```chart
+type: waterfall
+categories: Opening, Grants, Salaries, Tooling, Closing
+Budget: 400, 180, -260, -70, 250
+totals: Opening, Closing
+```
+
+# Choosing the platform
+
+```chart
+type: rating
+categories: Fit to process, Cost of change, Risk, Time to deliver
+Rebuild in house: 4, 2, 4, 2
+Buy the module: 2, 5, 2, 5
+Extend what we have: 3, 4, 3, 3
+scale: 5
+```
+
+# Coverage by team
+
+```chart
+type: heat
+categories: Discovery, Build, Test, Run
+Payments: 4, 5, 3, 2
+Identity: 5, 4, 4, 3
+Reporting: 2, 3, 2, 1
+scale: 5
+```
+
+# Delivery plan
+
+```chart
+type: gantt
+categories: Q1, Q2, Q3, Q4
+now: Q3
+Discovery: Q1 - Q2
+Build: Q2 - Q3
+Pilot: Q3 - Q4
+Rollout: Q4 - Q4
+```
+
+# Where the programme stands
+
+<!-- layout: status-list -->
+
+## Delivery
+
+:::progress success
+100 %
+Online services
+Delivered in April
+:::
+
+:::progress warning
+45 % / 80 %
+Paper forms
+Under analysis, against an 80 % commitment
+:::
+
+## Commitments
+
+:::status
+Scope, Schedule, Quality
+!Budget
+!!Recruitment
+:::
+
+Each commitment carries an ==Owner==; one that slips is tagged ==!At risk==.
 
 # The project at a glance
 
@@ -157,66 +303,63 @@ deck → slides → sections → blocks, source positions.
 
 ## Strengths
 
-- Brand applied by construction
-- Two outputs, a single geometry
+- One source of truth, in version control
+- The brand applied by construction
 
 ## Weaknesses
 
-- Embedded font ignored by Keynote
+- No pixel-level control, ever
+- A DSL to learn, however small
 
 ## Opportunities
 
-- Themes for other organizations
+- Decks generated by an agent, then checked
+- One kit, every deck in the organization
 
 ## Threats
 
+- A slide that genuinely needs art direction
 - Evolution of the OOXML format
 
-# Weighing the decision
+# Programme log
 
-<!-- layout: pros-cons -->
+<!-- layout: raid -->
 
-## Pros
+## Risks
 
-- A single source file, under version control
-- The brand applied by construction
+Recruitment slipping into the next quarter.
 
-## Cons
+## Assumptions
 
-- A DSL to learn
-- Less freedom than a free-form PowerPoint
+The kit is ready before the pilot starts.
 
-# Filing a request, step by step
+## Issues
 
-<!-- layout: journey -->
+Two source systems still disagree on totals.
 
-## Request
+## Dependencies
 
-Online form, five minutes.
+The identity service, delivered by another team.
 
-## Review
+# Effort and impact
 
-Eligibility check within 10 days.
+<!-- layout: priority-matrix -->
 
-## Answer
+## Do first
 
-Reasoned decision, sent by email.
+Automated build in CI.
 
-# Project portfolio
+## Plan
 
-<!-- layout: portfolio -->
+Kit for the whole organization.
 
-## New product
+## Quick wins
 
-Launch planned for the spring.
+Diagnostics in the editor.
 
-## Training program
+## Later
 
-Three cohorts this year.
-
-## Energy efficiency
-
-A third less consumption.
+Extra export formats.
 
 # Request triage
 
@@ -234,60 +377,78 @@ After checking the criteria.
 
 Funded this year.
 
-# Detailed roadmap
+# What holds it up
+
+<!-- layout: pyramid -->
+
+## One deck, on brand
+
+What the audience sees.
+
+## Layouts and kits
+
+Chosen by the engine, owned by the organization.
+
+## One geometry
+
+Computed once, rendered twice.
+
+# Roadmap
 
 <!-- layout: roadmap -->
 
 ## Q3 2026
 
-Parameterized layouts and official catalog.
+Widgets for status boards and scorecards.
 
 ## Q4 2026
 
-Interchangeable declarative themes.
+Kit editor, and images addressed by name.
 
 ## Q1 2027
 
-Open-source release and example gallery.
+Incremental builds and a visual regression suite.
 
-# One figure to remember
+# Three reasons it holds
 
-<!-- layout: key-message -->
+<!-- layout: pillars -->
 
-87% satisfaction
+## Speed
 
-2026 survey of 2,400 respondents.
+![medium](lucide:zap)
 
-# Budget by quarter
+A deck is a file. Change a figure, rebuild, hand it over.
 
-The chart is rendered by the engine, in the brand's colors, with a palette
-validated for color blindness and contrast.
+## Consistency
 
-```chart
-type: bar
-categories: Q1, Q2, Q3, Q4
-Planned: 120, 150, 180, 210
-Actual: 110, 155, 175, 190
-```
+![medium](lucide:shield-check)
 
-# Breakdown of spending
+The brand is in the kit, not in your muscle memory.
 
-```chart
-type: doughnut
-categories: Salaries, Infrastructure, Services, Other
-Spending: 45, 25, 20, 10
-```
+## Traceability
 
-# Choosing the platform
+![medium](lucide:git-branch)
 
-```chart
-type: rating
-categories: Fit to process, Cost of change, Risk, Time to deliver
-Rebuild in house: 4, 2, 4, 2
-Buy the module: 2, 5, 2, 5
-Extend what we have: 3, 4, 3, 3
-scale: 5
-```
+Diffable, reviewable, and rebuilt by CI like any other artefact.
+
+# On images
+
+<!-- layout: split -->
+
+- A local file, or a URL fetched at build time
+- With `assets: vendor`, a copy is kept next to the deck
+- The result is self-contained: no live network, ever
+- Under-resolution is measured and reported, not discovered on the projector
+
+![right](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg)
+
+Photo © Luca Galuzzi — Wikimedia Commons, CC BY-SA 2.5
+
+# A photograph fills the frame
+
+![background](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg)
+
+Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0
 
 # The allocation formula
 
@@ -300,113 +461,58 @@ B_e = \frac{\sum_{i=1}^{n} p_i \cdot c_i}{N} \times (1 + \tau)
 where `p` is the workload, `c` the priority coefficient and `τ` the annual
 indexation rate.
 
-# Three pillars
-
-## Speed
-
-![](lucide:zap)
-
-A compile in a few seconds.
-
-## Reliability
-
-![](lucide:shield-check)
-
-Two outputs, a single geometry.
-
-## Openness
-
-![](lucide:git-branch)
-
-One source file, under version control.
-
-# Everest, north face
-
-- A **remote** image: URL pasted as is into the Markdown
-- Downloaded into the user cache, embedded in the .pptx
-- Here `assets: vendor`: a copy kept in `assets/remote/`, a self-contained directory
-- Photo © Luca Galuzzi — www.galuzzi.it, CC BY-SA 2.5
-
-![right](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg)
-
-<!-- notes: Photo: "Everest North Face toward Base Camp", © Luca Galuzzi - www.galuzzi.it, Wikimedia Commons, CC BY-SA 2.5. The credit must stay close to the image (the author's requirement). -->
-
-# Panorama from the Fronalpstock
-
-![background](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg)
-
-Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0
-
-<!-- notes: Photo: "Fronalpstock, Switzerland", Hannes Röst, Wikimedia Commons, CC BY-SA 3.0. hero layout: full-page image. The credit stays visible on the slide (a CC BY-SA requirement). -->
-
-# A word from users
-
-> You write a presentation the way you write code: a source language, an
-> intermediate representation, optimization passes.
->
-> — A convinced author
-
 # The code stays readable
 
+<!-- layout: code -->
+
 ```ts
-function compile(source: string): Deck {
-  const ast = parse(source); // markdown-it
-  const ir = lower(ast);
-  return layout(ir); // placement + pagination
+export function pickLayout(slide: Slide): LayoutName {
+  if (slide.blocks.every(isMetric)) return 'metrics';
+  if (slide.sections.length === 4) return 'swot';
+  if (slide.blocks.some(isChart)) return 'chart';
+  return 'content';
 }
 ```
 
-# A kit fits in a manifest
+# A brand fits in a manifest
 
-Installing an organization's brand means copying a directory. Its heart is a
-`kit.json` — data only, never code.
+<!-- layout: code -->
 
 ```json
 {
-  "name": "slate-plus",
-  "version": "1.0.0",
-  "theme": "./theme.json",
-  "layouts": "./layouts"
+  "name": "acme",
+  "colors": { "primary": "#0F766E", "accent": "#B45309" },
+  "fonts": { "heading": "Acme Grotesk", "body": "Acme Text" },
+  "logo": "./logo/acme.svg"
 }
 ```
 
-# Next steps
+# One point at a time — press → to reveal
 
-- Mermaid diagrams rendered as native shapes
-- HTML engine (reveal.js) and PDF engine (Typst)
-- Dynamic components (github-stats, chart, sql)
-- Fragments and animations
-- Interchangeable declarative themes
-- Accessibility checker (contrast, reading order)
-- Hot preview while editing
-- Example gallery
-- Visual regression tests
-- Incremental compilation cache
+<!-- animate -->
 
-# Where the programme stands
+<!-- notes: This slide is deliberately empty until the first click. That is what `<!-- animate -->` does: one step per block, native animations in the .pptx too. -->
 
-<!-- layout: status-list -->
+- A deck can hold its points back and release them one by one
+- One line in the file, `<!-- animate -->`, and every block becomes a step
+- The `.pptx` gets real PowerPoint animations, not a stack of duplicated slides
+- Which is why this slide looks empty until you press the arrow
 
-## Delivery
+# A word from the people who use it
 
-:::progress success
-100 %
-Online services
-Delivered in April
-:::
+<!-- layout: quote -->
 
-:::progress warning
-45 %
-Paper forms
-Under analysis
-:::
+> I stopped opening PowerPoint to make a deck. I open it to read the one the
+> build gave me.
+>
+> — A programme lead, after the third rebuild in one week
 
-## Commitments
+# Start in one line
 
-:::status
-Scope, Schedule, Quality
-!Budget
-!!Recruitment
-:::
+<!-- layout: focus -->
 
-Each commitment carries an ==Owner==; one that slips is tagged ==!At risk==.
+`npx lutrin build deck.md -o deck.pptx`
+
+Node 22 or later. Nothing else to install. MIT.
+
+<!-- notes: Hand out the URL here. The .pptx of this very deck is on the site. -->
