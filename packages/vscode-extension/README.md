@@ -32,8 +32,7 @@ recompiled on every push.
   to the Marp dialect, and every directive without a Lutrin equivalent is
   reported, never silently lost.
 - **Brand kits** — colors, fonts, logos and layouts come as installable
-  kits; the same kit styles the CLI, the Obsidian plugin and this
-  extension.
+  kits; the same kit styles the CLI and this extension.
 
 ## Getting started
 
@@ -76,8 +75,8 @@ workspace.
 The extension hosts the compiler, it does not reimplement it. The same
 engine runs as a [CLI on npm](https://www.npmjs.com/package/lutrin)
 (`npx lutrin build deck.md -o deck.pptx`, `lutrin validate --json` for
-CI and agents), as an Obsidian plugin, and as an agent skill — what is
-green here is green everywhere.
+CI and agents) and as an agent skill — what is green here is green
+everywhere.
 
 ## Installing outside the Marketplace
 
@@ -115,8 +114,8 @@ core (dist/core → packages/core; symlink in dev, copy inside the VSIX)
 ```
 
 The extension host **never compiles**: everything goes through a dedicated
-Node worker, the same one the Obsidian plugin uses. The preview is a webview
-whose HTML shell is written only once; updates arrive through `postMessage`.
+Node worker shipped by the core. The preview is a webview whose HTML shell is
+written only once; updates arrive through `postMessage`.
 The core's HTML renderer emits no script in fragment mode, which the
 webview's CSP requires in any case.
 

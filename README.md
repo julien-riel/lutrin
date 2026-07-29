@@ -20,19 +20,19 @@ built-in presenter mode (full screen, notes, timer, second window — the `P`
 key).
 
 Validation ships a "deck doctor": measured overflows, layouts suggested from
-the content, under-resolved images. In the CLI (`--json` for agents),
-underlined in VS Code (with a quick-fix) and in Obsidian.
+the content, under-resolved images. In the CLI (`--json` for agents) and
+underlined in VS Code, with a quick-fix.
 
-Four entry points, one compiler (`packages/core`):
+Three entry points, one compiler (`packages/core`):
 
 ```text
-                 packages/core  (parse → IR → layout → scene → renderers)
-                        │
-      ┌────────────┬────┴───────────┬──────────────────────┐
-      ▼            ▼                ▼                      ▼
-  lutrin CLI   VS Code         Obsidian plugin     agent skill (.claude/skills/deck)
-  build/preview  extension       live preview,       write → validate → fix →
-  validate/…     preview, export diagnostics, export build, with a visual check
+             packages/core  (parse → IR → layout → scene → renderers)
+                    │
+      ┌─────────────┼──────────────────────────────┐
+      ▼             ▼                              ▼
+  lutrin CLI    VS Code            agent skill (.claude/skills/deck)
+  build/preview extension          write → validate → fix → build,
+  validate/…    preview, export    with a visual check
 ```
 
 ## Getting started
@@ -160,7 +160,7 @@ the compilation of a project that asked for nothing.
 A **kit** gathers a theme, its layouts, its fonts and its logos into one
 distributable unit: a directory carrying a `kit.json`, or a `.deckkit`
 archive. A kit travels **with the deck**, not with the binary — no
-re-packaging of the VSIX or of the Obsidian plugin.
+re-packaging of the VSIX.
 
 ```bash
 lutrin kit install <file.deckkit | https://…>   # into ~/.config/lutrin/kits/
@@ -199,8 +199,8 @@ Referencing a kit, by decreasing precedence:
 3. project default — `"lutrin": { "kit": … }` in the nearest `package.json`
    going up from the deck;
 4. user default — `~/.config/lutrin/config.json` (see below);
-5. host default — kit imposed by a plugin (VS Code / Obsidian) through its
-   setting;
+5. host default — kit imposed by the editor host (the VS Code extension's
+   `lutrin.defaultKit`);
 6. generic theme "Slate".
 
 ### JSON theme and layouts, without a kit
@@ -284,21 +284,6 @@ a web server, then point the `lutrin.updateUrl` setting at the URL of the
 offers "Update". `http` URLs are refused and the sha256 digest of the manifest
 is verified before installation.
 
-## Obsidian plugin
-
-Live preview that follows the active note (recompiled as you type), clickable
-diagnostics, `.pptx` / `.html` export from the palette or the context menu,
-wiki embeds `![[image.png]]` translated (the alias becomes the role:
-`![[photo.png|right]]`). Desktop only — same architecture as the VS Code
-extension (Node worker from the core, launched outside the renderer). See
-`packages/obsidian-plugin/README.md`.
-
-```bash
-npm run build -w lutrin-obsidian                                           # dev (core symlinked)
-node packages/obsidian-plugin/scripts/package.mjs --dev --vault "<vault>"  # symlink into the vault
-npm run release -w lutrin-obsidian                                         # standalone plugin directory
-```
-
 ## Tests
 
 ```bash
@@ -331,7 +316,9 @@ packages/core/src/kit/         .deckkit archives (pack, download, install)
 packages/core/src/worker/      the single IPC worker of the editor hosts (+ protocol.d.ts)
 packages/core/test/            the node:test harness (goldens, parity, validation, kits)
 packages/vscode-extension/     the extension (webview; launches the core worker)
-packages/obsidian-plugin/      the Obsidian plugin (same worker, shadow DOM)
+packages/obsidian-plugin/      an Obsidian host, work in progress — builds and
+                               tests here, but is not documented or released
+                               yet; nothing above depends on it
 .claude/skills/deck/           the agent skill
 examples/demo.deck.md          covers every layout and block type — test fixture
 examples/theme-example.json    example theme

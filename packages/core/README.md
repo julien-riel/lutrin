@@ -3,7 +3,7 @@
 The engine behind [Lutrin](../../README.md): enriched Markdown (a DSL) →
 PowerPoint `.pptx` or standalone HTML, with the page layout decided by the
 engine. It carries the CLI implementation and serves as a library for the
-editor hosts (VS Code extension, Obsidian plugin). The command itself is
+editor hosts (the VS Code extension). The command itself is
 published separately as [`lutrin`](https://www.npmjs.com/package/lutrin), a
 thin entry point that depends on this package.
 

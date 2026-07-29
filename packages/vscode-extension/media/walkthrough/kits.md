@@ -18,5 +18,5 @@ kit: acme
 compiles. The document always wins: frontmatter first, then the
 project's default, then yours.
 
-The same kit styles the CLI, the Obsidian plugin and this extension —
-one brand, four tools.
+The same kit styles the CLI, this extension and the agent skill —
+one brand, every tool.

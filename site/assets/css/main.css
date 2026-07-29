@@ -829,11 +829,19 @@ h3 {
 .where {
   padding: clamp(3.5rem, 8vw, 6.5rem) 0;
 }
-.grid4 {
+/* Two widths of the same row of cards: four for the diagnostics quartet on the
+   kit-editor page, three for the doors. The count is spelled in the class
+   rather than left to auto-fit because a row that reflows on its own also
+   reflows the eyebrow that counts it ("three doors"). */
+.grid4,
+.grid3 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.5rem;
   margin-top: 2.5rem;
+}
+.grid3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .panel {
   padding-top: 1.1rem;
@@ -861,12 +869,14 @@ h3 {
   transition-delay: 0.18s;
 }
 @media (max-width: 880px) {
-  .grid4 {
+  .grid4,
+  .grid3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 520px) {
-  .grid4 {
+  .grid4,
+  .grid3 {
     grid-template-columns: minmax(0, 1fr);
   }
 }

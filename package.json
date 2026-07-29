@@ -1,7 +1,7 @@
 {
   "name": "lutrin-monorepo",
   "version": "1.0.0",
-  "description": "Markdown → PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives. CLI, VS Code extension, Obsidian plugin and agent skill.",
+  "description": "Markdown → PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives. CLI, VS Code extension and agent skill.",
   "private": true,
   "type": "module",
   "workspaces": ["packages/*"],

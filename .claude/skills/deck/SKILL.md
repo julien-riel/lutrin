@@ -272,7 +272,7 @@ Referencing a kit — precedence, from strongest to weakest:
    deck;
 4. user default — `lutrin config --kit <ref>`, shared across all projects and
    with the plugins;
-5. host default — kit imposed by a plugin (VS Code, Obsidian);
+5. host default — kit imposed by the editor host (VS Code);
 6. generic "Slate" theme.
 
 The frontmatter takes precedence over any configuration: the document always
@@ -653,10 +653,11 @@ installed:
 ## Engine architecture (for evolving it)
 
 npm workspaces monorepo: the engine lives in `packages/core` (no organization
-brand ships with it — they live in their own repositories, as kits), the
-VS Code extension (live preview, diagnostics, export) in `packages/vscode-extension`,
-the Obsidian plugin (same functions, wiki embeds `![[…]]` translated) in
-`packages/obsidian-plugin`.
+brand ships with it — they live in their own repositories, as kits) and the
+VS Code extension (live preview, diagnostics, export) in
+`packages/vscode-extension`. `packages/obsidian-plugin` is an unreleased
+work in progress: it builds and tests, but nothing documents or ships it, so
+do not present it to a user as an available surface.
 
 | File (under `packages/core/`) | Role |
 |---|---|

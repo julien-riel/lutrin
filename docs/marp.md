@@ -3,8 +3,8 @@
 A deck written for [Marp](https://marp.app) (Marpit + Marp Core) compiles as
 it is: `marp: true` in the frontmatter — the pragma every Marp deck already
 carries — switches the parser to the **Marp dialect**. No CLI flag, no
-renaming: the same detection works in the CLI, the VS Code extension, the
-Obsidian plugin and the worker.
+renaming: the same detection works in the CLI, the VS Code extension and the
+worker.
 
 ```markdown
 ---
