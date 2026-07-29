@@ -278,6 +278,17 @@ categories: Salaries, Infrastructure, Services, Other
 Spending: 45, 25, 20, 10
 ```
 
+# Choosing the platform
+
+```chart
+type: rating
+categories: Fit to process, Cost of change, Risk, Time to deliver
+Rebuild in house: 4, 2, 4, 2
+Buy the module: 2, 5, 2, 5
+Extend what we have: 3, 4, 3, 3
+scale: 5
+```
+
 # The allocation formula
 
 The budget allocated to each team is computed as follows:

@@ -758,7 +758,11 @@ h3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(0.9rem, 2vw, 1.6rem);
   max-width: var(--wrap);
-  margin: 2.5rem auto 0;
+  /* Clears the parallax, which is not decoration here but a measurement: the
+     columns drift up to 56 px around their resting position (main.js caps it
+     there), and at 2.5rem the topmost card rode up over the last line of the
+     lead. The gap has to be bigger than the drift. */
+  margin: clamp(4.5rem, 7vw, 6rem) auto 0;
   padding-inline: var(--gutter);
   align-items: start;
 }
