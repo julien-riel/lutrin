@@ -46,6 +46,11 @@ jobs:
   test:
     name: Test — ${{ matrix.os }} / Node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
+    # The suite runs in about a minute. A cell that reaches fifteen is not slow,
+    # it is stuck — and a stuck cell used to sit there until the NEXT push
+    # cancelled it, which reads in the run list as "pushed too fast" rather than
+    # as a hang. GitHub's own default is six hours.
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:

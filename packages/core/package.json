@@ -4,7 +4,7 @@
   "description": "Markdown → PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives.",
   "type": "module",
   "scripts": {
-    "test": "node --import ./test/setup.mjs --test \"test/*.test.mjs\""
+    "test": "node --import ./test/setup.mjs --test --test-timeout=120000 \"test/*.test.mjs\""
   },
   "files": ["src", "design", "vendor", "README.md"],
   "publishConfig": {

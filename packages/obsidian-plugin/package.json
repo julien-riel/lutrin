@@ -22,7 +22,7 @@
     "build": "node esbuild.mjs && node scripts/package.mjs --dev",
     "watch": "node esbuild.mjs --watch",
     "release": "node esbuild.mjs && node scripts/package.mjs --release",
-    "test": "node --experimental-transform-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"test/*.test.mts\"",
+    "test": "node --experimental-transform-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test --test-timeout=120000 \"test/*.test.mts\"",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
