@@ -1031,7 +1031,34 @@ export async function startKitEditServer(kitDir, { port = KIT_EDIT_DEFAULT_PORT 
     clearTimeout(watchTimer);
     watchTimer = setTimeout(() => sse.broadcast('change', 'kit-changed'), WATCH_DEBOUNCE_MS);
   }
-  const watcher = fs.watch(root, { recursive: true }, onFsEvent);
+  /**
+   * The watcher is pointed at the CANONICAL path, never at the one the caller
+   * handed us — and on Windows that is not a nicety.
+   *
+   * libuv derives each event's relative name by asserting that the path the OS
+   * reports starts with the directory it was told to watch
+   * (`uv__relative_path`, src\win\fs-event.c). Windows reports events in long
+   * form; hand it a path carrying a short 8.3 component — `C:\Users\RUNNER~1\…`,
+   * which is exactly what `os.tmpdir()` returns on a CI runner, and what a
+   * user's own `C:\PROGRA~1\…` shortcut produces — and the two do not match.
+   * The failure is `Assertion failed: !_wcsnicmp(filename, dir, dirlen)`: an
+   * ABORT of the process, not a throwable error. Nothing catches it, nothing is
+   * logged, the editor simply dies at the first file change.
+   *
+   * `realpathSync.native` is the one that resolves 8.3 names, junctions and
+   * substituted drives to the form the events carry. It is deliberately not
+   * applied to `root` itself: `root` is the trust boundary every read and write
+   * is confined to (see `insideKit`), and widening that is a security change,
+   * not a watcher fix. Relative event names are identical either way — both
+   * paths name the same directory.
+   */
+  let watchRoot = root;
+  try {
+    watchRoot = fs.realpathSync.native(root);
+  } catch {
+    /* unresolvable (a race with a removal): watch what we were given */
+  }
+  const watcher = fs.watch(watchRoot, { recursive: true }, onFsEvent);
 
   // ------ lifecycle -----------------------------------------------------------
 
