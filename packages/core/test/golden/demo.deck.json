@@ -1,24 +1,45 @@
 {
   "meta": {
-    "title": "A presentation compiler",
-    "subtitle": "Enriched Markdown → PowerPoint and standalone HTML",
+    "title": "Write the deck. Don't design it.",
+    "subtitle": "Lutrin — a presentation compiler for people with something to say",
     "author": "Lutrin",
     "date": "July 2026",
-    "footer": "Presentation compiler · demonstration",
+    "footer": "Lutrin · written in Markdown, compiled to this",
     "assets": "vendor"
   },
   "slides": [
     {
-      "title": "Why a compiler?",
+      "title": "Two kinds of time",
       "titleRuns": [
         {
-          "text": "Why a compiler?"
+          "text": "Two kinds of time"
+        }
+      ],
+      "layout": "section",
+      "animate": null,
+      "notes": [
+        "Open on the cost, not on the tool. Everyone in the room has lost an afternoon to a deck."
+      ],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": []
+        }
+      ],
+      "line": 10,
+      "layoutLine": 12
+    },
+    {
+      "title": "Every deck costs you twice",
+      "titleRuns": [
+        {
+          "text": "Every deck costs you twice"
         }
       ],
       "layout": null,
       "animate": null,
       "notes": [
-        "Stress the analogy with a classic compiler."
+        "The second list is deliberately mundane. Recognition is the argument."
       ],
       "sections": [
         {
@@ -31,10 +52,10 @@
                 {
                   "runs": [
                     {
-                      "text": "Markdown is not the final format: it is a description "
+                      "text": "Once to work out "
                     },
                     {
-                      "text": "DSL",
+                      "text": "what you have to say",
                       "bold": true
                     }
                   ],
@@ -43,7 +64,7 @@
                 {
                   "runs": [
                     {
-                      "text": "Content is kept separate from page layout"
+                      "text": "Once to nudge the box two pixels to the left"
                     }
                   ],
                   "level": 0
@@ -51,7 +72,7 @@
                 {
                   "runs": [
                     {
-                      "text": "One canonical intermediate representation (IR)"
+                      "text": "Pick the blue again, off the slide that already had it"
                     }
                   ],
                   "level": 0
@@ -59,7 +80,7 @@
                 {
                   "runs": [
                     {
-                      "text": "Analysis passes: layout selection, pagination, validation"
+                      "text": "Shrink the text until it fits — differently on every slide"
                     }
                   ],
                   "level": 0
@@ -67,34 +88,62 @@
                 {
                   "runs": [
                     {
-                      "text": "Several possible rendering engines (PPTX, HTML, PDF…)"
+                      "text": "Redo all of it when the numbers change on Thursday"
                     }
                   ],
                   "level": 0
                 }
               ],
-              "line": 12
+              "line": 18
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Only the first one was ever your job."
+                }
+              ],
+              "line": 24
             }
           ]
         }
       ],
-      "line": 10
+      "line": 16
     },
     {
-      "title": "The pipeline",
+      "title": "You write the content. The engine does the geometry.",
       "titleRuns": [
         {
-          "text": "The pipeline"
+          "text": "You write the content. The engine does the geometry."
         }
       ],
-      "layout": null,
+      "layout": "key-message",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": []
+        }
+      ],
+      "line": 28,
+      "layoutLine": 30
+    },
+    {
+      "title": "How a deck gets made",
+      "titleRuns": [
+        {
+          "text": "How a deck gets made"
+        }
+      ],
+      "layout": "before-after",
       "animate": null,
       "notes": [],
       "sections": [
         {
           "heading": [
             {
-              "text": "Front end"
+              "text": "By hand"
             }
           ],
           "blocks": [
@@ -105,7 +154,7 @@
                 {
                   "runs": [
                     {
-                      "text": "Enriched Markdown"
+                      "text": "Duplicate yesterday's slide"
                     }
                   ],
                   "level": 0
@@ -113,7 +162,7 @@
                 {
                   "runs": [
                     {
-                      "text": "markdown-it"
+                      "text": "Delete its content, keep its boxes"
                     }
                   ],
                   "level": 0
@@ -121,20 +170,28 @@
                 {
                   "runs": [
                     {
-                      "text": "AST → IR"
+                      "text": "Drag, align, resize, recolour"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Discover on the projector that one title wrapped"
                     }
                   ],
                   "level": 0
                 }
               ],
-              "line": 24
+              "line": 38
             }
           ]
         },
         {
           "heading": [
             {
-              "text": "Back end"
+              "text": "By compiler"
             }
           ],
           "blocks": [
@@ -145,7 +202,7 @@
                 {
                   "runs": [
                     {
-                      "text": "Layout engine"
+                      "text": "Write the content in Markdown"
                     }
                   ],
                   "level": 0
@@ -153,7 +210,13 @@
                 {
                   "runs": [
                     {
-                      "text": "PowerPoint scene"
+                      "text": "Run "
+                    },
+                    {
+                      "text": "lutrin build deck.md",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
                     }
                   ],
                   "level": 0
@@ -161,32 +224,54 @@
                 {
                   "runs": [
                     {
-                      "text": "PptxGenJS"
+                      "text": "Read the diagnostics, if any"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Hand over a "
+                    },
+                    {
+                      "text": ".pptx",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " anyone can open"
                     }
                   ],
                   "level": 0
                 }
               ],
-              "line": 30
+              "line": 45
             }
           ]
         }
       ],
-      "line": 20
+      "line": 32,
+      "layoutLine": 34
     },
     {
-      "title": "Architecture",
+      "title": "The trade",
       "titleRuns": [
         {
-          "text": "Architecture"
+          "text": "The trade"
         }
       ],
-      "layout": null,
+      "layout": "pros-cons",
       "animate": null,
       "notes": [],
       "sections": [
         {
-          "heading": null,
+          "heading": [
+            {
+              "text": "What you get"
+            }
+          ],
           "blocks": [
             {
               "type": "bullets",
@@ -195,7 +280,7 @@
                 {
                   "runs": [
                     {
-                      "text": "The front end produces the IR"
+                      "text": "Layouts chosen for you, from what you wrote"
                     }
                   ],
                   "level": 0
@@ -203,7 +288,7 @@
                 {
                   "runs": [
                     {
-                      "text": "The layout engine places each block in a slot"
+                      "text": "The brand applied by construction, not by discipline"
                     }
                   ],
                   "level": 0
@@ -211,7 +296,7 @@
                 {
                   "runs": [
                     {
-                      "text": "Pagination splits whatever overflows"
+                      "text": "A deck that rebuilds itself when the numbers change"
                     }
                   ],
                   "level": 0
@@ -219,36 +304,97 @@
                 {
                   "runs": [
                     {
-                      "text": "The renderer applies the brand"
+                      "text": "Text and figures under version control, diffable"
                     }
                   ],
                   "level": 0
                 }
               ],
-              "line": 36
-            },
+              "line": 56
+            }
+          ]
+        },
+        {
+          "heading": [
             {
-              "type": "mermaid",
-              "source": "flowchart LR\n  A[Markdown] --> B[IR]\n  B --> C[Layout]\n  C --> D[Scene]\n  D --> E[.pptx]\n",
-              "line": 41
+              "text": "What you give up"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Placing one element at one exact spot"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "CSS overrides and escape hatches"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Art direction on a single slide"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Any argument about which blue it was"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 63
             }
           ]
         }
       ],
-      "line": 34
+      "line": 50,
+      "layoutLine": 52
     },
     {
-      "title": "One thing at a time",
+      "title": "How it works",
       "titleRuns": [
         {
-          "text": "One thing at a time"
+          "text": "How it works"
         }
       ],
-      "layout": null,
-      "animate": true,
-      "notes": [
-        "Demonstration of the appearance animations."
+      "layout": "section",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": []
+        }
       ],
+      "line": 68,
+      "layoutLine": 70
+    },
+    {
+      "title": "A compiler, in the literal sense",
+      "titleRuns": [
+        {
+          "text": "A compiler, in the literal sense"
+        }
+      ],
+      "layout": "split",
+      "animate": null,
+      "notes": [],
       "sections": [
         {
           "heading": null,
@@ -257,357 +403,115 @@
               "type": "para",
               "runs": [
                 {
-                  "text": "The content of this slide appears on click, one step after another."
-                }
-              ],
-              "line": 53
-            },
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "Lists reveal themselves point by point"
-                    }
-                  ],
-                  "level": 0
+                  "text": "Not a converter with a stylesheet attached. A front end, one intermediate"
                 },
                 {
-                  "runs": [
-                    {
-                      "text": "Each block is a distinct step"
-                    }
-                  ],
-                  "level": 0
+                  "text": " ",
+                  "soft": true
                 },
                 {
-                  "runs": [
-                    {
-                      "text": "Columns and sections appear as a whole"
-                    }
-                  ],
-                  "level": 0
+                  "text": "representation, analysis passes, and two renderers that share a single"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "geometry."
                 }
               ],
-              "line": 55
+              "line": 76
             },
             {
-              "type": "alert",
-              "kind": "success",
-              "blocks": [
-                {
-                  "type": "para",
-                  "runs": [
-                    {
-                      "text": "The same steps work in PowerPoint (native animations) and in the HTML"
-                    },
-                    {
-                      "text": " ",
-                      "soft": true
-                    },
-                    {
-                      "text": "preview (click on the slide)."
-                    }
-                  ],
-                  "line": 60
-                }
-              ],
-              "line": 59
+              "type": "mermaid",
+              "source": "flowchart TD\n  MD[Markdown] --> AST[AST]\n  AST --> IR[IR]\n  IR --> LAY[Layout engine]\n  LAY --> SCENE[Positioned scene]\n  SCENE --> PPTX[.pptx]\n  SCENE --> HTML[HTML]\n",
+              "line": 80
             }
           ]
         }
       ],
-      "line": 49
+      "line": 72,
+      "layoutLine": 74
     },
     {
-      "title": "Comparing the approaches",
+      "title": "The five passes",
       "titleRuns": [
         {
-          "text": "Comparing the approaches"
+          "text": "The five passes"
         }
       ],
-      "layout": null,
+      "layout": "journey",
       "animate": null,
-      "notes": [],
+      "notes": [
+        "Insist on \"one scene, two renderers\". That is what makes the outputs agree."
+      ],
       "sections": [
         {
-          "heading": null,
-          "blocks": [
+          "heading": [
             {
-              "type": "table",
-              "header": [
-                [
-                  {
-                    "text": "Criterion"
-                  }
-                ],
-                [
-                  {
-                    "text": "Classic converter"
-                  }
-                ],
-                [
-                  {
-                    "text": "Compiler"
-                  }
-                ]
-              ],
-              "rows": [
-                [
-                  [
-                    {
-                      "text": "Page layout"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "Approximate CSS"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "Declarative layouts"
-                    }
-                  ]
-                ],
-                [
-                  [
-                    {
-                      "text": "Overflow"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "Truncated text"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "Automatic pagination"
-                    }
-                  ]
-                ],
-                [
-                  [
-                    {
-                      "text": "Diagrams"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "Frozen image"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "AST → SVG → shapes"
-                    }
-                  ]
-                ],
-                [
-                  [
-                    {
-                      "text": "Theme"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "Style sheet"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "Declarative tokens"
-                    }
-                  ]
-                ],
-                [
-                  [
-                    {
-                      "text": "Outputs"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "A single one"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "PPTX, HTML, PDF…"
-                    }
-                  ]
-                ]
-              ],
-              "line": 68
+              "text": "Parse"
             }
-          ]
-        }
-      ],
-      "line": 66
-    },
-    {
-      "title": "Indicators",
-      "titleRuns": [
-        {
-          "text": "Indicators"
-        }
-      ],
-      "layout": null,
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": null,
+          ],
           "blocks": [
             {
-              "type": "metric",
-              "value": "19",
-              "label": "Layouts planned",
-              "trend": {
-                "dir": "up",
-                "sentiment": "positive",
-                "text": "+5 this release"
-              },
-              "line": 78
-            },
-            {
-              "type": "metric",
-              "value": "100%",
-              "label": "Output parity",
-              "trend": {
-                "dir": "flat",
-                "sentiment": "neutral",
-                "text": "stable"
-              },
-              "line": 84
-            },
-            {
-              "type": "metric",
-              "value": "0",
-              "label": "Broken slides",
-              "trend": {
-                "dir": "down",
-                "sentiment": "positive",
-                "text": "-100%"
-              },
-              "line": 90
-            },
-            {
-              "type": "alert",
-              "kind": "warning",
-              "blocks": [
+              "type": "para",
+              "runs": [
                 {
-                  "type": "para",
-                  "runs": [
-                    {
-                      "text": "The trend on a "
-                    },
-                    {
-                      "text": ":::metric",
-                      "code": true,
-                      "bold": false,
-                      "italic": false
-                    },
-                    {
-                      "text": " card is colored according to its direction: "
-                    },
-                    {
-                      "text": "↑",
-                      "code": true,
-                      "bold": false,
-                      "italic": false
-                    },
-                    {
-                      "text": " ",
-                      "soft": true
-                    },
-                    {
-                      "text": "turns green, "
-                    },
-                    {
-                      "text": "↓",
-                      "code": true,
-                      "bold": false,
-                      "italic": false
-                    },
-                    {
-                      "text": " turns red. The "
-                    },
-                    {
-                      "text": "(+)",
-                      "code": true,
-                      "bold": false,
-                      "italic": false
-                    },
-                    {
-                      "text": " suffix inverts that reflex and forces"
-                    },
-                    {
-                      "text": " ",
-                      "soft": true
-                    },
-                    {
-                      "text": "green — to say that here a fall is good news, as in \"zero broken\"."
-                    }
-                  ],
-                  "line": 97
+                  "text": "Markdown, plus directives, into an AST."
                 }
               ],
               "line": 96
             }
           ]
-        }
-      ],
-      "line": 76
-    },
-    {
-      "title": "Before / after",
-      "titleRuns": [
-        {
-          "text": "Before / after"
-        }
-      ],
-      "layout": "comparison",
-      "animate": null,
-      "notes": [],
-      "sections": [
+        },
         {
           "heading": [
             {
-              "text": "Classic converter"
+              "text": "Lower"
             }
           ],
           "blocks": [
             {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
+              "type": "para",
+              "runs": [
                 {
-                  "runs": [
-                    {
-                      "text": "Approximate CSS, truncated text"
-                    }
-                  ],
-                  "level": 0
-                },
+                  "text": "Deck, slides, sections, blocks — source positions kept."
+                }
+              ],
+              "line": 100
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Layout"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
                 {
-                  "runs": [
-                    {
-                      "text": "A single output"
-                    }
-                  ],
-                  "level": 0
-                },
+                  "text": "A layout inferred, every block given a slot."
+                }
+              ],
+              "line": 104
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Scene"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
                 {
-                  "runs": [
-                    {
-                      "text": "Theme by style sheet"
-                    }
-                  ],
-                  "level": 0
+                  "text": "One positioned geometry, in absolute units."
                 }
               ],
               "line": 108
@@ -617,121 +521,30 @@
         {
           "heading": [
             {
-              "text": "Compiler"
+              "text": "Render"
             }
           ],
           "blocks": [
             {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
+              "type": "para",
+              "runs": [
                 {
-                  "runs": [
-                    {
-                      "text": "Declarative layouts, automatic pagination"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "PPTX, HTML, PDF…"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Validated design tokens"
-                    }
-                  ],
-                  "level": 0
+                  "text": "Two outputs from that one scene."
                 }
               ],
-              "line": 114
+              "line": 112
             }
           ]
         }
       ],
-      "line": 102,
-      "layoutLine": 104
+      "line": 90,
+      "layoutLine": 92
     },
     {
-      "title": "Roadmap",
+      "title": "Where each piece lives",
       "titleRuns": [
         {
-          "text": "Roadmap"
-        }
-      ],
-      "layout": "timeline",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "Q3 2026"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Structured layouts and metric trends."
-                }
-              ],
-              "line": 124
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Q4 2026"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Interchangeable declarative themes."
-                }
-              ],
-              "line": 128
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Q1 2027"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Open-source release and example gallery."
-                }
-              ],
-              "line": 132
-            }
-          ]
-        }
-      ],
-      "line": 118,
-      "layoutLine": 120
-    },
-    {
-      "title": "A layered architecture",
-      "titleRuns": [
-        {
-          "text": "A layered architecture"
+          "text": "Where each piece lives"
         }
       ],
       "layout": "layers",
@@ -749,10 +562,16 @@
               "type": "para",
               "runs": [
                 {
-                  "text": ".pptx PowerPoint, standalone HTML, VS Code preview."
+                  "text": ".pptx",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " for PowerPoint and Keynote, one standalone HTML file for the browser."
                 }
               ],
-              "line": 140
+              "line": 122
             }
           ]
         },
@@ -767,10 +586,10 @@
               "type": "para",
               "runs": [
                 {
-                  "text": "PptxGenJS and HTML — same scene, same geometry."
+                  "text": "Native shapes, text boxes and tables — or inlined SVG and CSS."
                 }
               ],
-              "line": 144
+              "line": 126
             }
           ]
         },
@@ -785,17 +604,17 @@
               "type": "para",
               "runs": [
                 {
-                  "text": "Layout inference, slot placement, pagination."
+                  "text": "Layout inference, slot placement, pagination, auto-fit."
                 }
               ],
-              "line": 148
+              "line": 130
             }
           ]
         },
         {
           "heading": [
             {
-              "text": "IR"
+              "text": "Representation"
             }
           ],
           "blocks": [
@@ -803,499 +622,31 @@
               "type": "para",
               "runs": [
                 {
-                  "text": "deck → slides → sections → blocks, source positions."
-                }
-              ],
-              "line": 152
-            }
-          ]
-        }
-      ],
-      "line": 134,
-      "layoutLine": 136
-    },
-    {
-      "title": "The project at a glance",
-      "titleRuns": [
-        {
-          "text": "The project at a glance"
-        }
-      ],
-      "layout": "swot",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "Strengths"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "Brand applied by construction"
-                    }
-                  ],
-                  "level": 0
+                  "text": "deck → slides → sections → blocks",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
                 },
                 {
-                  "runs": [
-                    {
-                      "text": "Two outputs, a single geometry"
-                    }
-                  ],
-                  "level": 0
+                  "text": ", each carrying its source position."
                 }
               ],
-              "line": 160
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Weaknesses"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "Embedded font ignored by Keynote"
-                    }
-                  ],
-                  "level": 0
-                }
-              ],
-              "line": 165
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Opportunities"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "Themes for other organizations"
-                    }
-                  ],
-                  "level": 0
-                }
-              ],
-              "line": 169
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Threats"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "Evolution of the OOXML format"
-                    }
-                  ],
-                  "level": 0
-                }
-              ],
-              "line": 173
+              "line": 134
             }
           ]
         }
       ],
-      "line": 154,
-      "layoutLine": 156
+      "line": 116,
+      "layoutLine": 118
     },
     {
-      "title": "Weighing the decision",
+      "title": "What you write becomes what you see",
       "titleRuns": [
         {
-          "text": "Weighing the decision"
+          "text": "What you write becomes what you see"
         }
       ],
-      "layout": "pros-cons",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "Pros"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "A single source file, under version control"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "The brand applied by construction"
-                    }
-                  ],
-                  "level": 0
-                }
-              ],
-              "line": 181
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Cons"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "A DSL to learn"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Less freedom than a free-form PowerPoint"
-                    }
-                  ],
-                  "level": 0
-                }
-              ],
-              "line": 186
-            }
-          ]
-        }
-      ],
-      "line": 175,
-      "layoutLine": 177
-    },
-    {
-      "title": "Filing a request, step by step",
-      "titleRuns": [
-        {
-          "text": "Filing a request, step by step"
-        }
-      ],
-      "layout": "journey",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "Request"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Online form, five minutes."
-                }
-              ],
-              "line": 195
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Review"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Eligibility check within 10 days."
-                }
-              ],
-              "line": 199
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Answer"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Reasoned decision, sent by email."
-                }
-              ],
-              "line": 203
-            }
-          ]
-        }
-      ],
-      "line": 189,
-      "layoutLine": 191
-    },
-    {
-      "title": "Project portfolio",
-      "titleRuns": [
-        {
-          "text": "Project portfolio"
-        }
-      ],
-      "layout": "portfolio",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "New product"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Launch planned for the spring."
-                }
-              ],
-              "line": 211
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Training program"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Three cohorts this year."
-                }
-              ],
-              "line": 215
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Energy efficiency"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "A third less consumption."
-                }
-              ],
-              "line": 219
-            }
-          ]
-        }
-      ],
-      "line": 205,
-      "layoutLine": 207
-    },
-    {
-      "title": "Request triage",
-      "titleRuns": [
-        {
-          "text": "Request triage"
-        }
-      ],
-      "layout": "funnel",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "2,400 received"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "All channels combined."
-                }
-              ],
-              "line": 227
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "1,100 eligible"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "After checking the criteria."
-                }
-              ],
-              "line": 231
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "320 selected"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Funded this year."
-                }
-              ],
-              "line": 235
-            }
-          ]
-        }
-      ],
-      "line": 221,
-      "layoutLine": 223
-    },
-    {
-      "title": "Detailed roadmap",
-      "titleRuns": [
-        {
-          "text": "Detailed roadmap"
-        }
-      ],
-      "layout": "roadmap",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "Q3 2026"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Parameterized layouts and official catalog."
-                }
-              ],
-              "line": 243
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Q4 2026"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Interchangeable declarative themes."
-                }
-              ],
-              "line": 247
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Q1 2027"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Open-source release and example gallery."
-                }
-              ],
-              "line": 251
-            }
-          ]
-        }
-      ],
-      "line": 237,
-      "layoutLine": 239
-    },
-    {
-      "title": "One figure to remember",
-      "titleRuns": [
-        {
-          "text": "One figure to remember"
-        }
-      ],
-      "layout": "key-message",
+      "layout": "table",
       "animate": null,
       "notes": [],
       "sections": [
@@ -1303,28 +654,394 @@
           "heading": null,
           "blocks": [
             {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "87% satisfaction"
-                }
+              "type": "table",
+              "header": [
+                [
+                  {
+                    "text": "You write"
+                  }
+                ],
+                [
+                  {
+                    "text": "The engine draws"
+                  }
+                ]
               ],
-              "line": 257
-            },
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "2026 survey of 2,400 respondents."
-                }
+              "rows": [
+                [
+                  [
+                    {
+                      "text": "# Heading",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    }
+                  ],
+                  [
+                    {
+                      "text": "A new slide, titled"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "## Section",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    }
+                  ],
+                  [
+                    {
+                      "text": "A slot: column, panel, band or quadrant"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "- item",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    }
+                  ],
+                  [
+                    {
+                      "text": "A bullet, sized to the room left"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": ":::metric",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    }
+                  ],
+                  [
+                    {
+                      "text": "An indicator card with its trend"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "```chart",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    }
+                  ],
+                  [
+                    {
+                      "text": "A chart, in the brand's palette"
+                    }
+                  ]
+                ],
+                [
+                  [
+                    {
+                      "text": "<!-- layout: swot -->",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    }
+                  ],
+                  [
+                    {
+                      "text": "Four quadrants, aligned"
+                    }
+                  ]
+                ]
               ],
-              "line": 259
+              "line": 140
             }
           ]
         }
       ],
-      "line": 253,
-      "layoutLine": 255
+      "line": 136,
+      "layoutLine": 138
+    },
+    {
+      "title": "One scene, two outputs",
+      "titleRuns": [
+        {
+          "text": "One scene, two outputs"
+        }
+      ],
+      "layout": "two-columns",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "PowerPoint"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Native shapes, real text boxes, real tables. Fonts embedded. The recipient"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "corrects a figure and moves on — no repository to clone, no toolchain to"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "install."
+                }
+              ],
+              "line": 155
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Standalone HTML"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "One file, everything inlined. Press "
+                },
+                {
+                  "text": "<kbd>"
+                },
+                {
+                  "text": "P"
+                },
+                {
+                  "text": "</kbd>"
+                },
+                {
+                  "text": " to present, "
+                },
+                {
+                  "text": "<kbd>"
+                },
+                {
+                  "text": "N"
+                },
+                {
+                  "text": "</kbd>"
+                },
+                {
+                  "text": " for"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "speaker notes and a timer. Nothing is fetched from the network."
+                }
+              ],
+              "line": 161
+            }
+          ]
+        }
+      ],
+      "line": 149,
+      "layoutLine": 151
+    },
+    {
+      "title": "The compiler talks back",
+      "titleRuns": [
+        {
+          "text": "The compiler talks back"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [
+        "These four are real diagnostics, quoted verbatim. Forty-odd exist."
+      ],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "alert",
+              "kind": "info",
+              "blocks": [
+                {
+                  "type": "para",
+                  "runs": [
+                    {
+                      "text": "SLIDE_PAGINATED",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " — the content did not fit, so it continues on a second slide."
+                    }
+                  ],
+                  "line": 167
+                }
+              ],
+              "line": 166
+            },
+            {
+              "type": "alert",
+              "kind": "success",
+              "blocks": [
+                {
+                  "type": "para",
+                  "runs": [
+                    {
+                      "text": "2/2 remote images",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " — both photographs were fetched and embedded. The deck is self-contained."
+                    }
+                  ],
+                  "line": 171
+                }
+              ],
+              "line": 170
+            },
+            {
+              "type": "alert",
+              "kind": "warning",
+              "blocks": [
+                {
+                  "type": "para",
+                  "runs": [
+                    {
+                      "text": "IMAGE_UPSCALED",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " — the image is smaller than the area it fills; it will look soft."
+                    }
+                  ],
+                  "line": 175
+                }
+              ],
+              "line": 174
+            },
+            {
+              "type": "alert",
+              "kind": "danger",
+              "blocks": [
+                {
+                  "type": "para",
+                  "runs": [
+                    {
+                      "text": "BLOCK_OVERFLOW",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": " — already at the densest step, and it still does not fit. Cut something."
+                    }
+                  ],
+                  "line": 179
+                }
+              ],
+              "line": 178
+            }
+          ]
+        }
+      ],
+      "line": 164
+    },
+    {
+      "title": "What it draws",
+      "titleRuns": [
+        {
+          "text": "What it draws"
+        }
+      ],
+      "layout": "section",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": []
+        }
+      ],
+      "line": 184,
+      "layoutLine": 186
+    },
+    {
+      "title": "Indicators",
+      "titleRuns": [
+        {
+          "text": "Indicators"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "metric",
+              "value": "33",
+              "label": "Layouts available",
+              "trend": {
+                "dir": "up",
+                "sentiment": "positive",
+                "text": "+2 this release"
+              },
+              "line": 190
+            },
+            {
+              "type": "metric",
+              "value": "15",
+              "label": "Chart types",
+              "trend": {
+                "dir": "up",
+                "sentiment": "positive",
+                "text": "+7 this release"
+              },
+              "line": 196
+            },
+            {
+              "type": "metric",
+              "value": "0",
+              "label": "Coordinates in this file",
+              "trend": {
+                "dir": "flat",
+                "sentiment": "neutral",
+                "text": "by design"
+              },
+              "line": 202
+            }
+          ]
+        }
+      ],
+      "line": 188
     },
     {
       "title": "Budget by quarter",
@@ -1344,17 +1061,17 @@
               "type": "para",
               "runs": [
                 {
-                  "text": "The chart is rendered by the engine, in the brand's colors, with a palette"
+                  "text": "The chart is drawn by the engine, in the brand's colours, on a palette checked"
                 },
                 {
                   "text": " ",
                   "soft": true
                 },
                 {
-                  "text": "validated for color blindness and contrast."
+                  "text": "for contrast and colour blindness."
                 }
               ],
-              "line": 263
+              "line": 210
             },
             {
               "type": "chart",
@@ -1385,12 +1102,13 @@
                   ]
                 }
               ],
-              "line": 266
+              "target": 165,
+              "line": 213
             }
           ]
         }
       ],
-      "line": 261
+      "line": 208
     },
     {
       "title": "Breakdown of spending",
@@ -1426,12 +1144,1096 @@
                   ]
                 }
               ],
-              "line": 275
+              "line": 223
             }
           ]
         }
       ],
-      "line": 273
+      "line": 221
+    },
+    {
+      "title": "From opening to closing balance",
+      "titleRuns": [
+        {
+          "text": "From opening to closing balance"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "chart",
+              "chartType": "waterfall",
+              "categories": [
+                "Opening",
+                "Grants",
+                "Salaries",
+                "Tooling",
+                "Closing"
+              ],
+              "series": [
+                {
+                  "name": "Budget",
+                  "values": [
+                    400,
+                    180,
+                    -260,
+                    -70,
+                    250
+                  ]
+                }
+              ],
+              "totals": [
+                "Opening",
+                "Closing"
+              ],
+              "line": 231
+            }
+          ]
+        }
+      ],
+      "line": 229
+    },
+    {
+      "title": "Choosing the platform",
+      "titleRuns": [
+        {
+          "text": "Choosing the platform"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "chart",
+              "chartType": "rating",
+              "categories": [
+                "Fit to process",
+                "Cost of change",
+                "Risk",
+                "Time to deliver"
+              ],
+              "series": [
+                {
+                  "name": "Rebuild in house",
+                  "values": [
+                    4,
+                    2,
+                    4,
+                    2
+                  ]
+                },
+                {
+                  "name": "Buy the module",
+                  "values": [
+                    2,
+                    5,
+                    2,
+                    5
+                  ]
+                },
+                {
+                  "name": "Extend what we have",
+                  "values": [
+                    3,
+                    4,
+                    3,
+                    3
+                  ]
+                }
+              ],
+              "scale": 5,
+              "line": 240
+            }
+          ]
+        }
+      ],
+      "line": 238
+    },
+    {
+      "title": "Coverage by team",
+      "titleRuns": [
+        {
+          "text": "Coverage by team"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "chart",
+              "chartType": "heat",
+              "categories": [
+                "Discovery",
+                "Build",
+                "Test",
+                "Run"
+              ],
+              "series": [
+                {
+                  "name": "Payments",
+                  "values": [
+                    4,
+                    5,
+                    3,
+                    2
+                  ]
+                },
+                {
+                  "name": "Identity",
+                  "values": [
+                    5,
+                    4,
+                    4,
+                    3
+                  ]
+                },
+                {
+                  "name": "Reporting",
+                  "values": [
+                    2,
+                    3,
+                    2,
+                    1
+                  ]
+                }
+              ],
+              "scale": 5,
+              "line": 251
+            }
+          ]
+        }
+      ],
+      "line": 249
+    },
+    {
+      "title": "Delivery plan",
+      "titleRuns": [
+        {
+          "text": "Delivery plan"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "chart",
+              "chartType": "gantt",
+              "categories": [
+                "Q1",
+                "Q2",
+                "Q3",
+                "Q4"
+              ],
+              "series": [
+                {
+                  "name": "Discovery",
+                  "spans": [
+                    {
+                      "from": 0,
+                      "to": 1,
+                      "raw": "Q1 - Q2"
+                    }
+                  ],
+                  "values": [
+                    "Q1 - Q2"
+                  ]
+                },
+                {
+                  "name": "Build",
+                  "spans": [
+                    {
+                      "from": 1,
+                      "to": 2,
+                      "raw": "Q2 - Q3"
+                    }
+                  ],
+                  "values": [
+                    "Q2 - Q3"
+                  ]
+                },
+                {
+                  "name": "Pilot",
+                  "spans": [
+                    {
+                      "from": 2,
+                      "to": 3,
+                      "raw": "Q3 - Q4"
+                    }
+                  ],
+                  "values": [
+                    "Q3 - Q4"
+                  ]
+                },
+                {
+                  "name": "Rollout",
+                  "spans": [
+                    {
+                      "from": 3,
+                      "to": 3,
+                      "raw": "Q4 - Q4"
+                    }
+                  ],
+                  "values": [
+                    "Q4 - Q4"
+                  ]
+                }
+              ],
+              "now": "Q3",
+              "line": 262
+            }
+          ]
+        }
+      ],
+      "line": 260
+    },
+    {
+      "title": "Where the programme stands",
+      "titleRuns": [
+        {
+          "text": "Where the programme stands"
+        }
+      ],
+      "layout": "status-list",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Delivery"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "progress",
+              "value": 1,
+              "label": "Online services",
+              "caption": "Delivered in April",
+              "kind": "success",
+              "line": 278
+            },
+            {
+              "type": "progress",
+              "value": 0.45,
+              "target": 0.8,
+              "label": "Paper forms",
+              "caption": "Under analysis, against an 80 % commitment",
+              "kind": "warning",
+              "line": 284
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Commitments"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "badge",
+              "items": [
+                {
+                  "text": "Scope",
+                  "kind": "success"
+                },
+                {
+                  "text": "Schedule",
+                  "kind": "success"
+                },
+                {
+                  "text": "Quality",
+                  "kind": "success"
+                },
+                {
+                  "text": "Budget",
+                  "kind": "warning"
+                },
+                {
+                  "text": "Recruitment",
+                  "kind": "danger"
+                }
+              ],
+              "line": 292
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Each commitment carries an "
+                },
+                {
+                  "text": "Owner",
+                  "badge": "success"
+                },
+                {
+                  "text": "; one that slips is tagged "
+                },
+                {
+                  "text": "At risk",
+                  "badge": "warning"
+                },
+                {
+                  "text": "."
+                }
+              ],
+              "line": 298
+            }
+          ]
+        }
+      ],
+      "line": 272,
+      "layoutLine": 274
+    },
+    {
+      "title": "The project at a glance",
+      "titleRuns": [
+        {
+          "text": "The project at a glance"
+        }
+      ],
+      "layout": "swot",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Strengths"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "One source of truth, in version control"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "The brand applied by construction"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 306
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Weaknesses"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "No pixel-level control, ever"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "A DSL to learn, however small"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 311
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Opportunities"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Decks generated by an agent, then checked"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "One kit, every deck in the organization"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 316
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Threats"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "A slide that genuinely needs art direction"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Evolution of the OOXML format"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 321
+            }
+          ]
+        }
+      ],
+      "line": 300,
+      "layoutLine": 302
+    },
+    {
+      "title": "Programme log",
+      "titleRuns": [
+        {
+          "text": "Programme log"
+        }
+      ],
+      "layout": "raid",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Risks"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Recruitment slipping into the next quarter."
+                }
+              ],
+              "line": 330
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Assumptions"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "The kit is ready before the pilot starts."
+                }
+              ],
+              "line": 334
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Issues"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Two source systems still disagree on totals."
+                }
+              ],
+              "line": 338
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Dependencies"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "The identity service, delivered by another team."
+                }
+              ],
+              "line": 342
+            }
+          ]
+        }
+      ],
+      "line": 324,
+      "layoutLine": 326
+    },
+    {
+      "title": "Effort and impact",
+      "titleRuns": [
+        {
+          "text": "Effort and impact"
+        }
+      ],
+      "layout": "priority-matrix",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Do first"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Automated build in CI."
+                }
+              ],
+              "line": 350
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Plan"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Kit for the whole organization."
+                }
+              ],
+              "line": 354
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Quick wins"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Diagnostics in the editor."
+                }
+              ],
+              "line": 358
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Later"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Extra export formats."
+                }
+              ],
+              "line": 362
+            }
+          ]
+        }
+      ],
+      "line": 344,
+      "layoutLine": 346
+    },
+    {
+      "title": "Request triage",
+      "titleRuns": [
+        {
+          "text": "Request triage"
+        }
+      ],
+      "layout": "funnel",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "2,400 received"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "All channels combined."
+                }
+              ],
+              "line": 370
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "1,100 eligible"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "After checking the criteria."
+                }
+              ],
+              "line": 374
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "320 selected"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Funded this year."
+                }
+              ],
+              "line": 378
+            }
+          ]
+        }
+      ],
+      "line": 364,
+      "layoutLine": 366
+    },
+    {
+      "title": "What holds it up",
+      "titleRuns": [
+        {
+          "text": "What holds it up"
+        }
+      ],
+      "layout": "pyramid",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "One deck, on brand"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "What the audience sees."
+                }
+              ],
+              "line": 386
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Layouts and kits"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Chosen by the engine, owned by the organization."
+                }
+              ],
+              "line": 390
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "One geometry"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Computed once, rendered twice."
+                }
+              ],
+              "line": 394
+            }
+          ]
+        }
+      ],
+      "line": 380,
+      "layoutLine": 382
+    },
+    {
+      "title": "Roadmap",
+      "titleRuns": [
+        {
+          "text": "Roadmap"
+        }
+      ],
+      "layout": "roadmap",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Q3 2026"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Widgets for status boards and scorecards."
+                }
+              ],
+              "line": 402
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Q4 2026"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Kit editor, and images addressed by name."
+                }
+              ],
+              "line": 406
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Q1 2027"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Incremental builds and a visual regression suite."
+                }
+              ],
+              "line": 410
+            }
+          ]
+        }
+      ],
+      "line": 396,
+      "layoutLine": 398
+    },
+    {
+      "title": "Three reasons it holds",
+      "titleRuns": [
+        {
+          "text": "Three reasons it holds"
+        }
+      ],
+      "layout": "pillars",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Speed"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "icon",
+              "name": "zap",
+              "color": "primary",
+              "size": "medium",
+              "line": 418
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "A deck is a file. Change a figure, rebuild, hand it over."
+                }
+              ],
+              "line": 420
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Consistency"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "icon",
+              "name": "shield-check",
+              "color": "primary",
+              "size": "medium",
+              "line": 424
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "The brand is in the kit, not in your muscle memory."
+                }
+              ],
+              "line": 426
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Traceability"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "icon",
+              "name": "git-branch",
+              "color": "primary",
+              "size": "medium",
+              "line": 430
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Diffable, reviewable, and rebuilt by CI like any other artefact."
+                }
+              ],
+              "line": 432
+            }
+          ]
+        }
+      ],
+      "line": 412,
+      "layoutLine": 414
+    },
+    {
+      "title": "On images",
+      "titleRuns": [
+        {
+          "text": "On images"
+        }
+      ],
+      "layout": "split",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "A local file, or a URL fetched at build time"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "With "
+                    },
+                    {
+                      "text": "assets: vendor",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
+                    },
+                    {
+                      "text": ", a copy is kept next to the deck"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "The result is self-contained: no live network, ever"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Under-resolution is measured and reported, not discovered on the projector"
+                    }
+                  ],
+                  "level": 0
+                }
+              ],
+              "line": 438
+            },
+            {
+              "type": "image",
+              "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
+              "role": "right",
+              "alt": "",
+              "line": 443
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Photo © Luca Galuzzi — Wikimedia Commons, CC BY-SA 2.5"
+                }
+              ],
+              "line": 445
+            }
+          ]
+        }
+      ],
+      "line": 434,
+      "layoutLine": 436
+    },
+    {
+      "title": "A photograph fills the frame",
+      "titleRuns": [
+        {
+          "text": "A photograph fills the frame"
+        }
+      ],
+      "layout": null,
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "image",
+              "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg",
+              "role": "background",
+              "alt": "",
+              "line": 449
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0"
+                }
+              ],
+              "line": 451
+            }
+          ]
+        }
+      ],
+      "line": 447
     },
     {
       "title": "The allocation formula",
@@ -1454,12 +2256,12 @@
                   "text": "The budget allocated to each team is computed as follows:"
                 }
               ],
-              "line": 283
+              "line": 455
             },
             {
               "type": "math",
               "source": "B_e = \\frac{\\sum_{i=1}^{n} p_i \\cdot c_i}{N} \\times (1 + \\tau)",
-              "line": 285
+              "line": 457
             },
             {
               "type": "para",
@@ -1502,110 +2304,76 @@
                   "text": "indexation rate."
                 }
               ],
-              "line": 289
+              "line": 461
             }
           ]
         }
       ],
-      "line": 281
+      "line": 453
     },
     {
-      "title": "Three pillars",
+      "title": "The code stays readable",
       "titleRuns": [
         {
-          "text": "Three pillars"
+          "text": "The code stays readable"
         }
       ],
-      "layout": null,
+      "layout": "code",
       "animate": null,
       "notes": [],
       "sections": [
         {
-          "heading": [
-            {
-              "text": "Speed"
-            }
-          ],
+          "heading": null,
           "blocks": [
             {
-              "type": "icon",
-              "name": "zap",
-              "color": "primary",
-              "line": 296
-            },
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "A compile in a few seconds."
-                }
-              ],
-              "line": 298
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Reliability"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "icon",
-              "name": "shield-check",
-              "color": "primary",
-              "line": 302
-            },
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Two outputs, a single geometry."
-                }
-              ],
-              "line": 304
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Openness"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "icon",
-              "name": "git-branch",
-              "color": "primary",
-              "line": 308
-            },
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "One source file, under version control."
-                }
-              ],
-              "line": 310
+              "type": "code",
+              "lang": "ts",
+              "source": "export function pickLayout(slide: Slide): LayoutName {\n  if (slide.blocks.every(isMetric)) return 'metrics';\n  if (slide.sections.length === 4) return 'swot';\n  if (slide.blocks.some(isChart)) return 'chart';\n  return 'content';\n}",
+              "line": 468
             }
           ]
         }
       ],
-      "line": 292
+      "line": 464,
+      "layoutLine": 466
     },
     {
-      "title": "Everest, north face",
+      "title": "A brand fits in a manifest",
       "titleRuns": [
         {
-          "text": "Everest, north face"
+          "text": "A brand fits in a manifest"
+        }
+      ],
+      "layout": "code",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "code",
+              "lang": "json",
+              "source": "{\n  \"name\": \"acme\",\n  \"colors\": { \"primary\": \"#0F766E\", \"accent\": \"#B45309\" },\n  \"fonts\": { \"heading\": \"Acme Grotesk\", \"body\": \"Acme Text\" },\n  \"logo\": \"./logo/acme.svg\"\n}",
+              "line": 481
+            }
+          ]
+        }
+      ],
+      "line": 477,
+      "layoutLine": 479
+    },
+    {
+      "title": "One point at a time — press → to reveal",
+      "titleRuns": [
+        {
+          "text": "One point at a time — press → to reveal"
         }
       ],
       "layout": null,
-      "animate": null,
+      "animate": true,
       "notes": [
-        "Photo: \"Everest North Face toward Base Camp\", © Luca Galuzzi - www.galuzzi.it, Wikimedia Commons, CC BY-SA 2.5. The credit must stay close to the image (the author's requirement)."
+        "This slide is deliberately empty until the first click. That is what `<!-- animate"
       ],
       "sections": [
         {
@@ -1618,14 +2386,7 @@
                 {
                   "runs": [
                     {
-                      "text": "A "
-                    },
-                    {
-                      "text": "remote",
-                      "bold": true
-                    },
-                    {
-                      "text": " image: URL pasted as is into the Markdown"
+                      "text": "A deck can hold its points back and release them one by one"
                     }
                   ],
                   "level": 0
@@ -1633,33 +2394,16 @@
                 {
                   "runs": [
                     {
-                      "text": "Downloaded into the user cache, embedded in the .pptx"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Here "
+                      "text": "One line in the file, "
                     },
                     {
-                      "text": "assets: vendor",
+                      "text": "<!-- animate -->",
                       "code": true,
                       "bold": false,
                       "italic": false
                     },
                     {
-                      "text": ": a copy kept in "
-                    },
-                    {
-                      "text": "assets/remote/",
-                      "code": true,
-                      "bold": false,
-                      "italic": false
-                    },
-                    {
-                      "text": ", a self-contained directory"
+                      "text": ", and every block becomes a step"
                     }
                   ],
                   "level": 0
@@ -1667,78 +2411,44 @@
                 {
                   "runs": [
                     {
-                      "text": "Photo © Luca Galuzzi — "
+                      "text": "The "
                     },
                     {
-                      "text": "www.galuzzi.it",
-                      "link": "http://www.galuzzi.it"
+                      "text": ".pptx",
+                      "code": true,
+                      "bold": false,
+                      "italic": false
                     },
                     {
-                      "text": ", CC BY-SA 2.5"
+                      "text": " gets real PowerPoint animations, not a stack of duplicated slides"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Which is why this slide looks empty until you press the arrow"
                     }
                   ],
                   "level": 0
                 }
               ],
-              "line": 314
-            },
-            {
-              "type": "image",
-              "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
-              "role": "right",
-              "alt": "",
-              "line": 319
+              "line": 496
             }
           ]
         }
       ],
-      "line": 312
+      "line": 490
     },
     {
-      "title": "Panorama from the Fronalpstock",
+      "title": "A word from the people who use it",
       "titleRuns": [
         {
-          "text": "Panorama from the Fronalpstock"
+          "text": "A word from the people who use it"
         }
       ],
-      "layout": null,
-      "animate": null,
-      "notes": [
-        "Photo: \"Fronalpstock, Switzerland\", Hannes Röst, Wikimedia Commons, CC BY-SA 3.0. hero layout: full-page image. The credit stays visible on the slide (a CC BY-SA requirement)."
-      ],
-      "sections": [
-        {
-          "heading": null,
-          "blocks": [
-            {
-              "type": "image",
-              "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg",
-              "role": "background",
-              "alt": "",
-              "line": 325
-            },
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0"
-                }
-              ],
-              "line": 327
-            }
-          ]
-        }
-      ],
-      "line": 323
-    },
-    {
-      "title": "A word from users",
-      "titleRuns": [
-        {
-          "text": "A word from users"
-        }
-      ],
-      "layout": null,
+      "layout": "quote",
       "animate": null,
       "notes": [],
       "sections": [
@@ -1749,59 +2459,37 @@
               "type": "quote",
               "runs": [
                 {
-                  "text": "You write a presentation the way you write code: a source language, an"
+                  "text": "I stopped opening PowerPoint to make a deck. I open it to read the one the"
                 },
                 {
                   "text": " ",
                   "soft": true
                 },
                 {
-                  "text": "intermediate representation, optimization passes."
+                  "text": "build gave me."
                 }
               ],
-              "cite": "A convinced author",
-              "line": 333
+              "cite": "A programme lead, after the third rebuild in one week",
+              "line": 505
             }
           ]
         }
       ],
-      "line": 331
+      "line": 501,
+      "layoutLine": 503
     },
     {
-      "title": "The code stays readable",
+      "title": "Start in one line",
       "titleRuns": [
         {
-          "text": "The code stays readable"
+          "text": "Start in one line"
         }
       ],
-      "layout": null,
+      "layout": "focus",
       "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": null,
-          "blocks": [
-            {
-              "type": "code",
-              "lang": "ts",
-              "source": "function compile(source: string): Deck {\n  const ast = parse(source); // markdown-it\n  const ir = lower(ast);\n  return layout(ir); // placement + pagination\n}",
-              "line": 340
-            }
-          ]
-        }
+      "notes": [
+        "Hand out the URL here. The .pptx of this very deck is on the site."
       ],
-      "line": 338
-    },
-    {
-      "title": "A kit fits in a manifest",
-      "titleRuns": [
-        {
-          "text": "A kit fits in a manifest"
-        }
-      ],
-      "layout": null,
-      "animate": null,
-      "notes": [],
       "sections": [
         {
           "heading": null,
@@ -1810,238 +2498,28 @@
               "type": "para",
               "runs": [
                 {
-                  "text": "Installing an organization's brand means copying a directory. Its heart is a"
-                },
-                {
-                  "text": " ",
-                  "soft": true
-                },
-                {
-                  "text": "kit.json",
+                  "text": "npx lutrin build deck.md -o deck.pptx",
                   "code": true,
                   "bold": false,
                   "italic": false
-                },
-                {
-                  "text": " — data only, never code."
                 }
               ],
-              "line": 350
-            },
-            {
-              "type": "code",
-              "lang": "json",
-              "source": "{\n  \"name\": \"slate-plus\",\n  \"version\": \"1.0.0\",\n  \"theme\": \"./theme.json\",\n  \"layouts\": \"./layouts\"\n}",
-              "line": 353
-            }
-          ]
-        }
-      ],
-      "line": 348
-    },
-    {
-      "title": "Next steps",
-      "titleRuns": [
-        {
-          "text": "Next steps"
-        }
-      ],
-      "layout": null,
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": null,
-          "blocks": [
-            {
-              "type": "bullets",
-              "ordered": false,
-              "items": [
-                {
-                  "runs": [
-                    {
-                      "text": "Mermaid diagrams rendered as native shapes"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "HTML engine (reveal.js) and PDF engine (Typst)"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Dynamic components (github-stats, chart, sql)"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Fragments and animations"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Interchangeable declarative themes"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Accessibility checker (contrast, reading order)"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Hot preview while editing"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Example gallery"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Visual regression tests"
-                    }
-                  ],
-                  "level": 0
-                },
-                {
-                  "runs": [
-                    {
-                      "text": "Incremental compilation cache"
-                    }
-                  ],
-                  "level": 0
-                }
-              ],
-              "line": 364
-            }
-          ]
-        }
-      ],
-      "line": 362
-    },
-    {
-      "title": "Where the programme stands",
-      "titleRuns": [
-        {
-          "text": "Where the programme stands"
-        }
-      ],
-      "layout": "status-list",
-      "animate": null,
-      "notes": [],
-      "sections": [
-        {
-          "heading": [
-            {
-              "text": "Delivery"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "progress",
-              "value": 1,
-              "label": "Online services",
-              "caption": "Delivered in April",
-              "kind": "success",
-              "line": 381
-            },
-            {
-              "type": "progress",
-              "value": 0.45,
-              "label": "Paper forms",
-              "caption": "Under analysis",
-              "kind": "warning",
-              "line": 387
-            }
-          ]
-        },
-        {
-          "heading": [
-            {
-              "text": "Commitments"
-            }
-          ],
-          "blocks": [
-            {
-              "type": "badge",
-              "items": [
-                {
-                  "text": "Scope",
-                  "kind": "success"
-                },
-                {
-                  "text": "Schedule",
-                  "kind": "success"
-                },
-                {
-                  "text": "Quality",
-                  "kind": "success"
-                },
-                {
-                  "text": "Budget",
-                  "kind": "warning"
-                },
-                {
-                  "text": "Recruitment",
-                  "kind": "danger"
-                }
-              ],
-              "line": 395
+              "line": 514
             },
             {
               "type": "para",
               "runs": [
                 {
-                  "text": "Each commitment carries an "
-                },
-                {
-                  "text": "Owner",
-                  "badge": "success"
-                },
-                {
-                  "text": "; one that slips is tagged "
-                },
-                {
-                  "text": "At risk",
-                  "badge": "warning"
-                },
-                {
-                  "text": "."
+                  "text": "Node 22 or later. Nothing else to install. MIT."
                 }
               ],
-              "line": 401
+              "line": 516
             }
           ]
         }
       ],
-      "line": 375,
-      "layoutLine": 377
+      "line": 510,
+      "layoutLine": 512
     }
   ]
 }

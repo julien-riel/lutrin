@@ -354,13 +354,28 @@ function sizesIn(value, path = '') {
 
 const DENSITY_BODY = '## Cell\n\nA paragraph.\n\n- a bullet\n  - nested\n\n## Other\n\ntext\n';
 
+/**
+ * `size` is TWO keys under one name, and only one of them is density's:
+ *
+ *   - the points the layout stamps on a text block it flows — a NUMBER, what
+ *     this test watches;
+ *   - the size word an author writes in an icon's alt slot
+ *     (`![medium](lucide:zap)`) — a STRING, and deliberately so: ICON_SIZES is
+ *     "words, never points", because an author who could write "24 pt" would
+ *     be positioning. It travels through the scene untouched.
+ *
+ * Filtering on `!= null` conflated the two, so adding an icon to the demo deck
+ * failed a test about density.
+ */
+const stampsPoints = (el) => typeof el.block.size === 'number';
+
 test('density: the layout stamps `size` on the text blocks it flows — and stamps NOTHING at the default', (t) => {
   t.after(resetUserLayouts);
   resetUserLayouts();
   registerLayout({ name: 'p-dense-grid', base: 'grid', density: 'dense' });
 
   const [dense] = scenesFor(`# Board\n\n<!-- layout: p-dense-grid -->\n\n${DENSITY_BODY}`);
-  const sized = dense.elements.filter((el) => el.block.size != null).map((el) => el.block.type);
+  const sized = dense.elements.filter(stampsPoints).map((el) => el.block.type);
   assert.deepEqual(
     [...new Set(sized)].sort(),
     ['bullets', 'para'],
@@ -386,7 +401,7 @@ test('density: the layout stamps `size` on the text blocks it flows — and stam
   // 3000-line golden: the key message of `focus`, and the paragraph of the
   // status board, whose `status-list` layout asks for the dense step
   const demoElements = buildScenes(parseDeck(readDemo())).flatMap((s) => s.elements);
-  const demoSized = demoElements.filter((el) => el.block.size != null).map((el) => el.block.type);
+  const demoSized = demoElements.filter(stampsPoints).map((el) => el.block.type);
   assert.deepEqual(
     [...new Set(demoSized)].sort(),
     ['heading', 'para'],

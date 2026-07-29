@@ -20,9 +20,14 @@ test('golden: IR of the demonstration deck', () => {
 
 test('frontmatter: meta extracted, body intact', () => {
   const deck = parseDeck(readDemo());
-  assert.equal(deck.meta.title, 'A presentation compiler');
+  // The three keys of examples/demo.deck.md's own frontmatter — rewrite the
+  // demo's wording and these follow it.
+  assert.equal(deck.meta.title, "Write the deck. Don't design it.");
   assert.equal(deck.meta.author, 'Lutrin');
-  assert.equal(deck.meta.footer, 'Presentation compiler · demonstration');
+  assert.equal(deck.meta.footer, 'Lutrin · written in Markdown, compiled to this');
+  // the body did not keep the frontmatter: the first slide is content
+  assert.ok(deck.slides.length > 0);
+  assert.ok(!JSON.stringify(deck.slides).includes('footer:'));
 });
 
 test('# opens a slide, ## a section', () => {

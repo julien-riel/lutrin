@@ -2,26 +2,36 @@
   {
     "master": "cover",
     "layout": "cover",
-    "title": "A presentation compiler",
-    "subtitle": "Enriched Markdown → PowerPoint and standalone HTML",
+    "title": "Write the deck. Don't design it.",
+    "subtitle": "Lutrin — a presentation compiler for people with something to say",
     "byline": "Lutrin · July 2026",
     "notes": [],
     "elements": [],
     "sourceLine": 1
   },
   {
+    "master": "section",
+    "layout": "section",
+    "title": "Two kinds of time",
+    "notes": [
+      "Open on the cost, not on the tool. Everyone in the room has lost an afternoon to a deck."
+    ],
+    "elements": [],
+    "sourceLine": 10
+  },
+  {
     "master": "content",
     "layout": "content",
-    "title": "Why a compiler?",
+    "title": "Every deck costs you twice",
     "titleRuns": [
       {
-        "text": "Why a compiler?"
+        "text": "Every deck costs you twice"
       }
     ],
     "notes": [
-      "Stress the analogy with a classic compiler."
+      "The second list is deliberately mundane. Recognition is the argument."
     ],
-    "sourceLine": 10,
+    "sourceLine": 16,
     "elements": [
       {
         "block": {
@@ -31,10 +41,10 @@
             {
               "runs": [
                 {
-                  "text": "Markdown is not the final format: it is a description "
+                  "text": "Once to work out "
                 },
                 {
-                  "text": "DSL",
+                  "text": "what you have to say",
                   "bold": true
                 }
               ],
@@ -43,7 +53,7 @@
             {
               "runs": [
                 {
-                  "text": "Content is kept separate from page layout"
+                  "text": "Once to nudge the box two pixels to the left"
                 }
               ],
               "level": 0
@@ -51,7 +61,7 @@
             {
               "runs": [
                 {
-                  "text": "One canonical intermediate representation (IR)"
+                  "text": "Pick the blue again, off the slide that already had it"
                 }
               ],
               "level": 0
@@ -59,7 +69,7 @@
             {
               "runs": [
                 {
-                  "text": "Analysis passes: layout selection, pagination, validation"
+                  "text": "Shrink the text until it fits — differently on every slide"
                 }
               ],
               "level": 0
@@ -67,13 +77,13 @@
             {
               "runs": [
                 {
-                  "text": "Several possible rendering engines (PPTX, HTML, PDF…)"
+                  "text": "Redo all of it when the numbers change on Thursday"
                 }
               ],
               "level": 0
             }
           ],
-          "line": 12
+          "line": 18
         },
         "region": {
           "x": 48,
@@ -81,604 +91,50 @@
           "w": 1184,
           "h": 168.66666666666663
         }
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "two-columns",
-    "title": "The pipeline",
-    "titleRuns": [
-      {
-        "text": "The pipeline"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 20,
-    "elements": [
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Front end"
-            }
-          ]
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
-          "w": 580,
-          "h": 37.86666666666666
-        },
-        "group": 0
       },
       {
         "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
+          "type": "para",
+          "runs": [
             {
-              "runs": [
-                {
-                  "text": "Enriched Markdown"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "markdown-it"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "AST → IR"
-                }
-              ],
-              "level": 0
+              "text": "Only the first one was ever your job."
             }
           ],
           "line": 24
         },
         "region": {
           "x": 48,
-          "y": 165.86666666666667,
-          "w": 580,
-          "h": 104.39999999999998
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Back end"
-            }
-          ]
-        },
-        "region": {
-          "x": 652,
-          "y": 112,
-          "w": 580,
-          "h": 37.86666666666666
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "Layout engine"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "PowerPoint scene"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "PptxGenJS"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 30
-        },
-        "region": {
-          "x": 652,
-          "y": 165.86666666666667,
-          "w": 580,
-          "h": 104.39999999999998
-        },
-        "group": 1
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "split",
-    "title": "Architecture",
-    "titleRuns": [
-      {
-        "text": "Architecture"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 34,
-    "elements": [
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "The front end produces the IR"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "The layout engine places each block in a slot"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Pagination splits whatever overflows"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "The renderer applies the brand"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 36
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
-          "w": 487,
-          "h": 136.5333333333333
-        }
-      },
-      {
-        "block": {
-          "type": "mermaid",
-          "source": "flowchart LR\n  A[Markdown] --> B[IR]\n  B --> C[Layout]\n  C --> D[Scene]\n  D --> E[.pptx]\n",
-          "line": 41
-        },
-        "region": {
-          "x": 559,
-          "y": 112,
-          "w": 673,
-          "h": 560
-        }
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "content",
-    "title": "One thing at a time",
-    "titleRuns": [
-      {
-        "text": "One thing at a time"
-      }
-    ],
-    "notes": [
-      "Demonstration of the appearance animations."
-    ],
-    "sourceLine": 49,
-    "elements": [
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "The content of this slide appears on click, one step after another."
-            }
-          ],
-          "line": 53
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
+          "y": 296.66666666666663,
           "w": 1184,
           "h": 34.133333333333326
-        },
-        "step": 0
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "Lists reveal themselves point by point"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Each block is a distinct step"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Columns and sections appear as a whole"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 55
-        },
-        "region": {
-          "x": 48,
-          "y": 162.13333333333333,
-          "w": 1184,
-          "h": 104.39999999999998
-        },
-        "step": 1,
-        "stepCount": 3
-      },
-      {
-        "block": {
-          "type": "alert",
-          "kind": "success",
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "The same steps work in PowerPoint (native animations) and in the HTML"
-                },
-                {
-                  "text": " ",
-                  "soft": true
-                },
-                {
-                  "text": "preview (click on the slide)."
-                }
-              ],
-              "line": 60
-            }
-          ],
-          "line": 59
-        },
-        "region": {
-          "x": 48,
-          "y": 282.5333333333333,
-          "w": 1184,
-          "h": 86.66666666666666
-        },
-        "step": 4
-      }
-    ],
-    "animSteps": 5
-  },
-  {
-    "master": "content",
-    "layout": "table",
-    "title": "Comparing the approaches",
-    "titleRuns": [
-      {
-        "text": "Comparing the approaches"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 66,
-    "elements": [
-      {
-        "block": {
-          "type": "table",
-          "header": [
-            [
-              {
-                "text": "Criterion"
-              }
-            ],
-            [
-              {
-                "text": "Classic converter"
-              }
-            ],
-            [
-              {
-                "text": "Compiler"
-              }
-            ]
-          ],
-          "rows": [
-            [
-              [
-                {
-                  "text": "Page layout"
-                }
-              ],
-              [
-                {
-                  "text": "Approximate CSS"
-                }
-              ],
-              [
-                {
-                  "text": "Declarative layouts"
-                }
-              ]
-            ],
-            [
-              [
-                {
-                  "text": "Overflow"
-                }
-              ],
-              [
-                {
-                  "text": "Truncated text"
-                }
-              ],
-              [
-                {
-                  "text": "Automatic pagination"
-                }
-              ]
-            ],
-            [
-              [
-                {
-                  "text": "Diagrams"
-                }
-              ],
-              [
-                {
-                  "text": "Frozen image"
-                }
-              ],
-              [
-                {
-                  "text": "AST → SVG → shapes"
-                }
-              ]
-            ],
-            [
-              [
-                {
-                  "text": "Theme"
-                }
-              ],
-              [
-                {
-                  "text": "Style sheet"
-                }
-              ],
-              [
-                {
-                  "text": "Declarative tokens"
-                }
-              ]
-            ],
-            [
-              [
-                {
-                  "text": "Outputs"
-                }
-              ],
-              [
-                {
-                  "text": "A single one"
-                }
-              ],
-              [
-                {
-                  "text": "PPTX, HTML, PDF…"
-                }
-              ]
-            ]
-          ],
-          "line": 68
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
-          "w": 1184,
-          "h": 226.4
         }
       }
     ]
   },
   {
     "master": "content",
-    "layout": "metrics",
-    "title": "Indicators",
+    "layout": "key-message",
+    "title": "You write the content. The engine does the geometry.",
     "titleRuns": [
       {
-        "text": "Indicators"
+        "text": "You write the content. The engine does the geometry."
       }
     ],
     "notes": [],
-    "sourceLine": 76,
-    "elements": [
-      {
-        "block": {
-          "type": "metric",
-          "value": "19",
-          "label": "Layouts planned",
-          "trend": {
-            "dir": "up",
-            "sentiment": "positive",
-            "text": "+5 this release"
-          },
-          "line": 78
-        },
-        "region": {
-          "x": 48,
-          "y": 128,
-          "w": 378.6666666666667,
-          "h": 176
-        }
-      },
-      {
-        "block": {
-          "type": "metric",
-          "value": "100%",
-          "label": "Output parity",
-          "trend": {
-            "dir": "flat",
-            "sentiment": "neutral",
-            "text": "stable"
-          },
-          "line": 84
-        },
-        "region": {
-          "x": 450.6666666666667,
-          "y": 128,
-          "w": 378.6666666666667,
-          "h": 176
-        }
-      },
-      {
-        "block": {
-          "type": "metric",
-          "value": "0",
-          "label": "Broken slides",
-          "trend": {
-            "dir": "down",
-            "sentiment": "positive",
-            "text": "-100%"
-          },
-          "line": 90
-        },
-        "region": {
-          "x": 853.3333333333334,
-          "y": 128,
-          "w": 378.6666666666667,
-          "h": 176
-        }
-      },
-      {
-        "block": {
-          "type": "alert",
-          "kind": "warning",
-          "blocks": [
-            {
-              "type": "para",
-              "runs": [
-                {
-                  "text": "The trend on a "
-                },
-                {
-                  "text": ":::metric",
-                  "code": true,
-                  "bold": false,
-                  "italic": false
-                },
-                {
-                  "text": " card is colored according to its direction: "
-                },
-                {
-                  "text": "↑",
-                  "code": true,
-                  "bold": false,
-                  "italic": false
-                },
-                {
-                  "text": " ",
-                  "soft": true
-                },
-                {
-                  "text": "turns green, "
-                },
-                {
-                  "text": "↓",
-                  "code": true,
-                  "bold": false,
-                  "italic": false
-                },
-                {
-                  "text": " turns red. The "
-                },
-                {
-                  "text": "(+)",
-                  "code": true,
-                  "bold": false,
-                  "italic": false
-                },
-                {
-                  "text": " suffix inverts that reflex and forces"
-                },
-                {
-                  "text": " ",
-                  "soft": true
-                },
-                {
-                  "text": "green — to say that here a fall is good news, as in \"zero broken\"."
-                }
-              ],
-              "line": 97
-            }
-          ],
-          "line": 96
-        },
-        "region": {
-          "x": 48,
-          "y": 336,
-          "w": 1184,
-          "h": 112.79999999999998
-        }
-      }
-    ]
+    "sourceLine": 28,
+    "elements": []
   },
   {
     "master": "content",
-    "layout": "comparison",
-    "title": "Before / after",
+    "layout": "before-after",
+    "title": "How a deck gets made",
     "titleRuns": [
       {
-        "text": "Before / after"
+        "text": "How a deck gets made"
       }
     ],
     "notes": [],
-    "sourceLine": 102,
+    "sourceLine": 32,
     "elements": [
       {
         "block": {
@@ -699,7 +155,7 @@
           "depth": 2,
           "runs": [
             {
-              "text": "Classic converter"
+              "text": "By hand"
             }
           ]
         },
@@ -719,7 +175,7 @@
             {
               "runs": [
                 {
-                  "text": "Approximate CSS, truncated text"
+                  "text": "Duplicate yesterday's slide"
                 }
               ],
               "level": 0
@@ -727,7 +183,7 @@
             {
               "runs": [
                 {
-                  "text": "A single output"
+                  "text": "Delete its content, keep its boxes"
                 }
               ],
               "level": 0
@@ -735,19 +191,27 @@
             {
               "runs": [
                 {
-                  "text": "Theme by style sheet"
+                  "text": "Drag, align, resize, recolour"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Discover on the projector that one title wrapped"
                 }
               ],
               "level": 0
             }
           ],
-          "line": 108
+          "line": 38
         },
         "region": {
           "x": 64,
           "y": 189.86666666666667,
           "w": 548,
-          "h": 104.39999999999998
+          "h": 136.5333333333333
         },
         "group": 0
       },
@@ -770,7 +234,7 @@
           "depth": 2,
           "runs": [
             {
-              "text": "Compiler"
+              "text": "By compiler"
             }
           ]
         },
@@ -790,7 +254,7 @@
             {
               "runs": [
                 {
-                  "text": "Declarative layouts, automatic pagination"
+                  "text": "Write the content in Markdown"
                 }
               ],
               "level": 0
@@ -798,7 +262,13 @@
             {
               "runs": [
                 {
-                  "text": "PPTX, HTML, PDF…"
+                  "text": "Run "
+                },
+                {
+                  "text": "lutrin build deck.md",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
                 }
               ],
               "level": 0
@@ -806,19 +276,36 @@
             {
               "runs": [
                 {
-                  "text": "Validated design tokens"
+                  "text": "Read the diagnostics, if any"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Hand over a "
+                },
+                {
+                  "text": ".pptx",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " anyone can open"
                 }
               ],
               "level": 0
             }
           ],
-          "line": 114
+          "line": 45
         },
         "region": {
           "x": 668,
           "y": 189.86666666666667,
           "w": 548,
-          "h": 104.39999999999998
+          "h": 136.5333333333333
         },
         "group": 1
       }
@@ -826,87 +313,331 @@
   },
   {
     "master": "content",
-    "layout": "timeline",
-    "title": "Roadmap",
+    "layout": "pros-cons",
+    "title": "The trade",
     "titleRuns": [
       {
-        "text": "Roadmap"
+        "text": "The trade"
       }
     ],
     "notes": [],
-    "sourceLine": 118,
+    "sourceLine": 50,
     "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "success"
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 580,
+          "h": 552
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "What you get"
+            }
+          ],
+          "color": "025D29"
+        },
+        "region": {
+          "x": 64,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "Layouts chosen for you, from what you wrote"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "The brand applied by construction, not by discipline"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "A deck that rebuilds itself when the numbers change"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Text and figures under version control, diffable"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 56
+        },
+        "region": {
+          "x": 64,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 136.5333333333333
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "danger"
+        },
+        "region": {
+          "x": 652,
+          "y": 120,
+          "w": 580,
+          "h": 552
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "What you give up"
+            }
+          ],
+          "color": "851A00"
+        },
+        "region": {
+          "x": 668,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "Placing one element at one exact spot"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "CSS overrides and escape hatches"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Art direction on a single slide"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Any argument about which blue it was"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 63
+        },
+        "region": {
+          "x": 668,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 136.5333333333333
+        },
+        "group": 1
+      }
+    ]
+  },
+  {
+    "master": "section",
+    "layout": "section",
+    "title": "How it works",
+    "notes": [],
+    "elements": [],
+    "sourceLine": 68
+  },
+  {
+    "master": "content",
+    "layout": "split",
+    "title": "A compiler, in the literal sense",
+    "titleRuns": [
+      {
+        "text": "A compiler, in the literal sense"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 72,
+    "elements": [
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Not a converter with a stylesheet attached. A front end, one intermediate"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "representation, analysis passes, and two renderers that share a single"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "geometry."
+            }
+          ],
+          "line": 76
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 487,
+          "h": 112.53333333333332
+        }
+      },
+      {
+        "block": {
+          "type": "mermaid",
+          "source": "flowchart TD\n  MD[Markdown] --> AST[AST]\n  AST --> IR[IR]\n  IR --> LAY[Layout engine]\n  LAY --> SCENE[Positioned scene]\n  SCENE --> PPTX[.pptx]\n  SCENE --> HTML[HTML]\n",
+          "line": 80
+        },
+        "region": {
+          "x": 559,
+          "y": 112,
+          "w": 673,
+          "h": 560
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "journey",
+    "title": "The five passes",
+    "titleRuns": [
+      {
+        "text": "The five passes"
+      }
+    ],
+    "notes": [
+      "Insist on \"one scene, two renderers\". That is what makes the outputs agree."
+    ],
+    "sourceLine": 90,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 204.8,
+          "h": 552
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Parse"
+            }
+          ]
+        },
+        "region": {
+          "x": 64,
+          "y": 136,
+          "w": 172.8,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Markdown, plus directives, into an AST."
+            }
+          ],
+          "line": 96
+        },
+        "region": {
+          "x": 64,
+          "y": 189.86666666666667,
+          "w": 172.8,
+          "h": 86.39999999999999
+        },
+        "group": 0
+      },
       {
         "block": {
           "type": "timeline-axis"
         },
         "region": {
-          "x": 48,
-          "y": 135,
-          "w": 1184,
+          "x": 258.8,
+          "y": 395,
+          "w": 28,
           "h": 2
-        }
+        },
+        "group": 1
       },
       {
         "block": {
-          "type": "timeline-dot",
-          "index": 1
+          "type": "panel",
+          "variant": "muted"
         },
         "region": {
-          "x": 48,
-          "y": 122,
-          "w": 28,
-          "h": 28
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Q3 2026"
-            }
-          ],
-          "color": "1E3A8A"
-        },
-        "region": {
-          "x": 48,
-          "y": 166,
-          "w": 378.6666666666667,
-          "h": 37.86666666666666
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Structured layouts and metric trends."
-            }
-          ],
-          "line": 124
-        },
-        "region": {
-          "x": 48,
-          "y": 219.86666666666667,
-          "w": 378.6666666666667,
-          "h": 34.133333333333326
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "timeline-dot",
-          "index": 2
-        },
-        "region": {
-          "x": 450.6666666666667,
-          "y": 122,
-          "w": 28,
-          "h": 28
+          "x": 292.8,
+          "y": 120,
+          "w": 204.8,
+          "h": 552
         },
         "group": 1
       },
@@ -916,15 +647,14 @@
           "depth": 2,
           "runs": [
             {
-              "text": "Q4 2026"
+              "text": "Lower"
             }
-          ],
-          "color": "1E3A8A"
+          ]
         },
         "region": {
-          "x": 450.6666666666667,
-          "y": 166,
-          "w": 378.6666666666667,
+          "x": 308.8,
+          "y": 136,
+          "w": 172.8,
           "h": 37.86666666666666
         },
         "group": 1
@@ -934,29 +664,41 @@
           "type": "para",
           "runs": [
             {
-              "text": "Interchangeable declarative themes."
+              "text": "Deck, slides, sections, blocks — source positions kept."
             }
           ],
-          "line": 128
+          "line": 100
         },
         "region": {
-          "x": 450.6666666666667,
-          "y": 219.86666666666667,
-          "w": 378.6666666666667,
-          "h": 34.133333333333326
+          "x": 308.8,
+          "y": 189.86666666666667,
+          "w": 172.8,
+          "h": 112.53333333333332
         },
         "group": 1
       },
       {
         "block": {
-          "type": "timeline-dot",
-          "index": 3
+          "type": "timeline-axis"
         },
         "region": {
-          "x": 853.3333333333334,
-          "y": 122,
+          "x": 503.6,
+          "y": 395,
           "w": 28,
-          "h": 28
+          "h": 2
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 537.6,
+          "y": 120,
+          "w": 204.8,
+          "h": 552
         },
         "group": 2
       },
@@ -966,15 +708,14 @@
           "depth": 2,
           "runs": [
             {
-              "text": "Q1 2027"
+              "text": "Layout"
             }
-          ],
-          "color": "1E3A8A"
+          ]
         },
         "region": {
-          "x": 853.3333333333334,
-          "y": 166,
-          "w": 378.6666666666667,
+          "x": 553.6,
+          "y": 136,
+          "w": 172.8,
           "h": 37.86666666666666
         },
         "group": 2
@@ -984,32 +725,154 @@
           "type": "para",
           "runs": [
             {
-              "text": "Open-source release and example gallery."
+              "text": "A layout inferred, every block given a slot."
             }
           ],
-          "line": 132
+          "line": 104
         },
         "region": {
-          "x": 853.3333333333334,
-          "y": 219.86666666666667,
-          "w": 378.6666666666667,
+          "x": 553.6,
+          "y": 189.86666666666667,
+          "w": 172.8,
+          "h": 86.39999999999999
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "timeline-axis"
+        },
+        "region": {
+          "x": 748.4000000000001,
+          "y": 395,
+          "w": 28,
+          "h": 2
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 782.4000000000001,
+          "y": 120,
+          "w": 204.8,
+          "h": 552
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Scene"
+            }
+          ]
+        },
+        "region": {
+          "x": 798.4000000000001,
+          "y": 136,
+          "w": 172.8,
+          "h": 37.86666666666666
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "One positioned geometry, in absolute units."
+            }
+          ],
+          "line": 108
+        },
+        "region": {
+          "x": 798.4000000000001,
+          "y": 189.86666666666667,
+          "w": 172.8,
+          "h": 86.39999999999999
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "timeline-axis"
+        },
+        "region": {
+          "x": 993.2,
+          "y": 395,
+          "w": 28,
+          "h": 2
+        },
+        "group": 4
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 1027.2,
+          "y": 120,
+          "w": 204.8,
+          "h": 552
+        },
+        "group": 4
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Render"
+            }
+          ]
+        },
+        "region": {
+          "x": 1043.2,
+          "y": 136,
+          "w": 172.8,
+          "h": 37.86666666666666
+        },
+        "group": 4
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Two outputs from that one scene."
+            }
+          ],
+          "line": 112
+        },
+        "region": {
+          "x": 1043.2,
+          "y": 189.86666666666667,
+          "w": 172.8,
           "h": 60.26666666666666
         },
-        "group": 2
+        "group": 4
       }
     ]
   },
   {
     "master": "content",
     "layout": "layers",
-    "title": "A layered architecture",
+    "title": "Where each piece lives",
     "titleRuns": [
       {
-        "text": "A layered architecture"
+        "text": "Where each piece lives"
       }
     ],
     "notes": [],
-    "sourceLine": 134,
+    "sourceLine": 116,
     "elements": [
       {
         "block": {
@@ -1049,10 +912,16 @@
           "type": "para",
           "runs": [
             {
-              "text": ".pptx PowerPoint, standalone HTML, VS Code preview."
+              "text": ".pptx",
+              "code": true,
+              "bold": false,
+              "italic": false
+            },
+            {
+              "text": " for PowerPoint and Keynote, one standalone HTML file for the browser."
             }
           ],
-          "line": 140,
+          "line": 122,
           "color": "FFFFFF"
         },
         "region": {
@@ -1101,10 +970,10 @@
           "type": "para",
           "runs": [
             {
-              "text": "PptxGenJS and HTML — same scene, same geometry."
+              "text": "Native shapes, text boxes and tables — or inlined SVG and CSS."
             }
           ],
-          "line": 144,
+          "line": 126,
           "color": "FFFFFF"
         },
         "region": {
@@ -1153,10 +1022,10 @@
           "type": "para",
           "runs": [
             {
-              "text": "Layout inference, slot placement, pagination."
+              "text": "Layout inference, slot placement, pagination, auto-fit."
             }
           ],
-          "line": 148,
+          "line": 130,
           "color": "1E3A8A"
         },
         "region": {
@@ -1187,7 +1056,7 @@
           "depth": 2,
           "runs": [
             {
-              "text": "IR"
+              "text": "Representation"
             }
           ],
           "color": "1E3A8A"
@@ -1205,10 +1074,16 @@
           "type": "para",
           "runs": [
             {
-              "text": "deck → slides → sections → blocks, source positions."
+              "text": "deck → slides → sections → blocks",
+              "code": true,
+              "bold": false,
+              "italic": false
+            },
+            {
+              "text": ", each carrying its source position."
             }
           ],
-          "line": 152,
+          "line": 134,
           "color": "1E3A8A"
         },
         "region": {
@@ -1223,1189 +1098,476 @@
   },
   {
     "master": "content",
-    "layout": "swot",
-    "title": "The project at a glance",
+    "layout": "table",
+    "title": "What you write becomes what you see",
     "titleRuns": [
       {
-        "text": "The project at a glance"
+        "text": "What you write becomes what you see"
       }
     ],
     "notes": [],
-    "sourceLine": 154,
+    "sourceLine": 136,
     "elements": [
       {
         "block": {
-          "type": "panel",
-          "variant": "semantic",
-          "kind": "success"
+          "type": "table",
+          "header": [
+            [
+              {
+                "text": "You write"
+              }
+            ],
+            [
+              {
+                "text": "The engine draws"
+              }
+            ]
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "text": "# Heading",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                }
+              ],
+              [
+                {
+                  "text": "A new slide, titled"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "## Section",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                }
+              ],
+              [
+                {
+                  "text": "A slot: column, panel, band or quadrant"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "- item",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                }
+              ],
+              [
+                {
+                  "text": "A bullet, sized to the room left"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": ":::metric",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                }
+              ],
+              [
+                {
+                  "text": "An indicator card with its trend"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "```chart",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                }
+              ],
+              [
+                {
+                  "text": "A chart, in the brand's palette"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "text": "<!-- layout: swot -->",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                }
+              ],
+              [
+                {
+                  "text": "Four quadrants, aligned"
+                }
+              ]
+            ]
+          ],
+          "line": 140
         },
         "region": {
           "x": 48,
-          "y": 120,
-          "w": 580,
-          "h": 264
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Strengths"
-            }
-          ],
-          "color": "025D29"
-        },
-        "region": {
-          "x": 64,
-          "y": 136,
-          "w": 548,
-          "h": 37.86666666666666
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "Brand applied by construction"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Two outputs, a single geometry"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 160
-        },
-        "region": {
-          "x": 64,
-          "y": 189.86666666666667,
-          "w": 548,
-          "h": 72.26666666666665
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "semantic",
-          "kind": "danger"
-        },
-        "region": {
-          "x": 652,
-          "y": 120,
-          "w": 580,
-          "h": 264
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Weaknesses"
-            }
-          ],
-          "color": "851A00"
-        },
-        "region": {
-          "x": 668,
-          "y": 136,
-          "w": 548,
-          "h": 37.86666666666666
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "Embedded font ignored by Keynote"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 165
-        },
-        "region": {
-          "x": 668,
-          "y": 189.86666666666667,
-          "w": 548,
-          "h": 40.133333333333326
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "semantic",
-          "kind": "info"
-        },
-        "region": {
-          "x": 48,
-          "y": 408,
-          "w": 580,
-          "h": 264
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Opportunities"
-            }
-          ],
-          "color": "004B7B"
-        },
-        "region": {
-          "x": 64,
-          "y": 424,
-          "w": 548,
-          "h": 37.86666666666666
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "Themes for other organizations"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 169
-        },
-        "region": {
-          "x": 64,
-          "y": 477.8666666666667,
-          "w": 548,
-          "h": 40.133333333333326
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "semantic",
-          "kind": "warning"
-        },
-        "region": {
-          "x": 652,
-          "y": 408,
-          "w": 580,
-          "h": 264
-        },
-        "group": 3
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Threats"
-            }
-          ],
-          "color": "6C4600"
-        },
-        "region": {
-          "x": 668,
-          "y": 424,
-          "w": 548,
-          "h": 37.86666666666666
-        },
-        "group": 3
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "Evolution of the OOXML format"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 173
-        },
-        "region": {
-          "x": 668,
-          "y": 477.8666666666667,
-          "w": 548,
-          "h": 40.133333333333326
-        },
-        "group": 3
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "pros-cons",
-    "title": "Weighing the decision",
-    "titleRuns": [
-      {
-        "text": "Weighing the decision"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 175,
-    "elements": [
-      {
-        "block": {
-          "type": "panel",
-          "variant": "semantic",
-          "kind": "success"
-        },
-        "region": {
-          "x": 48,
-          "y": 120,
-          "w": 580,
-          "h": 552
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Pros"
-            }
-          ],
-          "color": "025D29"
-        },
-        "region": {
-          "x": 64,
-          "y": 136,
-          "w": 548,
-          "h": 37.86666666666666
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "A single source file, under version control"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "The brand applied by construction"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 181
-        },
-        "region": {
-          "x": 64,
-          "y": 189.86666666666667,
-          "w": 548,
-          "h": 72.26666666666665
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "semantic",
-          "kind": "danger"
-        },
-        "region": {
-          "x": 652,
-          "y": 120,
-          "w": 580,
-          "h": 552
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Cons"
-            }
-          ],
-          "color": "851A00"
-        },
-        "region": {
-          "x": 668,
-          "y": 136,
-          "w": 548,
-          "h": 37.86666666666666
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "A DSL to learn"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Less freedom than a free-form PowerPoint"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 186
-        },
-        "region": {
-          "x": 668,
-          "y": 189.86666666666667,
-          "w": 548,
-          "h": 72.26666666666665
-        },
-        "group": 1
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "journey",
-    "title": "Filing a request, step by step",
-    "titleRuns": [
-      {
-        "text": "Filing a request, step by step"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 189,
-    "elements": [
-      {
-        "block": {
-          "type": "panel",
-          "variant": "muted"
-        },
-        "region": {
-          "x": 48,
-          "y": 120,
-          "w": 368,
-          "h": 552
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Request"
-            }
-          ]
-        },
-        "region": {
-          "x": 64,
-          "y": 136,
-          "w": 336,
-          "h": 37.86666666666666
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Online form, five minutes."
-            }
-          ],
-          "line": 195
-        },
-        "region": {
-          "x": 64,
-          "y": 189.86666666666667,
-          "w": 336,
-          "h": 34.133333333333326
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "timeline-axis"
-        },
-        "region": {
-          "x": 422,
-          "y": 395,
-          "w": 28,
-          "h": 2
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "muted"
-        },
-        "region": {
-          "x": 456,
-          "y": 120,
-          "w": 368,
-          "h": 552
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Review"
-            }
-          ]
-        },
-        "region": {
-          "x": 472,
-          "y": 136,
-          "w": 336,
-          "h": 37.86666666666666
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Eligibility check within 10 days."
-            }
-          ],
-          "line": 199
-        },
-        "region": {
-          "x": 472,
-          "y": 189.86666666666667,
-          "w": 336,
-          "h": 34.133333333333326
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "timeline-axis"
-        },
-        "region": {
-          "x": 830,
-          "y": 395,
-          "w": 28,
-          "h": 2
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "muted"
-        },
-        "region": {
-          "x": 864,
-          "y": 120,
-          "w": 368,
-          "h": 552
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Answer"
-            }
-          ]
-        },
-        "region": {
-          "x": 880,
-          "y": 136,
-          "w": 336,
-          "h": 37.86666666666666
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Reasoned decision, sent by email."
-            }
-          ],
-          "line": 203
-        },
-        "region": {
-          "x": 880,
-          "y": 189.86666666666667,
-          "w": 336,
-          "h": 34.133333333333326
-        },
-        "group": 2
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "portfolio",
-    "title": "Project portfolio",
-    "titleRuns": [
-      {
-        "text": "Project portfolio"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 205,
-    "elements": [
-      {
-        "block": {
-          "type": "panel",
-          "variant": "muted"
-        },
-        "region": {
-          "x": 48,
-          "y": 120,
-          "w": 378.6666666666667,
-          "h": 552
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "New product"
-            }
-          ]
-        },
-        "region": {
-          "x": 64,
-          "y": 136,
-          "w": 346.6666666666667,
-          "h": 29.866666666666664
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "timeline-axis",
-          "arrow": false
-        },
-        "region": {
-          "x": 64,
-          "y": 173.86666666666667,
-          "w": 346.6666666666667,
-          "h": 2
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Launch planned for the spring."
-            }
-          ],
-          "line": 211
-        },
-        "region": {
-          "x": 64,
-          "y": 189.86666666666667,
-          "w": 346.6666666666667,
-          "h": 34.133333333333326
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "muted"
-        },
-        "region": {
-          "x": 450.6666666666667,
-          "y": 120,
-          "w": 378.6666666666667,
-          "h": 552
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Training program"
-            }
-          ]
-        },
-        "region": {
-          "x": 466.6666666666667,
-          "y": 136,
-          "w": 346.6666666666667,
-          "h": 29.866666666666664
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "timeline-axis",
-          "arrow": false
-        },
-        "region": {
-          "x": 466.6666666666667,
-          "y": 173.86666666666667,
-          "w": 346.6666666666667,
-          "h": 2
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Three cohorts this year."
-            }
-          ],
-          "line": 215
-        },
-        "region": {
-          "x": 466.6666666666667,
-          "y": 189.86666666666667,
-          "w": 346.6666666666667,
-          "h": 34.133333333333326
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "muted"
-        },
-        "region": {
-          "x": 853.3333333333334,
-          "y": 120,
-          "w": 378.6666666666667,
-          "h": 552
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Energy efficiency"
-            }
-          ]
-        },
-        "region": {
-          "x": 869.3333333333334,
-          "y": 136,
-          "w": 346.6666666666667,
-          "h": 29.866666666666664
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "timeline-axis",
-          "arrow": false
-        },
-        "region": {
-          "x": 869.3333333333334,
-          "y": 173.86666666666667,
-          "w": 346.6666666666667,
-          "h": 2
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "A third less consumption."
-            }
-          ],
-          "line": 219
-        },
-        "region": {
-          "x": 869.3333333333334,
-          "y": 189.86666666666667,
-          "w": 346.6666666666667,
-          "h": 34.133333333333326
-        },
-        "group": 2
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "funnel",
-    "title": "Request triage",
-    "titleRuns": [
-      {
-        "text": "Request triage"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 221,
-    "elements": [
-      {
-        "block": {
-          "type": "panel",
-          "variant": "layer",
-          "shade": 0
-        },
-        "region": {
-          "x": 48,
-          "y": 120,
+          "y": 112,
           "w": 1184,
-          "h": 178.66666666666666
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "2,400 received"
-            }
-          ],
-          "color": "FFFFFF"
-        },
-        "region": {
-          "x": 72,
-          "y": 194.39999999999998,
-          "w": 331.2,
-          "h": 29.866666666666664
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "All channels combined."
-            }
-          ],
-          "line": 227,
-          "color": "FFFFFF"
-        },
-        "region": {
-          "x": 426.88,
-          "y": 192.26666666666665,
-          "w": 781.12,
-          "h": 34.133333333333326
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "layer",
-          "shade": 2
-        },
-        "region": {
-          "x": 210.8,
-          "y": 306.66666666666663,
-          "w": 858.4,
-          "h": 178.66666666666666
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "1,100 eligible"
-            }
-          ],
-          "color": "212529"
-        },
-        "region": {
-          "x": 234.8,
-          "y": 381.0666666666666,
-          "w": 233.51999999999998,
-          "h": 29.866666666666664
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "After checking the criteria."
-            }
-          ],
-          "line": 231,
-          "color": "212529"
-        },
-        "region": {
-          "x": 485.488,
-          "y": 378.9333333333333,
-          "w": 559.712,
-          "h": 34.133333333333326
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "panel",
-          "variant": "layer",
-          "shade": 4
-        },
-        "region": {
-          "x": 373.6,
-          "y": 493.3333333333333,
-          "w": 532.8,
-          "h": 178.66666666666666
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "320 selected"
-            }
-          ],
-          "color": "1E3A8A"
-        },
-        "region": {
-          "x": 397.6,
-          "y": 567.7333333333333,
-          "w": 135.83999999999997,
-          "h": 29.866666666666664
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Funded this year."
-            }
-          ],
-          "line": 235,
-          "color": "1E3A8A"
-        },
-        "region": {
-          "x": 544.096,
-          "y": 565.5999999999999,
-          "w": 338.304,
-          "h": 34.133333333333326
-        },
-        "group": 2
+          "h": 262.8
+        }
       }
     ]
   },
   {
     "master": "content",
-    "layout": "roadmap",
-    "title": "Detailed roadmap",
+    "layout": "two-columns",
+    "title": "One scene, two outputs",
     "titleRuns": [
       {
-        "text": "Detailed roadmap"
+        "text": "One scene, two outputs"
       }
     ],
     "notes": [],
-    "sourceLine": 237,
+    "sourceLine": 149,
     "elements": [
       {
         "block": {
-          "type": "timeline-axis",
-          "vertical": true
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "PowerPoint"
+            }
+          ]
         },
         "region": {
-          "x": 61,
-          "y": 120,
-          "w": 2,
-          "h": 552
+          "x": 48,
+          "y": 112,
+          "w": 580,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Native shapes, real text boxes, real tables. Fonts embedded. The recipient"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "corrects a figure and moves on — no repository to clone, no toolchain to"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "install."
+            }
+          ],
+          "line": 155
+        },
+        "region": {
+          "x": 48,
+          "y": 165.86666666666667,
+          "w": 580,
+          "h": 86.39999999999999
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Standalone HTML"
+            }
+          ]
+        },
+        "region": {
+          "x": 652,
+          "y": 112,
+          "w": 580,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "One file, everything inlined. Press "
+            },
+            {
+              "text": "<kbd>"
+            },
+            {
+              "text": "P"
+            },
+            {
+              "text": "</kbd>"
+            },
+            {
+              "text": " to present, "
+            },
+            {
+              "text": "<kbd>"
+            },
+            {
+              "text": "N"
+            },
+            {
+              "text": "</kbd>"
+            },
+            {
+              "text": " for"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "speaker notes and a timer. Nothing is fetched from the network."
+            }
+          ],
+          "line": 161
+        },
+        "region": {
+          "x": 652,
+          "y": 165.86666666666667,
+          "w": 580,
+          "h": 86.39999999999999
+        },
+        "group": 1
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "content",
+    "title": "The compiler talks back",
+    "titleRuns": [
+      {
+        "text": "The compiler talks back"
+      }
+    ],
+    "notes": [
+      "These four are real diagnostics, quoted verbatim. Forty-odd exist."
+    ],
+    "sourceLine": 164,
+    "elements": [
+      {
+        "block": {
+          "type": "alert",
+          "kind": "info",
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "SLIDE_PAGINATED",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " — the content did not fit, so it continues on a second slide."
+                }
+              ],
+              "line": 167
+            }
+          ],
+          "line": 166
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 86.66666666666666
         }
       },
       {
         "block": {
-          "type": "timeline-dot",
-          "index": 1
+          "type": "alert",
+          "kind": "success",
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "2/2 remote images",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " — both photographs were fetched and embedded. The deck is self-contained."
+                }
+              ],
+              "line": 171
+            }
+          ],
+          "line": 170
         },
         "region": {
           "x": 48,
-          "y": 120,
-          "w": 28,
-          "h": 28
-        },
-        "group": 0
+          "y": 214.66666666666666,
+          "w": 1184,
+          "h": 86.66666666666666
+        }
       },
       {
         "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
+          "type": "alert",
+          "kind": "warning",
+          "blocks": [
             {
-              "text": "Q3 2026"
+              "type": "para",
+              "runs": [
+                {
+                  "text": "IMAGE_UPSCALED",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " — the image is smaller than the area it fills; it will look soft."
+                }
+              ],
+              "line": 175
             }
           ],
-          "color": "1E3A8A"
-        },
-        "region": {
-          "x": 100,
-          "y": 120,
-          "w": 1132,
-          "h": 37.86666666666666
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Parameterized layouts and official catalog."
-            }
-          ],
-          "line": 243
-        },
-        "region": {
-          "x": 100,
-          "y": 173.86666666666667,
-          "w": 1132,
-          "h": 34.133333333333326
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "timeline-dot",
-          "index": 2
+          "line": 174
         },
         "region": {
           "x": 48,
-          "y": 306.66666666666663,
-          "w": 28,
-          "h": 28
-        },
-        "group": 1
+          "y": 317.3333333333333,
+          "w": 1184,
+          "h": 86.66666666666666
+        }
       },
       {
         "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
+          "type": "alert",
+          "kind": "danger",
+          "blocks": [
             {
-              "text": "Q4 2026"
+              "type": "para",
+              "runs": [
+                {
+                  "text": "BLOCK_OVERFLOW",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " — already at the densest step, and it still does not fit. Cut something."
+                }
+              ],
+              "line": 179
             }
           ],
-          "color": "1E3A8A"
-        },
-        "region": {
-          "x": 100,
-          "y": 306.66666666666663,
-          "w": 1132,
-          "h": 37.86666666666666
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Interchangeable declarative themes."
-            }
-          ],
-          "line": 247
-        },
-        "region": {
-          "x": 100,
-          "y": 360.5333333333333,
-          "w": 1132,
-          "h": 34.133333333333326
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "timeline-dot",
-          "index": 3
+          "line": 178
         },
         "region": {
           "x": 48,
-          "y": 493.3333333333333,
-          "w": 28,
-          "h": 28
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Q1 2027"
-            }
-          ],
-          "color": "1E3A8A"
-        },
-        "region": {
-          "x": 100,
-          "y": 493.3333333333333,
-          "w": 1132,
-          "h": 37.86666666666666
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Open-source release and example gallery."
-            }
-          ],
-          "line": 251
-        },
-        "region": {
-          "x": 100,
-          "y": 547.1999999999999,
-          "w": 1132,
-          "h": 34.133333333333326
-        },
-        "group": 2
+          "y": 420,
+          "w": 1184,
+          "h": 86.66666666666666
+        }
       }
     ]
   },
   {
+    "master": "section",
+    "layout": "section",
+    "title": "What it draws",
+    "notes": [],
+    "elements": [],
+    "sourceLine": 184
+  },
+  {
     "master": "content",
-    "layout": "key-message",
-    "title": "One figure to remember",
+    "layout": "metrics",
+    "title": "Indicators",
     "titleRuns": [
       {
-        "text": "One figure to remember"
+        "text": "Indicators"
       }
     ],
     "notes": [],
-    "sourceLine": 253,
+    "sourceLine": 188,
     "elements": [
       {
         "block": {
-          "type": "panel",
-          "variant": "accent"
-        },
-        "region": {
-          "x": 592,
-          "y": 209.16666666666669,
-          "w": 96,
-          "h": 6
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 1,
-          "runs": [
-            {
-              "text": "87% satisfaction"
-            }
-          ],
-          "size": 40,
-          "align": "center"
+          "type": "metric",
+          "value": "33",
+          "label": "Layouts available",
+          "trend": {
+            "dir": "up",
+            "sentiment": "positive",
+            "text": "+2 this release"
+          },
+          "line": 190
         },
         "region": {
           "x": 48,
-          "y": 233.16666666666669,
-          "w": 1184,
-          "h": 82.66666666666666
-        },
-        "group": 0
+          "y": 128,
+          "w": 378.6666666666667,
+          "h": 176
+        }
       },
       {
         "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "2026 survey of 2,400 respondents."
-            }
-          ],
-          "line": 259
+          "type": "metric",
+          "value": "15",
+          "label": "Chart types",
+          "trend": {
+            "dir": "up",
+            "sentiment": "positive",
+            "text": "+7 this release"
+          },
+          "line": 196
         },
         "region": {
-          "x": 48,
-          "y": 437,
-          "w": 1184,
-          "h": 34.133333333333326
+          "x": 450.6666666666667,
+          "y": 128,
+          "w": 378.6666666666667,
+          "h": 176
+        }
+      },
+      {
+        "block": {
+          "type": "metric",
+          "value": "0",
+          "label": "Coordinates in this file",
+          "trend": {
+            "dir": "flat",
+            "sentiment": "neutral",
+            "text": "by design"
+          },
+          "line": 202
+        },
+        "region": {
+          "x": 853.3333333333334,
+          "y": 128,
+          "w": 378.6666666666667,
+          "h": 176
         }
       }
     ]
@@ -2420,24 +1582,24 @@
       }
     ],
     "notes": [],
-    "sourceLine": 261,
+    "sourceLine": 208,
     "elements": [
       {
         "block": {
           "type": "para",
           "runs": [
             {
-              "text": "The chart is rendered by the engine, in the brand's colors, with a palette"
+              "text": "The chart is drawn by the engine, in the brand's colours, on a palette checked"
             },
             {
               "text": " ",
               "soft": true
             },
             {
-              "text": "validated for color blindness and contrast."
+              "text": "for contrast and colour blindness."
             }
           ],
-          "line": 263
+          "line": 210
         },
         "region": {
           "x": 48,
@@ -2476,7 +1638,8 @@
               ]
             }
           ],
-          "line": 266
+          "target": 165,
+          "line": 213
         },
         "region": {
           "x": 559,
@@ -2497,7 +1660,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 273,
+    "sourceLine": 221,
     "elements": [
       {
         "block": {
@@ -2520,7 +1683,7 @@
               ]
             }
           ],
-          "line": 275
+          "line": 223
         },
         "region": {
           "x": 48,
@@ -2533,445 +1696,44 @@
   },
   {
     "master": "content",
-    "layout": "content",
-    "title": "The allocation formula",
+    "layout": "chart",
+    "title": "From opening to closing balance",
     "titleRuns": [
       {
-        "text": "The allocation formula"
+        "text": "From opening to closing balance"
       }
     ],
     "notes": [],
-    "sourceLine": 281,
+    "sourceLine": 229,
     "elements": [
       {
         "block": {
-          "type": "para",
-          "runs": [
+          "type": "chart",
+          "chartType": "waterfall",
+          "categories": [
+            "Opening",
+            "Grants",
+            "Salaries",
+            "Tooling",
+            "Closing"
+          ],
+          "series": [
             {
-              "text": "The budget allocated to each team is computed as follows:"
+              "name": "Budget",
+              "values": [
+                400,
+                180,
+                -260,
+                -70,
+                250
+              ]
             }
           ],
-          "line": 283
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
-          "w": 1184,
-          "h": 34.133333333333326
-        }
-      },
-      {
-        "block": {
-          "type": "math",
-          "source": "B_e = \\frac{\\sum_{i=1}^{n} p_i \\cdot c_i}{N} \\times (1 + \\tau)",
-          "line": 285
-        },
-        "region": {
-          "x": 48,
-          "y": 162.13333333333333,
-          "w": 1184,
-          "h": 72
-        }
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "where "
-            },
-            {
-              "text": "p",
-              "code": true,
-              "bold": false,
-              "italic": false
-            },
-            {
-              "text": " is the workload, "
-            },
-            {
-              "text": "c",
-              "code": true,
-              "bold": false,
-              "italic": false
-            },
-            {
-              "text": " the priority coefficient and "
-            },
-            {
-              "text": "τ",
-              "code": true,
-              "bold": false,
-              "italic": false
-            },
-            {
-              "text": " the annual"
-            },
-            {
-              "text": " ",
-              "soft": true
-            },
-            {
-              "text": "indexation rate."
-            }
+          "totals": [
+            "Opening",
+            "Closing"
           ],
-          "line": 289
-        },
-        "region": {
-          "x": 48,
-          "y": 250.13333333333333,
-          "w": 1184,
-          "h": 34.133333333333326
-        }
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "three-columns",
-    "title": "Three pillars",
-    "titleRuns": [
-      {
-        "text": "Three pillars"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 292,
-    "elements": [
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Speed"
-            }
-          ]
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
-          "w": 378.6666666666667,
-          "h": 37.86666666666666
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "icon",
-          "name": "zap",
-          "color": "primary",
-          "line": 296
-        },
-        "region": {
-          "x": 48,
-          "y": 165.86666666666667,
-          "w": 378.6666666666667,
-          "h": 112
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "A compile in a few seconds."
-            }
-          ],
-          "line": 298
-        },
-        "region": {
-          "x": 48,
-          "y": 293.8666666666667,
-          "w": 378.6666666666667,
-          "h": 34.133333333333326
-        },
-        "group": 0
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Reliability"
-            }
-          ]
-        },
-        "region": {
-          "x": 450.6666666666667,
-          "y": 112,
-          "w": 378.6666666666667,
-          "h": 37.86666666666666
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "icon",
-          "name": "shield-check",
-          "color": "primary",
-          "line": 302
-        },
-        "region": {
-          "x": 450.6666666666667,
-          "y": 165.86666666666667,
-          "w": 378.6666666666667,
-          "h": 112
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Two outputs, a single geometry."
-            }
-          ],
-          "line": 304
-        },
-        "region": {
-          "x": 450.6666666666667,
-          "y": 293.8666666666667,
-          "w": 378.6666666666667,
-          "h": 34.133333333333326
-        },
-        "group": 1
-      },
-      {
-        "block": {
-          "type": "heading",
-          "depth": 2,
-          "runs": [
-            {
-              "text": "Openness"
-            }
-          ]
-        },
-        "region": {
-          "x": 853.3333333333334,
-          "y": 112,
-          "w": 378.6666666666667,
-          "h": 37.86666666666666
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "icon",
-          "name": "git-branch",
-          "color": "primary",
-          "line": 308
-        },
-        "region": {
-          "x": 853.3333333333334,
-          "y": 165.86666666666667,
-          "w": 378.6666666666667,
-          "h": 112
-        },
-        "group": 2
-      },
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "One source file, under version control."
-            }
-          ],
-          "line": 310
-        },
-        "region": {
-          "x": 853.3333333333334,
-          "y": 293.8666666666667,
-          "w": 378.6666666666667,
-          "h": 34.133333333333326
-        },
-        "group": 2
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "split",
-    "title": "Everest, north face",
-    "titleRuns": [
-      {
-        "text": "Everest, north face"
-      }
-    ],
-    "notes": [
-      "Photo: \"Everest North Face toward Base Camp\", © Luca Galuzzi - www.galuzzi.it, Wikimedia Commons, CC BY-SA 2.5. The credit must stay close to the image (the author's requirement)."
-    ],
-    "sourceLine": 312,
-    "elements": [
-      {
-        "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
-            {
-              "runs": [
-                {
-                  "text": "A "
-                },
-                {
-                  "text": "remote",
-                  "bold": true
-                },
-                {
-                  "text": " image: URL pasted as is into the Markdown"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Downloaded into the user cache, embedded in the .pptx"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Here "
-                },
-                {
-                  "text": "assets: vendor",
-                  "code": true,
-                  "bold": false,
-                  "italic": false
-                },
-                {
-                  "text": ": a copy kept in "
-                },
-                {
-                  "text": "assets/remote/",
-                  "code": true,
-                  "bold": false,
-                  "italic": false
-                },
-                {
-                  "text": ", a self-contained directory"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Photo © Luca Galuzzi — "
-                },
-                {
-                  "text": "www.galuzzi.it",
-                  "link": "http://www.galuzzi.it"
-                },
-                {
-                  "text": ", CC BY-SA 2.5"
-                }
-              ],
-              "level": 0
-            }
-          ],
-          "line": 314
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
-          "w": 487,
-          "h": 241.0666666666666
-        }
-      },
-      {
-        "block": {
-          "type": "image",
-          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
-          "role": "right",
-          "alt": "",
-          "line": 319
-        },
-        "region": {
-          "x": 559,
-          "y": 112,
-          "w": 673,
-          "h": 560
-        }
-      }
-    ]
-  },
-  {
-    "master": "hero",
-    "layout": "hero",
-    "title": "Panorama from the Fronalpstock",
-    "titleRuns": [
-      {
-        "text": "Panorama from the Fronalpstock"
-      }
-    ],
-    "notes": [
-      "Photo: \"Fronalpstock, Switzerland\", Hannes Röst, Wikimedia Commons, CC BY-SA 3.0. hero layout: full-page image. The credit stays visible on the slide (a CC BY-SA requirement)."
-    ],
-    "sourceLine": 323,
-    "image": {
-      "type": "image",
-      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg",
-      "role": "background",
-      "alt": "",
-      "line": 325
-    },
-    "elements": [
-      {
-        "block": {
-          "type": "para",
-          "runs": [
-            {
-              "text": "Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0"
-            }
-          ],
-          "line": 327
-        },
-        "region": {
-          "x": 48,
-          "y": 112,
-          "w": 1184,
-          "h": 34.133333333333326
-        }
-      }
-    ]
-  },
-  {
-    "master": "content",
-    "layout": "quote",
-    "title": "A word from users",
-    "titleRuns": [
-      {
-        "text": "A word from users"
-      }
-    ],
-    "notes": [],
-    "sourceLine": 331,
-    "elements": [
-      {
-        "block": {
-          "type": "quote",
-          "runs": [
-            {
-              "text": "You write a presentation the way you write code: a source language, an"
-            },
-            {
-              "text": " ",
-              "soft": true
-            },
-            {
-              "text": "intermediate representation, optimization passes."
-            }
-          ],
-          "cite": "A convinced author",
-          "line": 333
+          "line": 231
         },
         "region": {
           "x": 48,
@@ -2984,195 +1746,214 @@
   },
   {
     "master": "content",
-    "layout": "code",
-    "title": "The code stays readable",
+    "layout": "chart",
+    "title": "Choosing the platform",
     "titleRuns": [
       {
-        "text": "The code stays readable"
+        "text": "Choosing the platform"
       }
     ],
     "notes": [],
-    "sourceLine": 338,
+    "sourceLine": 238,
     "elements": [
       {
         "block": {
-          "type": "code",
-          "lang": "ts",
-          "source": "function compile(source: string): Deck {\n  const ast = parse(source); // markdown-it\n  const ir = lower(ast);\n  return layout(ir); // placement + pagination\n}",
-          "line": 340
+          "type": "chart",
+          "chartType": "rating",
+          "categories": [
+            "Fit to process",
+            "Cost of change",
+            "Risk",
+            "Time to deliver"
+          ],
+          "series": [
+            {
+              "name": "Rebuild in house",
+              "values": [
+                4,
+                2,
+                4,
+                2
+              ]
+            },
+            {
+              "name": "Buy the module",
+              "values": [
+                2,
+                5,
+                2,
+                5
+              ]
+            },
+            {
+              "name": "Extend what we have",
+              "values": [
+                3,
+                4,
+                3,
+                3
+              ]
+            }
+          ],
+          "scale": 5,
+          "line": 240
         },
         "region": {
           "x": 48,
           "y": 112,
           "w": 1184,
-          "h": 131
+          "h": 560
         }
       }
     ]
   },
   {
     "master": "content",
-    "layout": "content",
-    "title": "A kit fits in a manifest",
+    "layout": "chart",
+    "title": "Coverage by team",
     "titleRuns": [
       {
-        "text": "A kit fits in a manifest"
+        "text": "Coverage by team"
       }
     ],
     "notes": [],
-    "sourceLine": 348,
+    "sourceLine": 249,
     "elements": [
       {
         "block": {
-          "type": "para",
-          "runs": [
+          "type": "chart",
+          "chartType": "heat",
+          "categories": [
+            "Discovery",
+            "Build",
+            "Test",
+            "Run"
+          ],
+          "series": [
             {
-              "text": "Installing an organization's brand means copying a directory. Its heart is a"
+              "name": "Payments",
+              "values": [
+                4,
+                5,
+                3,
+                2
+              ]
             },
             {
-              "text": " ",
-              "soft": true
+              "name": "Identity",
+              "values": [
+                5,
+                4,
+                4,
+                3
+              ]
             },
             {
-              "text": "kit.json",
-              "code": true,
-              "bold": false,
-              "italic": false
-            },
-            {
-              "text": " — data only, never code."
+              "name": "Reporting",
+              "values": [
+                2,
+                3,
+                2,
+                1
+              ]
             }
           ],
-          "line": 350
+          "scale": 5,
+          "line": 251
         },
         "region": {
           "x": 48,
           "y": 112,
           "w": 1184,
-          "h": 34.133333333333326
-        }
-      },
-      {
-        "block": {
-          "type": "code",
-          "lang": "json",
-          "source": "{\n  \"name\": \"slate-plus\",\n  \"version\": \"1.0.0\",\n  \"theme\": \"./theme.json\",\n  \"layouts\": \"./layouts\"\n}",
-          "line": 353
-        },
-        "region": {
-          "x": 48,
-          "y": 162.13333333333333,
-          "w": 1184,
-          "h": 150.8
+          "h": 560
         }
       }
     ]
   },
   {
     "master": "content",
-    "layout": "content",
-    "title": "Next steps",
+    "layout": "chart",
+    "title": "Delivery plan",
     "titleRuns": [
       {
-        "text": "Next steps"
+        "text": "Delivery plan"
       }
     ],
     "notes": [],
-    "sourceLine": 362,
+    "sourceLine": 260,
     "elements": [
       {
         "block": {
-          "type": "bullets",
-          "ordered": false,
-          "items": [
+          "type": "chart",
+          "chartType": "gantt",
+          "categories": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "series": [
             {
-              "runs": [
+              "name": "Discovery",
+              "spans": [
                 {
-                  "text": "Mermaid diagrams rendered as native shapes"
+                  "from": 0,
+                  "to": 1,
+                  "raw": "Q1 - Q2"
                 }
               ],
-              "level": 0
+              "values": [
+                "Q1 - Q2"
+              ]
             },
             {
-              "runs": [
+              "name": "Build",
+              "spans": [
                 {
-                  "text": "HTML engine (reveal.js) and PDF engine (Typst)"
+                  "from": 1,
+                  "to": 2,
+                  "raw": "Q2 - Q3"
                 }
               ],
-              "level": 0
+              "values": [
+                "Q2 - Q3"
+              ]
             },
             {
-              "runs": [
+              "name": "Pilot",
+              "spans": [
                 {
-                  "text": "Dynamic components (github-stats, chart, sql)"
+                  "from": 2,
+                  "to": 3,
+                  "raw": "Q3 - Q4"
                 }
               ],
-              "level": 0
+              "values": [
+                "Q3 - Q4"
+              ]
             },
             {
-              "runs": [
+              "name": "Rollout",
+              "spans": [
                 {
-                  "text": "Fragments and animations"
+                  "from": 3,
+                  "to": 3,
+                  "raw": "Q4 - Q4"
                 }
               ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Interchangeable declarative themes"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Accessibility checker (contrast, reading order)"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Hot preview while editing"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Example gallery"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Visual regression tests"
-                }
-              ],
-              "level": 0
-            },
-            {
-              "runs": [
-                {
-                  "text": "Incremental compilation cache"
-                }
-              ],
-              "level": 0
+              "values": [
+                "Q4 - Q4"
+              ]
             }
           ],
-          "line": 364
+          "now": "Q3",
+          "line": 262
         },
         "region": {
           "x": 48,
           "y": 112,
           "w": 1184,
-          "h": 329.33333333333326
+          "h": 560
         }
       }
     ]
@@ -3187,7 +1968,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 375,
+    "sourceLine": 272,
     "elements": [
       {
         "block": {
@@ -3227,7 +2008,7 @@
           "label": "Online services",
           "caption": "Delivered in April",
           "kind": "success",
-          "line": 381
+          "line": 278
         },
         "region": {
           "x": 64,
@@ -3241,10 +2022,11 @@
         "block": {
           "type": "progress",
           "value": 0.45,
+          "target": 0.8,
           "label": "Paper forms",
-          "caption": "Under analysis",
+          "caption": "Under analysis, against an 80 % commitment",
           "kind": "warning",
-          "line": 387
+          "line": 284
         },
         "region": {
           "x": 64,
@@ -3310,7 +2092,7 @@
               "kind": "danger"
             }
           ],
-          "line": 395
+          "line": 292
         },
         "region": {
           "x": 64,
@@ -3342,7 +2124,7 @@
               "text": "."
             }
           ],
-          "line": 401,
+          "line": 298,
           "size": 9
         },
         "region": {
@@ -3352,6 +2134,1920 @@
           "h": 24.799999999999997
         },
         "group": 1
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "swot",
+    "title": "The project at a glance",
+    "titleRuns": [
+      {
+        "text": "The project at a glance"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 300,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "success"
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 580,
+          "h": 264
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Strengths"
+            }
+          ],
+          "color": "025D29"
+        },
+        "region": {
+          "x": 64,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "One source of truth, in version control"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "The brand applied by construction"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 306
+        },
+        "region": {
+          "x": 64,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 72.26666666666665
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "danger"
+        },
+        "region": {
+          "x": 652,
+          "y": 120,
+          "w": 580,
+          "h": 264
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Weaknesses"
+            }
+          ],
+          "color": "851A00"
+        },
+        "region": {
+          "x": 668,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "No pixel-level control, ever"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "A DSL to learn, however small"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 311
+        },
+        "region": {
+          "x": 668,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 72.26666666666665
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "info"
+        },
+        "region": {
+          "x": 48,
+          "y": 408,
+          "w": 580,
+          "h": 264
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Opportunities"
+            }
+          ],
+          "color": "004B7B"
+        },
+        "region": {
+          "x": 64,
+          "y": 424,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "Decks generated by an agent, then checked"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "One kit, every deck in the organization"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 316
+        },
+        "region": {
+          "x": 64,
+          "y": 477.8666666666667,
+          "w": 548,
+          "h": 72.26666666666665
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "warning"
+        },
+        "region": {
+          "x": 652,
+          "y": 408,
+          "w": 580,
+          "h": 264
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Threats"
+            }
+          ],
+          "color": "6C4600"
+        },
+        "region": {
+          "x": 668,
+          "y": 424,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "A slide that genuinely needs art direction"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Evolution of the OOXML format"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 321
+        },
+        "region": {
+          "x": 668,
+          "y": 477.8666666666667,
+          "w": 548,
+          "h": 72.26666666666665
+        },
+        "group": 3
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "raid",
+    "title": "Programme log",
+    "titleRuns": [
+      {
+        "text": "Programme log"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 324,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "danger"
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 580,
+          "h": 264
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Risks"
+            }
+          ],
+          "color": "851A00"
+        },
+        "region": {
+          "x": 64,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Recruitment slipping into the next quarter."
+            }
+          ],
+          "line": 330,
+          "size": 11
+        },
+        "region": {
+          "x": 64,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 28.53333333333333
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "info"
+        },
+        "region": {
+          "x": 652,
+          "y": 120,
+          "w": 580,
+          "h": 264
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Assumptions"
+            }
+          ],
+          "color": "004B7B"
+        },
+        "region": {
+          "x": 668,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "The kit is ready before the pilot starts."
+            }
+          ],
+          "line": 334,
+          "size": 11
+        },
+        "region": {
+          "x": 668,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 28.53333333333333
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "warning"
+        },
+        "region": {
+          "x": 48,
+          "y": 408,
+          "w": 580,
+          "h": 264
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Issues"
+            }
+          ],
+          "color": "6C4600"
+        },
+        "region": {
+          "x": 64,
+          "y": 424,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Two source systems still disagree on totals."
+            }
+          ],
+          "line": 338,
+          "size": 11
+        },
+        "region": {
+          "x": 64,
+          "y": 477.8666666666667,
+          "w": 548,
+          "h": 28.53333333333333
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "semantic",
+          "kind": "info"
+        },
+        "region": {
+          "x": 652,
+          "y": 408,
+          "w": 580,
+          "h": 264
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Dependencies"
+            }
+          ],
+          "color": "004B7B"
+        },
+        "region": {
+          "x": 668,
+          "y": 424,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "The identity service, delivered by another team."
+            }
+          ],
+          "line": 342,
+          "size": 11
+        },
+        "region": {
+          "x": 668,
+          "y": 477.8666666666667,
+          "w": 548,
+          "h": 28.53333333333333
+        },
+        "group": 3
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "priority-matrix",
+    "title": "Effort and impact",
+    "titleRuns": [
+      {
+        "text": "Effort and impact"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 344,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 580,
+          "h": 264
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Do first"
+            }
+          ]
+        },
+        "region": {
+          "x": 64,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Automated build in CI."
+            }
+          ],
+          "line": 350
+        },
+        "region": {
+          "x": 64,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 34.133333333333326
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 652,
+          "y": 120,
+          "w": 580,
+          "h": 264
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Plan"
+            }
+          ]
+        },
+        "region": {
+          "x": 668,
+          "y": 136,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Kit for the whole organization."
+            }
+          ],
+          "line": 354
+        },
+        "region": {
+          "x": 668,
+          "y": 189.86666666666667,
+          "w": 548,
+          "h": 34.133333333333326
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 48,
+          "y": 408,
+          "w": 580,
+          "h": 264
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Quick wins"
+            }
+          ]
+        },
+        "region": {
+          "x": 64,
+          "y": 424,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Diagnostics in the editor."
+            }
+          ],
+          "line": 358
+        },
+        "region": {
+          "x": 64,
+          "y": 477.8666666666667,
+          "w": 548,
+          "h": 34.133333333333326
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "muted"
+        },
+        "region": {
+          "x": 652,
+          "y": 408,
+          "w": 580,
+          "h": 264
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Later"
+            }
+          ]
+        },
+        "region": {
+          "x": 668,
+          "y": 424,
+          "w": 548,
+          "h": 37.86666666666666
+        },
+        "group": 3
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Extra export formats."
+            }
+          ],
+          "line": 362
+        },
+        "region": {
+          "x": 668,
+          "y": 477.8666666666667,
+          "w": 548,
+          "h": 34.133333333333326
+        },
+        "group": 3
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "funnel",
+    "title": "Request triage",
+    "titleRuns": [
+      {
+        "text": "Request triage"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 364,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "layer",
+          "shade": 0
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 1184,
+          "h": 178.66666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "2,400 received"
+            }
+          ],
+          "color": "FFFFFF"
+        },
+        "region": {
+          "x": 72,
+          "y": 194.39999999999998,
+          "w": 331.2,
+          "h": 29.866666666666664
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "All channels combined."
+            }
+          ],
+          "line": 370,
+          "color": "FFFFFF"
+        },
+        "region": {
+          "x": 426.88,
+          "y": 192.26666666666665,
+          "w": 781.12,
+          "h": 34.133333333333326
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "layer",
+          "shade": 2
+        },
+        "region": {
+          "x": 210.8,
+          "y": 306.66666666666663,
+          "w": 858.4,
+          "h": 178.66666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "1,100 eligible"
+            }
+          ],
+          "color": "212529"
+        },
+        "region": {
+          "x": 234.8,
+          "y": 381.0666666666666,
+          "w": 233.51999999999998,
+          "h": 29.866666666666664
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "After checking the criteria."
+            }
+          ],
+          "line": 374,
+          "color": "212529"
+        },
+        "region": {
+          "x": 485.488,
+          "y": 378.9333333333333,
+          "w": 559.712,
+          "h": 34.133333333333326
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "layer",
+          "shade": 4
+        },
+        "region": {
+          "x": 373.6,
+          "y": 493.3333333333333,
+          "w": 532.8,
+          "h": 178.66666666666666
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "320 selected"
+            }
+          ],
+          "color": "1E3A8A"
+        },
+        "region": {
+          "x": 397.6,
+          "y": 567.7333333333333,
+          "w": 135.83999999999997,
+          "h": 29.866666666666664
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Funded this year."
+            }
+          ],
+          "line": 378,
+          "color": "1E3A8A"
+        },
+        "region": {
+          "x": 544.096,
+          "y": 565.5999999999999,
+          "w": 338.304,
+          "h": 34.133333333333326
+        },
+        "group": 2
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "pyramid",
+    "title": "What holds it up",
+    "titleRuns": [
+      {
+        "text": "What holds it up"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 380,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "layer",
+          "shade": 0
+        },
+        "region": {
+          "x": 373.59999999999997,
+          "y": 120,
+          "w": 532.8000000000001,
+          "h": 178.66666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "One deck, on brand"
+            }
+          ],
+          "color": "FFFFFF"
+        },
+        "region": {
+          "x": 397.59999999999997,
+          "y": 194.39999999999998,
+          "w": 135.84,
+          "h": 29.866666666666664
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "What the audience sees."
+            }
+          ],
+          "line": 386,
+          "color": "FFFFFF"
+        },
+        "region": {
+          "x": 544.096,
+          "y": 192.26666666666665,
+          "w": 338.3040000000001,
+          "h": 34.133333333333326
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "layer",
+          "shade": 2
+        },
+        "region": {
+          "x": 210.79999999999995,
+          "y": 306.66666666666663,
+          "w": 858.4000000000001,
+          "h": 178.66666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Layouts and kits"
+            }
+          ],
+          "color": "212529"
+        },
+        "region": {
+          "x": 234.79999999999995,
+          "y": 381.0666666666666,
+          "w": 233.52000000000004,
+          "h": 29.866666666666664
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Chosen by the engine, owned by the organization."
+            }
+          ],
+          "line": 390,
+          "color": "212529"
+        },
+        "region": {
+          "x": 485.488,
+          "y": 378.9333333333333,
+          "w": 559.7120000000001,
+          "h": 34.133333333333326
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "layer",
+          "shade": 4
+        },
+        "region": {
+          "x": 48,
+          "y": 493.3333333333333,
+          "w": 1184,
+          "h": 178.66666666666666
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "One geometry"
+            }
+          ],
+          "color": "1E3A8A"
+        },
+        "region": {
+          "x": 72,
+          "y": 567.7333333333333,
+          "w": 331.2,
+          "h": 29.866666666666664
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Computed once, rendered twice."
+            }
+          ],
+          "line": 394,
+          "color": "1E3A8A"
+        },
+        "region": {
+          "x": 426.88,
+          "y": 565.5999999999999,
+          "w": 781.12,
+          "h": 34.133333333333326
+        },
+        "group": 2
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "roadmap",
+    "title": "Roadmap",
+    "titleRuns": [
+      {
+        "text": "Roadmap"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 396,
+    "elements": [
+      {
+        "block": {
+          "type": "timeline-axis",
+          "vertical": true
+        },
+        "region": {
+          "x": 61,
+          "y": 120,
+          "w": 2,
+          "h": 552
+        }
+      },
+      {
+        "block": {
+          "type": "timeline-dot",
+          "index": 1
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 28,
+          "h": 28
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Q3 2026"
+            }
+          ],
+          "color": "1E3A8A"
+        },
+        "region": {
+          "x": 100,
+          "y": 120,
+          "w": 1132,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Widgets for status boards and scorecards."
+            }
+          ],
+          "line": 402
+        },
+        "region": {
+          "x": 100,
+          "y": 173.86666666666667,
+          "w": 1132,
+          "h": 34.133333333333326
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "timeline-dot",
+          "index": 2
+        },
+        "region": {
+          "x": 48,
+          "y": 306.66666666666663,
+          "w": 28,
+          "h": 28
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Q4 2026"
+            }
+          ],
+          "color": "1E3A8A"
+        },
+        "region": {
+          "x": 100,
+          "y": 306.66666666666663,
+          "w": 1132,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Kit editor, and images addressed by name."
+            }
+          ],
+          "line": 406
+        },
+        "region": {
+          "x": 100,
+          "y": 360.5333333333333,
+          "w": 1132,
+          "h": 34.133333333333326
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "timeline-dot",
+          "index": 3
+        },
+        "region": {
+          "x": 48,
+          "y": 493.3333333333333,
+          "w": 28,
+          "h": 28
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Q1 2027"
+            }
+          ],
+          "color": "1E3A8A"
+        },
+        "region": {
+          "x": 100,
+          "y": 493.3333333333333,
+          "w": 1132,
+          "h": 37.86666666666666
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Incremental builds and a visual regression suite."
+            }
+          ],
+          "line": 410
+        },
+        "region": {
+          "x": 100,
+          "y": 547.1999999999999,
+          "w": 1132,
+          "h": 34.133333333333326
+        },
+        "group": 2
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "pillars",
+    "title": "Three reasons it holds",
+    "titleRuns": [
+      {
+        "text": "Three reasons it holds"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 412,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "pillar"
+        },
+        "region": {
+          "x": 48,
+          "y": 120,
+          "w": 378.6666666666667,
+          "h": 552
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Speed"
+            }
+          ]
+        },
+        "region": {
+          "x": 64,
+          "y": 144,
+          "w": 346.6666666666667,
+          "h": 37.86666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "icon",
+          "name": "zap",
+          "color": "primary",
+          "size": "medium",
+          "line": 418
+        },
+        "region": {
+          "x": 64,
+          "y": 197.86666666666667,
+          "w": 346.6666666666667,
+          "h": 112
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "A deck is a file. Change a figure, rebuild, hand it over."
+            }
+          ],
+          "line": 420
+        },
+        "region": {
+          "x": 64,
+          "y": 325.8666666666667,
+          "w": 346.6666666666667,
+          "h": 60.26666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "pillar"
+        },
+        "region": {
+          "x": 450.6666666666667,
+          "y": 120,
+          "w": 378.6666666666667,
+          "h": 552
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Consistency"
+            }
+          ]
+        },
+        "region": {
+          "x": 466.6666666666667,
+          "y": 144,
+          "w": 346.6666666666667,
+          "h": 37.86666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "icon",
+          "name": "shield-check",
+          "color": "primary",
+          "size": "medium",
+          "line": 424
+        },
+        "region": {
+          "x": 466.6666666666667,
+          "y": 197.86666666666667,
+          "w": 346.6666666666667,
+          "h": 112
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "The brand is in the kit, not in your muscle memory."
+            }
+          ],
+          "line": 426
+        },
+        "region": {
+          "x": 466.6666666666667,
+          "y": 325.8666666666667,
+          "w": 346.6666666666667,
+          "h": 60.26666666666666
+        },
+        "group": 1
+      },
+      {
+        "block": {
+          "type": "panel",
+          "variant": "pillar"
+        },
+        "region": {
+          "x": 853.3333333333334,
+          "y": 120,
+          "w": 378.6666666666667,
+          "h": 552
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 2,
+          "runs": [
+            {
+              "text": "Traceability"
+            }
+          ]
+        },
+        "region": {
+          "x": 869.3333333333334,
+          "y": 144,
+          "w": 346.6666666666667,
+          "h": 37.86666666666666
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "icon",
+          "name": "git-branch",
+          "color": "primary",
+          "size": "medium",
+          "line": 430
+        },
+        "region": {
+          "x": 869.3333333333334,
+          "y": 197.86666666666667,
+          "w": 346.6666666666667,
+          "h": 112
+        },
+        "group": 2
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Diffable, reviewable, and rebuilt by CI like any other artefact."
+            }
+          ],
+          "line": 432
+        },
+        "region": {
+          "x": 869.3333333333334,
+          "y": 325.8666666666667,
+          "w": 346.6666666666667,
+          "h": 60.26666666666666
+        },
+        "group": 2
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "split",
+    "title": "On images",
+    "titleRuns": [
+      {
+        "text": "On images"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 434,
+    "elements": [
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "A local file, or a URL fetched at build time"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "With "
+                },
+                {
+                  "text": "assets: vendor",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": ", a copy is kept next to the deck"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "The result is self-contained: no live network, ever"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Under-resolution is measured and reported, not discovered on the projector"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 438
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 487,
+          "h": 214.93333333333328
+        }
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Photo © Luca Galuzzi — Wikimedia Commons, CC BY-SA 2.5"
+            }
+          ],
+          "line": 445
+        },
+        "region": {
+          "x": 48,
+          "y": 342.9333333333333,
+          "w": 487,
+          "h": 60.26666666666666
+        }
+      },
+      {
+        "block": {
+          "type": "image",
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
+          "role": "right",
+          "alt": "",
+          "line": 443
+        },
+        "region": {
+          "x": 559,
+          "y": 112,
+          "w": 673,
+          "h": 560
+        }
+      }
+    ]
+  },
+  {
+    "master": "hero",
+    "layout": "hero",
+    "title": "A photograph fills the frame",
+    "titleRuns": [
+      {
+        "text": "A photograph fills the frame"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 447,
+    "image": {
+      "type": "image",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg",
+      "role": "background",
+      "alt": "",
+      "line": 449
+    },
+    "elements": [
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0"
+            }
+          ],
+          "line": 451
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 34.133333333333326
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "content",
+    "title": "The allocation formula",
+    "titleRuns": [
+      {
+        "text": "The allocation formula"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 453,
+    "elements": [
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "The budget allocated to each team is computed as follows:"
+            }
+          ],
+          "line": 455
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 34.133333333333326
+        }
+      },
+      {
+        "block": {
+          "type": "math",
+          "source": "B_e = \\frac{\\sum_{i=1}^{n} p_i \\cdot c_i}{N} \\times (1 + \\tau)",
+          "line": 457
+        },
+        "region": {
+          "x": 48,
+          "y": 162.13333333333333,
+          "w": 1184,
+          "h": 72
+        }
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "where "
+            },
+            {
+              "text": "p",
+              "code": true,
+              "bold": false,
+              "italic": false
+            },
+            {
+              "text": " is the workload, "
+            },
+            {
+              "text": "c",
+              "code": true,
+              "bold": false,
+              "italic": false
+            },
+            {
+              "text": " the priority coefficient and "
+            },
+            {
+              "text": "τ",
+              "code": true,
+              "bold": false,
+              "italic": false
+            },
+            {
+              "text": " the annual"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "indexation rate."
+            }
+          ],
+          "line": 461
+        },
+        "region": {
+          "x": 48,
+          "y": 250.13333333333333,
+          "w": 1184,
+          "h": 34.133333333333326
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "code",
+    "title": "The code stays readable",
+    "titleRuns": [
+      {
+        "text": "The code stays readable"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 464,
+    "elements": [
+      {
+        "block": {
+          "type": "code",
+          "lang": "ts",
+          "source": "export function pickLayout(slide: Slide): LayoutName {\n  if (slide.blocks.every(isMetric)) return 'metrics';\n  if (slide.sections.length === 4) return 'swot';\n  if (slide.blocks.some(isChart)) return 'chart';\n  return 'content';\n}",
+          "line": 468
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 150.8
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "code",
+    "title": "A brand fits in a manifest",
+    "titleRuns": [
+      {
+        "text": "A brand fits in a manifest"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 477,
+    "elements": [
+      {
+        "block": {
+          "type": "code",
+          "lang": "json",
+          "source": "{\n  \"name\": \"acme\",\n  \"colors\": { \"primary\": \"#0F766E\", \"accent\": \"#B45309\" },\n  \"fonts\": { \"heading\": \"Acme Grotesk\", \"body\": \"Acme Text\" },\n  \"logo\": \"./logo/acme.svg\"\n}",
+          "line": 481
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 150.8
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "content",
+    "title": "One point at a time — press → to reveal",
+    "titleRuns": [
+      {
+        "text": "One point at a time — press → to reveal"
+      }
+    ],
+    "notes": [
+      "This slide is deliberately empty until the first click. That is what `<!-- animate"
+    ],
+    "sourceLine": 490,
+    "elements": [
+      {
+        "block": {
+          "type": "bullets",
+          "ordered": false,
+          "items": [
+            {
+              "runs": [
+                {
+                  "text": "A deck can hold its points back and release them one by one"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "One line in the file, "
+                },
+                {
+                  "text": "<!-- animate -->",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": ", and every block becomes a step"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "The "
+                },
+                {
+                  "text": ".pptx",
+                  "code": true,
+                  "bold": false,
+                  "italic": false
+                },
+                {
+                  "text": " gets real PowerPoint animations, not a stack of duplicated slides"
+                }
+              ],
+              "level": 0
+            },
+            {
+              "runs": [
+                {
+                  "text": "Which is why this slide looks empty until you press the arrow"
+                }
+              ],
+              "level": 0
+            }
+          ],
+          "line": 496
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 136.5333333333333
+        },
+        "step": 0,
+        "stepCount": 4
+      }
+    ],
+    "animSteps": 4
+  },
+  {
+    "master": "content",
+    "layout": "quote",
+    "title": "A word from the people who use it",
+    "titleRuns": [
+      {
+        "text": "A word from the people who use it"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 501,
+    "elements": [
+      {
+        "block": {
+          "type": "quote",
+          "runs": [
+            {
+              "text": "I stopped opening PowerPoint to make a deck. I open it to read the one the"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "build gave me."
+            }
+          ],
+          "cite": "A programme lead, after the third rebuild in one week",
+          "line": 505
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 560
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "focus",
+    "title": "Start in one line",
+    "titleRuns": [
+      {
+        "text": "Start in one line"
+      }
+    ],
+    "notes": [
+      "Hand out the URL here. The .pptx of this very deck is on the site."
+    ],
+    "sourceLine": 510,
+    "elements": [
+      {
+        "block": {
+          "type": "panel",
+          "variant": "accent"
+        },
+        "region": {
+          "x": 592,
+          "y": 209.16666666666669,
+          "w": 96,
+          "h": 6
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "heading",
+          "depth": 1,
+          "runs": [
+            {
+              "text": "npx lutrin build deck.md -o deck.pptx",
+              "code": true,
+              "bold": false,
+              "italic": false
+            }
+          ],
+          "size": 40,
+          "align": "center"
+        },
+        "region": {
+          "x": 48,
+          "y": 233.16666666666669,
+          "w": 1184,
+          "h": 82.66666666666666
+        },
+        "group": 0
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Node 22 or later. Nothing else to install. MIT."
+            }
+          ],
+          "line": 516
+        },
+        "region": {
+          "x": 48,
+          "y": 437,
+          "w": 1184,
+          "h": 34.133333333333326
+        }
       }
     ]
   }
