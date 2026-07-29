@@ -252,6 +252,16 @@ the more there is to place badly.
 
 ### Fixed
 
+- **`lutrin kit edit` no longer dies at the first file change on Windows.** The
+  editor watches the kit directory to reload it when something outside the
+  editor touches it. libuv derives each event's name by asserting that the path
+  Windows reports starts with the directory it was told to watch, and Windows
+  reports in long form: a kit reached through a short 8.3 component
+  (`C:\PROGRA~1\…`), a junction or a substituted drive failed that comparison
+  and **aborted the process** — not an exception anything could catch or log,
+  just a dead editor. The watcher is now pointed at the canonical path;
+  the kit root itself is untouched, since it is the boundary every read and
+  write is confined to.
 - **Mermaid diagrams render in the packaged hosts.** The VS Code extension and
   the Obsidian plugin assemble their own `dist/core`, and both copied `src` and
   `design` only — the vendored Mermaid bundle (`vendor/mermaid/`), which the
