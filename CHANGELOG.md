@@ -7,7 +7,15 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` and `lutrin-obsidian` that of
 their editor host. Unless stated otherwise, an entry describes the compiler.
 
-## [Unreleased]
+## [1.2.0] — 2026-07-29
+
+The things a corporate deck kept redrawing by hand — a status board, stacked
+and share bars, a bridge, a Gantt, a heat matrix, a scorecard, a progress
+track — are now things the engine draws, from the same Markdown as everything
+else. A kit became something one edits rather than hand-writes. And text that
+does not fit a bounded region steps down a scale instead of overflowing in
+silence, which is the fix the widgets made urgent: the more a layout places,
+the more there is to place badly.
 
 ### Added
 
@@ -444,7 +452,8 @@ extracted it and made the engine generic.
 - Every organization brand shipped with the engine. Brand guidelines commit an
   organization's mark: they live in their own repository, as a kit.
 
-[Unreleased]: https://github.com/julien-riel/lutrin/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/julien-riel/lutrin/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/julien-riel/lutrin/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/julien-riel/lutrin/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/julien-riel/lutrin/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/julien-riel/lutrin/releases/tag/v1.0.0

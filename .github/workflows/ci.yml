@@ -163,6 +163,10 @@ jobs:
       #    neither a missing default theme nor a renamed layouts/ makes a
       #    compilation fail (verified). No runtime test can therefore protect
       #    these paths — only an assertion on the contents of the archive can.
+      #    vendor/mermaid/ is in the list for exactly that reason: the smoke
+      #    build below compiles a fixture carrying a diagram and SUCCEEDS
+      #    without it, the diagram quietly degrading to a code block. That is
+      #    how the bundle stayed out of every VSIX up to 1.1.1.
       #
       # 2. EXECUTION, FROM OUTSIDE THE REPOSITORY. The crucial point: launched
       #    from packages/vscode-extension/dist/core, the packaged core finds
@@ -197,6 +201,7 @@ jobs:
             extension/dist/core/package.json \
             extension/dist/core/design/themes/default.json \
             extension/dist/core/design/layouts \
+            extension/dist/core/vendor/mermaid/mermaid.min.js \
             extension/dist/core/node_modules
           do
             if [ ! -e "$VSIX_DIR/$required" ]; then
@@ -250,7 +255,8 @@ jobs:
           cp -R packages/obsidian-plugin/dist "$OBS_DIR"
 
           for required in main.js manifest.json versions.json styles.css \
-                          core/src/cli.mjs core/node_modules
+                          core/src/cli.mjs core/vendor/mermaid/mermaid.min.js \
+                          core/node_modules
           do
             if [ ! -e "$OBS_DIR/$required" ]; then
               echo "✖ missing from the plugin directory: $required" >&2

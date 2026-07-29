@@ -38,8 +38,8 @@ is the name extensions appear under. Both are free.
 
 ## VS Code extension — every release
 
-The extension's version tracks the compiler it embeds (both are 1.1.0
-today). To release:
+The extension's version tracks the compiler it embeds — bump the two
+together. To release:
 
 1. Bump `"version"` in `packages/vscode-extension/package.json`, update
    `packages/vscode-extension/CHANGELOG.md` (the Marketplace "Changelog"
@@ -50,8 +50,8 @@ today). To release:
 3. Tag and push:
 
    ```bash
-   git tag vscode-v1.1.0
-   git push origin vscode-v1.1.0
+   git tag vscode-v<version>
+   git push origin vscode-v<version>
    ```
 
 The `Release — VS Code extension` workflow replays the tests, builds

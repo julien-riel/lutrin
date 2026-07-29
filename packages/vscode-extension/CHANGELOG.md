@@ -5,7 +5,34 @@ This file covers the VS Code extension; the compiler's own changes are in the
 [repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
 The extension's version tracks the `@lutrin/core` compiler it embeds.
 
-## [Unreleased]
+## [1.2.0] — 2026-07-29
+
+The extension itself barely moved; the compiler it embeds gained most of a
+corporate deck's visual vocabulary, and every bit of it shows up in the
+preview and the export with no new setting to find.
+
+### Added
+
+Everything below is compiler 1.2.0, described in full in the
+[repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
+
+- **Six things a deck used to draw by hand.** Progress tracks
+  (`:::progress`, with a target), status badges (`:::status`, and `==Owner==`
+  inline), a heat matrix and a rating scorecard (`type: heat`,
+  `type: rating`), stacked, share, waterfall and Gantt charts, and a
+  `target:` line a series is judged against. Two more official layouts:
+  `status-list` and `raid`.
+- **Text that no longer overflows in silence.** Where a layout places content
+  without pagination — a panel, a column, a cell — text that does not fit is
+  re-flowed one step down a type scale, and the diagnostics panel reports
+  every region the engine shrank (`SLIDE_DENSIFIED`).
+- **Icons with a size** (`![large](lucide:leaf)`, `![line]` for the height of
+  one line of body text), **table alignment** honoured from the delimiter row,
+  and **kit images by alias** (`![](kit:hero-photo)`).
+- **A run of text that eats an image now says so** — in a table cell, a bullet
+  or a heading, each with its own quick-fixable diagnostic naming what does
+  work there instead. These used to vanish at parse time, with nothing in the
+  problems panel.
 
 ### Fixed
 
