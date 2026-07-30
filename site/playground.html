@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playground — compile a deck in your browser · Lutrin</title>
+<meta name="description" content="Type Markdown, watch the engine lay it out. The real Lutrin compiler, running in the page — no install, no account, no upload. Your text never leaves your machine.">
+<link rel="canonical" href="https://lutrin.app/playground.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lutrin playground — compile a deck in your browser">
+<meta property="og:description" content="The real compiler, running in the page. Type Markdown on the left, watch the engine place everything on the right.">
+<meta property="og:url" content="https://lutrin.app/playground.html">
+<meta property="og:image" content="https://lutrin.app/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/playground.css">
+<!-- ANALYTICS GOES HERE — see site/README.md. -->
+
+<!-- The compiler is `packages/core/src`, served verbatim under /core/ and
+     imported UNCHANGED. These are the eight Node builtins its module graph
+     touches; each maps to a shim under assets/js/shims/. Import maps resolve
+     `node:*` specifiers exactly like any other, which is what makes running the
+     real engine here possible with no bundler and no build step — the property
+     site/ has always had and is not giving up for this page. -->
+<script type="importmap">
+{
+  "imports": {
+    "node:fs": "./assets/js/shims/fs.mjs",
+    "node:path": "./assets/js/shims/path.mjs",
+    "node:os": "./assets/js/shims/os.mjs",
+    "node:url": "./assets/js/shims/url.mjs",
+    "node:crypto": "./assets/js/shims/crypto.mjs",
+    "node:dns": "./assets/js/shims/unavailable.mjs",
+    "node:child_process": "./assets/js/shims/unavailable.mjs",
+    "node:module": "./assets/js/shims/unavailable.mjs",
+    "markdown-it": "./vendor/markdown-it/index.mjs",
+    "markdown-it-container": "./vendor/markdown-it-container/index.mjs",
+    "entities": "./vendor/entities/lib/esm/index.js",
+    "linkify-it": "./vendor/linkify-it/index.mjs",
+    "mdurl": "./vendor/mdurl/index.mjs",
+    "punycode.js": "./vendor/punycode.js/punycode.es6.js",
+    "uc.micro": "./vendor/uc.micro/index.mjs"
+  }
+}
+</script>
+<!-- CLASSIC script, deliberately before the module: `deck/assets.mjs` reads
+     process.env at module scope, on the very first statement it evaluates, so
+     without this the page dies with "process is not defined" before a line of
+     compiler logic runs. -->
+<script>
+  window.process = { env: {}, cwd: function () { return '/deck'; }, platform: 'browser', argv: [] };
+</script>
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="index.html">Lutrin</a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="index.html">Home</a>
+    <a href="index.html#file">The whole file</a>
+    <a href="index.html#pricing">Pricing</a>
+    <a href="kit-editor.html">Kit editor</a>
+    <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Docs</a>
+    <a class="nav-gh" href="https://github.com/julien-riel/lutrin">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<section class="pg-head">
+  <div class="wrap">
+    <p class="eyebrow">no install · nothing uploaded</p>
+    <h1>Type it. Watch the engine place&nbsp;it.</h1>
+    <p class="lead">This is the actual compiler — <code>packages/core</code>,
+      the same code <code>npx lutrin</code> runs, loaded straight into this page.
+      Your text is compiled here, on your machine, and is never sent anywhere.
+      Edit the left side and the slide relays itself.</p>
+  </div>
+</section>
+
+<section class="pg-app">
+  <div class="wrap">
+    <div class="pg-bar">
+      <div class="pg-examples" role="group" aria-label="Examples">
+        <button type="button" data-example="funnel" aria-pressed="true">A funnel</button>
+        <button type="button" data-example="metrics" aria-pressed="false">Three numbers</button>
+        <button type="button" data-example="chart" aria-pressed="false">A chart</button>
+      </div>
+      <p class="pg-status" id="pg-status" role="status">loading…</p>
+    </div>
+
+    <div class="pg-grid">
+      <div class="pg-editor">
+        <div class="editor-bar"><span></span><span></span><span></span><em>deck.md</em></div>
+        <label class="sr-only" for="pg-source">The deck, in Markdown</label>
+        <textarea id="pg-source" spellcheck="false" autocapitalize="off" autocomplete="off"
+          disabled placeholder="Loading the compiler…"></textarea>
+      </div>
+      <div class="pg-out">
+        <iframe id="pg-frame" title="The compiled slides"></iframe>
+      </div>
+    </div>
+
+    <div class="pg-notes" id="pg-notes" aria-live="polite"></div>
+
+    <p class="aside">Four things a page cannot do, and the command line can:
+      Mermaid diagrams need a headless browser, LaTeX needs a package that is
+      not loadable here, and icons and images are read from disk. Ask for any of
+      them above and this page will say so rather than quietly drop them. The
+      <code>.pptx</code> is not here either — that one is deliberate, and it is
+      the reason to install.</p>
+
+    <div class="cmd" role="group" aria-label="Install command">
+      <code>npx lutrin build deck.md -o deck.pptx</code>
+      <button class="copy" data-copy="npx lutrin build deck.md -o deck.pptx" aria-live="polite">copy</button>
+    </div>
+
+    <div class="refuse-ctas">
+      <a class="btn btn-primary" href="index.html#file">See a full deck</a>
+      <a class="btn btn-ghost" href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Read the syntax</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="wordmark">Lutrin</p>
+      <p class="footer-tag">A lectern for your Markdown:<br>you bring the words,
+        it holds them up.</p>
+    </div>
+    <nav class="footer-links" aria-label="Project links">
+      <a href="index.html">The landing page</a>
+      <a href="pricing.html">Prices, in full</a>
+      <a href="kit-editor.html">The kit editor</a>
+      <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Syntax reference</a>
+      <a href="demo.html" target="_blank" rel="noopener">The demo deck</a>
+      <a href="https://github.com/julien-riel/lutrin">GitHub</a>
+    </nav>
+    <div class="footer-contact">
+      <p class="footer-contact-h">Talk to a human</p>
+      <p><a href="mailto:contact@lutrin.app">contact@lutrin.app</a></p>
+      <p class="footer-contact-note">Licensing, invoicing, a kit built to your
+        brand guidelines, or a question the docs did not answer.</p>
+    </div>
+  </div>
+  <div class="wrap footer-fine">
+    <p>MIT license · © Julien Riel · The compiler on this page is the one from
+      the current commit on <code>main</code>, copied into the site by CI.</p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js" defer></script>
+<script type="module" src="assets/js/playground.js"></script>
+</body>
+</html>

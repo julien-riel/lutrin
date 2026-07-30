@@ -1,4 +1,4 @@
-# The site — https://julien-riel.github.io/lutrin/
+# The site — https://lutrin.app/
 #
 # Two pages: index.html (the landing page) and kit-editor.html (a tour of
 # `lutrin kit edit`). Both are plain source under site/ and travel with the
@@ -69,6 +69,46 @@ jobs:
         run: |
           cp -R site/. _site/
           cp docs/images/overview.png _site/assets/og.png
+
+      # The playground runs the REAL compiler in the visitor's browser: no
+      # bundler, no build step, just packages/core served verbatim behind an
+      # import map and the shims in site/assets/js/shims/. So the deploy has to
+      # publish three things the site directory does not contain.
+      #
+      # The mirror MUST be _site/core/ specifically: deck/layout.mjs and
+      # deck/assets.mjs derive the package root from
+      # `fileURLToPath(import.meta.url)`, which in a browser is the URL's
+      # pathname — /core/src/deck/layout.mjs resolves '../..' to /core, and
+      # design/layouts has to be there when it looks.
+      - name: Publish the compiler for the playground
+        run: |
+          set -euo pipefail
+          mkdir -p _site/core/design _site/vendor
+          cp -R packages/core/src _site/core/src
+          cp -R packages/core/design/layouts _site/core/design/layouts
+          # The manifest lives BESIDE the directory, never inside it: a file
+          # returned by readdirSync that is not a layout definition would be
+          # registered as a broken one and reported as a diagnostic.
+          node -e "const fs=require('node:fs');fs.writeFileSync('_site/core/design/layouts.json',JSON.stringify(fs.readdirSync('packages/core/design/layouts').filter(f=>f.endsWith('.json')).sort()))"
+          # markdown-it and its five transitive dependencies — all genuine
+          # browser ESM, resolved by the import map in playground.html. Keep
+          # this list in step with that map: packages/core/test/playground.test.mjs
+          # fails the build if they drift apart.
+          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro; do
+            cp -R "node_modules/$p" "_site/vendor/$p"
+          done
+          # Source maps and typings are a third of the bytes and are never
+          # fetched by a browser that only imports the ESM entry points.
+          find _site/vendor \( -name '*.map' -o -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' \) -delete
+          du -sh _site/core _site/vendor
+
+      # A stale absolute URL must never ship again. demo.html is compiled
+      # output and _site/core is the compiler's own source; neither is the
+      # site's copy, and neither should fail this.
+      - name: No stale URLs in the deployed site
+        run: |
+          set -euo pipefail
+          ! grep -rn "julien-riel.github.io" _site --include="*.html" --exclude=demo.html
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

@@ -1,0 +1,176 @@
+/* Lutrin — the playground.
+   Loaded after main.css, which supplies the tokens, the buttons and the
+   editor chrome (.editor-bar, .cmd) this page reuses rather than reinvents. */
+
+.pg-head {
+  padding: clamp(2.5rem, 6vw, 4rem) 0 0;
+}
+.pg-head h1 {
+  margin-bottom: 0.6rem;
+}
+.pg-app {
+  padding: 2rem 0 clamp(3rem, 7vw, 5rem);
+}
+
+.pg-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+.pg-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.pg-examples button {
+  font: inherit;
+  font-size: 0.85rem;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted-strong);
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+}
+.pg-examples button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pg-examples button[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+/* The one place the page reports on itself. Colour is never the only signal —
+   the word changes too, because "compiling…", "3 slides" and "error" have to
+   be legible to someone who cannot tell the states apart by hue. */
+.pg-status {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  color: var(--muted-strong);
+}
+.pg-status[data-kind="ok"] {
+  color: var(--accent);
+}
+.pg-status[data-kind="bad"] {
+  color: #b42318;
+}
+
+.pg-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .pg-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pg-editor {
+  background: var(--night);
+  border: 1px solid var(--line-night);
+  display: flex;
+  flex-direction: column;
+  /* Matches the frame beside it so the two panes agree on the fold. */
+  height: min(70vh, 640px);
+}
+.pg-editor .editor-bar {
+  flex: none;
+}
+#pg-source {
+  flex: 1;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #dce6fb;
+  font-family: var(--f-mono);
+  font-size: 0.85rem;
+  line-height: 1.65;
+  padding: 1rem 1.1rem;
+  /* Tab moves to the next control rather than indenting: a textarea that traps
+     the keyboard is a keyboard trap, whatever it is for. */
+  tab-size: 2;
+}
+#pg-source:disabled {
+  color: #7386a8;
+}
+#pg-source:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: -2px;
+}
+
+.pg-out {
+  background: var(--wash);
+  border: 1px solid var(--line);
+  height: min(70vh, 640px);
+  overflow: hidden;
+}
+#pg-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: transparent;
+}
+
+.pg-notes {
+  margin-top: 1rem;
+}
+.pg-note {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  max-width: 78ch;
+}
+.pg-note-warn {
+  color: #8a5a00;
+}
+.pg-note-bad {
+  color: #b42318;
+  font-weight: 500;
+}
+/* Not an error, and styled so it does not read as one: these are the things
+   the browser cannot draw and the CLI can, which is an invitation rather than
+   a failure. */
+.pg-note-gap {
+  color: var(--muted-strong);
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+.pg-gaps {
+  margin: 0 0 0.6rem;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--muted-strong);
+  max-width: 78ch;
+}
+.pg-gaps li {
+  margin-bottom: 0.25rem;
+}
+.pg-note-cmd {
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  color: var(--accent);
+}
+.pg-error {
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: #b42318;
+  background: #fdf3f2;
+  border-left: 3px solid #b42318;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  max-width: 78ch;
+}
+
+.pg-app .cmd {
+  margin-top: 1.75rem;
+}
