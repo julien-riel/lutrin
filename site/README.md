@@ -44,6 +44,32 @@ custom domain, so they must never be added to `CNAME`.
 The old `julien-riel.github.io/lutrin` URL keeps working: GitHub redirects it
 once the custom domain is set, so no link already in the wild breaks.
 
+## Running it locally
+
+```sh
+npm run site          # once — compiles demo.html and demo.pptx into site/
+npm run site:serve    # http://127.0.0.1:4400/
+```
+
+**Opening a page with `file://` does not work, and cannot be made to.** The
+playground needs a real origin: modules loaded from `file://` get an opaque one
+and `fetch` is refused outright.
+
+`site:serve` copies nothing. It maps three virtual routes onto the working
+copy — `/core/src` → `packages/core/src`, `/core/design/layouts` →
+`packages/core/design/layouts` (with the manifest generated per request), and
+`/vendor/<pkg>` → `node_modules/<pkg>` — so **editing the compiler and
+reloading the page shows the change**, with no restart and no build step. The
+Pages workflow does the same mapping with `cp`, because a deploy has no
+working copy to point at.
+
+Which packages `/vendor/` will serve is read out of the import map in
+`playground.html` rather than listed in the script: there are already two
+copies of that list (the map and the workflow) and a test that keeps them
+equal, and a third copy is the one nobody would remember to update.
+
+Pass a port if 4400 is taken: `npm run site:serve -- 4500`.
+
 ## The playground
 
 `playground.html` runs **the real compiler** — `packages/core/src`, served
