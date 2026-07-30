@@ -881,6 +881,42 @@ h3 {
   }
 }
 
+/* --------------------------------------------------------------- pricing */
+/* Sits between two sections that carry no background of their own: the rule is
+   what keeps "three doors" and "the price" from reading as one long block. The
+   tier cards reuse .grid3/.panel, and the buttons .refuse-ctas — a price list
+   is not a reason to invent a third card shape. */
+.pricing {
+  border-top: 1px solid var(--line);
+  padding: clamp(3.5rem, 8vw, 6.5rem) 0;
+}
+.pricing .aside {
+  margin-bottom: 2.6rem;
+}
+/* The figure carries the tier; the unit is deliberately small and never a
+   per-person rate — "$449 for ten" reads as a budget, "$45 each" reopens the
+   negotiation one person at a time. */
+.price {
+  font-size: clamp(1.9rem, 3.2vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0.6rem 0 0.8rem;
+}
+.price span {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--muted-strong);
+  white-space: nowrap;
+}
+/* One tier is the recommendation, not three equal options. */
+.panel-featured {
+  border-top-color: var(--accent);
+}
+.panel-cta {
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
 /* --------------------------------------------------------------- refuse */
 .refuse {
   background: var(--wash);

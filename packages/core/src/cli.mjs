@@ -70,6 +70,14 @@ import { validateDeck, capabilities } from './deck/validate.mjs';
 import { readKit, parseKitManifest, KIT_NAME_RE } from './deck/kit.mjs';
 import { createSseHub, listenFromPort, refuseNonLocalHost } from './serve.mjs';
 import {
+  activateLicense,
+  deactivateLicense,
+  graceDaysLeft,
+  licenseFile,
+  licenseState,
+  maybeRevalidate,
+} from './license/index.mjs';
+import {
   readKitArchive,
   packKit,
   fetchKitArchive,
@@ -85,6 +93,7 @@ const COMMANDS = [
   'capabilities',
   'config',
   'kit',
+  'license',
   'vendor',
   'setup-mermaid',
 ];
@@ -101,6 +110,9 @@ const USAGE = `Usage:
   lutrin kit remove <name>
   lutrin kit create <directory> [-o <file.deckkit>]
   lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]
+  lutrin license activate <key>
+  lutrin license status [--json]
+  lutrin license deactivate
   lutrin capabilities [<input.md>] [--kit <kit|file.json|directory>] [--json]
   lutrin setup-mermaid [--yes]
   lutrin --version | --help`;
@@ -178,6 +190,9 @@ const FLAG_SPECS = {
   // real context (installed kit, layouts/ next to the deck) and not just that
   // of the bare engine.
   capabilities: { ...FLAGS_KIT, json: 'boolean' },
+  // `--json` on `status` alone: a host (VS Code, Obsidian) needs the state
+  // machine-readable to decide whether to offer the "buy a licence" affordance
+  license: { json: 'boolean' },
   // `--yes` is what authorizes the ~200 MB download: a browser never arrives
   // on a machine because someone ran a diagnostic.
   'setup-mermaid': { yes: 'boolean' },
@@ -1231,6 +1246,126 @@ function cmdCapabilities(argv) {
 }
 
 // ---------------------------------------------------------------------------
+// license — activate this machine, read the state, release it
+// ---------------------------------------------------------------------------
+
+const LICENSE_ACTIONS = ['activate', 'status', 'deactivate'];
+
+/** One sentence per reason code returned by licenseState(). The codes are the
+ *  contract; the wording lives here, where the user reads it. */
+const LICENSE_REASON = {
+  OK: 'active',
+  NO_LICENSE: 'no licence installed — decks carry the Lutrin attribution',
+  REVOKED: 'revoked or disabled on Polar',
+  EXPIRED: 'expired',
+  STALE: 'not confirmed by Polar for over 30 days — run "lutrin license status" while online',
+  CLOCK: 'the record was validated in the future: check this machine’s clock',
+};
+
+async function cmdLicense(argv) {
+  const args = parseArgs(argv, FLAG_SPECS.license);
+  const [action, ...targets] = args._;
+  if (!action) fail(`lutrin license <${LICENSE_ACTIONS.join('|')}>`);
+  if (!LICENSE_ACTIONS.includes(action)) {
+    const nearest = closest(action, LICENSE_ACTIONS);
+    fail(
+      `unknown action: ${action}${nearest ? ` — did you mean "${nearest}"?` : ` — expected ${LICENSE_ACTIONS.join(', ')}`}`,
+    );
+  }
+
+  if (action === 'activate') {
+    const key = targets[0];
+    if (!key) fail('lutrin license activate <key> — the key is the one Polar emailed you');
+    if (targets.length > 1)
+      fail(`a single key is expected — got ${targets.length}: ${targets.join(', ')}`);
+    const { file, state, releasedPreviousActivation } = await activateLicense(key);
+    if (releasedPreviousActivation)
+      console.log(
+        "✓ this machine's previous activation released (it would otherwise have been spent twice)",
+      );
+    console.log(`✓ licence activated — ${file}`);
+    printLicenseState(state);
+    if (!state.licensed)
+      console.log(
+        `  ⚠ the licence is not active all the same: ${LICENSE_REASON[state.reason] ?? state.reason}`,
+      );
+    return;
+  }
+
+  if (action === 'deactivate') {
+    const { removed, activationFreed, error } = await deactivateLicense();
+    if (!removed && !activationFreed) {
+      console.log('No licence installed on this machine — nothing to release.');
+      return;
+    }
+    console.log(`✓ licence removed — ${removed ?? licenseFile()}`);
+    if (activationFreed) console.log('  activation freed on Polar: another machine can take it.');
+    else
+      console.log(
+        `  ⚠ Polar could not be reached (${error?.message ?? 'unknown cause'})\n    → the activation is still held: free it from the Polar customer portal.`,
+      );
+    return;
+  }
+
+  // ------ status ------------------------------------------------------------
+  // Online, and asked for: this is where a revocation or a renewal is picked
+  // up, so the check is FORCED rather than left to the weekly schedule.
+  const revalidation = await maybeRevalidate({ force: true, timeoutMs: 8000 });
+  const state = licenseState();
+  if (args.json) {
+    console.log(
+      JSON.stringify(
+        {
+          licensed: state.licensed,
+          reason: state.reason,
+          activationLimit: state.record?.activationLimit ?? null,
+          key: state.record?.displayKey ?? null,
+          expiresAt: state.record?.expiresAt ?? null,
+          validatedAt: state.record?.validatedAt ?? null,
+          graceDaysLeft: state.licensed ? graceDaysLeft(state) : 0,
+          file: licenseFile(),
+          revalidation,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  console.log('Lutrin licence');
+  printLicenseState(state);
+  console.log(`  File          : ${licenseFile()}`);
+  if (revalidation.attempted && !revalidation.ok)
+    console.log(
+      `  ⚠ Polar could not confirm the licence (${revalidation.reason}) — the cached state above is what applies.`,
+    );
+  if (!state.licensed) {
+    console.log('\nActivate  : lutrin license activate <key>');
+    console.log('Buy       : https://julien-riel.github.io/lutrin/#pricing');
+    console.log('            $59/year for one person, $449 for a team of ten.');
+  }
+}
+
+/** Shared by `activate` and `status`: the same three lines, so that what the
+ *  user reads after activating is what `status` will keep telling them. */
+function printLicenseState(state) {
+  const r = state.record;
+  console.log(
+    `  Status        : ${state.licensed ? '✓ ' : '✖ '}${LICENSE_REASON[state.reason] ?? state.reason}`,
+  );
+  if (!r) return;
+  console.log(`  Key           : ${r.displayKey ?? '(hidden)'}`);
+  // the key's ACTIVATION limit — machines, not billing seats (those are counted
+  // by Polar and never travel this far)
+  console.log(`  Machines      : up to ${r.activationLimit ?? 'unlimited'} on this key`);
+  console.log(`  This machine  : ${r.label}`);
+  if (r.expiresAt) console.log(`  Expires       : ${r.expiresAt}`);
+  console.log(
+    `  Last checked  : ${r.validatedAt}${state.licensed ? ` (usable offline for ${graceDaysLeft(state)} more days)` : ''}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // dispatch
 // ---------------------------------------------------------------------------
 
@@ -1271,6 +1406,9 @@ try {
     case 'kit':
       await cmdKit(rest2);
       break;
+    case 'license':
+      await cmdLicense(rest2);
+      break;
     case 'vendor':
       await cmdVendor(rest2);
       break;
@@ -1283,6 +1421,11 @@ try {
     default:
       usage();
   }
+  // The periodic half of "activate online, then compile offline" — AFTER the
+  // command, so a slow answer never delays a deck, and only when the last
+  // confirmation is over a week old (a no-op on every other run). Best effort:
+  // offline is the expected case, and the grace period covers it.
+  if (command !== 'license') await maybeRevalidate().catch(() => {});
 } catch (e) {
   // never a raw stack trace: the COMMAND and the cause, nothing else.
   // The old net prefixed with rest2[0] — the first argument, often a perfectly

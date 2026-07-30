@@ -43,6 +43,7 @@ lutrin config [--kit <ref>] [--unset]
 lutrin kit install <file.deckkit|https://…> [--force] [--name <name>]
 lutrin kit list | remove <name> | create <directory> [-o <file.deckkit>]
 lutrin capabilities [<deck.md>] [--kit <ref>] [--json]
+lutrin license activate <key> | status [--json] | deactivate
 ```
 
 The output format is deduced from the extension of `-o`. `--kit` takes
@@ -157,7 +158,31 @@ UPDATE_GOLDEN=1 npm test    # from the root, after an intended engine change
 A `node:test` harness, with no test dependency. See
 [CONTRIBUTING.md](https://github.com/julien-riel/lutrin/blob/main/CONTRIBUTING.md).
 
+## Licence and attribution
+
+A deck compiled without a licence carries a discreet "Généré avec Lutrin" at the
+bottom right of every slide, in the `.pptx` as in the HTML. A licence removes it
+— $59 USD a year for one person, $449 for a team of ten, up to $2,990 for an
+organisation. See the [pricing](https://julien-riel.github.io/lutrin/#pricing).
+A seat is a **person**, and each one gets a key usable on every machine they
+work on.
+
+```bash
+lutrin license activate <key>   # activates this machine on the key
+lutrin license status           # state, last check with Polar
+lutrin license deactivate       # releases this machine
+```
+
+Activation is the only step that needs the network. The state is cached in
+`~/.config/lutrin/license.json`, no compilation ever waits on Polar, and a
+licence keeps working for 30 days without a successful re-check. Programmatic
+callers may force the mention on or off with the `branding` option of the
+renderers, which is what the test suite does.
+
 ## License
 
-MIT. Third-party dependencies:
+MIT — the code, including the licensing check. Third-party dependencies:
 [THIRD-PARTY-NOTICES.md](https://github.com/julien-riel/lutrin/blob/main/THIRD-PARTY-NOTICES.md).
+
+"Lutrin" is a trademark of Julien Riel: the MIT licence covers the code, not the
+name. Fork freely — under another name.

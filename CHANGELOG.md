@@ -7,6 +7,46 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` and `lutrin-obsidian` that of
 their editor host. Unless stated otherwise, an entry describes the compiler.
 
+## [Unreleased]
+
+### Added
+
+- **The "Généré avec Lutrin" attribution, and a per-seat licence that removes
+  it.** Lutrin stays free to use, and the difference between the free and the
+  paid tier is one line of text: a discreet mention at the bottom right of every
+  slide — content, cover, section and hero, in the `.pptx` as in the HTML and in
+  the editor previews. It sits in its own zone rather than as a suffix on the
+  author's footer, which keeps its full width, and it cannot collide with the
+  page number. No watermark, no slide cap, no feature held back.
+
+- **`lutrin license activate | status | deactivate`.** Licences are sold per year
+  through [Polar](https://polar.sh), by tier rather than by the seat: $59 USD for
+  one person, $449 for a team of ten, $990 for thirty, $2,990 for an
+  organisation, and $149 once for a solo lifetime licence on the current major
+  line. The people count is **declarative** — nothing in the tool counts your
+  colleagues, and a key works on every machine its owner uses, CI runners
+  included. `activate` caches the sealed state in
+  `~/.config/lutrin/license.json` (mode 0600), `deactivate` releases the machine,
+  and re-activating on a machine that already holds an activation releases the
+  previous one first, so a reinstall never costs a second.
+
+  **No network on the compilation path.** Reading the licence is a synchronous
+  read of one small file: a build never waits on Polar, never fails offline, and
+  never slows a preview. Lutrin re-checks with Polar at most once a week, *after*
+  the deck has been written, and a licence keeps applying for 30 days without a
+  successful check — a plane, a VPN or a Polar outage does not bring the
+  attribution back. A key Polar no longer knows is recorded as revoked, which
+  restores the attribution on the next build instead of at the end of that grace
+  period. The cached record is sealed against the account and machine it was
+  activated on: copying it elsewhere makes it ignored, not honoured, and a
+  hand-edited `expiresAt` is refused for the same reason.
+
+### Changed
+
+- **"Lutrin" is now stated as a trademark** in `LICENSE` and both READMEs. The
+  code stays MIT, licensing check included; the name does not travel with it. A
+  fork is free — under another name.
+
 ## [1.2.0] — 2026-07-29
 
 The things a corporate deck kept redrawing by hand — a status board, stacked

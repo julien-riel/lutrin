@@ -97,6 +97,10 @@
       "textW": 600,
       "h": 24,
       "numW": 64
+    },
+    "brand": {
+      "w": 220,
+      "h": 24
     }
   },
   "chartColors": [

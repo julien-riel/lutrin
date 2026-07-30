@@ -126,6 +126,9 @@ npx lutrin validate <deck.md> [--json]         # positioned diagnostics
 npx lutrin inspect <deck.md>                   # IR and scenes as JSON
 npx lutrin vendor <deck.md>                    # freezes the deck's external dependencies
 npx lutrin capabilities [<deck.md>] [--kit <ref>]   # layouts, directives… as JSON
+npx lutrin license activate <key>              # claims a seat; removes the attribution
+npx lutrin license status [--json]             # state of the licence on this machine
+npx lutrin license deactivate                  # frees the seat for another machine
 ```
 
 The output format is deduced from the extension of `-o`. Every compilation
@@ -246,6 +249,56 @@ In the plugins, this default is taken into account automatically (the
 compilation worker reads the same configuration). The document always wins:
 the frontmatter `kit:` and the project default take precedence.
 
+## Licence — the attribution, and how to remove it
+
+Lutrin is free to use, and a deck compiled without a licence carries a discreet
+**"Généré avec Lutrin"** at the bottom right of every slide — in the `.pptx`, in
+the standalone HTML and in the editor previews. That is the only difference
+between the free and the paid tier: no watermark, no slide limit, no locked
+feature.
+
+A **licence removes the attribution**, sold per year through
+[Polar](https://polar.sh):
+
+| Tier | Covers | USD / year | CAD / year |
+| --- | --- | --- | --- |
+| [Solo](https://buy.polar.sh/polar_cl_iejyJbWg2Lfbyp8iPgcG9lj1y85LOqnUZmebJ0OkEcV) | one person | $59 | $79 |
+| [**Team**](https://buy.polar.sh/polar_cl_XgFavyTBtWMJFMOgpLU5Dx8oL1fHSBLFho0YH1MuC0T) | up to 10 people | **$449** | $590 |
+| [Studio](https://buy.polar.sh/polar_cl_PGeTLcaEKYJsJAJarSg0UkW5smAL1SidX18pm3xM9Bj) | up to 30 people, CI included | $990 | $1,290 |
+| [Organisation](https://buy.polar.sh/polar_cl_hsMt5mxtEmNoCgGMGCOdZyS2ne33ryyuVY6w50VktGC) | one legal entity, unlimited | $2,990 | $3,900 |
+| [Solo, lifetime](https://buy.polar.sh/polar_cl_6ab8UxGtae4pRC2PKJQbVkV1lkmmIwmQJI9nE1RwuIG) | one person, current major line | $149 once | $199 once |
+
+**A seat is a person, not a machine**, and the count is *declarative*: nothing in
+the tool counts your colleagues. You buy a tier and invite people by email; Polar
+grants the benefit to each member individually, so everyone receives **their own
+licence key**, usable on **as many machines as they work on** — laptop, desktop,
+the build server, a CI runner.
+
+```bash
+lutrin license activate <key>     # activates this machine on the key
+lutrin license status             # state, last check with Polar
+lutrin license deactivate         # releases this machine, e.g. before wiping a laptop
+```
+
+**Activate once, then compile offline.** The activation is the only step that
+needs the network: the state is cached in `~/.config/lutrin/license.json`
+(mode 0600, beside `config.json`) and no compilation ever waits on Polar.
+Lutrin re-checks with Polar at most once a week, *after* a deck has been
+written, and a licence keeps working for **30 days** without a successful
+check — a plane, a VPN or a Polar outage never brings the attribution back.
+Past those 30 days, `lutrin license status` while online is what restores it.
+
+The record is sealed against the machine it was activated on: copying
+`license.json` to another machine does not license that machine, it just makes
+the file be ignored. Run `activate` on each of your machines instead — it costs
+nothing.
+
+And since the code is MIT, removing the attribution by hand is both easy and
+permitted. The licence is not a lock, it is what makes your commercial use
+defensible — a deck you hand a client, produced by a tool you actually paid for,
+with an invoice in your organisation's name. That, and it is what keeps the
+project alive.
+
 ## VS Code extension
 
 Live preview (updated as you type, following the cursor), diagnostics
@@ -336,5 +389,14 @@ Security Advisories, never through a public issue: see
 
 ## License
 
-MIT. Third-party dependencies:
+MIT — the code, including the licensing check itself. Third-party dependencies:
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+**"Lutrin" is a trademark of Julien Riel**, and the MIT licence covers the code,
+not the name. You may fork, modify and redistribute this software — including
+with the attribution removed — but not under the name "Lutrin", nor with its
+logo or branding, in a way that suggests it is this project or endorsed by it.
+Rename your fork and it is entirely yours.
+
+Removing the attribution from your own decks is what a seat buys; patching it
+out of a redistributed build named "Lutrin" is what the trademark forbids.

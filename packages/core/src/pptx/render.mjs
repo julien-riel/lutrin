@@ -53,6 +53,7 @@ import {
 } from '../deck/assets.mjs';
 import { chartSvg } from '../deck/chart.mjs';
 import { highlightLine } from '../deck/highlight.mjs';
+import { brandMention } from '../license/index.mjs';
 import { embedFonts } from './fonts.mjs';
 import { embedAnimations } from './anim.mjs';
 import { embedMorph } from './morph.mjs';
@@ -1092,8 +1093,64 @@ const titlePlaceholder = (box) => ({
   placeholder: { options: { name: 'title', type: 'title', objectName: 'Title', ...box }, text: '' },
 });
 
-function defineMasters(pptx, meta) {
+/**
+ * Geometry of the "Generated with Lutrin" attribution, per layout. Kept here
+ * rather than in the callers so that the three masters and the hero slide cannot
+ * drift apart, and so that the HTML stylesheet has a single set of numbers to
+ * mirror (.footer-brand / .brand-cover / .brand-section).
+ *
+ * `content` stops short of the page number's zone; `cover` shares the byline's
+ * baseline; `section` sits on the band of the section logo, in the ground colour
+ * because that master's background is the primary.
+ */
+const brandBox = (placement) => {
+  const w = CHROME.brand.w;
+  if (placement === 'cover')
+    return {
+      x: px(PAGE.width - PAGE.margin - w),
+      y: px(PAGE.height - CHROME.cover.bylineBottom),
+      w: px(w),
+      h: px(CHROME.cover.bylineH),
+      color: COLORS.neutralSecondary,
+    };
+  if (placement === 'section')
+    return {
+      x: px(PAGE.width - PAGE.margin - w),
+      y: px(PAGE.height - PAGE.margin - CHROME.brand.h),
+      w: px(w),
+      h: px(CHROME.brand.h),
+      color: COLORS.ground,
+    };
+  return {
+    x: px(PAGE.width - PAGE.margin - CHROME.footer.numW - w),
+    y: px(PAGE.height - PAGE.footerHeight),
+    w: px(w),
+    h: px(CHROME.footer.h),
+    color: COLORS.neutralSecondary,
+  };
+};
+
+/** Text options of the attribution — shared by the master objects and by the
+ *  per-slide copy the hero layout needs. */
+const brandTextOptions = (placement) => {
+  const { color, ...box } = brandBox(placement);
+  return {
+    ...box,
+    color,
+    fontSize: TYPE.caption,
+    fontFace: FONTS.body,
+    align: 'right',
+    valign: 'middle',
+    objectName: 'Lutrin attribution',
+  };
+};
+
+function defineMasters(pptx, meta, brand) {
   const footerText = meta.footer ?? meta.title ?? '';
+  // one master object rather than a shape per slide: the attribution then costs
+  // nothing per slide and cannot be deleted slide by slide in PowerPoint
+  const brandObject = (placement) =>
+    brand ? [{ text: { text: brand, options: brandTextOptions(placement) } }] : [];
   pptx.defineSlideMaster({
     title: 'DECK_CONTENT',
     background: { color: COLORS.ground },
@@ -1133,6 +1190,7 @@ function defineMasters(pptx, meta) {
           },
         },
       },
+      ...brandObject('content'),
     ],
     slideNumber: {
       x: px(PAGE.width - PAGE.margin - CHROME.footer.numW),
@@ -1148,12 +1206,12 @@ function defineMasters(pptx, meta) {
   pptx.defineSlideMaster({
     title: 'DECK_COVER',
     background: { color: COLORS.ground },
-    objects: [titlePlaceholder(coverTitleBox())],
+    objects: [titlePlaceholder(coverTitleBox()), ...brandObject('cover')],
   });
   pptx.defineSlideMaster({
     title: 'DECK_SECTION',
     background: { color: COLORS.primary },
-    objects: [titlePlaceholder(sectionTitleBox())],
+    objects: [titlePlaceholder(sectionTitleBox()), ...brandObject('section')],
   });
 }
 
@@ -1412,7 +1470,9 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   pptx.author = meta.author ?? '';
   pptx.title = meta.title ?? '';
   pptx.theme = { headFontFace: FONTS.body, bodyFontFace: FONTS.body };
-  defineMasters(pptx, meta);
+  // resolved once for the whole export — same reason as in the HTML renderer
+  const brand = brandMention(opts);
+  defineMasters(pptx, meta, brand);
 
   // ------ pre-pass: everything that requires asynchronous work --------------
   // (Mermaid, downloading the remote images, Lucide icons, equations)
@@ -1554,6 +1614,14 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       const target = wrapSlide(slide, { label: () => shapeLabel, rec, current: () => cur });
       if (scene.master === 'hero' && scene.image) {
         addImage(target, scene.image, { x: 0, y: 0, w: PAGE.width, h: PAGE.height }, ctx);
+        // the full-frame image covers the master's chrome, attribution included:
+        // this layout gets its own copy, written after the image. Through
+        // `target` and not `slide` so the shape is logged in `rec` — anim.mjs
+        // demands an exact shape count and would give up on a mismatch.
+        if (brand) {
+          shapeLabel = 'Lutrin attribution';
+          target.addText(brand, brandTextOptions('content'));
+        }
       }
       // The title placeholder is written EVEN on a slide with no title:
       // failing that PptxGenJS adds it itself, empty, at the END of the

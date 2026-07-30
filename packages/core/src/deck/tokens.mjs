@@ -264,6 +264,16 @@ export const CHROME = {
     h: 24,
     numW: 64, // page number, right-aligned
   },
+  /** "Generated with Lutrin" attribution, on decks compiled without a licence.
+   *  Its own zone rather than a suffix on the footer text: the author's footer
+   *  keeps its full width (48 → 648 px), the attribution sits right-aligned
+   *  before the page number (948 → 1168 px, where the number's zone starts), and no deck title
+   *  can ever run into it. Painted on cover and section layouts too, which have
+   *  no footer — see the renderers. */
+  brand: {
+    w: 220,
+    h: 24,
+  },
 };
 
 export const px = (v) => v / 96; // px → inches

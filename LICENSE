@@ -19,3 +19,18 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+TRADEMARK NOTICE (not part of the MIT licence above, and not a restriction on
+the rights it grants)
+
+"Lutrin" and the Lutrin logo are trademarks of Julien Riel. The MIT licence
+covers the copyright in the software; it grants no rights in these trademarks.
+
+You may use the name "Lutrin" nominatively — to state that your work uses,
+extends or is compatible with Lutrin, and in the "Généré avec Lutrin"
+attribution the software itself produces. You may not use it as the name of a
+modified version you distribute, nor in a way that suggests your distribution is
+this project or is endorsed by it. Rename your fork, and the MIT licence above
+applies to it in full.
