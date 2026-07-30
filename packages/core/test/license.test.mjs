@@ -337,14 +337,26 @@ test('a record sealed on another machine is ignored', async (t) => {
   await polar.ready;
   await activateLicense('GOOD-KEY');
 
-  // the seal binds to the account + platform + home: moving HOME is what
-  // another machine looks like from here (and is how a copied file behaves)
-  const home = process.env.HOME;
-  process.env.HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-home-'));
+  // The seal binds to the account + platform + home, so moving the home
+  // directory is what another machine looks like from here — and is exactly how
+  // a copied file behaves.
+  //
+  // BOTH variables, because os.homedir() reads a different one per platform:
+  // HOME on POSIX, USERPROFILE on Windows. Setting only HOME left this test
+  // green on macOS and Linux while asserting nothing at all on Windows, where
+  // the home never moved and the seal therefore still matched.
+  const previous = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+  const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-home-'));
+  process.env.HOME = elsewhere;
+  process.env.USERPROFILE = elsewhere;
   t.after(() => {
-    if (home === undefined) delete process.env.HOME;
-    else process.env.HOME = home;
+    for (const [k, v] of Object.entries(previous))
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
   });
+  // precondition, not decoration: if the override stops moving the home the
+  // test would pass by testing nothing, which is how the Windows hole opened
+  assert.equal(os.homedir(), elsewhere, 'the home directory must really have moved');
   assert.equal(licenseState().reason, 'LICENSE_SEAL');
   assert.equal(fs.existsSync(path.join(dir, 'license.json')), true); // still there, just not trusted
 });
