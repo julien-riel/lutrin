@@ -520,6 +520,10 @@ async function cmdBuild(argv) {
   const saidAsError = new Set(renderErrors.map((d) => d.message));
   for (const w of stats.warnings ?? []) if (!saidAsError.has(w)) console.log(`  ⚠ ${w}`);
 
+  // Last, and only on a deck that actually shipped: nothing is offered under a
+  // ⚠. An empty or truncated deck is a problem to fix, not a moment to sell.
+  if (!renderErrors.length && stats.slideCount > 0) printAttributionOffer();
+
   if (renderErrors.length) {
     for (const d of renderErrors) printDiagnostic(input, d);
     if (!args.force) {
@@ -1251,6 +1255,32 @@ function cmdCapabilities(argv) {
 
 const LICENSE_ACTIONS = ['activate', 'status', 'deactivate'];
 
+/** Where a licence is bought. One constant: `license status` and the end of a
+ *  build both send people here, and a stale copy of it in one of the two is
+ *  how a customer lands on a 404 the day the domain moves. */
+const PRICING_URL = 'https://lutrin.app/#pricing';
+
+/**
+ * The one line telling the author their deck went out signed — and how to stop
+ * that. Printed at the end of a successful `build`, and nowhere else.
+ *
+ * It is an OFFER, not a warning: stdout rather than stderr, no ⚠, no colour,
+ * and nothing at all once a licence is installed. The attribution is decided
+ * at render time inside `applyBranding`, so before this the author discovered
+ * it by opening the .pptx — sometimes in front of the client. That is the one
+ * moment the product's only paid benefit is felt, and it should not be a
+ * surprise.
+ *
+ * Deliberately absent from every machine-readable path (`validate --json`,
+ * `inspect`, `capabilities --json`, `license status --json`): an agent driving
+ * the CLI must never have to parse around a sales line.
+ */
+function printAttributionOffer() {
+  if (licenseState().licensed) return;
+  console.log('  Carries the Lutrin attribution. Remove it: lutrin license activate <key>');
+  console.log(`  ${PRICING_URL}`);
+}
+
 /** One sentence per reason code returned by licenseState(). The codes are the
  *  contract; the wording lives here, where the user reads it. */
 const LICENSE_REASON = {
@@ -1341,7 +1371,7 @@ async function cmdLicense(argv) {
     );
   if (!state.licensed) {
     console.log('\nActivate  : lutrin license activate <key>');
-    console.log('Buy       : https://julien-riel.github.io/lutrin/#pricing');
+    console.log(`Buy       : ${PRICING_URL}`);
     console.log('            $59/year for one person, $449 for a team of ten.');
   }
 }

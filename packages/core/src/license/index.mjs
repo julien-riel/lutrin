@@ -37,9 +37,19 @@ const DAY_MS = 86_400_000;
 const REVALIDATE_AFTER_MS = 7 * DAY_MS;
 const OFFLINE_GRACE_MS = 30 * DAY_MS;
 
-/** Attribution carried by every deck compiled without a licence. Single source
- *  of truth for both renderers — HTML and PPTX must never drift. */
-export const BRAND_MENTION = 'Généré avec Lutrin';
+/**
+ * Attribution carried by every deck compiled without a licence. Single source
+ * of truth for both renderers — HTML and PPTX must never drift.
+ *
+ * ENGLISH, deliberately, and not localised from the deck's `lang`. It used to
+ * read "Généré avec Lutrin", which put a French line on a product whose site,
+ * README and every diagnostic are in English: an anglophone buyer shipped a
+ * client deck carrying it by accident rather than by choice. Localising it
+ * instead would be more correct and is the tempting answer, but it makes the
+ * attribution a feature with a matrix to maintain — and the one string a
+ * customer pays to remove is not where translation earns its keep.
+ */
+export const BRAND_MENTION = 'Made with Lutrin';
 
 /** Polar's `status` for a key that is actually usable. Anything else (`revoked`,
  *  `disabled`) means the licence no longer applies. */

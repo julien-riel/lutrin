@@ -20,6 +20,7 @@
 import './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -244,6 +245,107 @@ test('brandMention: the explicit override beats the licence, both ways', (t) => 
   assert.equal(brandMention({}), BRAND_MENTION); // no licence
   assert.equal(brandMention({ branding: false }), null);
   assert.equal(brandMention({ branding: true }), BRAND_MENTION);
+});
+
+test('the attribution is in English, like every other string the product shows', () => {
+  // Not a style check: it used to read "Généré avec Lutrin", so an anglophone
+  // buyer shipped a client deck carrying a French line by accident. The choice
+  // is documented in license/index.mjs; this is the test that keeps it.
+  assert.equal(BRAND_MENTION, 'Made with Lutrin');
+});
+
+// ---------------------------------------------------------------------------
+// the offer at the end of a build
+// ---------------------------------------------------------------------------
+//
+// The watermark is decided at render time, so before this the author met it by
+// opening the .pptx — sometimes in front of the client. These three tests hold
+// the three halves of the fix: it is said once when it applies, never when it
+// does not, and never on a path a machine reads.
+
+const CLI = path.resolve(import.meta.dirname, '..', 'src', 'cli.mjs');
+const OFFER_LINE = 'Carries the Lutrin attribution. Remove it: lutrin license activate <key>';
+
+/** Runs the CLI in a subprocess: the offer is printed by the command, and the
+ *  command only exists at module load. `config` is what makes a run licensed —
+ *  the record lives beside config.json. */
+function lutrin(args, { cwd, config }) {
+  const r = spawnSync(process.execPath, [CLI, ...args], {
+    cwd,
+    encoding: 'utf8',
+    env: { ...process.env, LUTRIN_CONFIG: config },
+  });
+  if (r.error) throw r.error;
+  return { code: r.status, stdout: r.stdout, stderr: r.stderr };
+}
+
+/** A disposable directory carrying the three-master deck. */
+function deckDir(t) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-offer-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, 'deck.md'), DECK);
+  return dir;
+}
+
+test('unlicensed build: the offer is made once, on stdout, under the ✓', (t) => {
+  const config = tempConfig(t);
+  const dir = deckDir(t);
+  const r = lutrin(['build', 'deck.md', '--html', '-o', 'deck.html'], { cwd: dir, config });
+
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /✓ deck\.html — 3 slides/);
+  assert.equal(r.stdout.split(OFFER_LINE).length - 1, 1, 'said exactly once, not once per slide');
+  assert.match(r.stdout, /https:\/\/lutrin\.app\/#pricing/);
+  // an offer, not a warning: nothing on stderr, exit code 0
+  assert.equal(r.stderr, '');
+  // and it describes something true — the file really did go out signed
+  assert.ok(
+    fs.readFileSync(path.join(dir, 'deck.html'), 'utf8').includes(BRAND_MENTION),
+    'the offer must only be made about a deck that actually carries the mention',
+  );
+});
+
+test('licensed build: nothing extra is said, and nothing is signed', async (t) => {
+  const config = tempConfig(t);
+  const polar = fakePolar(t);
+  await polar.ready;
+  await activateLicense('GOOD-KEY');
+  assert.equal(licenseState().licensed, true);
+
+  const dir = deckDir(t);
+  const r = lutrin(['build', 'deck.md', '--html', '-o', 'deck.html'], { cwd: dir, config });
+
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /✓ deck\.html — 3 slides/);
+  assert.ok(!r.stdout.includes(OFFER_LINE), 'a paying customer is never sold to again');
+  assert.ok(!r.stdout.includes('lutrin.app/#pricing'));
+  assert.ok(!fs.readFileSync(path.join(dir, 'deck.html'), 'utf8').includes(BRAND_MENTION));
+});
+
+test('the offer stays out of every machine-readable path', async (t) => {
+  const config = tempConfig(t);
+  const dir = deckDir(t);
+  // `build --ir` is the trap: it looks like a build and delegates to inspect,
+  // so a line appended in cmdBuild would land in the middle of a JSON document.
+  const readable = () => ({
+    validate: lutrin(['validate', 'deck.md', '--json'], { cwd: dir, config }).stdout,
+    inspect: lutrin(['inspect', 'deck.md'], { cwd: dir, config }).stdout,
+    buildIr: lutrin(['build', 'deck.md', '--ir'], { cwd: dir, config }).stdout,
+    capabilities: lutrin(['capabilities', '--json'], { cwd: dir, config }).stdout,
+  });
+
+  const unlicensed = readable();
+  for (const [name, out] of Object.entries(unlicensed))
+    assert.doesNotThrow(() => JSON.parse(out), `${name}: not parseable JSON`);
+
+  const polar = fakePolar(t);
+  await polar.ready;
+  await activateLicense('GOOD-KEY');
+  assert.deepEqual(
+    readable(),
+    unlicensed,
+    'a licence must not change one byte of what an agent parses',
+  );
 });
 
 // ---------------------------------------------------------------------------
