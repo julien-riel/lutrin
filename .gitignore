@@ -15,10 +15,15 @@ packages/obsidian-plugin/dist/
 *.deckkit
 examples/assets/remote/
 
-# the landing pages themselves are source, not artifacts; the demo deck they
-# embed (site/demo.html, site/demo.pptx — `npm run site`) stays ignored above
-!site/index.html
-!site/kit-editor.html
+# the site's pages are source, not artifacts. A NEGATION PER PAGE was how this
+# was written, and it swallowed the next page silently every time: `git add
+# site/pricing.html` refuses, and `git add site/` skips it without a word. The
+# wildcard covers every page written from now on; the re-ignore below it puts
+# back the one file under site/ that really is a compilation artifact — the
+# demo deck `npm run site` compiles (site/demo.pptx is already caught by *.pptx).
+# ORDER MATTERS: the last matching pattern wins, so the re-ignore must follow.
+!site/**/*.html
+site/demo.html
 
 # the kit editor SPA shell is source, not a compilation artifact
 !packages/core/design/editor/index.html

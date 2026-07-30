@@ -908,13 +908,350 @@ h3 {
   color: var(--muted-strong);
   white-space: nowrap;
 }
-/* One tier is the recommendation, not three equal options. */
+/* One tier is the recommendation, not three equal options. It is SOLO, and
+   deliberately not the most expensive one the page can plausibly push: a first
+   visit that lands on a $449 button abandons the cart, and the Solo customer
+   who comes back for a team in six months is worth more than that cart was. */
 .panel-featured {
   border-top-color: var(--accent);
+}
+/* Sits ABOVE the tier name — the recommendation has to be readable before the
+   price is, or it is just decoration on a card already read. */
+.tier-flag {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.35rem;
 }
 .panel-cta {
   margin-top: 1rem;
   font-weight: 500;
+}
+/* The card that is a conversation still lets whoever is already decided pay by
+   card — quieter than the mail link, and never instead of it. */
+.cta-second {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted-strong);
+}
+.tier-more {
+  margin: 2rem 0 0;
+  font-size: 0.95rem;
+  color: var(--muted-strong);
+}
+
+/* ----------------------------------------------------- the full price list */
+/* A five-row table rather than five more cards: the reason to leave the
+   landing page is to compare, and comparison is what a table is for. */
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 2.5rem;
+  /* the page itself must never scroll sideways — only this box does */
+  max-width: 100%;
+}
+.price-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 40rem;
+  font-size: 0.96rem;
+}
+.price-table caption {
+  caption-side: bottom;
+  text-align: left;
+  padding-top: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--muted-strong);
+}
+.price-table th,
+.price-table td {
+  text-align: left;
+  padding: 0.85rem 1rem 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.price-table thead th {
+  font-family: var(--f-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-strong);
+  border-bottom-color: var(--ink);
+}
+.price-table tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Tabular figures so the money column reads as a column and not as five
+   unrelated strings — the same reason the engine gives a right-aligned table
+   column its tabular numerals. */
+.price-table .num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.price-table .is-recommended {
+  background: var(--wash);
+}
+.row-flag {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--accent);
+  white-space: normal;
+}
+/* Visible to a screen reader, to nothing else: the buy column's header has no
+   word worth showing, and an empty <th> is a hole in the table's structure. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- proof */
+/* Live counters, never a stored number: a figure typed into this page is out
+   of date the day after it is typed, and wrong for everyone who reads it
+   after that. */
+.proof {
+  margin-top: 3rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+.proof-lead {
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-strong);
+  margin: 0 0 0.9rem;
+}
+.proof-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+}
+/* A badge that fails to load (shields.io down, a blocked third party) must
+   cost the row its image and nothing else — hence a fixed height and no
+   layout that depends on the width arriving. */
+.proof-badges img {
+  height: 22px;
+  display: block;
+}
+
+/* ------------------------------------------------------------------- faq */
+/* <details> and nothing else: eight answers a buyer needs BEFORE paying must
+   not be behind a script that may not have loaded. */
+.faq {
+  margin-top: 3rem;
+  border-top: 1px solid var(--line);
+}
+.faq-title {
+  font-family: var(--f-display);
+  font-size: 1.25rem;
+  margin: 1.75rem 0 0.5rem;
+}
+.faq details {
+  border-bottom: 1px solid var(--line);
+}
+.faq summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.95rem 2rem 0.95rem 0;
+  position: relative;
+  font-weight: 500;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+/* The marker is drawn rather than typed: a glyph would come from whichever
+   font resolved, at whichever size, and rotate around whichever origin. */
+.faq summary::after {
+  content: "";
+  position: absolute;
+  right: 0.4rem;
+  top: 1.35rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+.faq details[open] summary::after {
+  transform: rotate(-135deg);
+  top: 1.6rem;
+}
+.faq summary:hover {
+  color: var(--accent);
+}
+.faq details p {
+  margin: 0 0 1.1rem;
+  padding-right: 2rem;
+  max-width: 66ch;
+  color: var(--muted-strong);
+  font-size: 0.96rem;
+}
+
+/* ---------------------------------------------------- comparison pages */
+/* One template, four pages. The order of the blocks IS the argument: what the
+   other tool does better comes first, in its own framed block, before a single
+   word about Lutrin. A comparison page that opens by winning is discounted on
+   sight; the credibility of everything below is bought here. */
+.cmp-hero {
+  padding: clamp(3rem, 7vw, 5rem) 0 0;
+}
+.cmp-hero h1 {
+  margin-bottom: 0.6rem;
+}
+.cmp-verdict {
+  font-family: var(--f-display);
+  font-size: clamp(1.05rem, 2vw, 1.28rem);
+  line-height: 1.5;
+  max-width: 62ch;
+  color: var(--muted-strong);
+}
+.cmp-section {
+  padding: clamp(2.5rem, 6vw, 4rem) 0 0;
+}
+/* The concession block. Set on the wash, with the accent rule, because it has
+   to look deliberate rather than like a disclaimer someone was forced to add. */
+.concede {
+  background: var(--wash);
+  border-left: 3px solid var(--accent);
+  padding: 1.5rem 1.75rem 1.25rem;
+  margin-top: 1.75rem;
+}
+.concede h3 {
+  margin: 0 0 0.9rem;
+  font-family: var(--f-display);
+  font-size: 1.15rem;
+}
+.concede ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.concede li {
+  margin-bottom: 0.85rem;
+  max-width: 70ch;
+}
+.concede li:last-child {
+  margin-bottom: 0;
+}
+.cmp-list {
+  padding-left: 1.1rem;
+  margin-top: 1.5rem;
+}
+.cmp-list li {
+  margin-bottom: 0.85rem;
+  max-width: 70ch;
+}
+/* Same shape as the price table: a comparison is a table, and inventing a
+   second table style for it would only make the site look bigger. */
+.cmp-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 44rem;
+  font-size: 0.92rem;
+}
+.cmp-table th,
+.cmp-table td {
+  text-align: left;
+  padding: 0.8rem 1rem 0.8rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.cmp-table thead th {
+  font-family: var(--f-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-strong);
+  border-bottom-color: var(--ink);
+}
+.cmp-table tbody th {
+  font-weight: 600;
+  width: 15rem;
+}
+.cmp-table td:last-child {
+  background: rgba(29, 78, 216, 0.04);
+  padding-left: 1rem;
+}
+/* The try-it-yourself block: commands the reader runs, not a screenshot they
+   have to believe. */
+.cmp-run {
+  margin-top: 1.75rem;
+  background: var(--night);
+  color: var(--dust);
+  padding: 1.5rem 1.75rem;
+  overflow-x: auto;
+}
+.cmp-run h3 {
+  color: #fff;
+  margin: 0 0 0.75rem;
+  font-family: var(--f-display);
+  font-size: 1.1rem;
+}
+.cmp-run p {
+  max-width: 68ch;
+  font-size: 0.92rem;
+}
+.cmp-run pre {
+  margin: 1rem 0;
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #cfe0ff;
+  white-space: pre;
+}
+.cmp-run code {
+  color: #cfe0ff;
+}
+/* Every factual claim on these pages was checked against the other project's
+   own current documentation, on a stated day. Undated, they rot. */
+.cmp-checked {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted-strong);
+}
+.cmp-checked a {
+  color: var(--muted-strong);
+}
+.cmp-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+}
+.cmp-nav a {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.8rem;
+  text-decoration: none;
+}
+.cmp-nav a:hover {
+  border-color: var(--accent);
+}
+.cmp-nav a[aria-current="page"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
 }
 
 /* --------------------------------------------------------------- refuse */
@@ -943,10 +1280,30 @@ h3 {
   display: inline-block;
   margin: 0 0 0.5rem;
 }
+/* Three columns since there is a person to write to: the wordmark, the link
+   list, and the address. The link list keeps the widest share — it is the one
+   a reader scans — and the address gets a column of its own rather than a line
+   in the fine print, where nobody looking for it would find it. */
 .footer-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
   gap: 2rem;
+}
+.footer-contact p {
+  margin: 0 0 0.35rem;
+}
+.footer-contact-h {
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  color: #fff;
+}
+.footer-contact a {
+  color: #fff;
+}
+.footer-contact-note {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #7386a8;
 }
 .footer-tag {
   font-family: var(--f-display);
@@ -980,6 +1337,11 @@ h3 {
 }
 .footer-fine p {
   margin: 0 0 0.4rem;
+}
+@media (max-width: 940px) {
+  .footer-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 @media (max-width: 700px) {
   .footer-grid {

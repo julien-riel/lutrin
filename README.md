@@ -3,7 +3,7 @@
 ![CI](https://github.com/julien-riel/lutrin/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**[julien-riel.github.io/lutrin](https://julien-riel.github.io/lutrin/)** — the
+**[lutrin.app](https://lutrin.app/)** — the
 landing page, with a live demo deck recompiled on every push.
 
 **Lutrin compiles enriched Markdown into an editable PowerPoint or a
@@ -84,12 +84,19 @@ Details and the mapping table: [docs/marp.md](docs/marp.md).
 These tools are good, and for many uses they are the right choice. Lutrin
 answers a different need, which comes down to three points:
 
-- **A genuinely editable `.pptx`.** Marp and Pandoc can export PPTX, but most
-  of the slide arrives there as an image or a frozen block; reveal.js and
-  Slidev export to PDF. Lutrin writes native shapes, text boxes, tables and
-  charts, with the fonts embedded: the recipient opens the file, corrects a
-  figure, and moves on. That is decisive when the presentation has to be
-  handed to someone who will not clone your repository.
+- **A genuinely editable `.pptx`, by default and with nothing else
+  installed.** Be precise about this, because the sloppy version of the claim is
+  wrong. *Pandoc's* PowerPoint output is already native and editable — text
+  boxes, tables, OMML equations — and it is the wrong tool to accuse of
+  exporting pictures. *Marp* exports one image per slide by default and does
+  have `--pptx-editable`, which its own docs call experimental and which needs
+  LibreOffice Impress on top of a browser. *Slidev*'s PPTX is images, by its own
+  documentation. *reveal.js* has no PowerPoint path at all. Lutrin writes native
+  shapes, text boxes and tables with the fonts embedded, in its only PPTX mode,
+  from a pure Node pipeline — charts, equations and icons are rasterised images
+  there, and saying otherwise would be the same overstatement. See the four
+  comparison pages under [lutrin.app](https://lutrin.app/), each checked against
+  the other project's current documentation and dated.
 - **The layout is decided by the engine.** Elsewhere, you write HTML/CSS or
   utility classes when the slide overflows. Here you cannot: there is no
   coordinate, no explicit column in the DSL. The engine infers a layout from
@@ -178,7 +185,7 @@ WCAG contrast checks, embedded fonts, layouts, images, `.deckkit` export —
 with a preview compiled by the real engine, on 127.0.0.1 only. `--create`
 scaffolds a fresh kit from the default theme. The full tour:
 [docs/kit-editor.md](docs/kit-editor.md), or
-[see it in pictures](https://julien-riel.github.io/lutrin/kit-editor.html).
+[see it in pictures](https://lutrin.app/kit-editor.html).
 
 A kit contains only **data** — never code: installation runs nothing, refuses
 any entry that would escape the kit, bounds the size and accepts only `https`.
@@ -252,7 +259,7 @@ the frontmatter `kit:` and the project default take precedence.
 ## Licence — the attribution, and how to remove it
 
 Lutrin is free to use, and a deck compiled without a licence carries a discreet
-**"Généré avec Lutrin"** at the bottom right of every slide — in the `.pptx`, in
+**"Made with Lutrin"** at the bottom right of every slide — in the `.pptx`, in
 the standalone HTML and in the editor previews. That is the only difference
 between the free and the paid tier: no watermark, no slide limit, no locked
 feature.

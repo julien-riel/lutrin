@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lutrin vs reveal.js — a web page that presents, or a PowerPoint you hand over</title>
+<meta name="description" content="An honest comparison, checked against reveal.js 6.0.1 documentation on 2026-07-30. reveal.js is the richest web presentation framework there is; it has no PowerPoint export. Lutrin has no interactivity; its output is an editable .pptx.">
+<link rel="canonical" href="https://lutrin.app/lutrin-vs-revealjs.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lutrin vs reveal.js — a web page that presents, or a PowerPoint you hand over">
+<meta property="og:description" content="reveal.js wins the web decisively. It has no PowerPoint path. That is the whole comparison, and here is the detail.">
+<meta property="og:url" content="https://lutrin.app/lutrin-vs-revealjs.html">
+<meta property="og:image" content="https://lutrin.app/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/css/main.css">
+<!-- ANALYTICS GOES HERE — see site/README.md. -->
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="index.html">Lutrin</a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="index.html">Home</a>
+    <a href="index.html#file">The whole file</a>
+    <a href="playground.html">Playground</a>
+    <a href="index.html#pricing">Pricing</a>
+    <a href="kit-editor.html">Kit editor</a>
+    <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Docs</a>
+    <a class="nav-gh" href="https://github.com/julien-riel/lutrin">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<section class="cmp-hero">
+  <div class="wrap">
+    <p class="eyebrow">markdown to slides · compared</p>
+    <h1>Lutrin vs&nbsp;reveal.js</h1>
+    <p class="cmp-verdict">This is the least even comparison of the four, in both
+      directions. On the web, reveal.js is not merely ahead — it is the thing
+      the others are measured against. And there is no PowerPoint at the end of
+      any reveal.js path, natively or planned. So the question is not which is
+      better; it is whether what you owe somebody is a page or a file.</p>
+    <nav class="cmp-nav" aria-label="Comparisons">
+      <a href="lutrin-vs-marp.html">vs Marp</a>
+      <a href="lutrin-vs-slidev.html">vs Slidev</a>
+      <a href="lutrin-vs-revealjs.html" aria-current="page">vs reveal.js</a>
+      <a href="lutrin-vs-pandoc.html">vs Pandoc</a>
+    </nav>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>What reveal.js does better</h2>
+    <p class="lead">Four of them, and they are not small. If your deck lives on
+      a screen and its job is to be watched, this list is the answer and the
+      rest of the page is beside the point.</p>
+
+    <div class="concede">
+      <h3>Four things reveal.js does that Lutrin cannot and will not</h3>
+      <ul>
+        <li><strong>Motion design between slides.</strong> Auto-Animate morphs
+          matching elements across two adjacent slides — position, size, colour,
+          spacing, essentially any animatable property — with per-slide easing
+          and <code>data-id</code> to pair elements that do not match by content.
+          A build-up where a headline shrinks into a corner while a chart grows
+          into its place is reveal.js work. Lutrin reveals one block at a time
+          and applies PowerPoint Morph only to the "(cont.)" pages its own
+          pagination creates.</li>
+        <li><strong>A real vocabulary for incremental reveal.</strong> Fragments
+          ship more than a dozen named effects, explicit ordering by index,
+          nesting so one element can fade in then turn red then fade out, custom
+          effects declared in CSS, and events you can script against. Lutrin has
+          four effects applied per block, chosen by the engine unless you name
+          one, and no scripting hook at all.</li>
+        <li><strong>It is extensible, because it is a web page.</strong> Six
+          bundled plugins, a documented plugin registry, a JS API, every theme
+          variable exposed as a CSS custom property, and the freedom to drop an
+          iframe, a video or a live D3 canvas into a slide. Lutrin refuses all of
+          it by design — no coordinate, no CSS override, no JS hook.</li>
+        <li><strong>One deck, two reading modes.</strong> Scroll view turns the
+          same presentation into a scrollable page with fragments preserved, and
+          auto-activates below a configurable viewport width so the deck stays
+          readable on a phone. Lutrin's HTML is a slide-at-a-time surface with no
+          reading-mode counterpart.</li>
+      </ul>
+      <p style="margin-top:1rem"><strong>And the ecosystem gap is real.</strong>
+        Around 72,000 GitHub stars, a community plugin catalogue and a decade of
+        answers to every question you might have. Lutrin is a young project with
+        one maintainer. A page that skipped this would be marketing.</p>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Where Lutrin is different</h2>
+    <ul class="cmp-list">
+      <li><strong>There is no PowerPoint at the end of any reveal.js
+        path.</strong> Its only built-in export is PDF, through a print
+        stylesheet and the browser's print dialog. A feature request for
+        PowerPoint export has been open since January 2019 with no assignee, no
+        label and no linked pull request — that is an absence, not a refusal, and
+        it should not be described as one. Third-party converters and a PDF
+        round trip do exist; what they cost you is flattened slides and every
+        fragment and transition gone. Lutrin's primary output is a
+        <code>.pptx</code> of native text boxes, tables and shapes, with the
+        fonts embedded. Charts, equations and icons in that file are rasterised
+        images — the text, the tables and the layout are not.</li>
+      <li><strong>Who owns the page.</strong> In reveal.js the author owns
+        everything: HTML, CSS custom properties, classes, free positioning. In
+        Lutrin the author may not position anything; the engine infers the layout
+        from the structure of the content and paginates the overflow. That is a
+        loss of control traded for homogeneity, and it is written into the
+        contributing contract rather than left as a gap to fill later.</li>
+      <li><strong>Validation that measures.</strong> reveal.js documents no
+        layout engine and no overflow detection — a slide that is too full simply
+        overflows or gets scaled. <code>lutrin validate</code> reports measured
+        overflow, under-resolved images and a better-suited layout, positioned at
+        a line and emitted as JSON; <code>build</code> refuses to write a file
+        while an error-severity diagnostic remains.</li>
+      <li><strong>Branding as data.</strong> A reveal.js theme is CSS — twelve
+        built in, custom ones written as CSS or Sass — which is more expressive,
+        and is also code you must review and maintain. A Lutrin kit is theme
+        tokens, layouts, fonts and logos in an archive; installing one executes
+        nothing and refuses any executable entry.</li>
+      <li><strong>How each is funded.</strong> Both are MIT. reveal.js has no
+        paid tier; it is funded through Slides.com, a separate hosted editor by
+        the same author — the framework itself is free and unrestricted. Lutrin's
+        paid licence removes the <em>Made with Lutrin</em> mark from compiled
+        decks and changes nothing else.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Side by side</h2>
+    <div class="table-scroll">
+      <table class="cmp-table">
+        <thead>
+          <tr><th scope="col">&nbsp;</th><th scope="col">reveal.js</th><th scope="col">Lutrin</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">What you get out</th>
+            <td>A self-presenting web page you host, plus built-in PDF export.</td>
+            <td>An editable <code>.pptx</code>, or one standalone HTML file.</td>
+          </tr>
+          <tr>
+            <th scope="row">PowerPoint path</th>
+            <td>None. No native PPTX export; the request has sat open and unassigned since 2019. Third-party converters and PDF→PPTX exist, and flatten the deck.</td>
+            <td>Native: text boxes, tables, shapes, notes and embedded fonts.</td>
+          </tr>
+          <tr>
+            <th scope="row">Who decides the layout</th>
+            <td>You — HTML, CSS, custom properties, free positioning. No layout engine or overflow detection documented.</td>
+            <td>The engine, always. No coordinate, no explicit column, no CSS override.</td>
+          </tr>
+          <tr>
+            <th scope="row">Authoring in Markdown</th>
+            <td>Fully supported — whole decks can live in an external <code>.md</code>, with configurable separators. Anything beyond plain Markdown rides in HTML-comment attributes.</td>
+            <td>Markdown is the only surface, treated as a DSL. No HTML escape hatch.</td>
+          </tr>
+          <tr>
+            <th scope="row">Slide structure</th>
+            <td>Two-dimensional: horizontal slides with nested vertical stacks.</td>
+            <td>Linear only.</td>
+          </tr>
+          <tr>
+            <th scope="row">Overflowing content</th>
+            <td>Your problem — adjust the CSS or the content.</td>
+            <td>Measured, reported as a diagnostic before the build, and paginated.</td>
+          </tr>
+          <tr>
+            <th scope="row">Animation</th>
+            <td>Fragments with a dozen-plus effects, indexes, nesting, custom CSS effects, JS events; Auto-Animate morphing between slides.</td>
+            <td>Four effects, applied per block by the engine.</td>
+          </tr>
+          <tr>
+            <th scope="row">Presenter view</th>
+            <td>Notes, next-slide preview, elapsed timer, wall clock, optional pacing timer. Needs to be served from a local web server.</td>
+            <td>Built into the standalone HTML: notes, timer, next slide, second window. Native notes in the <code>.pptx</code>. Roughly parity.</td>
+          </tr>
+          <tr>
+            <th scope="row">Reading it as a page</th>
+            <td>Scroll view — the same deck as a scrollable page, auto-activating on narrow viewports.</td>
+            <td>No reading mode.</td>
+          </tr>
+          <tr>
+            <th scope="row">Extensibility</th>
+            <td>Plugin API, JS API, bundled plugins, a community catalogue, an official React wrapper and TypeScript types.</td>
+            <td>Extension is data: kits, JSON themes, layout aliases. Installation executes nothing.</td>
+          </tr>
+          <tr>
+            <th scope="row">Setup</th>
+            <td>Download the ZIP and edit <code>index.html</code>, or install from npm.</td>
+            <td><code>npx lutrin build deck.md -o deck.pptx</code>, Node ≥ 22.</td>
+          </tr>
+          <tr>
+            <th scope="row">Licence and money</th>
+            <td>MIT, no paid tier, no watermark. Funded through a separate hosted product.</td>
+            <td>MIT, free to use, with a mark on every slide until a seat is bought.</td>
+          </tr>
+          <tr>
+            <th scope="row">Maturity</th>
+            <td>6.0.1, released 2026-04-11. ~72,000 stars, actively maintained.</td>
+            <td>Young, one maintainer.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <div class="cmp-run">
+      <h3>Run the comparison yourself</h3>
+      <p>Only partly, and the honest version is worth more than a rigged one.
+        There is <em>no import path</em>: Lutrin's <code>marp: true</code> switch
+        reads Marp Markdown, not reveal.js Markdown, and reveal.js's fragment
+        classes and slide-attribute comments have no Lutrin equivalent — as
+        Lutrin's <code>:::metric</code> and <code>```chart</code> blocks have no
+        reveal.js equivalent.</p>
+      <p>What does compile both ways is the plain subset: one H1 per slide,
+        <code>---</code> splits, bullets, a table, a quote, speaker notes. Write
+        that once and feed it to both.</p>
+      <pre><code># reveal.js: load it with data-markdown, or point its Markdown plugin at the file
+npx lutrin build plain.md -o lutrin.pptx</code></pre>
+      <p>reveal.js hands you a folder to host, presenting a centred column that
+        scales or spills when a slide is too full, and a PDF if you print it.
+        Lutrin hands you a <code>.pptx</code> whose bullet slide became two
+        columns, whose table slide became a table, and whose overflowing slide
+        was split into a "(cont.)" page — every shape editable in PowerPoint.</p>
+      <p>Then try the reverse honestly: build a deck around an Auto-Animate
+        build-up, and Lutrin cannot render it at all.</p>
+    </div>
+
+    <p class="cmp-checked">Every claim about reveal.js on this page was checked
+      against its own current documentation and repository on
+      <strong>2026-07-30</strong>, against <strong>reveal.js 6.0.1</strong>
+      (released 2026-04-11). Note in particular that the common criticisms of
+      this project are out of date: the build moved to Vite, TypeScript types
+      ship in the package, and there is an official React wrapper, all as of
+      6.0.0. If a statement here has stopped being true,
+      <a href="mailto:contact@lutrin.app">tell us</a>.
+      Sources: <a href="https://revealjs.com/">revealjs.com</a>,
+      <a href="https://revealjs.com/auto-animate/">Auto-Animate</a>,
+      <a href="https://revealjs.com/scroll-view/">scroll view</a>,
+      <a href="https://revealjs.com/pdf-export/">PDF export</a>,
+      <a href="https://github.com/hakimel/reveal.js/issues/2310">issue&nbsp;#2310</a>.</p>
+
+    <div class="refuse-ctas">
+      <a class="btn btn-primary" href="index.html">See what Lutrin compiles</a>
+      <a class="btn btn-ghost" href="lutrin-vs-pandoc.html">Compare with Pandoc</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="wordmark">Lutrin</p>
+      <p class="footer-tag">A lectern for your Markdown:<br>you bring the words,
+        it holds them up.</p>
+    </div>
+    <nav class="footer-links" aria-label="Project links">
+      <a href="index.html">The landing page</a>
+      <a href="pricing.html">Prices, in full</a>
+      <a href="lutrin-vs-marp.html">vs Marp</a>
+      <a href="lutrin-vs-slidev.html">vs Slidev</a>
+      <a href="lutrin-vs-pandoc.html">vs Pandoc</a>
+      <a href="https://github.com/julien-riel/lutrin">GitHub</a>
+    </nav>
+    <div class="footer-contact">
+      <p class="footer-contact-h">Talk to a human</p>
+      <p><a href="mailto:contact@lutrin.app">contact@lutrin.app</a></p>
+      <p class="footer-contact-note">Including "you got something wrong about
+        reveal.js" — that is the message we most want to receive.</p>
+    </div>
+  </div>
+  <div class="wrap footer-fine">
+    <p>MIT license · © Julien Riel · reveal.js is the work of Hakim El Hattab and
+      contributors, and is not affiliated with Lutrin.</p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

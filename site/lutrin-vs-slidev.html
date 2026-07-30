@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lutrin vs Slidev — a web app to present, or a document to hand over</title>
+<meta name="description" content="An honest comparison, checked against Slidev's own documentation on 2026-07-30. Slidev is a Vue-powered deck you perform from a browser; Lutrin compiles Markdown into a PowerPoint whose text is still text.">
+<link rel="canonical" href="https://lutrin.app/lutrin-vs-slidev.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lutrin vs Slidev — a web app to present, or a document to hand over">
+<meta property="og:description" content="Slidev's PPTX arrives as images. Lutrin's arrives as text boxes. Everything else is a trade — here it is, checked.">
+<meta property="og:url" content="https://lutrin.app/lutrin-vs-slidev.html">
+<meta property="og:image" content="https://lutrin.app/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/css/main.css">
+<!-- ANALYTICS GOES HERE — see site/README.md. -->
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="index.html">Lutrin</a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="index.html">Home</a>
+    <a href="index.html#file">The whole file</a>
+    <a href="playground.html">Playground</a>
+    <a href="index.html#pricing">Pricing</a>
+    <a href="kit-editor.html">Kit editor</a>
+    <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Docs</a>
+    <a class="nav-gh" href="https://github.com/julien-riel/lutrin">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<section class="cmp-hero">
+  <div class="wrap">
+    <p class="eyebrow">markdown to slides · compared</p>
+    <h1>Lutrin vs&nbsp;Slidev</h1>
+    <p class="cmp-verdict">Slidev turns Markdown into a live web application you
+      perform from — editable code on stage, drawing over the slide, camera
+      recording. Lutrin turns Markdown into a file you hand to somebody who will
+      never clone your repository. Same input, two different artefacts, and the
+      question is only which of the two you actually have to produce.</p>
+    <nav class="cmp-nav" aria-label="Comparisons">
+      <a href="lutrin-vs-marp.html">vs Marp</a>
+      <a href="lutrin-vs-slidev.html" aria-current="page">vs Slidev</a>
+      <a href="lutrin-vs-revealjs.html">vs reveal.js</a>
+      <a href="lutrin-vs-pandoc.html">vs Pandoc</a>
+    </nav>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>What Slidev does better</h2>
+    <p class="lead">If you are giving a talk rather than filing a document, most
+      of this list is the reason to stop reading and go use Slidev. It is MIT,
+      free, mature, and none of what follows is a roadmap item for us.</p>
+
+    <div class="concede">
+      <h3>Four things Slidev does that Lutrin cannot</h3>
+      <ul>
+        <li><strong>Live code on stage.</strong> A code block marked
+          <code>{monaco}</code> becomes a real Monaco editor you type into during
+          the talk, with a diff mode and a runner that executes the snippet.
+          Lutrin's HTML is a static document; it will never run your code in
+          front of an audience.</li>
+        <li><strong>Animation at the level of the single element.</strong>
+          <code>v-click</code> / <code>v-clicks</code> / <code>v-after</code>
+          with relative or absolute click indexes, <code>@vueuse/motion</code>
+          bound to click ranges, per-slide transitions including
+          <code>view-transition</code>. Lutrin has four deck-wide effects — fade,
+          wipe, zoom, appear — and no way to choreograph one element.</li>
+        <li><strong>Drawing on the slide while you present.</strong> Stylus
+          detection so an Apple Pencil draws while a finger still navigates,
+          annotations synced live to every connected viewer, and
+          <code>drawings: persist: true</code> writing them back into the source
+          so they survive into the exported PDF. Lutrin has nowhere to put this:
+          its output is a file, not a session.</li>
+        <li><strong>An ecosystem, and a five-year track record.</strong> Around
+          48,000 GitHub stars, themes and addons distributed as ordinary npm
+          packages you switch on from the frontmatter, a zero-install browser
+          playground at <a href="https://sli.dev/new">sli.dev/new</a>, a presenter
+          route with three layouts and an overview mode. Lutrin has twelve
+          official layouts, one maintainer and no theme market.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Where Lutrin is different</h2>
+    <ul class="cmp-list">
+      <li><strong>The <code>.pptx</code> is a document, not a screenshot.</strong>
+        Slidev does export PPTX — that has been a supported format for years, and
+        anyone telling you otherwise is working from an old memory. What its own
+        documentation says is the narrow, checkable thing: "all the slides in the
+        PPTX file will be exported as images, so the text will not be selectable"
+        (presenter notes do carry across). Lutrin writes native text boxes,
+        tables and shapes with the fonts embedded. If the deck's next stop is a
+        colleague who has to fix a number in it, that is the whole
+        difference.</li>
+      <li><strong>You are not allowed to position anything.</strong> Slidev goes
+        the other way deliberately: UnoCSS classes per slide, scoped CSS, custom
+        Vue layouts in <code>./layouts/</code>. Lutrin has no coordinate, no
+        explicit column and no CSS override, and adding one is written into the
+        project contract as a thing that will be refused. This is a real loss of
+        control, traded for decks that come out the same shape whoever wrote
+        them.</li>
+      <li><strong>Validation that measures geometry, not syntax.</strong>
+        <code>lutrin validate --json</code> reports measured overflow, images too
+        low-resolution for the area they land in, and a better-suited layout, as
+        positioned JSON built for an agent's write → validate → fix loop. Slidev
+        documents no equivalent.</li>
+      <li><strong>A brand that travels as data.</strong> A Slidev theme is an npm
+        package of Vue components and CSS — more powerful than a kit, and code
+        you are running. A Lutrin kit is tokens, layouts, fonts and logos;
+        installation executes nothing and refuses any executable entry.</li>
+      <li><strong>One HTML file.</strong> <code>slidev build</code> produces a
+        static single-page application in <code>dist/</code> — a directory of
+        assets to host. Lutrin's HTML output is one standalone document with
+        presenter mode inside it. Both work offline; the difference is a file
+        versus a folder.</li>
+      <li><strong>No browser in the toolchain.</strong> Slidev's PDF, PPTX and
+        PNG exports rely on Playwright, so <code>playwright-chromium</code> has
+        to be installed in the project. Lutrin builds on Node ≥ 22 with no
+        headless browser at all — which is what makes it survivable in a
+        locked-down runner.</li>
+      <li><strong>Charts as a DSL block.</strong> Slidev has Mermaid and PlantUML;
+        for a bar or donut chart from data you write a component. Lutrin has
+        <code>```chart</code> alongside Mermaid, LaTeX and Lucide icons, sized by
+        the engine and drawn into both outputs.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Side by side</h2>
+    <div class="table-scroll">
+      <table class="cmp-table">
+        <thead>
+          <tr><th scope="col">&nbsp;</th><th scope="col">Slidev</th><th scope="col">Lutrin</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">PPTX export</th>
+            <td>Yes — slides land as images, text not selectable (its own docs). Presenter notes are carried over per slide.</td>
+            <td>Native shapes, text boxes and tables, fonts embedded — the text is text. Charts, equations and icons are rasterised images.</td>
+          </tr>
+          <tr>
+            <th scope="row">PDF export</th>
+            <td>Yes, the default format, with <code>--with-clicks</code>, <code>--range</code>, <code>--dark</code>.</td>
+            <td>None. The two outputs are <code>.pptx</code> and standalone HTML.</td>
+          </tr>
+          <tr>
+            <th scope="row">Export dependencies</th>
+            <td>Playwright — <code>playwright-chromium</code> must be installed in the project.</td>
+            <td>Node ≥ 22. No browser, no headless Chromium.</td>
+          </tr>
+          <tr>
+            <th scope="row">Who decides the layout</th>
+            <td>You: 19 built-in layouts, custom Vue layouts, UnoCSS classes, scoped CSS, global layers.</td>
+            <td>The engine: layouts inferred from the content's structure. No coordinate or explicit column exists in the DSL.</td>
+          </tr>
+          <tr>
+            <th scope="row">When a slide overflows</th>
+            <td>Write CSS, a utility class, or a component.</td>
+            <td>There is no escape hatch. The engine paginates, and the overflow is reported before the build.</td>
+          </tr>
+          <tr>
+            <th scope="row">Web output</th>
+            <td>A static SPA in <code>dist/</code> — a directory of assets to host.</td>
+            <td>One standalone <code>.html</code> file.</td>
+          </tr>
+          <tr>
+            <th scope="row">Presenter mode</th>
+            <td>Ahead of us here: a <code>/presenter</code> route with three layouts, next-slide preview, sync across every open window, an overview route and a batch notes editor.</td>
+            <td>Built into the exported file: <kbd>P</kbd> for full screen, <kbd>N</kbd> for notes and timer in a second window. No server needed.</td>
+          </tr>
+          <tr>
+            <th scope="row">Interactivity in the deliverable</th>
+            <td>Monaco editors, iframes, arbitrary Vue components, live drawing, camera and screen recording.</td>
+            <td>None. The deliverable is a static file, on purpose.</td>
+          </tr>
+          <tr>
+            <th scope="row">Animation</th>
+            <td>Per element, with absolute or relative click indexes and motion presets.</td>
+            <td>Four effects — fade, wipe, zoom, appear — applied per block by the engine.</td>
+          </tr>
+          <tr>
+            <th scope="row">Diagrams &amp; charts</th>
+            <td>Mermaid and PlantUML. No documented built-in syntax for data charts.</td>
+            <td>Mermaid, plus <code>```chart</code> for data charts, LaTeX and icons.</td>
+          </tr>
+          <tr>
+            <th scope="row">How a brand travels</th>
+            <td>A theme or addon: an npm package of styles, components and layouts.</td>
+            <td>A kit: data only. Install runs nothing and refuses executable entries.</td>
+          </tr>
+          <tr>
+            <th scope="row">Getting started</th>
+            <td>Node ≥ 20.12. <code>pnpm create slidev</code> scaffolds a project — or run a single <code>.md</code> with the global CLI, or start from the browser playground.</td>
+            <td>Node ≥ 22. <code>npx lutrin build deck.md -o deck.pptx</code> against a bare <code>.md</code>. No scaffold.</td>
+          </tr>
+          <tr>
+            <th scope="row">Validation</th>
+            <td>Not a documented feature.</td>
+            <td>Measured overflow, under-resolved images, layout suggestions, <code>--json</code>. <code>build</code> refuses to emit a deck holding an error.</td>
+          </tr>
+          <tr>
+            <th scope="row">Licence and price</th>
+            <td>MIT. Free. No watermark, nothing paid.</td>
+            <td>MIT, free to use — every slide carries <em>Made with Lutrin</em> until a seat is bought. That mark is the only difference between the tiers.</td>
+          </tr>
+          <tr>
+            <th scope="row">Maturity</th>
+            <td>52.18.0, released 2026-07-14. Created April 2021, ~48,000 stars.</td>
+            <td>1.2.0, one maintainer.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <div class="cmp-run">
+      <h3>Run the comparison yourself</h3>
+      <p>Write a plain deck — a title, three slides of bullets, one Mermaid
+        diagram, speaker notes. Both tools eat it almost unchanged: Slidev splits
+        on <code>---</code> and takes notes from HTML comments, Lutrin splits on
+        <code>#</code> or <code>---</code>.</p>
+      <pre><code>slidev export --format pptx slides.md
+npx lutrin build slides.md -o lutrin.pptx</code></pre>
+      <p>Open both in PowerPoint and try to click into the title and retype it.
+        That is one measurable difference, demonstrated rather than
+        asserted.</p>
+      <p>Now reverse the test on the same deck. Ask for a code block the audience
+        can edit while you talk, a diagram that assembles itself over four
+        clicks, or the subtitle nudged 40&nbsp;px to the left. Slidev does all
+        three. Lutrin has no syntax for any of them and will not grow one.</p>
+    </div>
+
+    <p class="cmp-checked">Every claim about Slidev on this page was checked
+      against Slidev's own documentation on <strong>2026-07-30</strong>, against
+      <strong>@slidev/cli 52.18.0</strong> (published 2026-07-14). Star counts
+      and version numbers go stale within weeks; treat them as of that date. If
+      a statement here has stopped being true,
+      <a href="mailto:contact@lutrin.app">tell us</a>.
+      Sources: <a href="https://sli.dev/guide/">the Slidev guide</a>,
+      <a href="https://sli.dev/guide/exporting">its exporting page</a>,
+      <a href="https://sli.dev/features/monaco-editor">the Monaco editor feature</a>,
+      <a href="https://sli.dev/builtin/layouts">the built-in layouts</a>.</p>
+
+    <div class="refuse-ctas">
+      <a class="btn btn-primary" href="index.html">See what Lutrin compiles</a>
+      <a class="btn btn-ghost" href="lutrin-vs-revealjs.html">Compare with reveal.js</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="wordmark">Lutrin</p>
+      <p class="footer-tag">A lectern for your Markdown:<br>you bring the words,
+        it holds them up.</p>
+    </div>
+    <nav class="footer-links" aria-label="Project links">
+      <a href="index.html">The landing page</a>
+      <a href="pricing.html">Prices, in full</a>
+      <a href="lutrin-vs-marp.html">vs Marp</a>
+      <a href="lutrin-vs-revealjs.html">vs reveal.js</a>
+      <a href="lutrin-vs-pandoc.html">vs Pandoc</a>
+      <a href="https://github.com/julien-riel/lutrin">GitHub</a>
+    </nav>
+    <div class="footer-contact">
+      <p class="footer-contact-h">Talk to a human</p>
+      <p><a href="mailto:contact@lutrin.app">contact@lutrin.app</a></p>
+      <p class="footer-contact-note">Including "you got something wrong about
+        Slidev" — that is the message we most want to receive.</p>
+    </div>
+  </div>
+  <div class="wrap footer-fine">
+    <p>MIT license · © Julien Riel · Slidev is a trademark of its authors and is
+      not affiliated with Lutrin.</p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

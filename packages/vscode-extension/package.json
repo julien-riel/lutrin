@@ -53,7 +53,7 @@
   "bugs": {
     "url": "https://github.com/julien-riel/lutrin/issues"
   },
-  "homepage": "https://julien-riel.github.io/lutrin/",
+  "homepage": "https://lutrin.app/",
   "categories": ["Visualization", "Linters", "Other"],
   "main": "./dist/extension.js",
   "activationEvents": ["onLanguage:markdown"],

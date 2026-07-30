@@ -106,6 +106,30 @@
     });
   });
 
+  // ------------------------------------------------------------ analytics
+  // Provider-agnostic, and deliberately so: no analytics script is installed
+  // yet (site/README.md records the decision and what each event means), and
+  // until one is these calls cost a property lookup and do nothing. Whichever
+  // cookie-free provider lands in <head> is picked up with no change here —
+  // installing one must be one line in one place, not a hunt through this file.
+  const track = (name, props) => {
+    if (typeof window.plausible === 'function') window.plausible(name, { props });
+    else if (window.umami && typeof window.umami.track === 'function')
+      window.umami.track(name, props);
+  };
+
+  // Two of the three events. Delegated from the document rather than bound per
+  // link, because the gallery cards, the two hero buttons and the footer all
+  // point at the same two files and the list grows every time a page is added.
+  document.addEventListener('click', (e) => {
+    const a = e.target instanceof Element ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (href.endsWith('.pptx')) track('pptx downloaded');
+    else if (href === 'demo.html' || href.indexOf('demo.html#') === 0)
+      track('deck opened', { slide: href.split('#')[1] || 'first' });
+  });
+
   // ----------------------------------------------------------------- copy
   [].slice.call(document.querySelectorAll('.copy')).forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -118,6 +142,10 @@
           btn.classList.remove('done');
         }, 1600);
       };
+      // Reported on the CLICK, not on the clipboard promise: a browser that
+      // denies clipboard access still tells us the reader wanted the command,
+      // which is the thing being measured.
+      track('command copied', { command: text });
       if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok);
     });
   });

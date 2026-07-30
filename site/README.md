@@ -1,0 +1,156 @@
+# `site/` — the landing pages
+
+Static source. **No build step, no bundler, no dependency**, and that is a
+constraint rather than an accident: everything here is served exactly as it is
+committed. `.github/workflows/pages.yml` copies this directory into `_site/`,
+drops in a `demo.html` and a `demo.pptx` compiled from `examples/demo.deck.md`
+by the engine at `HEAD`, and deploys the result to GitHub Pages.
+
+| File | What it is |
+| --- | --- |
+| `index.html` | the landing page, including the tiers and the FAQ |
+| `playground.html` | the compiler, running in the visitor's browser — see below |
+| `pricing.html` | all five purchase options, in USD and CAD |
+| `kit-editor.html` | a tour of `lutrin kit edit`, from committed screenshots |
+| `lutrin-vs-*.html` | four comparison pages, one template, each dated |
+| `robots.txt`, `sitemap.xml` | **add a line to the sitemap for every new page** |
+| `CNAME` | the custom domain — see below |
+| `demo.html`, `demo.pptx` | **compiled by CI, never committed** (gitignored) |
+
+The slides on the landing page are not screenshots: they are `<iframe>`s onto
+the real compiled deck, cropped to one slide and scaled by `assets/js/main.js`.
+That is the rule the whole site holds itself to — nothing here may show
+something the compiler does not actually produce.
+
+## The domain
+
+`CNAME` carries **`lutrin.app`**, the canonical domain. `cp -R site/.` in the
+Pages workflow already carries the file into the artifact, so no workflow
+change was needed.
+
+Two things live outside this repository and have to be done by a person:
+
+1. **DNS at the registrar.** An `ALIAS`/`ANAME` (or four `A` records) on the
+   apex pointing at GitHub Pages, plus a `CNAME` on `www`.
+2. **Repository → Settings → Pages → Custom domain**, set to `lutrin.app`, then
+   *Enforce HTTPS* once the certificate is issued. Both this setting and the
+   `CNAME` file must exist: with only one of the two, the domain quietly drops
+   on a later deploy.
+
+`lutrin.dev` and `lutrin.ai` are held but not served — point them at
+`lutrin.app` with a registrar-level 301. GitHub Pages accepts exactly one
+custom domain, so they must never be added to `CNAME`.
+
+The old `julien-riel.github.io/lutrin` URL keeps working: GitHub redirects it
+once the custom domain is set, so no link already in the wild breaks.
+
+## The playground
+
+`playground.html` runs **the real compiler** — `packages/core/src`, served
+verbatim and imported unchanged. Not a re-implementation, not a server call, and
+verified: on four decks the browser produced scenes, stylesheet and HTML
+**byte-identical** to Node's.
+
+There is still **no build step**. What makes that possible:
+
+- **An import map** in `playground.html` resolves the eight `node:*` specifiers
+  the compiler statically imports, plus `markdown-it` and its five transitive
+  dependencies. Import maps resolve `node:fs` like any other specifier.
+- **`assets/js/shims/`** — `path`, `os`, `url` and `crypto` compute for real
+  (`path` and `crypto` are pinned against Node's own by
+  `packages/core/test/playground.test.mjs`); `fs` is a read-only map filled
+  before the compiler is imported; `unavailable.mjs` throws for
+  `child_process`, `dns` and `module`, which every call site already handles.
+- **A classic `<script>` stubbing `window.process` before the module.**
+  `deck/assets.mjs` reads `process.env` at module scope, on its first
+  statement. Out of order, the page dies before anything runs.
+- **Three copies in `pages.yml`**: `packages/core/src` → `_site/core/src`,
+  `design/layouts` → `_site/core/design/layouts` (plus a manifest written
+  *beside* it), and seven npm packages → `_site/vendor/`.
+
+`_site/core/` is not a stylistic choice. `deck/layout.mjs` and
+`deck/assets.mjs` derive the package root from
+`fileURLToPath(import.meta.url)` — in a browser, the URL's pathname — so
+`/core/src/deck/layout.mjs` must resolve `../..` to a directory that really
+holds `design/layouts`.
+
+### Two things it must keep doing
+
+1. **Refuse rather than mislead.** `deck/layout.mjs` loads the official layout
+   catalogue synchronously at module scope, inside a bare `catch {}` that
+   pushes no diagnostic. An empty catalogue renders a dozen layouts with wrong
+   geometry and still reports `stats.warnings === []`. So the page counts what
+   registered against the manifest and **stops** if they disagree.
+2. **Name what a browser cannot draw.** Mermaid needs a subprocess, LaTeX needs
+   a CommonJS package no import map can load, icons and images need a disk —
+   and all four vanish *silently*. `describeGaps()` inspects the scene graph
+   itself and says which are missing, naming the CLI.
+
+**If you add a `node:` import anywhere reachable from `html/render.mjs`,
+`packages/core/test/playground.test.mjs` fails.** That test walks the real
+static import graph rather than a maintained list, because a browser refuses
+the whole graph over one unmapped specifier — at link time, in production, and
+nowhere else.
+
+## Analytics
+
+**None is installed.** The decision was deliberately deferred; what is in place
+is the socket for one.
+
+- Each page carries an `ANALYTICS GOES HERE` comment in `<head>`. Installing a
+  provider is that one line, in each page, and nothing else.
+- **Cookie-free is a requirement, not a preference.** It keeps the page out of
+  consent-banner territory, and a consent banner is itself a conversion cost.
+  Plausible and Umami both qualify; Umami can be self-hosted, Plausible cannot
+  without work.
+- `assets/js/main.js` defines a `track(name, props)` that calls
+  `window.plausible` or `window.umami.track`, whichever is present, and does
+  nothing when neither is. So the events below are already wired and start
+  reporting the moment a script is added.
+
+### The three custom events
+
+| Event | Fires when | Props | Why it is worth a name |
+| --- | --- | --- | --- |
+| `command copied` | any `copy` button is clicked, on either page | `command` | the reader intends to run Lutrin — the closest thing to an install this page can see |
+| `pptx downloaded` | any link ending in `.pptx` | — | proof that the "real PowerPoint, not an image" claim landed |
+| `deck opened` | `demo.html`, from the buttons or a gallery card | `slide` | which slide pulled them in, which is what the gallery is for |
+
+`command copied` fires on the click, not on the clipboard promise: a browser
+that denies clipboard access still tells us the reader wanted the command.
+
+### UTM on the checkout links
+
+Every `buy.polar.sh` link carries
+`?utm_source=site&utm_medium=<placement>&utm_campaign=<tier>`. Without the
+placement, three links to the same product are indistinguishable in the report,
+and knowing *which one converts* is the whole reason to measure.
+
+| `utm_medium` | Where |
+| --- | --- |
+| `card` | a tier card on the landing page |
+| `card-secondary` | the quiet "or buy it by card" under Organisation's *Contact us* |
+| `footer-cta` | the closing call to action on the landing page |
+| `pricing-table` | a row of the table on `pricing.html` |
+| `pricing-cta` | the closing call to action on `pricing.html` |
+
+`utm_campaign` is the tier: `solo`, `team`, `studio`, `organisation`,
+`solo-lifetime`.
+
+**When adding a checkout link, give it a UTM.** One that carries none is
+invisible in the report and looks exactly like direct traffic.
+
+## Rules this directory is held to
+
+- **No fabricated proof.** No testimonial, customer name, logo or usage figure
+  that has not been supplied and cleared by the person or organisation named.
+  The testimonial markup in `index.html` is written and commented out for
+  exactly this reason; the counters beside it are live shields.io badges, so
+  the page cannot state a number that has stopped being true.
+- **No claim the compiler does not keep.** Every sentence here must be
+  checkable against the code. Two benefits were removed under this rule —
+  *Private brand kits included* and *CI included* — because both described
+  something already free to everybody.
+- **New page? Check `git status`.** `.gitignore` ignores `*.html` globally and
+  re-includes `site/**/*.html`; a page dropped somewhere else is skipped by
+  `git add site/` with no error at all. This has bitten this repository before.

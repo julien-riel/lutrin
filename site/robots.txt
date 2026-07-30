@@ -1,0 +1,12 @@
+# https://lutrin.app/ — everything here is meant to be found.
+#
+# demo.html is the compiled demo deck: 1.5 MB of inlined fonts and base64
+# images with almost no prose. It is the best thing on the site to LOOK at and
+# the worst thing to index — a crawler that reads it finds the slide text with
+# none of the page's context, and it competes with the landing page for the
+# queries that matter.
+User-agent: *
+Allow: /
+Disallow: /demo.html
+
+Sitemap: https://lutrin.app/sitemap.xml

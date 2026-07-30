@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Every page of https://lutrin.app/, and only pages.
+
+  demo.html is deliberately absent, as it is in robots.txt: it is the compiled
+  demo deck — 1.5 MB of inlined fonts and base64 images with almost no prose —
+  and indexing it would put slide text into search results with none of the
+  page's context, competing with the landing page for the queries that matter.
+
+  <lastmod> is left out on purpose rather than filled with the deploy date. A
+  date that moves on every push says nothing true about whether the content
+  changed, and a search engine that learns to distrust it distrusts the file.
+
+  ADD A LINE HERE when a page is added under site/ — and check `git status`
+  while you are at it: .gitignore ignores *.html globally and re-includes
+  site/**/*.html, so a page put anywhere else is skipped with no error at all.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://lutrin.app/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://lutrin.app/playground.html</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://lutrin.app/pricing.html</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://lutrin.app/kit-editor.html</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://lutrin.app/lutrin-vs-marp.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://lutrin.app/lutrin-vs-slidev.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://lutrin.app/lutrin-vs-revealjs.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://lutrin.app/lutrin-vs-pandoc.html</loc>
+    <priority>0.7</priority>
+  </url>
+</urlset>

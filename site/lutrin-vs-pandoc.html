@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lutrin vs Pandoc — two ways to write an editable PowerPoint from Markdown</title>
+<meta name="description" content="An honest comparison, checked against the Pandoc 3.10.1 manual on 2026-07-30. Both write native, editable PowerPoint. Pandoc's layout comes from a reference .pptx and it measures nothing; Lutrin runs a layout engine and reports what overflows.">
+<link rel="canonical" href="https://lutrin.app/lutrin-vs-pandoc.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lutrin vs Pandoc — two ways to write an editable PowerPoint from Markdown">
+<meta property="og:description" content="Both produce genuinely editable .pptx. The difference is who chooses the layout, and whether anything is measured.">
+<meta property="og:url" content="https://lutrin.app/lutrin-vs-pandoc.html">
+<meta property="og:image" content="https://lutrin.app/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/css/main.css">
+<!-- ANALYTICS GOES HERE — see site/README.md. -->
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="index.html">Lutrin</a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="index.html">Home</a>
+    <a href="index.html#file">The whole file</a>
+    <a href="playground.html">Playground</a>
+    <a href="index.html#pricing">Pricing</a>
+    <a href="kit-editor.html">Kit editor</a>
+    <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Docs</a>
+    <a class="nav-gh" href="https://github.com/julien-riel/lutrin">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<section class="cmp-hero">
+  <div class="wrap">
+    <p class="eyebrow">markdown to powerpoint · compared</p>
+    <h1>Lutrin vs&nbsp;Pandoc</h1>
+    <p class="cmp-verdict">Start with the correction, because it is the thing
+      most pages of this kind get wrong: <strong>Pandoc's PowerPoint output is
+      genuinely editable.</strong> Native text boxes, native tables, real OMML
+      equations, highlighted code. Anyone telling you Pandoc exports pictures is
+      repeating something that was never true. The real difference is narrower,
+      and more interesting: who chooses the layout, and whether anything gets
+      measured.</p>
+    <nav class="cmp-nav" aria-label="Comparisons">
+      <a href="lutrin-vs-marp.html">vs Marp</a>
+      <a href="lutrin-vs-slidev.html">vs Slidev</a>
+      <a href="lutrin-vs-revealjs.html">vs reveal.js</a>
+      <a href="lutrin-vs-pandoc.html" aria-current="page">vs Pandoc</a>
+    </nav>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>What Pandoc does better</h2>
+    <p class="lead">Pandoc is a universal document converter for which PowerPoint
+      is one writer among dozens, maintained for decades without a revenue
+      model. Grading it on deck aesthetics would be bad faith. Here is where it
+      is straightforwardly ahead.</p>
+
+    <div class="concede">
+      <h3>Four things Pandoc does that Lutrin does not</h3>
+      <ul>
+        <li><strong>It converts in every direction — including
+          <em>out</em> of PowerPoint.</strong> Since 3.8.3 it reads
+          <code>.pptx</code> as an input format: hand it a deck somebody else
+          wrote and get Markdown, docx, LaTeX or EPUB back. Lutrin has one input
+          — its own DSL — and can never open an existing deck. That is not a gap
+          we intend to close.</li>
+        <li><strong>Math survives as math.</strong> Pandoc writes equations into
+          the <code>.pptx</code> as OMML: real PowerPoint equations the recipient
+          clicks into and edits. Lutrin renders LaTeX through MathJax and drops a
+          <strong>picture</strong> into the slide. For anything equation-heavy,
+          Pandoc's output is strictly more editable than ours.</li>
+        <li><strong>The brand arrives as a file your designer already knows how
+          to make.</strong> <code>--reference-doc</code> takes any recent
+          PowerPoint template containing the seven layout names it needs, and the
+          manual notes that templates shipped with recent PowerPoint already
+          qualify. Your brand team edits the corporate template in PowerPoint,
+          with no new format to learn. A Lutrin kit is JSON plus assets, authored
+          in a separate editor.</li>
+        <li><strong>It is programmable and scholarly.</strong> Lua filters rewrite
+          the document tree between reading and writing, and
+          <code>--citeproc</code> resolves citations and builds a bibliography
+          from a CSL style. Lutrin has no filter hook and no citation machinery
+          at all.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Where Lutrin is different</h2>
+    <ul class="cmp-list">
+      <li><strong>Who chooses the layout.</strong> Pandoc's PowerPoint writer
+        applies a fixed rule table over seven layouts — Title Slide, Section
+        Header, Two Content, Comparison, Content with Caption, Blank, Title and
+        Content — keyed to the presence of column divs and to "text followed by
+        non-text". Lutrin infers across a larger catalogue from the structure of
+        the content, with further layouts you can name when the intent is not
+        visible in the content alone. Counting layouts is not the point: Pandoc's
+        seven come from <em>your</em> reference file and a designer can style each
+        of them arbitrarily. The difference is who decides which layout a given
+        slide gets.</li>
+      <li><strong>Nothing is measured on Pandoc's side.</strong> The manual
+        documents no fit checking, no overflow report and no image-resolution
+        warning for PowerPoint output. <code>lutrin validate</code> measures the
+        overflow, flags images under-resolved for the area they land in, suggests
+        a better-suited layout, and returns it as positioned JSON; a
+        <code>build</code> holding an error-severity diagnostic writes no file at
+        all.</li>
+      <li><strong>Column widths.</strong> Pandoc states it plainly: specifying
+        column widths does not currently work for PowerPoint. Lutrin does not
+        accept widths, coordinates or explicit columns anywhere — same outcome,
+        opposite reason. A known limitation on one side, a design contract on the
+        other.</li>
+      <li><strong>Presentation components.</strong> Pandoc's document model has
+        paragraphs, lists, tables, code and images; it has no notion of a chart, a
+        metric card, a progress bar or a status board, and getting one means
+        writing a filter that produces an image. Lutrin ships
+        <code>```chart</code>, <code>:::metric</code>, <code>:::progress</code>,
+        <code>:::status</code>, Mermaid and Lucide icons as DSL blocks, sized by
+        the engine — though in the <code>.pptx</code> those particular blocks
+        arrive as rasterised images, exactly as a Pandoc filter's would.</li>
+      <li><strong>Fonts.</strong> Lutrin embeds the theme's fonts into the
+        <code>.pptx</code> it writes, after reading each font's embedding
+        permission. Pandoc inherits whatever the reference document carries.</li>
+      <li><strong>How the brand is distributed.</strong> A Lutrin kit is data
+        only — never code — installable from an https URL with a reproducible
+        checksum, refusing any entry that would escape the kit. A Pandoc
+        reference doc is a binary Office file passed around by hand, which is
+        simpler until eleven people have a slightly different copy.</li>
+      <li><strong>Licence.</strong> Pandoc is GPL, free, with no watermark and no
+        paid tier. Lutrin is MIT and free to use, but marks every slide until a
+        seat is bought. The honest framing of that is not a feature-gating story:
+        it is that we charge for something you can get for free elsewhere, and
+        the argument for it has to be the engine, not the absence of an
+        alternative.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Side by side</h2>
+    <div class="table-scroll">
+      <table class="cmp-table">
+        <thead>
+          <tr><th scope="col">&nbsp;</th><th scope="col">Pandoc</th><th scope="col">Lutrin</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">What it is</th>
+            <td>A universal document converter; slide shows are one destination among dozens.</td>
+            <td>A deck compiler: one DSL in, <code>.pptx</code> or standalone HTML out.</td>
+          </tr>
+          <tr>
+            <th scope="row">Reads <code>.pptx</code></th>
+            <td>Yes, since 3.8.3 (2025-12-01).</td>
+            <td>No, and never will — the input is always the Markdown DSL.</td>
+          </tr>
+          <tr>
+            <th scope="row">Is the <code>.pptx</code> editable?</th>
+            <td>Yes. Native text boxes, native tables, OMML equations, highlighted code. Not images.</td>
+            <td>Yes for text, tables and shapes. Charts, equations and icons are rasterised images.</td>
+          </tr>
+          <tr>
+            <th scope="row">Layout selection</th>
+            <td>Seven layouts chosen by a fixed rule table.</td>
+            <td>Inferred from content structure, plus layouts you can name and parameterised official ones.</td>
+          </tr>
+          <tr>
+            <th scope="row">Where the brand lives</th>
+            <td><code>--reference-doc</code>: a real <code>.pptx</code>/<code>.potx</code> carrying the seven required layout names. A missing name warns and falls back.</td>
+            <td>A kit — theme JSON, layouts, fonts, logos — resolved through a documented precedence chain.</td>
+          </tr>
+          <tr>
+            <th scope="row">Speaker notes</th>
+            <td>Yes, via a <code>::: notes</code> div — and since 3.9 also on the generated title slide through a metadata field, which Lutrin's cover has no equivalent for.</td>
+            <td>Yes, <code>&lt;!-- notes: … --&gt;</code>, surfaced in the HTML presenter mode and in the <code>.pptx</code>.</td>
+          </tr>
+          <tr>
+            <th scope="row">Background images</th>
+            <td>Yes, on the slide heading. Whole-deck backgrounds go through the reference doc's layouts.</td>
+            <td>A cover image makes the engine choose the hero layout.</td>
+          </tr>
+          <tr>
+            <th scope="row">Tables</th>
+            <td>Native PowerPoint tables. 3.10.1 keeps a table and its surrounding text on one slide rather than splitting them.</td>
+            <td>Native PowerPoint tables. The delimiter row's alignment is the one place something written in the Markdown decides where ink sits.</td>
+          </tr>
+          <tr>
+            <th scope="row">Math</th>
+            <td>OMML — native, editable equations.</td>
+            <td>MathJax rendered to an image.</td>
+          </tr>
+          <tr>
+            <th scope="row">Charts and diagrams</th>
+            <td>No chart or diagram concept in the model; needs a filter that produces an image.</td>
+            <td><code>```chart</code> and Mermaid are DSL blocks sized by the engine (images in the <code>.pptx</code>).</td>
+          </tr>
+          <tr>
+            <th scope="row">Column widths in PPTX</th>
+            <td>Documented as not currently working.</td>
+            <td>No widths, coordinates or explicit columns exist in the DSL at all.</td>
+          </tr>
+          <tr>
+            <th scope="row">Validation of the result</th>
+            <td>Warns when a reference doc lacks a required layout name. No documented fit, overflow or resolution checking.</td>
+            <td>Measures overflow, under-resolved images and layout mismatch; <code>--json</code> for agents; <code>build</code> exits 1 on any error.</td>
+          </tr>
+          <tr>
+            <th scope="row">Extensibility</th>
+            <td>Lua filters over the document AST, citeproc bibliographies, dozens of readers and writers.</td>
+            <td>Kits and layout JSON — data, never code.</td>
+          </tr>
+          <tr>
+            <th scope="row">Licence and price</th>
+            <td>GPL, free, no paid tier, no watermark.</td>
+            <td>MIT, free to use, with a mark on every slide until a seat is bought.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <div class="cmp-run">
+      <h3>Run the comparison yourself</h3>
+      <p>This is the fairest demo of the four, but the source has to be written
+        twice, because the two inputs are genuinely different languages. Pandoc
+        needs <code>::: {.columns}</code> divs to get its Two Content layout;
+        Lutrin needs two <code>##</code> headings and picks two columns itself.
+        Six slides is enough: a title from metadata, a two-column slide, a table,
+        an image, speaker notes and a code block.</p>
+      <pre><code>pandoc deck-pandoc.md -o pandoc.pptx --reference-doc=brand.potx
+npx lutrin build deck-lutrin.md -o lutrin.pptx</code></pre>
+      <p>Open both in PowerPoint and open the Selection pane. <strong>Both files
+        are made of real, named, editable shapes.</strong> That is the honest
+        headline, and it kills the "Pandoc exports pictures" myth on the
+        spot.</p>
+      <p>What the side by side actually shows is four things. Pandoc's slide is
+        laid out by the reference file's placeholders, so its look is entirely
+        the template designer's; Lutrin's is composed by the engine. An equation
+        added to both is clickable in Pandoc's file and a picture in ours. A chart
+        added to both exists only in ours. And padding the two-column slide until
+        it overflows produces a silent overrun from Pandoc and a measured
+        diagnostic plus repagination from <code>lutrin validate</code>.</p>
+    </div>
+
+    <p class="cmp-checked">Every claim about Pandoc on this page was checked
+      against the Pandoc manual and changelog on <strong>2026-07-30</strong>,
+      against <strong>Pandoc 3.10.1</strong> (released 2026-07-21). Pandoc ships
+      roughly monthly, so behavioural claims here are dated deliberately. If a
+      statement has stopped being true,
+      <a href="mailto:contact@lutrin.app">tell us</a>.
+      Sources: <a href="https://pandoc.org/MANUAL.html">the manual</a>,
+      <a href="https://pandoc.org/MANUAL.html#powerpoint-layout-choice">PowerPoint layout choice</a>,
+      <a href="https://github.com/jgm/pandoc/releases">the release notes</a>.</p>
+
+    <div class="refuse-ctas">
+      <a class="btn btn-primary" href="index.html">See what Lutrin compiles</a>
+      <a class="btn btn-ghost" href="lutrin-vs-marp.html">Compare with Marp</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="wordmark">Lutrin</p>
+      <p class="footer-tag">A lectern for your Markdown:<br>you bring the words,
+        it holds them up.</p>
+    </div>
+    <nav class="footer-links" aria-label="Project links">
+      <a href="index.html">The landing page</a>
+      <a href="pricing.html">Prices, in full</a>
+      <a href="lutrin-vs-marp.html">vs Marp</a>
+      <a href="lutrin-vs-slidev.html">vs Slidev</a>
+      <a href="lutrin-vs-revealjs.html">vs reveal.js</a>
+      <a href="https://github.com/julien-riel/lutrin">GitHub</a>
+    </nav>
+    <div class="footer-contact">
+      <p class="footer-contact-h">Talk to a human</p>
+      <p><a href="mailto:contact@lutrin.app">contact@lutrin.app</a></p>
+      <p class="footer-contact-note">Including "you got something wrong about
+        Pandoc" — that is the message we most want to receive.</p>
+    </div>
+  </div>
+  <div class="wrap footer-fine">
+    <p>MIT license · © Julien Riel · Pandoc is by John MacFarlane and
+      contributors, and is not affiliated with Lutrin.</p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

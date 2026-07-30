@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lutrin vs Marp — Markdown to an editable PowerPoint</title>
+<meta name="description" content="An honest comparison, checked against Marp's own documentation on 2026-07-30. Marp gives you full CSS control and exports PDF and images; Lutrin refuses all positioning so it can write native, editable PowerPoint shapes by default.">
+<link rel="canonical" href="https://lutrin.app/lutrin-vs-marp.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lutrin vs Marp — Markdown to an editable PowerPoint">
+<meta property="og:description" content="Marp gives you full CSS control. Lutrin gives you a .pptx you can edit. Checked against both projects' current docs.">
+<meta property="og:url" content="https://lutrin.app/lutrin-vs-marp.html">
+<meta property="og:image" content="https://lutrin.app/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/css/main.css">
+<!-- ANALYTICS GOES HERE — see site/README.md. -->
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="index.html">Lutrin</a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="index.html">Home</a>
+    <a href="index.html#file">The whole file</a>
+    <a href="playground.html">Playground</a>
+    <a href="index.html#pricing">Pricing</a>
+    <a href="kit-editor.html">Kit editor</a>
+    <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Docs</a>
+    <a class="nav-gh" href="https://github.com/julien-riel/lutrin">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<section class="cmp-hero">
+  <div class="wrap">
+    <p class="eyebrow">markdown to powerpoint · compared</p>
+    <h1>Lutrin vs&nbsp;Marp</h1>
+    <p class="cmp-verdict">Marp turns Markdown plus CSS into slides, then drives
+      a browser to produce PDF, PPTX and images — you keep full control of the
+      look. Lutrin takes the opposite bet: it refuses all positioning, so that
+      the engine can write native PowerPoint shapes the recipient can edit.
+      Neither of those is a better tool. They are different trades, and this
+      page is about which one you want.</p>
+    <nav class="cmp-nav" aria-label="Comparisons">
+      <a href="lutrin-vs-marp.html" aria-current="page">vs Marp</a>
+      <a href="lutrin-vs-slidev.html">vs Slidev</a>
+      <a href="lutrin-vs-revealjs.html">vs reveal.js</a>
+      <a href="lutrin-vs-pandoc.html">vs Pandoc</a>
+    </nav>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>What Marp does better</h2>
+    <p class="lead">This comes first because it is the part that decides
+      whether the rest of the page is worth reading. If any of these four is
+      what you need, close this tab and use Marp — it is a good tool, and it is
+      free.</p>
+
+    <div class="concede">
+      <h3>Four things Marp does that Lutrin does not, and will not</h3>
+      <ul>
+        <li><strong>Complete visual control.</strong> A Marp theme is ordinary
+          CSS over a <code>&lt;section&gt;</code>, and the Marpit documentation
+          explicitly blesses <code>position: absolute</code> as the way to place
+          something exactly where you want it. Lutrin structurally refuses this:
+          a contribution that let the author position an element
+          <a href="https://github.com/julien-riel/lutrin/blob/main/CONTRIBUTING.md">"will
+          be refused, however well implemented"</a>. If you have a brand deck in
+          CSS and a logo that must sit at a precise spot, Marp does it and
+          Lutrin tells you no.</li>
+        <li><strong>It is free, with nothing withheld.</strong> Marp is MIT
+          across the board and stamps no mark on anything. Lutrin is MIT too,
+          but a deck compiled without a paid licence carries
+          <em>Made with Lutrin</em> on every slide. On the plain question "what
+          does it cost to hand a client a clean deck", Marp's answer is nothing
+          and ours is $59 a year.</li>
+        <li><strong>Formats we simply do not have.</strong> PDF, PNG, JPEG and a
+          presenter-notes text dump. Its PDF is not a flat print either —
+          <code>--pdf-notes</code> writes the notes as PDF annotations and
+          <code>--pdf-outlines</code> adds real bookmarks. Lutrin produces
+          <code>.pptx</code> and standalone HTML, and nothing else; for a PDF
+          you go through PowerPoint or a browser yourself.</li>
+        <li><strong>Maturity, reach, and a richer web deck.</strong> The VS Code
+          extension reported 827,114 installs when this page was checked, and it
+          is a web extension that works on vscode.dev with nothing installed at
+          all. Marp's HTML template has a presenter view, an overview mode,
+          on-screen controls, a progress bar and View Transition slide
+          transitions; there is a large third-party theme ecosystem. Lutrin
+          needs Node&nbsp;≥&nbsp;22 locally before anything happens, its
+          extension is desktop-only, and it is a young single-maintainer
+          project.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Where Lutrin is different</h2>
+    <ul class="cmp-list">
+      <li><strong>The editable <code>.pptx</code> is the default, and needs no
+        second application.</strong> This is the honest version of the claim, and
+        the qualification matters: Marp <em>can</em> produce an editable
+        PowerPoint — <code>--pptx-editable</code> has shipped since Marp CLI
+        4.1.0. Its own documentation calls it experimental, requires
+        <strong>LibreOffice Impress installed in addition to a browser</strong>,
+        does not carry presenter notes, and warns of "lower slide
+        reproducibility". Marp's default PPTX is one pre-rendered image per
+        slide, by deliberate design — the team's stated requirement is "almost
+        100% reproducibility to the slide design". Lutrin has one PPTX mode:
+        native shapes, text boxes and tables, notes kept, fonts embedded, no
+        flag and no second program.</li>
+      <li><strong>No browser anywhere in the toolchain.</strong> Marp's PDF,
+        PPTX and image conversions all need a compatible browser installed
+        (Chrome, Edge or Firefox — selectable with <code>--browser</code>).
+        Lutrin's two outputs come out of a pure Node pipeline, which is what
+        makes it plausible in a locked-down CI runner or a container with no
+        Chromium.</li>
+      <li><strong>The engine picks the layout, not you.</strong> When a slide
+        overflows, Marp's answer is CSS or <code>&lt;!-- fit --&gt;</code>, and
+        Marp Core does shrink headers, code blocks and KaTeX to fit. Lutrin's
+        answer is to infer a different layout and paginate what is left over.
+        Marp shrinks what you wrote; Lutrin re-lays it out. That is the whole
+        trade, and it is what makes a mechanical <code>.pptx</code>
+        possible.</li>
+      <li><strong>Validation that measures instead of parsing.</strong> Marp for
+        VS Code has completion, hover help and diagnostics for its directives —
+        it checks what you typed. <code>lutrin validate --json</code> measures
+        what the rendered slide does: real overflow, images under-resolved for
+        the area they land in, a better-suited layout, as positioned JSON for an
+        agent's write → validate → fix loop.</li>
+      <li><strong>A brand that travels as data, never as code.</strong> A Marp
+        theme is CSS the renderer executes — which is why the VS Code extension
+        gates custom themes behind Workspace Trust. A Lutrin kit is tokens,
+        fonts, logos and layout JSON; installing one runs nothing, refuses any
+        entry that escapes the kit, and is https-only with a reproducible
+        sha256.</li>
+      <li><strong>Diagrams, charts and status blocks are in the DSL.</strong>
+        Marp deliberately has none — its maintainer's position is that "Marp has
+        no built-in integrations for any diagrams like mermaid.js", and
+        recommends pre-rendered SVG instead. Lutrin ships
+        <code>```chart</code>, Mermaid, LaTeX, Lucide icons and
+        <code>:::metric</code> / <code>:::progress</code> / <code>:::status</code>
+        as first-class blocks. Marp's math, to be clear, is not the gap:
+        it has Pandoc-style math through MathJax or KaTeX, as does Lutrin.</li>
+      <li><strong>Lutrin reads Marp decks.</strong> Put <code>marp: true</code>
+        in the frontmatter and the parser switches to the Marp dialect —
+        <code>---</code> splits, comment notes, <code>![bg]</code> images,
+        fragmented lists. It preserves <em>content</em>, not appearance: CSS
+        themes, <code>style:</code>, per-slide backgrounds and non-16:9 sizes do
+        not survive, and each one is reported as
+        <code>MARP_DIRECTIVE_IGNORED</code> rather than dropped in silence. The
+        migration runs one way only.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <h2>Side by side</h2>
+    <div class="table-scroll">
+      <table class="cmp-table">
+        <thead>
+          <tr><th scope="col">&nbsp;</th><th scope="col">Marp</th><th scope="col">Lutrin</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Default PPTX</th>
+            <td>One pre-rendered image per slide — contents cannot be modified in PowerPoint. A deliberate choice, for near-exact reproduction of the design.</td>
+            <td>Native shapes, text boxes and tables — real, selectable, editable. Charts, equations and icons are rasterised images, which is the honest limit of it.</td>
+          </tr>
+          <tr>
+            <th scope="row">Editable PPTX</th>
+            <td><code>--pptx-editable</code>, since CLI 4.1.0. Experimental; needs LibreOffice Impress <em>and</em> a browser; presenter notes unsupported; lower slide reproducibility.</td>
+            <td>The default. No flag, no second application, notes preserved.</td>
+          </tr>
+          <tr>
+            <th scope="row">Fonts in the PPTX</th>
+            <td>Not applicable to the image output; the editable path goes through LibreOffice.</td>
+            <td>TTF/OTF embedded into the OOXML, after reading the font's fsType permission — a foundry-restricted font is skipped with a warning rather than shipped.</td>
+          </tr>
+          <tr>
+            <th scope="row">Who decides the layout</th>
+            <td>You, in CSS. <code>position: absolute</code> is the documented technique; <code>&lt;!-- fit --&gt;</code> and auto-shrink handle overflow.</td>
+            <td>The engine. No coordinate, size, explicit column or colour exists in the DSL.</td>
+          </tr>
+          <tr>
+            <th scope="row">Export formats</th>
+            <td>HTML, PDF, PPTX, PNG, JPEG, notes as text.</td>
+            <td><code>.pptx</code> and standalone HTML. No PDF, no image export.</td>
+          </tr>
+          <tr>
+            <th scope="row">External runtime</th>
+            <td>A browser (Chrome, Edge or Firefox) for every PDF, PPTX and image conversion. LibreOffice Impress on top, for editable PPTX.</td>
+            <td>Node ≥ 22, and nothing else, for both outputs.</td>
+          </tr>
+          <tr>
+            <th scope="row">Branding</th>
+            <td>CSS. Three built-in themes, arbitrary custom theme CSS, a large third-party ecosystem. A theme is code the renderer runs.</td>
+            <td>Kits — tokens, fonts, logos, layout JSON. Data only; install executes nothing; WCAG contrast checked at build.</td>
+          </tr>
+          <tr>
+            <th scope="row">Diagrams &amp; charts</th>
+            <td>None built in, by stated policy — use pre-rendered SVG.</td>
+            <td><code>```chart</code>, Mermaid, LaTeX, icons and status blocks in the DSL.</td>
+          </tr>
+          <tr>
+            <th scope="row">Math</th>
+            <td>Yes, MathJax or KaTeX. Not a Lutrin advantage.</td>
+            <td>Yes — and the same syntax is accepted in the Marp dialect.</td>
+          </tr>
+          <tr>
+            <th scope="row">Web presentation</th>
+            <td>Rich: presenter view, overview, on-screen controls, progress bar, View Transition transitions, watch mode, a server mode and a preview window.</td>
+            <td>One standalone HTML file with presenter mode (<kbd>P</kbd>, notes, timer, second window), and <code>lutrin preview</code> with reload on save. No transitions engine, no server mode.</td>
+          </tr>
+          <tr>
+            <th scope="row">Validation</th>
+            <td>Syntactic: completion, hover help and directive diagnostics in VS Code.</td>
+            <td>Geometric: measured overflow, under-resolved images, layout suggestions, <code>--json</code>. <code>build</code> refuses to write a file while an error remains.</td>
+          </tr>
+          <tr>
+            <th scope="row">Licence and cost</th>
+            <td>MIT. Free. No watermark, no paid tier.</td>
+            <td>MIT, free to use — but every slide carries <em>Made with Lutrin</em> until a seat is bought.</td>
+          </tr>
+          <tr>
+            <th scope="row">Maturity</th>
+            <td>Large and active. 827,114 VS Code installs, thousands of GitHub stars, releases within the fortnight before this check.</td>
+            <td>Young, one maintainer, no comparable adoption or third-party ecosystem.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="cmp-section">
+  <div class="wrap">
+    <div class="cmp-run">
+      <h3>Run the comparison yourself</h3>
+      <p>This is the one comparison where neither tool picks the terrain, because
+        Lutrin reads Marp decks. Take a real Marp deck of your own and produce
+        three files from it:</p>
+      <pre><code>marp --pptx deck.md -o marp-default.pptx
+marp --pptx --pptx-editable deck.md -o marp-editable.pptx
+npx lutrin build deck.md -o lutrin.pptx     # add `marp: true` to the frontmatter</code></pre>
+      <p>Open all three in PowerPoint and click a heading. In the first you
+        select a full-slide picture. In the third you select the heading, retype
+        it, drag a table cell, and the fonts came with the file. Open the second
+        one too, and be fair about it: Marp's editable export does give you
+        selectable text — the difference is what it costs to get there, and how
+        faithfully the design survives.</p>
+      <p>Then run the test that cuts the other way. The Marp HTML will look
+        exactly like your CSS said it should. The Lutrin output will look like
+        Lutrin: different spacing, and your <code>theme:</code>,
+        <code>style:</code> and per-slide <code>header:</code> directives all
+        reported as <code>MARP_DIRECTIVE_IGNORED</code>. If that is a deal
+        breaker, you have your answer, and it took ten minutes.</p>
+    </div>
+
+    <p class="cmp-checked">Every claim about Marp on this page was checked
+      against Marp's own current documentation and repositories on
+      <strong>2026-07-30</strong>, against <strong>Marp CLI 4.5.0</strong>
+      (released 2026-07-17), Marp Core 4.4.0 and Marp for VS Code 3.6.0. Marp is
+      actively developed and some of this will age; if you find a statement here
+      that has stopped being true,
+      <a href="mailto:contact@lutrin.app">tell us</a> and it gets fixed.
+      Sources: <a href="https://marp.app/">marp.app</a>,
+      <a href="https://marpit.marp.app/theme-css">the Marpit theme documentation</a>,
+      <a href="https://github.com/marp-team/marp-cli">the Marp CLI README</a>,
+      <a href="https://marketplace.visualstudio.com/items?itemName=marp-team.marp-vscode">the VS Code Marketplace listing</a>.</p>
+
+    <div class="refuse-ctas">
+      <a class="btn btn-primary" href="index.html">See what Lutrin compiles</a>
+      <a class="btn btn-ghost" href="https://github.com/julien-riel/lutrin/blob/main/docs/marp.md">Read the Marp compatibility notes</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="wordmark">Lutrin</p>
+      <p class="footer-tag">A lectern for your Markdown:<br>you bring the words,
+        it holds them up.</p>
+    </div>
+    <nav class="footer-links" aria-label="Project links">
+      <a href="index.html">The landing page</a>
+      <a href="pricing.html">Prices, in full</a>
+      <a href="lutrin-vs-slidev.html">vs Slidev</a>
+      <a href="lutrin-vs-revealjs.html">vs reveal.js</a>
+      <a href="lutrin-vs-pandoc.html">vs Pandoc</a>
+      <a href="https://github.com/julien-riel/lutrin">GitHub</a>
+    </nav>
+    <div class="footer-contact">
+      <p class="footer-contact-h">Talk to a human</p>
+      <p><a href="mailto:contact@lutrin.app">contact@lutrin.app</a></p>
+      <p class="footer-contact-note">Including "you got something wrong about
+        Marp" — that is the message we most want to receive.</p>
+    </div>
+  </div>
+  <div class="wrap footer-fine">
+    <p>MIT license · © Julien Riel · Marp is a trademark of its authors and is
+      not affiliated with Lutrin.</p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

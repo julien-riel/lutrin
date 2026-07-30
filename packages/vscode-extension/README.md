@@ -10,7 +10,7 @@ open and retouch in PowerPoint.
 
 ![A Markdown deck and the .pptx it produces](https://raw.githubusercontent.com/julien-riel/lutrin/main/docs/images/overview.png)
 
-**[Live demo deck](https://julien-riel.github.io/lutrin/)** — compiled from
+**[Live demo deck](https://lutrin.app/)** — compiled from
 [one Markdown file](https://github.com/julien-riel/lutrin/blob/main/examples/demo.deck.md),
 recompiled on every push.
 
