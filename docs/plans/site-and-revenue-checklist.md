@@ -12,6 +12,33 @@ Rough order: everything in **Now** is a sentence or a credit card and unblocks
 work immediately. **Before selling** must be settled before spending anything
 on acquisition. **The fork** decides which items exist at all beyond the ten.
 
+## Where this stands — 2026-07-30
+
+Six of the ten are settled: **2** (the domain), **3** (the unbacked claim),
+**4** (the contact address), **5** (the attribution's language), **8** (proof)
+and **9** (which turned out not to need asking — no bundler).
+
+**All ten items of the plan have shipped**, in full: analytics wiring and UTM,
+the offer at the end of `build`, the domain, the FAQ and the proof strip, the
+browser playground, the repaired pricing section, the unbacked claims removed,
+the four comparison pages with `robots.txt` and `sitemap.xml`. Only the kit
+gallery (item 10 of the plan) is not built, and item 9 of the plan — the Polar
+expiry test — cannot be run by an agent.
+
+Four decisions remain, and they are the ones that decide whether any of it
+earns money:
+
+| # | Still open | Why it matters now |
+| --- | --- | --- |
+| **1** | Analytics provider | everything shipped today is unmeasurable until this exists |
+| **6** | What the Team tier gets | Team and Organisation are now purely a headcount — see 3 |
+| **7** | The Polar expiry test | **the one that blocks selling**, and the page now sells |
+| **10** | Self-serve, or high-touch | still worth its own afternoon |
+
+Two more are not decisions but errands, and the site already advertises both:
+**the DNS records** for `lutrin.app`, and **the `contact@lutrin.app`
+mailbox**.
+
 ---
 
 ## Now
@@ -25,12 +52,23 @@ site key somewhere the agent can read it.
 Without this, every other item ships blind — there is no way to tell whether it
 worked.
 
-> **Answer:**
-> **Date:**
+> **Answer:** *Deferred* — none for now. **Still open.**
+> **Date:** 2026-07-30
+>
+> The half of item 1 that does not need a provider shipped anyway: every
+> `buy.polar.sh` link now carries `utm_source`/`utm_medium`/`utm_campaign`, and
+> the three custom events are wired in `site/assets/js/main.js` behind a
+> provider-agnostic `track()` that no-ops until a script exists. Each page
+> carries an `ANALYTICS GOES HERE` comment in `<head>`; installing Plausible or
+> Umami is that one line per page and nothing else. The scheme, the events and
+> the placements are documented in `site/README.md`.
+>
+> **This is still the item that matters most.** Everything else already shipped
+> is currently unmeasurable.
 
 ---
 
-### ☐ 2. Buy the domain — *blocks items 3 and 8*
+### ☑ 2. Buy the domain — *blocks items 3 and 8*
 
 `lutrin.dev`, `lutrin.app`, or another. Buy it, point the DNS at GitHub Pages.
 The agent handles `site/CNAME` and every absolute URL in the repository from
@@ -39,8 +77,20 @@ there.
 Item 8 (the four comparison pages) waits on this — building them first means
 writing every canonical URL twice.
 
-> **Domain:**
-> **Date:**
+> **Domain:** **`lutrin.app`** — canonical. `lutrin.dev` and `lutrin.ai` are
+> also owned and redirect to it (registrar-level 301; GitHub Pages accepts one
+> custom domain, so they must never be added to `CNAME`).
+> **Date:** 2026-07-30
+>
+> Done in the repository: `site/CNAME`, every `rel=canonical` / `og:url` /
+> `og:image` on the three pages, `cli.mjs`, the `homepage` of both published
+> packages, and every link in the READMEs and `docs/`. `pages.yml` needed no
+> change — `cp -R site/.` already carries `CNAME` into the artifact.
+>
+> **Two things left, and only a person can do them** (both are in
+> `site/README.md`): the DNS records at the registrar, and
+> *Settings → Pages → Custom domain* set to `lutrin.app` with *Enforce HTTPS*.
+> With only one of the two, the domain silently drops on a later deploy.
 
 ---
 
@@ -53,12 +103,25 @@ everybody: `lutrin kit install` takes any URL and checks no licence.
 Deleting it is the default and needs no plan. Say yes and it goes this week;
 what to build in its place is decision 6 below and can take its time.
 
-> ☐ Delete now ☐ Keep until a replacement ships (say why:)
-> **Date:**
+> ☑ Delete now ☐ Keep until a replacement ships (say why:)
+> **Date:** 2026-07-30
+>
+> Applied as the plan's own stated default ("deleting it is the default and
+> needs no plan"), not as an answer given out loud — **say so if you disagree,
+> it is one line to put back.**
+>
+> **A second claim went with it, and this one was not in the plan.** The
+> Organisation card read *Unlimited people, CI included*, and `README.md` gives
+> "CI included" to Studio — but the same page says at `:316` that one key runs
+> on "your laptop, your desktop and the build server". CI is already free for
+> everybody, exactly like private kits. It is now *One legal entity, unlimited
+> people*, and the FAQ answers the CI question honestly instead of selling it.
+> Two tiers therefore lost their only non-headcount benefit, which makes
+> decision 6 below more urgent rather than less.
 
 ---
 
-### ☐ 4. Contact address, and the Organisation tier's shape — *blocks item 6*
+### ☑ 4. Contact address, and the Organisation tier's shape — *blocks item 6*
 
 Two answers:
 
@@ -68,13 +131,19 @@ Two answers:
   agreements first, and pricing it behind a conversation is also how the number
   stops reading as a wall.
 
-> **Address:**
-> **Organisation stays self-serve?** ☐ yes ☐ no
-> **Date:**
+> **Address:** **`contact@lutrin.app`** — in the footer of every page, on the
+> Organisation card, and in the FAQ's invoicing answer.
+> **Organisation stays self-serve?** ☑ yes ☑ no — **both.** *Contact us* is the
+> card's main button; a quiet "or buy it by card" sits under it for whoever is
+> already decided. Nothing that worked before stopped working.
+> **Date:** 2026-07-30
+>
+> **The mailbox has to be made to exist at the registrar** — the site now
+> advertises it in six places.
 
 ---
 
-### ☐ 5. The attribution's language — *blocks half of item 2*
+### ☑ 5. The attribution's language — *blocks half of item 2*
 
 `BRAND_MENTION` is `'Généré avec Lutrin'` (`packages/core/src/license/index.mjs:42`)
 while the site, the README and every CLI string are English. Today an
@@ -88,8 +157,19 @@ than by choice.
 The other half of item 2 (the upsell line at the end of `build`) is not blocked
 and can ship first.
 
-> **Answer:**
-> **Date:**
+> **Answer:** **English, fixed.** `BRAND_MENTION` is now `'Made with Lutrin'`.
+> Not localised from the deck's `lang`: that turns the attribution into a
+> feature with a translation matrix to maintain, and the one string a customer
+> pays to remove is not where translation earns its keep. The reasoning is
+> recorded in `license/index.mjs` beside the constant, and a test pins the
+> value so it cannot drift back by accident.
+> **Date:** 2026-07-30
+>
+> Both halves of item 2 shipped. `build` now ends on the offer when no licence
+> is installed — once, on stdout, never under a ⚠, and never on a path a
+> machine parses (`validate --json`, `inspect`, `build --ir` and
+> `capabilities --json` are byte-identical licensed or not, and there is a test
+> that says so).
 
 ---
 
@@ -107,8 +187,14 @@ Pick one, cheapest first:
   follows, versioned, updated for everyone at once. The real need behind the
   claim, the most work, the most defensible.
 
-> **Answer:**
+> **Answer:** **Still open.**
 > **Date:**
+>
+> More urgent than when this was written. The Team card now reads *Up to ten
+> people, one organisation* and nothing else, and Organisation lost "CI
+> included" for the same reason (decision 3 above). Both tiers are, today,
+> purely a headcount. The first option costs nothing to build and is the one
+> that usually releases a budget on the buyer's side.
 
 ---
 
@@ -125,12 +211,20 @@ subscription, and an observation of what happens at renewal. Never production.
 First real renewal is July 2027. This is cheap now and expensive as a support
 crisis.
 
-> **What happened at renewal:**
+> **What happened at renewal:** **Not run. Still open, and still the one item
+> that blocks selling** — an agent cannot make the test payment.
 > **Date observed:**
+>
+> Nothing shipped today changes this: `licenseState()` still treats a passed
+> `expires_at` as `EXPIRED` (`license/index.mjs:81`). What today *did* change is
+> the exposure — the site now has a price list, a contact address and eight
+> answers designed to close a sale. Every customer that page wins before this
+> test is run is a customer who may lose their licence in month twelve, having
+> paid.
 
 ---
 
-### ☐ 8. Testimonials — *blocks half of item 4*
+### ☑ 8. Testimonials — *blocks half of item 4*
 
 Two or three, with a real name, a real role and a real organisation, each
 cleared by the person quoted.
@@ -139,15 +233,23 @@ If there are none yet, say so and the proof strip ships empty — the agent is
 instructed not to invent them, and will not. The FAQ half of item 4 is not
 blocked either way and can go now.
 
-> **Who:**
-> **Cleared?**
-> **Date:**
+> **Who:** **Nobody yet.** Live shields.io counters ship in their place — npm
+> installs per month, GitHub stars, the published version, the MIT licence.
+> They are fetched when the page is read, so the strip cannot state a number
+> that has stopped being true.
+> **Cleared?** n/a — nothing was invented, and nothing will be.
+> **Date:** 2026-07-30
+>
+> The testimonial markup is written and commented out in `site/index.html`,
+> beside a note listing what each quote needs: the exact words, a name, a role,
+> an organisation, and that person's written agreement to be quoted by name.
+> Uncomment it the day two or three of those exist. The FAQ shipped, in full.
 
 ---
 
 ## Conditional
 
-### ☐ 9. A build step for the playground — *only if item 5 asks*
+### ☑ 9. A build step for the playground — *only if item 5 asks*
 
 `site/` is static with no build step, and that is worth keeping. If the
 compiler cannot be made to run in a browser without a bundler, the agent is
@@ -156,8 +258,38 @@ told to stop and report rather than quietly add one.
 If that report arrives, the question is yours: accept a bundler for `site/`, or
 drop the playground.
 
-> **Answer, if asked:**
-> **Date:**
+> **Answer, if asked:** **Not asked — no bundler is needed.** The audit ran in
+> a real headless Chrome rather than on paper: unmodified `packages/core/src`,
+> loaded from a plain `<script type="module">` behind an import map, compiled a
+> 52-slide deck, and the scene graph came out **byte-identical to Node's**.
+> **Date:** 2026-07-30
+>
+> What it costs instead of a bundler: an import map (8 `node:*` keys, 7 npm),
+> ~200 lines of shims, an inline `window.process` stub, and one more `cp` in
+> `pages.yml`. `site/` keeps its no-build-step property.
+>
+> **The finding that matters is not the verdict.** Mermaid, LaTeX, Lucide icons
+> and images all vanish in a browser — and they vanish *silently*: a run that
+> dropped 12 official layouts, 6 icons, 1 equation and 2 images still reported
+> `stats.warnings === []`. A playground built naively on this would look like
+> it works while misrepresenting what the compiler produces, which is the one
+> thing `site/` has never done. Item 5 therefore has to fix the silence before
+> it ships the page.
+>
+> Four **real product bugs** surfaced on the way, none of them playground-only:
+>
+> - `deck/layout.mjs:881` — a bare `catch {}` swallows a failure to load the 12
+>   official layout definitions with no diagnostic. A broken install renders
+>   every official layout with wrong geometry and says nothing, in the CLI and
+>   in VS Code too.
+> - `deck/assets.mjs:689` — the Lucide **CDN fallback is broken today**: the
+>   guard is `/^\s*<svg[\s>]/i`, and lucide-static now ships SVGs that open
+>   with a licence comment, so the regex always rejects them. Any user without
+>   `lucide-static` in `node_modules` silently gets no icons.
+> - `deck/assets.mjs:1023` — `crypto.createHash` is synchronous and unguarded
+>   on the Mermaid path.
+> - `html/render.mjs:32` — `import os from 'node:os'`, never used once in 1785
+>   lines.
 
 ---
 

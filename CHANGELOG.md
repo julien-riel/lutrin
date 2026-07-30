@@ -11,13 +11,63 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Added
 
-- **The "Généré avec Lutrin" attribution, and a per-seat licence that removes
+- **The playground — the real compiler, in the visitor's browser.**
+  `site/playground.html` imports `packages/core/src` **unchanged**: a textarea
+  on the left, the compiled slides on the right, recompiled as you type, with
+  nothing installed and nothing uploaded. Verified rather than asserted — on
+  four decks the browser's scenes, stylesheet and emitted HTML come out
+  **byte-identical to Node's**.
+
+  And `site/` still has no build step. What replaces one: an import map
+  resolving the eight `node:*` specifiers the compiler statically imports plus
+  markdown-it and its five dependencies; ~250 lines of shims under
+  `site/assets/js/shims/` (`path`, `os`, `url` and a pure-JS `crypto` that
+  compute for real, a read-only `fs` filled before the compiler is imported,
+  and throwing stubs for the three a browser cannot have); a classic script
+  stubbing `window.process` before the module, because `deck/assets.mjs` reads
+  `process.env` on the first statement it evaluates; and three copies in
+  `pages.yml`.
+
+  Two design rules the page holds itself to. It **refuses rather than
+  misleads**: `deck/layout.mjs` loads the official layout catalogue inside a
+  bare `catch {}` that reports nothing, so an empty catalogue would render a
+  dozen layouts with wrong geometry and still say `warnings: []` — the page
+  counts what registered and stops if it disagrees. And it **names what a
+  browser cannot draw**: Mermaid, LaTeX, icons and images all vanish silently
+  here, so it inspects the scene graph itself and says which are missing,
+  pointing at the CLI. `packages/core/test/playground.test.mjs` walks the real
+  import graph and fails the build if a new `node:` import is not mapped.
+
+- **Four comparison pages** — `lutrin-vs-marp`, `-slidev`, `-revealjs`,
+  `-pandoc` — plus `robots.txt` and `sitemap.xml`. Every claim about the other
+  project was checked against its own current documentation on 2026-07-30, with
+  the version and the date printed on the page. Each one **concedes first**, at
+  length, before a word about Lutrin: that is the mechanism, not a courtesy.
+
+- **A FAQ of eight questions and a contact address** on the landing page. Each
+  answer is traceable to a line of the compiler, or names Polar where the code
+  cannot answer. Proof beside it is live shields.io counters — never a stored
+  number, and no testimonial has been invented.
+
+- **A real domain, `lutrin.app`**, with `site/CNAME` and every absolute URL in
+  the repository updated. DNS and the Pages setting are still a human's to do.
+
+
+- **The "Made with Lutrin" attribution, and a per-seat licence that removes
   it.** Lutrin stays free to use, and the difference between the free and the
   paid tier is one line of text: a discreet mention at the bottom right of every
   slide — content, cover, section and hero, in the `.pptx` as in the HTML and in
   the editor previews. It sits in its own zone rather than as a suffix on the
   author's footer, which keeps its full width, and it cannot collide with the
   page number. No watermark, no slide cap, no feature held back.
+
+  **`build` now says so.** A successful build with no licence ends on two extra
+  lines naming the attribution and the command that removes it. Before, the
+  author met the mention by opening the `.pptx` — sometimes in front of the
+  client — which turned the product's one paid benefit into a surprise instead
+  of an offer. It is said once, on stdout, never under a ⚠, never once a
+  licence is installed, and never on a path a machine reads (`validate --json`,
+  `inspect`, `build --ir`, `capabilities --json` are byte-identical either way).
 
 - **`lutrin license activate | status | deactivate`.** Licences are sold per year
   through [Polar](https://polar.sh), by tier rather than by the seat: $59 USD for
@@ -40,6 +90,22 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
   period. The cached record is sealed against the account and machine it was
   activated on: copying it elsewhere makes it ignored, not honoured, and a
   hand-edited `expiresAt` is refused for the same reason.
+
+### Fixed
+
+- **Two paid-tier benefits that described something already free.** *Private
+  brand kits included* (Team) and *CI included* (Organisation) both named
+  capabilities every user already has: `lutrin kit install` takes any URL and
+  checks no licence, and one key already runs on a laptop, a desktop and a
+  build server alike. Both are gone from the pricing section. What Team gets
+  instead is an open question, recorded in
+  `docs/plans/site-and-revenue-checklist.md`.
+
+- **The README's comparison overstated two things and got Pandoc wrong.** It
+  said Marp and Pandoc deliver "an image or a frozen block"; Pandoc's PowerPoint
+  writer emits native text boxes, native tables and OMML equations, and Marp has
+  had `--pptx-editable` since CLI 4.1.0. It also credited Lutrin with native
+  charts, which are rasterised images in the `.pptx`. All three corrected.
 
 ### Changed
 
