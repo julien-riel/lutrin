@@ -194,3 +194,11 @@ export function blockFontSize(block) { … } // today: TYPE.body, twice
 
 That is the shape parity takes here: not two tables kept in sync by hand, but
 one function neither renderer can disagree with.
+
+## Not about the engine
+
+[site-and-revenue.md](site-and-revenue.md) is the odd one out: ten items on the
+landing page, the licensing path and what stands between them and revenue. It
+is here because it is a plan and this is where plans live, and it says up front
+which of its items an agent may take whole and which hold a decision only a
+human can make.
