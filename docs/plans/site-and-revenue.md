@@ -35,7 +35,9 @@ them in if they are taken.
 Items 2, 5, 8 and 10 are pure engineering and can be handed to an agent whole.
 Items 1, 3, 4, 6, 7 and 9 each contain one decision or one credential a human
 has to supply; each says so in its own section, and the agent's part is scoped
-around it.
+around it. Those decisions are gathered, with the consequence of each answer,
+in [site-and-revenue-checklist.md](site-and-revenue-checklist.md) — the answers
+belong there, where the next session can read them.
 
 ## What an agent must not do here
 
