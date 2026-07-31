@@ -248,6 +248,24 @@ export async function packKit(dir) {
   const skipped = [];
   let total = 0;
 
+  // FIXED DATE, so that two packings of the same content give the same bytes
+  // and therefore the same digest — otherwise the published SHA-256 changes on
+  // every `kit create` and no longer means anything, which is the whole point
+  // of printing it at installation.
+  //
+  // It has to go on EACH `zip.file()`. Passing it to `generateAsync()` looks
+  // like it should work and does nothing at all: that option is per entry, and
+  // an entry without one keeps its own modification time. This shipped broken
+  // — the same kit packed twice a minute apart produced two digests — and it
+  // is the reason kit-archive.test.mjs now reads the dates back out.
+  //
+  // 1980-01-01, not `new Date(0)`: a zip stores DOS dates, whose range starts
+  // in 1980. 1970 underflows and comes back out of the archive as 2098 —
+  // deterministic, but it reads as corrupt in any zip listing. The encoding
+  // uses UTC getters, so the bytes do not depend on the packer's timezone
+  // (measured: same digest under TZ=UTC and TZ=Asia/Tokyo).
+  const EPOCH = new Date('1980-01-01T00:00:00Z');
+
   const walk = (abs, rel) => {
     for (const e of fs
       .readdirSync(abs, { withFileTypes: true })
@@ -282,20 +300,17 @@ export async function packKit(dir) {
       if (total > LIMITS.extractedBytes)
         fail(`Kit too large: > ${Math.round(LIMITS.extractedBytes / 1024 / 1024)} MB.`);
       if (entries.length >= LIMITS.entries) fail(`Kit has too many files: > ${LIMITS.entries}.`);
-      zip.file(childRel, buf);
+      // FIXED DATE, per entry — see EPOCH below.
+      zip.file(childRel, buf, { date: EPOCH });
       entries.push(childRel);
     }
   };
   walk(root, '');
 
-  // fixed date: two packings of the same content give the same bytes, hence
-  // the same digest — otherwise the published SHA-256 changes on every
-  // `kit create` and no longer means anything
   const buffer = await zip.generateAsync({
     type: 'nodebuffer',
     compression: 'DEFLATE',
     compressionOptions: { level: 9 },
-    date: new Date(0),
   });
   if (buffer.length > LIMITS.archiveBytes)
     fail(`Produced archive too large: ${Math.round(buffer.length / 1024 / 1024)} MB.`);

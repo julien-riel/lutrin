@@ -857,30 +857,71 @@ const OFFICIAL_DIR = path.join(
  *  as diagnostics by prepareDeckContext on every compilation. */
 export const OFFICIAL_LAYOUT_DIAGS = [];
 
-try {
-  for (const f of fs
-    .readdirSync(OFFICIAL_DIR)
-    .filter((x) => x.toLowerCase().endsWith('.json'))
-    .sort()) {
+/**
+ * Registers the official catalogue found in `dir`, and returns what went
+ * wrong rather than throwing — the caller is module scope, and a throw here
+ * would take the whole compiler down on a broken installation.
+ *
+ * **The catalogue being ABSENT is a diagnostic, not a silence.** It used to be
+ * a bare `catch {}` reasoning that "the built-in bases are enough": they are
+ * not. Each of the twelve official layouts is a base plus its geometry, so an
+ * empty catalogue does not remove `layout: journey` — it renders it as its
+ * bare base, at the wrong proportions, and reports `stats.warnings === []`. A
+ * deck comes out looking deliberate and wrong, in the CLI and in VS Code
+ * alike, with nothing anywhere to read as a defect.
+ *
+ * An empty directory is the same failure as an unreadable one and says so the
+ * same way: `readdirSync` throws on a missing package directory, and returns
+ * `[]` when the files were simply never copied — which is exactly what a
+ * browser's read-only filesystem shim does.
+ *
+ * Exported so the failure can be exercised: the module-scope call below reads
+ * a directory that is always there in a sound installation, which is why this
+ * went unnoticed for so long.
+ */
+export function loadOfficialLayouts(dir = OFFICIAL_DIR) {
+  const diags = [];
+  const broken = (why) => {
+    diags.push({
+      severity: 'warning',
+      code: 'LAYOUT_CATALOG_MISSING',
+      message: `Official layout catalogue ${why} (${dir}) — the official layouts fall back on their bare bases and their geometry will be wrong. Reinstall the package.`,
+    });
+    return diags;
+  };
+
+  let files;
+  try {
+    files = fs
+      .readdirSync(dir)
+      .filter((x) => x.toLowerCase().endsWith('.json'))
+      .sort();
+  } catch (e) {
+    return broken(`unreadable: ${e?.message ?? e}`);
+  }
+  if (!files.length) return broken('holds no layout at all');
+
+  for (const f of files) {
     try {
       // builtin/official forced: a data file never decides its own level of
       // privilege in the registry
       registerLayout({
-        ...JSON.parse(fs.readFileSync(path.join(OFFICIAL_DIR, f), 'utf8')),
+        ...JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')),
         builtin: false,
         official: true,
       });
     } catch (e) {
-      OFFICIAL_LAYOUT_DIAGS.push({
+      diags.push({
         severity: 'warning',
         code: 'LAYOUT_DEF_INVALID',
         message: `Official layout design/layouts/${f}: ${e?.message ?? e} — ignored.`,
       });
     }
   }
-} catch {
-  // no catalog (partial installation): the built-in bases are enough
+  return diags;
 }
+
+OFFICIAL_LAYOUT_DIAGS.push(...loadOfficialLayouts());
 
 /** Definition of a registered layout (null if unknown). */
 export const layoutDef = (name) => REGISTRY.get(name) ?? null;

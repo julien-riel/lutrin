@@ -36,7 +36,7 @@ import {
   px,
   LINE_HEIGHT,
 } from '../deck/tokens.mjs';
-import { ALERT_BLOCK_TYPES, runsToText } from '../deck/parse.mjs';
+import { ALERT_BLOCK_TYPES } from '../deck/parse.mjs';
 import {
   fetchRemoteImage,
   iconSvg,

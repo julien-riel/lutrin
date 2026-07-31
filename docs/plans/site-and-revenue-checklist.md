@@ -358,6 +358,57 @@ drop the playground.
 >   on the Mermaid path.
 > - `html/render.mjs:32` — `import os from 'node:os'`, never used once in 1785
 >   lines.
+>
+> **A fifth, found on 2026-07-31 by installing a gallery kit from its published
+> URL** — `kit/archive.mjs:293`. `packKit` passes `date: new Date(0)` to
+> `zip.generateAsync()`, with a comment saying two packings of the same content
+> must produce the same bytes "otherwise the published SHA-256 changes on every
+> `kit create` and no longer means anything". **That is exactly what happens**:
+> the option belongs on each `zip.file(name, data, { date })` call, not on
+> `generateAsync`, so every entry keeps the current time and the digest changes
+> on every pack.
+>
+> Measured, not deduced: `press-noir.deckkit` built by CI and the same kit
+> packed here have identical contents (`diff -r` on both unpacked trees says
+> so), zip listings one minute apart, and two different digests —
+> `72aec7ec…` against `22afaa0a…`.
+>
+> It matters because `README.md` tells a reader "The sha256 printed at
+> installation is reproducible", which is how they would check that the archive
+> they downloaded is the kit that was published. Today it cannot be checked.
+> The fix is one argument moved; the test is packing the same directory twice
+> with different mtimes and asserting one digest.
+>
+> ---
+>
+> **All five are fixed — 2026-07-31**, each with a test that goes red without
+> its fix, checked by removing the fix and watching it fail. The `CHANGELOG.md`
+> entries say what changed; what is worth keeping here is what the fixing
+> taught, because three of the five were not what the audit thought:
+>
+> - **The digest test that would have passed on the broken code.** Packing
+>   twice and comparing bytes proves nothing: a zip's DOS date has two-second
+>   resolution, so two packings inside one test tick agree even when nothing is
+>   fixed. The test reads the dates back out of the archive instead. And the
+>   fixed date could not stay `new Date(0)`: a zip cannot store 1970, which
+>   comes back out as **2098** — deterministic, and unreadable in any listing.
+>   It is the DOS epoch now.
+> - **The Lucide guard had a second defect nobody had noticed**: `/^<svg[\s>]/`
+>   also rejects `<svg/>`, a valid empty root. The class is `[\s/>]` now. The
+>   real lesson is the fixture: every existing test handed that code an
+>   idealised `<svg …>`, which is exactly how a download path could be dead for
+>   months with a green suite. The new test reads a real file out of the
+>   installed `lucide-static`.
+> - **The dead import was four dead imports.** Turning on biome's
+>   `noUnusedImports` — deliberately not in its recommended set — found three
+>   more in `validate.mjs`, `pptx/render.mjs` and a test. The rule is on, so the
+>   class cannot come back quietly.
+>
+> The other two landed as the audit described them: `loadOfficialLayouts()` is
+> now a function that reports `LAYOUT_CATALOG_MISSING` (for an empty catalogue
+> as well as an unreadable one, which is the same failure), and the Mermaid
+> cache key degrades to `null` instead of throwing when a FIPS-mode Node
+> refuses sha1.
 
 ---
 

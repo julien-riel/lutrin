@@ -18,6 +18,7 @@ import {
   registerLayout,
   resetUserLayouts,
   officialLayouts,
+  loadOfficialLayouts,
   OFFICIAL_LAYOUT_DIAGS,
   LAYOUTS,
 } from '../src/deck/layout.mjs';
@@ -25,7 +26,7 @@ import { prepareDeckContext } from '../src/deck/context.mjs';
 import { validateDeck, capabilities } from '../src/deck/validate.mjs';
 import { compileHtml } from '../src/html/render.mjs';
 import { BLOCK_RENDERERS as PPTX_RENDERERS } from '../src/pptx/render.mjs';
-import { COLORS, PAGE } from '../src/deck/tokens.mjs';
+import { COLORS } from '../src/deck/tokens.mjs';
 
 const strip = (v) => JSON.parse(JSON.stringify(v));
 const scenesFor = (layout, body) =>
@@ -143,6 +144,28 @@ test('a layouts/*.json cannot declare itself builtin/official: never a ghost lay
     !LAYOUTS.includes('ghost'),
     'the builtin flag of a data file is ignored (a base is required)',
   );
+});
+
+test('a catalogue that is not there is a diagnostic, never a silence', (t) => {
+  // Each official layout is a base PLUS its geometry. With the directory gone,
+  // `layout: journey` does not become unknown — it renders as its bare base, at
+  // the wrong proportions — and this used to be a bare `catch {}` on the theory
+  // that "the built-in bases are enough". The deck came out looking deliberate
+  // and wrong, with `stats.warnings === []`, in the CLI and in VS Code alike.
+  const gone = loadOfficialLayouts(path.join(os.tmpdir(), 'lutrin-no-such-catalogue'));
+  assert.equal(gone.length, 1, 'a missing catalogue is reported exactly once');
+  assert.equal(gone[0].code, 'LAYOUT_CATALOG_MISSING');
+  assert.equal(gone[0].severity, 'warning');
+  assert.match(gone[0].message, /geometry will be wrong/, 'and it says what the reader will see');
+
+  // An EMPTY directory is the same failure and says so the same way: readdirSync
+  // throws when the directory is missing and returns [] when the files were
+  // never copied — which is precisely what a browser filesystem shim does.
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-empty-catalogue-'));
+  t.after(() => fs.rmSync(empty, { recursive: true, force: true }));
+  const none = loadOfficialLayouts(empty);
+  assert.equal(none.length, 1);
+  assert.equal(none[0].code, 'LAYOUT_CATALOG_MISSING');
 });
 
 test('prepareDeckContext surfaces the official catalog diagnostics on every compilation', (t) => {

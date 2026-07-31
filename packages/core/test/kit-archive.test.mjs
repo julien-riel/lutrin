@@ -323,6 +323,37 @@ test('packKit: packs a kit and refuses to put in it what extraction would refuse
   assert.equal(back.manifest.name, 'my-kit');
 });
 
+test('packKit: entries are dated by a constant, so the same kit gives the same digest', async (t) => {
+  // README.md tells the reader the sha256 printed at installation is
+  // reproducible — that is how they check the archive they downloaded is the
+  // kit that was published. It was not. The fixed date went to
+  // generateAsync(), which has no such option; JSZip dates an entry when
+  // zip.file() is called, so the digest was a function of the CLOCK. Two
+  // builds of an unchanged kit a minute apart published two digests, which is
+  // what happened between CI and a laptop the day the gallery shipped.
+  //
+  // The dates are read back rather than two packings compared: a zip's DOS
+  // date has two-second resolution, so two packings inside the same test tick
+  // agree even when nothing is fixed at all — a test that would have passed on
+  // the broken code.
+  const dir = tmpDir(t);
+  fs.writeFileSync(path.join(dir, 'kit.json'), JSON.stringify(MANIFEST));
+  fs.writeFileSync(path.join(dir, 'theme.json'), JSON.stringify({ colors: { primary: 'AA5500' } }));
+
+  const { buffer } = await packKit(dir);
+  const back = await JSZip.loadAsync(buffer);
+  const dates = Object.values(back.files).map((f) => f.date.toISOString());
+  assert.ok(dates.length >= 2);
+  assert.deepEqual(
+    [...new Set(dates)],
+    ['1980-01-01T00:00:00.000Z'],
+    'every entry carries the DOS epoch — a date from the clock makes the digest unreproducible',
+  );
+
+  const again = await packKit(dir);
+  assert.equal(sha256(again.buffer), sha256(buffer), 'and the bytes are the bytes');
+});
+
 test('packKit: an images/ directory travels in the archive (named images of the theme)', async (t) => {
   const dir = tmpDir(t);
   fs.writeFileSync(path.join(dir, 'kit.json'), JSON.stringify(MANIFEST));

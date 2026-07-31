@@ -672,6 +672,35 @@ export async function fetchRemoteImage(url, baseDir, { vendor = false } = {}) {
  * interstitial must not freeze into the cache under the name of an icon, where
  * nothing would ever come to correct it.
  */
+/**
+ * Is `text` an SVG document — that is, is `<svg` its ROOT element?
+ *
+ * The check is what stops an HTML error page, a captive portal or a proxy
+ * interstitial from freezing into the icon cache under the name of an icon,
+ * where nothing would ever come to correct it. So it must stay a root-element
+ * check and not merely look for `<svg` somewhere: an error page can perfectly
+ * well contain one.
+ *
+ * It used to be `/^\s*<svg[\s>]/`, and that REJECTED EVERY ICON THE CDN
+ * SERVES: lucide-static ships each file behind an `<!-- @license … -->` line,
+ * so the download path had been dead for as long as that was true, silently,
+ * leaving anyone without lucide-static in node_modules with no icons at all.
+ * A licence notice, a comment or an XML declaration may legitimately precede a
+ * root element, so they are skipped rather than forbidden.
+ *
+ * Only the CHECK sees the stripped text: what is cached and inlined is the
+ * bytes as received, licence notice included — it is an ISC notice, and it
+ * travels with the file.
+ */
+export function hasSvgRoot(text) {
+  if (typeof text !== 'string') return false;
+  const root = text.replace(/^﻿/, '').replace(/^(?:\s+|<\?xml[^>]*\?>|<!--[\s\S]*?-->)+/, '');
+  // `[\s/>]`, not `[\s>]`: `<svg/>` is an empty but perfectly valid root, and
+  // the point of the class is to refuse `<svgfoo>`, not to have an opinion on
+  // how the element ends.
+  return /^<svg[\s/>]/i.test(root);
+}
+
 async function lucideSvg(name) {
   const safe = name.toLowerCase().replace(/[^a-z0-9-]/g, '');
   if (!safe) return null;
@@ -687,7 +716,7 @@ async function lucideSvg(name) {
     const buf = await readBounded(res, LUCIDE_MAX_BYTES);
     if (!buf) return null;
     const svg = buf.toString('utf8');
-    if (!/^\s*<svg[\s>]/i.test(svg)) return null;
+    if (!hasSvgRoot(svg)) return null;
     fs.mkdirSync(LUCIDE_CACHE, { recursive: true });
     fs.writeFileSync(path.join(LUCIDE_CACHE, `${safe}.svg`), svg);
     return svg;
@@ -901,6 +930,28 @@ let _mermaidError = null;
 export const lastMermaidError = () => _mermaidError;
 
 /**
+ * sha1 of `value`, or null if this Node refuses the digest.
+ *
+ * `crypto.createHash('sha1')` THROWS rather than returning anything when
+ * OpenSSL runs in FIPS mode, where sha1 is disabled — and it is called from
+ * `renderMermaidCached`, whose entire contract is "a path, or null": both
+ * renderers, both caches and every callsite are written as `if (file)`. So a
+ * line whose only job is to name a cache file could take down a whole
+ * compilation, on the one platform least likely to be the developer's.
+ *
+ * Degrading here costs the diagram and nothing else: the caller keeps the
+ * Mermaid source and shows it as a code block, which can at least be read.
+ */
+function sha1(value) {
+  try {
+    return crypto.createHash('sha1').update(value).digest('hex');
+  } catch (e) {
+    _mermaidError = `sha1 is unavailable on this Node build (${e?.code ?? e?.message ?? e}) — a Mermaid diagram cannot be named in the cache, so it stays as source`;
+    return null;
+  }
+}
+
+/**
  * Renders a Mermaid diagram in a browser found on the machine, and returns the
  * path of the produced file — or null, the caller keeping its fallback.
  *
@@ -1020,17 +1071,16 @@ function svgUsableInHtml(file) {
 export function renderMermaidCached(sourceText, { format = 'png', baseDir = null } = {}) {
   // the raster scale keys the PNGs only: SVGs are scale-free, and including it
   // there would orphan every diagram already vendored next to existing decks
-  const key = `${crypto
-    .createHash('sha1')
-    .update(
-      JSON.stringify({
-        s: sourceText,
-        f: format,
-        c: mermaidConfig(),
-        ...(format === 'png' ? { px: MERMAID_PNG_SCALE } : {}),
-      }),
-    )
-    .digest('hex')}.${format}`;
+  const digest = sha1(
+    JSON.stringify({
+      s: sourceText,
+      f: format,
+      c: mermaidConfig(),
+      ...(format === 'png' ? { px: MERMAID_PNG_SCALE } : {}),
+    }),
+  );
+  if (!digest) return null;
+  const key = `${digest}.${format}`;
   // The FILE NAME depends only on the content (source + format + config) —
   // that is what makes a vendored directory readable by any Lutrin. The
   // MEMOIZATION key, on the other hand, must also carry baseDir: the verdict
@@ -1038,10 +1088,8 @@ export function renderMermaidCached(sourceText, { format = 'png', baseDir = null
   // deck. Without that, a vendored SVG refused (foreignObject) in a first deck
   // condemned the perfectly sound SVG of a second deck compiled in the same
   // process — exactly what the preview worker does, deck after deck.
-  const memKey = crypto
-    .createHash('sha1')
-    .update(JSON.stringify({ k: key, b: baseDir }))
-    .digest('hex');
+  const memKey = sha1(JSON.stringify({ k: key, b: baseDir }));
+  if (!memKey) return null;
   if (MERMAID_MEM.has(memKey)) return MERMAID_MEM.get(memKey);
 
   for (const dir of [baseDir ? mermaidVendorDir(baseDir) : null, mermaidCacheDir()]) {

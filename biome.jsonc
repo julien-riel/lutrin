@@ -47,6 +47,15 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        // ON, though it is not in the recommended set. A dead `import` is not
+        // only clutter here: the browser playground resolves the WHOLE static
+        // import graph of html/render.mjs through an import map, so an import
+        // nobody uses still has to be mapped and shimmed, and `import os from
+        // 'node:os'` sat unused in render.mjs for 1785 lines doing exactly
+        // that. Four of them were found the day this was turned on.
+        "noUnusedImports": "error"
+      },
       "complexity": {
         // `case 'table': case 'code': … default:` — the cases listed before the
         // default ENUMERATE the block types concerned. Removing them would cost

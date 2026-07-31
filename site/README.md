@@ -118,10 +118,12 @@ holds `design/layouts`.
 ### Two things it must keep doing
 
 1. **Refuse rather than mislead.** `deck/layout.mjs` loads the official layout
-   catalogue synchronously at module scope, inside a bare `catch {}` that
-   pushes no diagnostic. An empty catalogue renders a dozen layouts with wrong
-   geometry and still reports `stats.warnings === []`. So the page counts what
-   registered against the manifest and **stops** if they disagree.
+   catalogue synchronously at module scope. An empty catalogue renders a dozen
+   layouts with wrong geometry, so the page counts what registered against the
+   manifest and **stops** if they disagree. The engine now says so too —
+   `loadOfficialLayouts()` reports `LAYOUT_CATALOG_MISSING` where it used to
+   hold a bare `catch {}` that pushed no diagnostic at all — but the page keeps
+   its own count: it is the one that knows how many the manifest promised.
 2. **Name what a browser cannot draw.** Mermaid needs a subprocess, LaTeX needs
    a CommonJS package no import map can load, icons and images need a disk —
    and all four vanish *silently*. `describeGaps()` inspects the scene graph

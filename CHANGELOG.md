@@ -93,6 +93,46 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 
 ### Fixed
 
+- **The Lucide icon download had been dead, and said nothing.** The guard
+  admitting a downloaded SVG required `<svg` at byte zero, and `lucide-static`
+  opens every file it ships with an `<!-- @license … -->` line: every icon the
+  CDN serves was rejected. Anyone without `lucide-static` in `node_modules`
+  simply got no icons, with no diagnostic anywhere. The check now looks for the
+  **root element**, skipping a licence notice, a comment or an XML declaration
+  — and still refuses an HTML error page or a captive portal, which is what it
+  is there for. The cached bytes are the bytes received, ISC notice included.
+  The test that missed this handed the code an idealised `<svg …>`; it now
+  reads a real file out of the installed package.
+
+- **A missing official layout catalogue was a silence.** `deck/layout.mjs`
+  loaded `design/layouts/*.json` inside a bare `catch {}`, on the theory that
+  the built-in bases were enough. They are not: each of the twelve official
+  layouts is a base **plus** its geometry, so a broken installation rendered
+  `layout: journey` at the wrong proportions and reported
+  `stats.warnings === []` — in the CLI and in VS Code alike. `loadOfficialLayouts()`
+  now reports `LAYOUT_CATALOG_MISSING`, for an unreadable directory and for an
+  empty one, which is the same failure said the same way.
+
+- **A `.deckkit` digest that changed on every build.** `packKit` passed the
+  fixed date to `generateAsync()`, which has no such option — JSZip dates an
+  entry when `zip.file()` is called, so the sha256 was a function of the clock,
+  and two builds of an unchanged kit published two digests. The date now goes
+  on each entry, at the DOS epoch (1980-01-01: a zip cannot store 1970, which
+  came back out as *2098*). `README.md` has been promising this digest is
+  reproducible; now it is.
+
+- **A cache-key line could take a whole render down.** `renderMermaidCached`
+  called `crypto.createHash('sha1')` unguarded, and Node **throws** rather than
+  returning when OpenSSL runs in FIPS mode. Every caller is written
+  `if (file)`, so what should have cost one diagram cost the compilation. It
+  now degrades like everything else on that path: no diagram, the source kept
+  as a readable code block, and `lastMermaidError()` says why.
+
+- **Four dead imports**, one of which cost the browser playground an import-map
+  entry and a shim (`import os from 'node:os'`, unused across 1785 lines of
+  `html/render.mjs`). `biome`'s `noUnusedImports` is now on — it is not in the
+  recommended set — so the class cannot come back silently.
+
 - **Two paid-tier benefits that described something already free.** *Private
   brand kits included* (Team) and *CI included* (Organisation) both named
   capabilities every user already has: `lutrin kit install` takes any URL and

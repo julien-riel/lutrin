@@ -256,3 +256,29 @@ test(
     assert.ok(Date.now() - started < 1000, 'a cache hit must not launch a browser');
   },
 );
+
+test('a Node that refuses sha1 costs the diagram, not the build', () => {
+  // `crypto.createHash('sha1')` does not return anything to check when OpenSSL
+  // runs in FIPS mode: it THROWS. renderMermaidCached names its cache file with
+  // one, and every caller is written `const file = renderMermaidCached(…); if
+  // (file)` — so that exception did not degrade a diagram, it took the whole
+  // render down, on the platform least likely to be the developer's.
+  const real = crypto.createHash;
+  crypto.createHash = () => {
+    throw Object.assign(new Error('digital envelope routines::unsupported'), {
+      code: 'ERR_CRYPTO_UNKNOWN_DIGEST',
+    });
+  };
+  let out;
+  try {
+    out = renderMermaidCached('flowchart LR\n  Fips --> Refused', { format: 'svg' });
+  } finally {
+    crypto.createHash = real;
+  }
+  assert.equal(out, null, 'the contract is a path or null, and it holds even here');
+  assert.match(
+    lastMermaidError() ?? '',
+    /sha1/,
+    'and the reason is available, rather than a stack trace out of a cache-key line',
+  );
+});

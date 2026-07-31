@@ -34,6 +34,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 
 const CACHE = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-test-cache-'));
 process.env.LUTRIN_CACHE = CACHE;
@@ -44,6 +45,7 @@ const {
   remoteDir,
   vendorRemoteAssets,
   iconSvg,
+  hasSvgRoot,
   isPrivateAddress,
   remoteUrlRefusal,
   REMOTE_MAX_REDIRECTS,
@@ -513,6 +515,50 @@ test('a response that is not an SVG: never cached', async (t) => {
 
   assert.equal(await iconSvg(name), null);
   assert.ok(!fs.existsSync(iconCache(name)), 'nothing is written into the cache');
+});
+
+test('an icon exactly as lucide-static ships it is accepted', async (t) => {
+  // THE FIXTURE IS THE POINT. Every other test here hands the CDN path an
+  // idealised `<svg …>`, and that is how the download path came to be dead
+  // without one test noticing: lucide-static opens every file with an
+  // `<!-- @license … -->` line, the guard demanded `<svg` at byte zero, and so
+  // it rejected each icon the CDN serves. Anyone without lucide-static in
+  // node_modules simply got no icons, silently.
+  //
+  // So the payload is read from the installed package rather than written
+  // here: if upstream changes the shape of what it ships, this test finds out
+  // instead of agreeing with a picture of the past.
+  const lucideRoot = path.dirname(
+    createRequire(import.meta.url).resolve('lucide-static/package.json'),
+  );
+  const real = fs.readFileSync(path.join(lucideRoot, 'icons', 'check.svg'), 'utf8');
+  assert.match(real, /^<!--/, 'the premise: upstream ships a licence notice first');
+
+  const name = unseenIcon('licensed');
+  const { res } = fakeResponse([Buffer.from(real)], { mime: 'image/svg+xml' });
+  stubFetch(t, res);
+
+  const svg = await iconSvg(name);
+  assert.ok(svg?.includes('<svg'), 'the icon is accepted');
+  assert.ok(fs.existsSync(iconCache(name)), 'and cached');
+  assert.match(
+    fs.readFileSync(iconCache(name), 'utf8'),
+    /@license/,
+    'cached AS RECEIVED — the ISC notice travels with the file, it is not stripped',
+  );
+});
+
+test('hasSvgRoot: what may precede a root element, and what may not', () => {
+  assert.equal(hasSvgRoot('<svg xmlns="x"/>'), true);
+  assert.equal(hasSvgRoot('<!-- @license lucide-static - ISC -->\n<svg/>'), true);
+  assert.equal(hasSvgRoot('<?xml version="1.0"?>\n<svg/>'), true);
+  assert.equal(hasSvgRoot('﻿  <!-- a --> <!-- b -->\n<svg/>'), true);
+  // an error page can contain an <svg> of its own: the check is the ROOT
+  // element, never "there is an svg somewhere in here"
+  assert.equal(hasSvgRoot('<!doctype html><html><body>Sign in <svg/></body></html>'), false);
+  assert.equal(hasSvgRoot('<!-- @license -->'), false);
+  assert.equal(hasSvgRoot(''), false);
+  assert.equal(hasSvgRoot(null), false);
 });
 
 test('a response beyond the bound: neither rendered nor cached', async (t) => {
