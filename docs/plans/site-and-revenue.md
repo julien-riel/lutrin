@@ -19,18 +19,26 @@ The ten items below are that machinery. They are ordered by value ÷ cost, with
 dependencies respected. Nothing here is committed to; this is the order to take
 them in if they are taken.
 
-| # | What | Cost | Blocked on |
+**Status, 2026-07-30.** Nine of the ten have shipped, on the branch
+`plan/site-and-revenue`. The two that have not are the two an agent could not
+do: item 9 needs a human with a sandbox and test money, and item 10 was left
+unbuilt. The answers that unblocked the rest are recorded in
+[site-and-revenue-checklist.md](site-and-revenue-checklist.md), which is also
+where the four decisions still outstanding live. Read that file before this
+one.
+
+| # | What | Cost | Status |
 |---|---|---|---|
-| 1 | [Analytics and UTM](#1-analytics-and-utm) | 2 hours | a human picks the provider |
-| 2 | [The upsell line at the end of `build`](#2-the-upsell-line-at-the-end-of-build) | 1 hour | — |
-| 3 | [A real domain](#3-a-real-domain) | an evening | a human buys it |
-| 4 | [FAQ and social proof](#4-faq-and-social-proof) | a day | a human supplies the testimonials |
-| 5 | [The browser playground](#5-the-browser-playground) | 1–2 weeks | — |
-| 6 | [Repair the pricing section](#6-repair-the-pricing-section) | half a day | a human decides the contact address |
-| 7 | [Give the Team tier something to sell](#7-give-the-team-tier-something-to-sell) | varies | a human picks which of three |
-| 8 | [Four comparison pages, plus robots and sitemap](#8-four-comparison-pages-plus-robots-and-sitemap) | 2 days | 3 |
-| 9 | [Settle the Polar expiry question](#9-settle-the-polar-expiry-question) | an evening | a human runs the sandbox |
-| 10 | [A gallery of public kits](#10-a-gallery-of-public-kits) | 2–3 days | — |
+| 1 | [Analytics and UTM](#1-analytics-and-utm) | 2 hours | **partly** — UTM and the three events shipped; no provider chosen, so nothing is measured yet |
+| 2 | [The upsell line at the end of `build`](#2-the-upsell-line-at-the-end-of-build) | 1 hour | **done** |
+| 3 | [A real domain](#3-a-real-domain) | an evening | **done** — `lutrin.app`; DNS and the Pages setting are still a human's |
+| 4 | [FAQ and social proof](#4-faq-and-social-proof) | a day | **done** — FAQ in full; proof is live counters, no testimonial invented |
+| 5 | [The browser playground](#5-the-browser-playground) | 1–2 weeks | **done** — no bundler needed; `npm run site:serve` |
+| 6 | [Repair the pricing section](#6-repair-the-pricing-section) | half a day | **done** |
+| 7 | [Give the Team tier something to sell](#7-give-the-team-tier-something-to-sell) | varies | **half** — the unbacked claims are gone; what replaces them is decision 6 |
+| 8 | [Four comparison pages, plus robots and sitemap](#8-four-comparison-pages-plus-robots-and-sitemap) | 2 days | **done** |
+| 9 | [Settle the Polar expiry question](#9-settle-the-polar-expiry-question) | an evening | **NOT DONE** — needs a human, and still blocks selling |
+| 10 | [A gallery of public kits](#10-a-gallery-of-public-kits) | 2–3 days | **NOT DONE** — the one engineering item left |
 
 Items 2, 5, 8 and 10 are pure engineering and can be handed to an agent whole.
 Items 1, 3, 4, 6, 7 and 9 each contain one decision or one credential a human
