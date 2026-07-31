@@ -187,6 +187,13 @@ scaffolds a fresh kit from the default theme. The full tour:
 [docs/kit-editor.md](docs/kit-editor.md), or
 [see it in pictures](https://lutrin.app/kit-editor.html).
 
+**Eight kits are published and installable right now** —
+[the gallery](https://lutrin.app/gallery.html) shows each of them with the same
+slide compiled inside it, so the only thing that changes from one to the next
+is the brand. Their sources are in [`examples/kits/`](examples/kits/); the
+brands are archetypes, invented so that no real organization's identity is
+shipped.
+
 A kit contains only **data** — never code: installation runs nothing, refuses
 any entry that would escape the kit, bounds the size and accepts only `https`.
 The sha256 printed at installation is reproducible.

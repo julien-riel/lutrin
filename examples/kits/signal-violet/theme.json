@@ -1,0 +1,28 @@
+{
+  "name": "Signal Violet",
+  "colors": {
+    "primary": "6D28D9",
+    "primaryLighter": "C4B5FD",
+    "primaryDarker": "4C1D95",
+    "brand": "6D28D9",
+    "highlightLight": "F5F3FF",
+    "highlightStrong": "EDE9FE",
+    "underground1": "F8F7FC"
+  },
+  "fonts": {
+    "body": "Verdana"
+  },
+  "rounded": {
+    "sm": 4,
+    "md": 6,
+    "lg": 10
+  },
+  "chartColors": [
+    "6D28D9",
+    "0E7490",
+    "B45309",
+    "BE123C",
+    "0F766E",
+    "1D4ED8"
+  ]
+}

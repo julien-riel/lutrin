@@ -1,0 +1,33 @@
+{
+  "name": "Foundry Graphite",
+  "colors": {
+    "primary": "C2410C",
+    "primaryLighter": "F5B78E",
+    "primaryDarker": "7C2D12",
+    "brand": "3A4046",
+    "neutralPrimary": "1F2429",
+    "highlightLight": "FFF5EF",
+    "highlightStrong": "FBE0CE",
+    "underground1": "F6F5F4"
+  },
+  "fonts": {
+    "body": "Arial"
+  },
+  "space": {
+    "xxl": 40
+  },
+  "rounded": {
+    "sm": 0,
+    "md": 0,
+    "lg": 0,
+    "pill": 0
+  },
+  "chartColors": [
+    "C2410C",
+    "3A4046",
+    "0E7490",
+    "4D7C0F",
+    "8A5A00",
+    "6D28D9"
+  ]
+}

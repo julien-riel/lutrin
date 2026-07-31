@@ -5,8 +5,15 @@
 # the worst thing to index — a crawler that reads it finds the slide text with
 # none of the page's context, and it competes with the landing page for the
 # queries that matter.
+#
+# /gallery/ is the same case, eight times over: one specimen deck compiled
+# into each kit, so the prose is identical in all of them and none of it is
+# written for a reader who arrived from a search. The page that presents them,
+# /gallery.html, is very much meant to be found — and the trailing slash is
+# what keeps the two apart.
 User-agent: *
 Allow: /
 Disallow: /demo.html
+Disallow: /gallery/
 
 Sitemap: https://lutrin.app/sitemap.xml

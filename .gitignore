@@ -24,6 +24,10 @@ examples/assets/remote/
 # ORDER MATTERS: the last matching pattern wins, so the re-ignore must follow.
 !site/**/*.html
 site/demo.html
+# the gallery's eight specimens, compiled from examples/kits/ by
+# scripts/gallery.mjs — output, exactly like demo.html above. The .deckkit
+# archives it writes beside them (site/kits/) are already caught by *.deckkit.
+site/gallery/
 
 # the kit editor SPA shell is source, not a compilation artifact
 !packages/core/design/editor/index.html

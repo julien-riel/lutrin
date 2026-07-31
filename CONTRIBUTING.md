@@ -103,7 +103,10 @@ correspond exactly to the change you intended.
 
 A **kit** is a directory (or a `.deckkit` archive) carrying a `kit.json`, a
 `theme.json` and optionally layouts, fonts and logos. See
-`examples/kit-slate/` for a complete, rights-free example.
+`examples/kit-slate/` for a complete, rights-free example, and
+`examples/kits/` for the eight the site publishes — that directory's README
+records the four rules they are held to, and
+`packages/core/test/kit-gallery.test.mjs` enforces them.
 
 A kit contains **data only, never code**: that is what makes installing it
 from a URL defensible, and `lutrin kit install` refuses any executable entry.

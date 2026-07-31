@@ -1,0 +1,34 @@
+{
+  "name": "Press Noir",
+  "colors": {
+    "primary": "1A1A1A",
+    "primaryLighter": "C4C4C4",
+    "primaryDarker": "000000",
+    "brand": "B91C1C",
+    "neutralPrimary": "111111",
+    "highlightLight": "F5F5F4",
+    "highlightStrong": "E7E5E4",
+    "underground1": "F6F6F5"
+  },
+  "fonts": {
+    "body": "Times New Roman"
+  },
+  "type": {
+    "coverTitle": 46,
+    "slideTitle": 28
+  },
+  "rounded": {
+    "sm": 0,
+    "md": 0,
+    "lg": 0,
+    "pill": 0
+  },
+  "chartColors": [
+    "1A1A1A",
+    "B91C1C",
+    "57534E",
+    "0F766E",
+    "8A5A00",
+    "1D4ED8"
+  ]
+}

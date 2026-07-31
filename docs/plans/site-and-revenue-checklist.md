@@ -18,12 +18,14 @@ Six of the ten are settled: **2** (the domain), **3** (the unbacked claim),
 **4** (the contact address), **5** (the attribution's language), **8** (proof)
 and **9** (which turned out not to need asking — no bundler).
 
-**All ten items of the plan have shipped**, in full: analytics wiring and UTM,
-the offer at the end of `build`, the domain, the FAQ and the proof strip, the
-browser playground, the repaired pricing section, the unbacked claims removed,
-the four comparison pages with `robots.txt` and `sitemap.xml`. Only the kit
-gallery (item 10 of the plan) is not built, and item 9 of the plan — the Polar
-expiry test — cannot be run by an agent.
+**All ten items of the plan have shipped**: analytics wiring and UTM, the offer
+at the end of `build`, the domain, the FAQ and the proof strip, the browser
+playground, the repaired pricing section, the unbacked claims removed, the four
+comparison pages with `robots.txt` and `sitemap.xml`, and — last — the kit
+gallery: eight kits, one specimen deck compiled into each of them, and
+`.deckkit` archives built by CI so `lutrin kit install <url>` works against a
+real URL. Item 9 of the plan, the Polar expiry test, is the one thing on that
+list an agent cannot do at all.
 
 Four remain on the list, and they are the ones that decide whether any of it
 earns money. **1** has its answer as of today — Umami Cloud, Hobby — but stays

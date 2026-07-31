@@ -1,0 +1,8 @@
+{
+  "name": "campus-indigo",
+  "version": "1.0.0",
+  "description": "A university: indigo and a warm gold, set in a book serif.",
+  "author": "Lutrin",
+  "homepage": "https://lutrin.app/gallery.html",
+  "theme": "./theme.json"
+}

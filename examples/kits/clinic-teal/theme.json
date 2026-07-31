@@ -1,0 +1,28 @@
+{
+  "name": "Clinic Teal",
+  "colors": {
+    "primary": "116A75",
+    "primaryLighter": "96D3DB",
+    "primaryDarker": "0A4750",
+    "brand": "116A75",
+    "highlightLight": "EFF9FA",
+    "highlightStrong": "D3EDF1",
+    "underground1": "F3F9FA"
+  },
+  "fonts": {
+    "body": "Verdana"
+  },
+  "rounded": {
+    "sm": 6,
+    "md": 10,
+    "lg": 16
+  },
+  "chartColors": [
+    "116A75",
+    "2563A8",
+    "0E7C4A",
+    "8A5A00",
+    "6B4FA8",
+    "B03A5B"
+  ]
+}

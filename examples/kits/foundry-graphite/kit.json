@@ -1,0 +1,8 @@
+{
+  "name": "foundry-graphite",
+  "version": "1.0.0",
+  "description": "An industrial supplier: safety orange over graphite, right angles.",
+  "author": "Lutrin",
+  "homepage": "https://lutrin.app/gallery.html",
+  "theme": "./theme.json"
+}

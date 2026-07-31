@@ -1,8 +1,9 @@
 # The site — https://lutrin.app/
 #
-# Two pages: index.html (the landing page) and kit-editor.html (a tour of
-# `lutrin kit edit`). Both are plain source under site/ and travel with the
-# `cp -R site/.` below; nothing here needs to know they exist.
+# Every page under site/ is plain source and travels with the `cp -R site/.`
+# below; nothing here needs to know they exist. What this file does have to
+# know about is the three things site/ does NOT contain: the compiled demo
+# deck, the compiler the playground runs, and the kit gallery.
 #
 # The slides the landing page shows are not screenshots: _site/demo.html is
 # compiled from examples/demo.deck.md by the engine at HEAD on every push to
@@ -69,6 +70,17 @@ jobs:
         run: |
           cp -R site/. _site/
           cp docs/images/overview.png _site/assets/og.png
+
+      # The gallery: one .deckkit per kit under _site/kits/, and the SAME
+      # specimen deck compiled into each under _site/gallery/. The archives are
+      # what `lutrin kit install https://lutrin.app/kits/<name>.deckkit`
+      # downloads, so this step is what makes the page's command true rather
+      # than illustrative. The loop lives in the script, not here: `npm run
+      # site` runs the same one against site/, and a second copy in YAML would
+      # be the one that drifts. It runs AFTER the cp so that a stale
+      # site/gallery/ in the working copy cannot travel into the artifact.
+      - name: Build the kit gallery
+        run: node scripts/gallery.mjs _site
 
       # The playground runs the REAL compiler in the visitor's browser: no
       # bundler, no build step, just packages/core served verbatim behind an

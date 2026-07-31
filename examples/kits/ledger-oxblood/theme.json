@@ -1,0 +1,28 @@
+{
+  "name": "Ledger Oxblood",
+  "colors": {
+    "primary": "7B1E32",
+    "primaryLighter": "DCA6B1",
+    "primaryDarker": "4A0F1E",
+    "brand": "7B1E32",
+    "highlightLight": "F9F2F3",
+    "highlightStrong": "F0DCE0",
+    "underground1": "F7F5F5"
+  },
+  "fonts": {
+    "body": "Times New Roman"
+  },
+  "rounded": {
+    "sm": 0,
+    "md": 2,
+    "lg": 4
+  },
+  "chartColors": [
+    "7B1E32",
+    "1F3A5F",
+    "6B5B2E",
+    "2F6B5F",
+    "8A4B00",
+    "4A4A4A"
+  ]
+}

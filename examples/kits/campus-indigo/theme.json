@@ -1,0 +1,28 @@
+{
+  "name": "Campus Indigo",
+  "colors": {
+    "primary": "312E81",
+    "primaryLighter": "A5B4FC",
+    "primaryDarker": "1E1B4B",
+    "brand": "B45309",
+    "highlightLight": "EEF2FF",
+    "highlightStrong": "E0E7FF",
+    "underground1": "F6F7FB"
+  },
+  "fonts": {
+    "body": "Georgia"
+  },
+  "rounded": {
+    "sm": 2,
+    "md": 4,
+    "lg": 8
+  },
+  "chartColors": [
+    "312E81",
+    "B45309",
+    "0F766E",
+    "BE123C",
+    "4D7C0F",
+    "0E7490"
+  ]
+}

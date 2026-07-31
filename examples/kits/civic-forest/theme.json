@@ -1,0 +1,28 @@
+{
+  "name": "Civic Forest",
+  "colors": {
+    "primary": "1B5E3A",
+    "primaryLighter": "8FCBAA",
+    "primaryDarker": "0E3D24",
+    "brand": "1B5E3A",
+    "highlightLight": "F0F7F2",
+    "highlightStrong": "D9EDE1",
+    "underground1": "F5F8F6"
+  },
+  "fonts": {
+    "body": "Georgia"
+  },
+  "rounded": {
+    "sm": 0,
+    "md": 2,
+    "lg": 3
+  },
+  "chartColors": [
+    "1B5E3A",
+    "1D4E89",
+    "8A5A00",
+    "7A2E2E",
+    "3F6212",
+    "4B5563"
+  ]
+}

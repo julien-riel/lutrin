@@ -11,11 +11,13 @@ by the engine at `HEAD`, and deploys the result to GitHub Pages.
 | `index.html` | the landing page, including the tiers and the FAQ |
 | `playground.html` | the compiler, running in the visitor's browser — see below |
 | `pricing.html` | all five purchase options, in USD and CAD |
+| `gallery.html` | eight kits, one deck — see below |
 | `kit-editor.html` | a tour of `lutrin kit edit`, from committed screenshots |
 | `lutrin-vs-*.html` | four comparison pages, one template, each dated |
 | `robots.txt`, `sitemap.xml` | **add a line to the sitemap for every new page** |
 | `CNAME` | the custom domain — see below |
 | `demo.html`, `demo.pptx` | **compiled by CI, never committed** (gitignored) |
+| `gallery/`, `kits/` | **built by `scripts/gallery.mjs`, never committed** (gitignored) |
 
 The slides on the landing page are not screenshots: they are `<iframe>`s onto
 the real compiled deck, cropped to one slide and scaled by `assets/js/main.js`.
@@ -47,7 +49,7 @@ once the custom domain is set, so no link already in the wild breaks.
 ## Running it locally
 
 ```sh
-npm run site          # once — compiles demo.html and demo.pptx into site/
+npm run site          # once — compiles demo.html, demo.pptx and the gallery
 npm run site:serve    # http://127.0.0.1:4400/
 ```
 
@@ -118,6 +120,38 @@ static import graph rather than a maintained list, because a browser refuses
 the whole graph over one unmapped specifier — at link time, in production, and
 nowhere else.
 
+## The kit gallery
+
+`gallery.html` shows eight kits, each with **the same slide** compiled inside
+it. Holding the content still is the whole mechanism: every difference a
+visitor sees comes from the kit, so the page compares brands rather than
+decks. The sources are `examples/kits/` — eight kit directories and the one
+`specimen.deck.md` they all compile.
+
+`scripts/gallery.mjs` writes both halves, from that one directory:
+
+```
+<out>/kits/<name>.deckkit     what `lutrin kit install <url>` downloads
+<out>/gallery/<name>.html     the specimen, compiled into that kit
+```
+
+`npm run site` runs it with `site/`, `.github/workflows/pages.yml` with
+`_site/`. **The loop exists once, in the script** — a second copy written out
+in YAML would be the one that drifts, the same reason the playground's
+vendored package list is read out of the import map.
+
+Three things `packages/core/test/kit-gallery.test.mjs` will not let drift:
+the cards and `examples/kits/` must name exactly the same kits (a kit with no
+card is invisible; a card with no kit is a 404 inside an install command),
+every tile must frame the **same** slide and a slide the specimen actually
+has, and every kit must clear the engine's own contrast thresholds. The rules
+the kits themselves are held to — invented archetypes, no logo, universally
+installed fonts only — are in `examples/kits/README.md`.
+
+`robots.txt` disallows `/gallery/` for the reason it disallows `/demo.html`:
+eight compiled decks carrying identical prose would compete with the page that
+presents them. The trailing slash is what keeps `/gallery.html` crawlable.
+
 ## Analytics
 
 **None is installed.** The decision was deliberately deferred; what is in place
@@ -180,3 +214,7 @@ invisible in the report and looks exactly like direct traffic.
 - **New page? Check `git status`.** `.gitignore` ignores `*.html` globally and
   re-includes `site/**/*.html`; a page dropped somewhere else is skipped by
   `git add site/` with no error at all. This has bitten this repository before.
+  The trap now runs both ways: that negation also re-includes anything
+  *generated* under `site/`, so `site/demo.html` and `site/gallery/` each need
+  their own re-ignore line. A new generated tree here without one gets
+  committed, silently.

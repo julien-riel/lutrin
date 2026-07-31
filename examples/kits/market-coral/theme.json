@@ -1,0 +1,28 @@
+{
+  "name": "Market Coral",
+  "colors": {
+    "primary": "B5254A",
+    "primaryLighter": "F2A8B6",
+    "primaryDarker": "7A1330",
+    "brand": "B5254A",
+    "highlightLight": "FFF3F5",
+    "highlightStrong": "FBDCE2",
+    "underground1": "FFF7F8"
+  },
+  "fonts": {
+    "body": "Trebuchet MS"
+  },
+  "rounded": {
+    "sm": 8,
+    "md": 14,
+    "lg": 22
+  },
+  "chartColors": [
+    "B5254A",
+    "0E7490",
+    "B45309",
+    "4D7C0F",
+    "6D28D9",
+    "0F766E"
+  ]
+}

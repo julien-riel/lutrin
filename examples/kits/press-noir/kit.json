@@ -1,0 +1,8 @@
+{
+  "name": "press-noir",
+  "version": "1.0.0",
+  "description": "A newsroom: black ink, one red, and a headline that runs big.",
+  "author": "Lutrin",
+  "homepage": "https://lutrin.app/gallery.html",
+  "theme": "./theme.json"
+}

@@ -19,17 +19,17 @@ The ten items below are that machinery. They are ordered by value ÷ cost, with
 dependencies respected. Nothing here is committed to; this is the order to take
 them in if they are taken.
 
-**Status, 2026-07-30.** Nine of the ten have shipped, on the branch
-`plan/site-and-revenue`. The two that have not are the two an agent could not
-do: item 9 needs a human with a sandbox and test money, and item 10 was left
-unbuilt. The answers that unblocked the rest are recorded in
+**Status, 2026-07-30.** Ten of the ten have shipped, on the branch
+`plan/site-and-revenue` — item 10, the kit gallery, went in last. The one that
+has not is the one an agent cannot do: item 9 needs a human with a sandbox and
+test money. The answers that unblocked the rest are recorded in
 [site-and-revenue-checklist.md](site-and-revenue-checklist.md), which is also
 where the four decisions still outstanding live. Read that file before this
 one.
 
 | # | What | Cost | Status |
 |---|---|---|---|
-| 1 | [Analytics and UTM](#1-analytics-and-utm) | 2 hours | **partly** — UTM and the three events shipped; no provider chosen, so nothing is measured yet |
+| 1 | [Analytics and UTM](#1-analytics-and-utm) | 2 hours | **partly** — UTM and the three events shipped; Umami Cloud chosen, and nothing is measured until the account exists |
 | 2 | [The upsell line at the end of `build`](#2-the-upsell-line-at-the-end-of-build) | 1 hour | **done** |
 | 3 | [A real domain](#3-a-real-domain) | an evening | **done** — `lutrin.app`; DNS and the Pages setting are still a human's |
 | 4 | [FAQ and social proof](#4-faq-and-social-proof) | a day | **done** — FAQ in full; proof is live counters, no testimonial invented |
@@ -38,7 +38,7 @@ one.
 | 7 | [Give the Team tier something to sell](#7-give-the-team-tier-something-to-sell) | varies | **half** — the unbacked claims are gone; what replaces them is decision 6 |
 | 8 | [Four comparison pages, plus robots and sitemap](#8-four-comparison-pages-plus-robots-and-sitemap) | 2 days | **done** |
 | 9 | [Settle the Polar expiry question](#9-settle-the-polar-expiry-question) | an evening | **NOT DONE** — needs a human, and still blocks selling |
-| 10 | [A gallery of public kits](#10-a-gallery-of-public-kits) | 2–3 days | **NOT DONE** — the one engineering item left |
+| 10 | [A gallery of public kits](#10-a-gallery-of-public-kits) | 2–3 days | **done** — eight kits, one specimen deck, archives built by CI |
 
 Items 2, 5, 8 and 10 are pure engineering and can be handed to an agent whole.
 Items 1, 3, 4, 6, 7 and 9 each contain one decision or one credential a human
@@ -497,6 +497,32 @@ opening for the service that builds one from a customer's brand guidelines.
 Every kit in the gallery installs from the published URL in one command, the
 specimen slides are compiled by CI at `HEAD`, and no kit is traceable to a real
 organisation.
+
+### What shipped — 2026-07-30
+
+Eight kits in `examples/kits/`, one `specimen.deck.md` compiled into each, and
+`site/gallery.html` showing the same slide eight times over. `scripts/gallery.mjs`
+writes both halves — `<out>/kits/<name>.deckkit` and
+`<out>/gallery/<name>.html` — and is run by `npm run site` against `site/` and
+by `pages.yml` against `_site/`, so the loop exists once rather than twice.
+
+Three decisions worth recording, because each was a fork:
+
+- **The brands are archetypes, not invented companies.** "A newsroom", "a
+  university", "an industrial supplier" — no name, no logo, no wordmark. The
+  plan said to invent brands and never resemble a real one; an archetype
+  cannot resemble anyone, and it still lets a reader picture their own.
+- **The tile shows the layered slide, not the chart or the cover.** Both were
+  built and looked at first. At the size a tile is actually read, a slide with
+  body text says nothing and a cover says only two words; the layered slide
+  puts the whole palette on screen at once, which is what eight tiles side by
+  side are for.
+- **No kit ships fonts.** A theme that changes the family without
+  `fonts.files` embeds nothing at all, deliberately, so both outputs fall back
+  together — safe only for the families every machine already has. The
+  allowlist is enforced by `packages/core/test/kit-gallery.test.mjs`, which
+  also refuses a kit whose palette the engine itself would warn about, and a
+  page whose cards and kit directories have drifted apart.
 
 ---
 

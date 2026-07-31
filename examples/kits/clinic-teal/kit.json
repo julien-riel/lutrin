@@ -1,0 +1,8 @@
+{
+  "name": "clinic-teal",
+  "version": "1.0.0",
+  "description": "A care provider: teal, a wide sans, generous corners.",
+  "author": "Lutrin",
+  "homepage": "https://lutrin.app/gallery.html",
+  "theme": "./theme.json"
+}
