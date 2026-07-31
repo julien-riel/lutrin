@@ -163,7 +163,7 @@ A `node:test` harness, with no test dependency. See
 A deck compiled without a licence carries a discreet "Made with Lutrin" at the
 bottom right of every slide, in the `.pptx` as in the HTML. A licence removes it
 — $59 USD a year for one person, $449 for a team of ten, up to $2,990 for an
-organisation. See the [pricing](https://lutrin.app/#pricing).
+organisation. See the [pricing](https://info.lutrin.app/#pricing).
 A seat is a **person**, and each one gets a key usable on every machine they
 work on.
 

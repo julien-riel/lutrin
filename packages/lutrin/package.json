@@ -22,7 +22,7 @@
   "bugs": {
     "url": "https://github.com/julien-riel/lutrin/issues"
   },
-  "homepage": "https://lutrin.app/",
+  "homepage": "https://info.lutrin.app/",
   "engines": {
     "node": ">=22"
   },

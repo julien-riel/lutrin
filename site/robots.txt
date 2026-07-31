@@ -1,4 +1,4 @@
-# https://lutrin.app/ — everything here is meant to be found.
+# https://info.lutrin.app/ — everything here is meant to be found.
 #
 # demo.html is the compiled demo deck: 1.5 MB of inlined fonts and base64
 # images with almost no prose. It is the best thing on the site to LOOK at and
@@ -16,4 +16,4 @@ Allow: /
 Disallow: /demo.html
 Disallow: /gallery/
 
-Sitemap: https://lutrin.app/sitemap.xml
+Sitemap: https://info.lutrin.app/sitemap.xml

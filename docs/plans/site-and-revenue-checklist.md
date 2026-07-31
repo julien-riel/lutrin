@@ -38,10 +38,12 @@ here until the account exists and the script is in the pages:
 | **7** | The Polar expiry test | **the one that blocks selling**, and the page now sells |
 | **10** | Self-serve, or high-touch | still worth its own afternoon |
 
-Three more are not decisions but errands: **the DNS records** for `lutrin.app`
-and **the `contact@lutrin.app` mailbox** — the site already advertises both —
-and now **the Umami Cloud account**, without which decision 1's answer changes
-nothing.
+Three more are not decisions but errands: **the Umami Cloud account**, without
+which decision 1's answer changes nothing; **the `contact@lutrin.app` mailbox**,
+which the site advertises in six places; and **`Enforce HTTPS`** in
+*Settings → Pages*, one checkbox. The DNS errand turned out not to exist — see
+the correction dated 2026-07-31 under decision 2: the site is served at
+`info.lutrin.app`, and the repository now says so everywhere.
 
 ---
 
@@ -73,7 +75,7 @@ worked.
 >
 > **What a person has to do**, and nothing here can start without it:
 >
-> 1. Create the account at `cloud.umami.is`, add `lutrin.app`, generate an API
+> 1. Create the account at `cloud.umami.is`, add `info.lutrin.app`, generate an API
 >    key. Note whether the account sits in the US or the EU region.
 > 2. Write the key to `~/.config/lutrin/analytics.json`, `chmod 600` —
 >    **outside the repository, and it never enters it**:
@@ -92,7 +94,7 @@ worked.
 > `window.umami = { track, identify, getSession }` and its `track(name, data)`
 > builds `{ name, data }` — exactly what `main.js:117` already calls. That was
 > checked against the minified tracker itself, not against the documentation.
-> The tag carries `data-domains="lutrin.app"` so that `npm run site:serve` does
+> The tag carries `data-domains="info.lutrin.app"` so that `npm run site:serve` does
 > not count as traffic.
 >
 > The half of item 1 that does not need a provider shipped anyway: every
@@ -131,6 +133,32 @@ writing every canonical URL twice.
 > `site/README.md`): the DNS records at the registrar, and
 > *Settings → Pages → Custom domain* set to `lutrin.app` with *Enforce HTTPS*.
 > With only one of the two, the domain silently drops on a later deploy.
+>
+> ---
+>
+> **Correction — 2026-07-31. The host was wrong, and it was about to take the
+> site down.** The site is served at **`info.lutrin.app`**, not at the apex:
+> that name is a `CNAME` onto `julien-riel.github.io`, it answers 200 from the
+> Pages addresses, and `GET repos/julien-riel/lutrin/pages` reports
+> `"cname": "info.lutrin.app"`. The apex `lutrin.app` resolves to OVH and
+> redirects to a `www` that does not resolve at all.
+>
+> Everything above was written on the assumption that the apex was the target,
+> so `site/CNAME` and every absolute URL in the repository named it. Deploying
+> that would have handed GitHub a `CNAME` file saying `lutrin.app`, moved the
+> custom domain onto a host that answers from OVH, and 301'd the old
+> `julien-riel.github.io` URL there — a 301 browsers cache hard. The site would
+> have gone dark, and the eight `kit install` commands with it.
+>
+> The whole repository now says `info.lutrin.app` — `git grep info.lutrin.app`
+> is the list, and `site/README.md` records what it would take to move to the
+> apex later. **`contact@lutrin.app` is untouched on purpose**: email rides on
+> MX records and has nothing to do with where the pages are served.
+>
+> One thing is still a person's, and it is one checkbox: *Enforce HTTPS* in
+> *Settings → Pages*. The certificate exists — `https://` answers 200 — but the
+> API reports `https_enforced: false`, so `http://` is served rather than
+> redirected.
 
 ---
 

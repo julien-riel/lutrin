@@ -26,25 +26,38 @@ something the compiler does not actually produce.
 
 ## The domain
 
-`CNAME` carries **`lutrin.app`**, the canonical domain. `cp -R site/.` in the
-Pages workflow already carries the file into the artifact, so no workflow
-change was needed.
+`CNAME` carries **`info.lutrin.app`**, and that is the host every absolute URL
+in this repository names. It is not a preference — it is what is actually
+served: `info.lutrin.app` is a `CNAME` onto `julien-riel.github.io`, resolves to
+the four GitHub Pages addresses, and `GET repos/julien-riel/lutrin/pages`
+answers `"cname": "info.lutrin.app"`. `cp -R site/.` in the Pages workflow
+carries the file into the artifact, so no workflow change is needed.
 
-Two things live outside this repository and have to be done by a person:
+**The apex `lutrin.app` does not serve this site**, and pointing anything at it
+would take the site down rather than move it. It resolves to a registrar's
+address (OVH) and answers with a redirect to `www.lutrin.app`, which does not
+resolve at all. The mailbox is a different matter: `contact@lutrin.app` rides
+on MX records and is unaffected by any of this — which is why the site
+advertises an apex address while linking an `info.` host.
 
-1. **DNS at the registrar.** An `ALIAS`/`ANAME` (or four `A` records) on the
-   apex pointing at GitHub Pages, plus a `CNAME` on `www`.
-2. **Repository → Settings → Pages → Custom domain**, set to `lutrin.app`, then
-   *Enforce HTTPS* once the certificate is issued. Both this setting and the
-   `CNAME` file must exist: with only one of the two, the domain quietly drops
-   on a later deploy.
+**The `CNAME` file and the Pages setting must agree, and both must match DNS.**
+GitHub reads the file out of each artifact: a deploy carrying `lutrin.app`
+would switch the custom domain to a host that answers from OVH, redirect
+`julien-riel.github.io/lutrin` there with a 301 browsers cache hard, and take
+the site off the air. That is the failure this file exists to prevent.
 
-`lutrin.dev` and `lutrin.ai` are held but not served — point them at
-`lutrin.app` with a registrar-level 301. GitHub Pages accepts exactly one
-custom domain, so they must never be added to `CNAME`.
+Still a person's, both outside this repository:
 
-The old `julien-riel.github.io/lutrin` URL keeps working: GitHub redirects it
-once the custom domain is set, so no link already in the wild breaks.
+- **`Enforce HTTPS`** in *Settings → Pages*. The certificate is issued and
+  `https://info.lutrin.app/` answers 200 today, but the API still reports
+  `https_enforced: false`, so plain `http://` is served rather than redirected.
+- **Moving to the apex, if that is ever wanted.** Four `A` records on
+  `lutrin.app` to `185.199.108.153`, `.109.153`, `.110.153`, `.111.153` (or an
+  `ALIAS`/`ANAME`), then `CNAME`, the Pages setting and every absolute URL in
+  the repository change together — `git grep info.lutrin.app` is the list.
+
+`lutrin.dev` and `lutrin.ai` are held but not served. GitHub Pages accepts
+exactly one custom domain, so they must never be added to `CNAME`.
 
 ## Running it locally
 

@@ -14,7 +14,7 @@ and `images/`. Everything the editor produces can be written by hand, and
 everything written by hand shows up in the editor.
 
 > **See it before installing anything:**
-> [lutrin.app/kit-editor.html](https://lutrin.app/kit-editor.html)
+> [info.lutrin.app/kit-editor.html](https://info.lutrin.app/kit-editor.html)
 > is a screenshot tour of every panel below. The shots are committed under
 > `site/assets/img/kit-editor/`; regenerate them from the real editor with
 > `node scripts/kit-editor-shots.mjs` (it drives a local Chrome, so re-run it

@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "A firm that bills by the hour: oxblood, Times, no curves.",
   "author": "Lutrin",
-  "homepage": "https://lutrin.app/gallery.html",
+  "homepage": "https://info.lutrin.app/gallery.html",
   "theme": "./theme.json"
 }

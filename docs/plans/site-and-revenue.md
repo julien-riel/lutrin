@@ -31,7 +31,7 @@ one.
 |---|---|---|---|
 | 1 | [Analytics and UTM](#1-analytics-and-utm) | 2 hours | **partly** — UTM and the three events shipped; Umami Cloud chosen, and nothing is measured until the account exists |
 | 2 | [The upsell line at the end of `build`](#2-the-upsell-line-at-the-end-of-build) | 1 hour | **done** |
-| 3 | [A real domain](#3-a-real-domain) | an evening | **done** — `lutrin.app`; DNS and the Pages setting are still a human's |
+| 3 | [A real domain](#3-a-real-domain) | an evening | **done** — the site is served at `info.lutrin.app`; see the 2026-07-31 correction in the checklist |
 | 4 | [FAQ and social proof](#4-faq-and-social-proof) | a day | **done** — FAQ in full; proof is live counters, no testimonial invented |
 | 5 | [The browser playground](#5-the-browser-playground) | 1–2 weeks | **done** — no bundler needed; `npm run site:serve` |
 | 6 | [Repair the pricing section](#6-repair-the-pricing-section) | half a day | **done** |

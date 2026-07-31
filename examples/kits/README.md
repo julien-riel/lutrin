@@ -1,6 +1,6 @@
 # The gallery kits
 
-The eight kits behind [lutrin.app/gallery.html](https://lutrin.app/gallery.html),
+The eight kits behind [info.lutrin.app/gallery.html](https://info.lutrin.app/gallery.html),
 and `specimen.deck.md` — the one deck that is compiled into every one of them.
 
 ```
@@ -58,6 +58,6 @@ and a card with no kit is a 404 in an install command.
 
 A kit can also carry **layouts**, **fonts** and **logos** — see
 [`examples/kit-slate/`](../kit-slate/) for one that carries layouts, and the
-[kit editor](https://lutrin.app/kit-editor.html) for the workbench that builds
+[kit editor](https://info.lutrin.app/kit-editor.html) for the workbench that builds
 one. These eight vary the theme alone, because that is the axis a visitor can
 compare eight of at a glance.

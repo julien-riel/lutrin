@@ -1258,7 +1258,7 @@ const LICENSE_ACTIONS = ['activate', 'status', 'deactivate'];
 /** Where a licence is bought. One constant: `license status` and the end of a
  *  build both send people here, and a stale copy of it in one of the two is
  *  how a customer lands on a 404 the day the domain moves. */
-const PRICING_URL = 'https://lutrin.app/#pricing';
+const PRICING_URL = 'https://info.lutrin.app/#pricing';
 
 /**
  * The one line telling the author their deck went out signed — and how to stop

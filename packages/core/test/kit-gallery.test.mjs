@@ -83,7 +83,7 @@ const cards = [...page.matchAll(/<article class="kit">([\s\S]*?)<\/article>/g)].
   shown: html.match(/<code>([^<]+)<\/code>/)?.[1] ?? null,
   copied: html.match(/data-copy="([^"]+)"/)?.[1] ?? null,
 }));
-const urlOf = (name) => `lutrin kit install https://lutrin.app/kits/${name}.deckkit`;
+const urlOf = (name) => `lutrin kit install https://info.lutrin.app/kits/${name}.deckkit`;
 
 test('the gallery holds enough kits to be a comparison', () => {
   assert.ok(
@@ -215,7 +215,11 @@ test('the deploy and `npm run site` both build the gallery', () => {
 
 test('the gallery page is listed, and the specimens are kept out of the index', () => {
   const sitemap = fs.readFileSync(path.join(REPO, 'site', 'sitemap.xml'), 'utf8');
-  assert.match(sitemap, /https:\/\/lutrin\.app\/gallery\.html/, 'sitemap.xml lists every page');
+  assert.match(
+    sitemap,
+    /https:\/\/info\.lutrin\.app\/gallery\.html/,
+    'sitemap.xml lists every page',
+  );
 
   // Same reasoning as demo.html: the eight specimens carry identical prose and
   // would compete with the page that presents them. The trailing slash is what

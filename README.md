@@ -3,7 +3,7 @@
 ![CI](https://github.com/julien-riel/lutrin/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**[lutrin.app](https://lutrin.app/)** — the
+**[info.lutrin.app](https://info.lutrin.app/)** — the
 landing page, with a live demo deck recompiled on every push.
 
 **Lutrin compiles enriched Markdown into an editable PowerPoint or a
@@ -95,7 +95,7 @@ answers a different need, which comes down to three points:
   shapes, text boxes and tables with the fonts embedded, in its only PPTX mode,
   from a pure Node pipeline — charts, equations and icons are rasterised images
   there, and saying otherwise would be the same overstatement. See the four
-  comparison pages under [lutrin.app](https://lutrin.app/), each checked against
+  comparison pages under [info.lutrin.app](https://info.lutrin.app/), each checked against
   the other project's current documentation and dated.
 - **The layout is decided by the engine.** Elsewhere, you write HTML/CSS or
   utility classes when the slide overflows. Here you cannot: there is no
@@ -185,10 +185,10 @@ WCAG contrast checks, embedded fonts, layouts, images, `.deckkit` export —
 with a preview compiled by the real engine, on 127.0.0.1 only. `--create`
 scaffolds a fresh kit from the default theme. The full tour:
 [docs/kit-editor.md](docs/kit-editor.md), or
-[see it in pictures](https://lutrin.app/kit-editor.html).
+[see it in pictures](https://info.lutrin.app/kit-editor.html).
 
 **Eight kits are published and installable right now** —
-[the gallery](https://lutrin.app/gallery.html) shows each of them with the same
+[the gallery](https://info.lutrin.app/gallery.html) shows each of them with the same
 slide compiled inside it, so the only thing that changes from one to the next
 is the brand. Their sources are in [`examples/kits/`](examples/kits/); the
 brands are archetypes, invented so that no real organization's identity is

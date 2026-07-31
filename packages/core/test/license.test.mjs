@@ -295,7 +295,7 @@ test('unlicensed build: the offer is made once, on stdout, under the ✓', (t) =
   assert.equal(r.code, 0);
   assert.match(r.stdout, /✓ deck\.html — 3 slides/);
   assert.equal(r.stdout.split(OFFER_LINE).length - 1, 1, 'said exactly once, not once per slide');
-  assert.match(r.stdout, /https:\/\/lutrin\.app\/#pricing/);
+  assert.match(r.stdout, /https:\/\/info\.lutrin\.app\/#pricing/);
   // an offer, not a warning: nothing on stderr, exit code 0
   assert.equal(r.stderr, '');
   // and it describes something true — the file really did go out signed
