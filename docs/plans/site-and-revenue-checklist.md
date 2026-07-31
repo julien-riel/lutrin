@@ -25,19 +25,21 @@ the four comparison pages with `robots.txt` and `sitemap.xml`. Only the kit
 gallery (item 10 of the plan) is not built, and item 9 of the plan — the Polar
 expiry test — cannot be run by an agent.
 
-Four decisions remain, and they are the ones that decide whether any of it
-earns money:
+Four remain on the list, and they are the ones that decide whether any of it
+earns money. **1** has its answer as of today — Umami Cloud, Hobby — but stays
+here until the account exists and the script is in the pages:
 
 | # | Still open | Why it matters now |
 | --- | --- | --- |
-| **1** | Analytics provider | everything shipped today is unmeasurable until this exists |
+| **1** | Analytics provider | **decided — Umami Cloud (Hobby)**; the account and the site id are still a person's |
 | **6** | What the Team tier gets | Team and Organisation are now purely a headcount — see 3 |
 | **7** | The Polar expiry test | **the one that blocks selling**, and the page now sells |
 | **10** | Self-serve, or high-touch | still worth its own afternoon |
 
-Two more are not decisions but errands, and the site already advertises both:
-**the DNS records** for `lutrin.app`, and **the `contact@lutrin.app`
-mailbox**.
+Three more are not decisions but errands: **the DNS records** for `lutrin.app`
+and **the `contact@lutrin.app` mailbox** — the site already advertises both —
+and now **the Umami Cloud account**, without which decision 1's answer changes
+nothing.
 
 ---
 
@@ -52,8 +54,44 @@ site key somewhere the agent can read it.
 Without this, every other item ships blind — there is no way to tell whether it
 worked.
 
-> **Answer:** *Deferred* — none for now. **Still open.**
+> **Answer:** **Umami Cloud, Hobby plan (free).** Not installed yet — see
+> below for the two steps only a person can take.
 > **Date:** 2026-07-30
+>
+> **Why this one, and not Plausible.** The deciding criterion was that the
+> numbers be readable by an agent, not only by a human in front of a browser.
+> Plausible's Stats API *and* custom event properties are both Business-plan
+> features ($19/month at 10k pageviews): on Starter or Growth the three events
+> below would arrive stripped of their props, and could not be queried at all.
+> Umami's Hobby plan is $0 for 100k events a month, 3 sites and 6 months of
+> retention; it is cookie-free, so no consent banner; and its API is one static
+> header — `x-umami-api-key` against `https://api.umami.is/v1`, 50 calls per
+> 15 seconds. GoatCounter was ruled out twice over: its free hosted tier is
+> non-commercial, and its API is paid-only.
+>
+> **What a person has to do**, and nothing here can start without it:
+>
+> 1. Create the account at `cloud.umami.is`, add `lutrin.app`, generate an API
+>    key. Note whether the account sits in the US or the EU region.
+> 2. Write the key to `~/.config/lutrin/analytics.json`, `chmod 600` —
+>    **outside the repository, and it never enters it**:
+>    `{ "provider": "umami", "websiteId": "…", "apiKey": "…", "region": "us" }`
+> 3. Hand over the `data-website-id`. That one is public — it ships in the HTML.
+>
+> **One thing is unverified**: whether the free Hobby plan allows creating an
+> API key at all. The documentation describes API keys for Umami Cloud without
+> naming a plan restriction, but no page confirms the free tier either. It is a
+> two-minute check at signup. If it is blocked, the fallback is Umami Pro
+> ($20/month) or Plausible Business ($19/month) — the same order of price, and
+> at that price Plausible is the better dashboard.
+>
+> **Installing is one line in each of the eight pages and nothing else.**
+> `site/assets/js/main.js` needs no change: the Cloud tracker (4.6 kB) exposes
+> `window.umami = { track, identify, getSession }` and its `track(name, data)`
+> builds `{ name, data }` — exactly what `main.js:117` already calls. That was
+> checked against the minified tracker itself, not against the documentation.
+> The tag carries `data-domains="lutrin.app"` so that `npm run site:serve` does
+> not count as traffic.
 >
 > The half of item 1 that does not need a provider shipped anyway: every
 > `buy.polar.sh` link now carries `utm_source`/`utm_medium`/`utm_campaign`, and
