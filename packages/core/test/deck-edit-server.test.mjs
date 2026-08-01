@@ -11,6 +11,21 @@
  * suppression, the Origin and Host gates, the static side and the /fonts
  * alias, and the failed-listen lifecycle. The tests run in source order
  * against ONE server: each states what it relies on.
+ *
+ * ONE RULE FOR THE TESTS THAT BRING THEIR OWN ROOT: close the server BEFORE
+ * deleting the tree, in a single `t.after`. `node:test` runs after hooks in
+ * REGISTRATION order — not in reverse — so the natural-looking pair
+ *
+ *     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+ *     …
+ *     t.after(() => srv.close());
+ *
+ * deletes the directory while the server's recursive `fs.watch` is still
+ * watching it. On macOS and Linux that is harmless. On Windows it reaches
+ * `Assertion failed: !_wcsnicmp(filename, dir, dirlen)` in libuv's
+ * src/win/fs-event.c, which does not throw — it ABORTS the process, taking
+ * the whole file down with it and reporting one opaque failure. It cost a red
+ * windows-latest / Node 24 in CI, on a suite green everywhere else.
  */
 
 import './setup.mjs'; // hermetic even under direct invocation (see setup.mjs)
@@ -192,15 +207,19 @@ test('GET /api/tree — a cycle of symlinked directories cannot hang the walk', 
   // Seven links per level pointing back up — without a visited set the walk
   // multiplies by seven at every one of its 12 depths (~10^10 readdirs, a
   // frozen server); with it, each real directory is entered exactly once.
+  // ONE hook, closing before deleting — see the note on hook order above.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-deck-cycle-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  let srv;
+  t.after(async () => {
+    await srv?.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
   const cycRoot = path.join(dir, 'root');
   fs.mkdirSync(path.join(cycRoot, 'a'), { recursive: true });
   for (let i = 0; i < 6; i++) fs.symlinkSync(cycRoot, path.join(cycRoot, 'a', `up${i}`));
   fs.symlinkSync(path.join(cycRoot, 'a'), path.join(cycRoot, 'a', 'self'));
 
-  const srv = await startDeckEditServer(cycRoot, { port: 0 });
-  t.after(() => srv.close());
+  srv = await startDeckEditServer(cycRoot, { port: 0 });
   const started = Date.now();
   const r = await fetch(`http://127.0.0.1:${srv.port}/api/tree`);
   const body = await r.json();
@@ -214,15 +233,18 @@ test('GET /api/tree — the budget counts entries VISITED, not entries retained'
   // entries would sail past its cap without ever noticing, and a giant
   // deckless directory would be walked to the end without saying so
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-deck-budget-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  let srv;
+  t.after(async () => {
+    await srv?.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
   const bigRoot = path.join(dir, 'root');
   fs.mkdirSync(bigRoot);
   fs.writeFileSync(path.join(bigRoot, '0first.deck.md'), '# First\n\nkept.\n');
   for (let i = 0; i < 5050; i++)
     fs.writeFileSync(path.join(bigRoot, `f${String(i).padStart(4, '0')}.txt`), '');
 
-  const srv = await startDeckEditServer(bigRoot, { port: 0 });
-  t.after(() => srv.close());
+  srv = await startDeckEditServer(bigRoot, { port: 0 });
   const r = await fetch(`http://127.0.0.1:${srv.port}/api/tree`);
   const body = await r.json();
   assert.equal(r.status, 200);
@@ -667,15 +689,18 @@ test('an escaping symlink is invisible to the tree and refused by both gates', a
   // a second server on its own root: the symlink lives there from the start,
   // so the tree walk, the read gate and the write gate all face it
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-deck-leak-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  let srv;
+  t.after(async () => {
+    await srv?.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
   const leakRoot = path.join(dir, 'root');
   fs.mkdirSync(leakRoot);
   fs.writeFileSync(path.join(leakRoot, 'real.deck.md'), '# Real\n\nInside.\n');
   fs.writeFileSync(path.join(dir, 'target.deck.md'), '# TOP-SECRET target\n');
   fs.symlinkSync(path.join(dir, 'target.deck.md'), path.join(leakRoot, 'leak.deck.md'));
 
-  const srv = await startDeckEditServer(leakRoot, { port: 0 });
-  t.after(() => srv.close());
+  srv = await startDeckEditServer(leakRoot, { port: 0 });
   const leakBase = `http://127.0.0.1:${srv.port}`;
 
   const tree = await (await fetch(`${leakBase}/api/tree`)).json();
