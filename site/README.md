@@ -208,10 +208,21 @@ curl -s -H "x-umami-share-token: <token>" -H "x-umami-share-context: 1" \
   "https://gateway-us.umami.is/api/websites/<websiteId>/stats?startAt=<ms>&endAt=<ms>"
 ```
 
-Useful shapes: `/stats` for the totals, `/metrics?type=path` for the pages,
-`?type=event` for the three custom events, `?type=referrer` for where people
-came from, and `?type=utm_medium` for which checkout link converts. Host is
+`npm run analytics` does all of that and prints it — `-- --days 30` for a
+longer window, `-- --json` to pipe it somewhere. The credentials it reads are
+described below.
+
+Accepted metric types on this route are `path`, `event`, `referrer`, `channel`
+and `query`; the `utm_*` types are refused (measured, not assumed). Host is
 `gateway-us.umami.is` for a US account, `gateway-eu` for an EU one.
+
+**Which checkout link converts is not an Umami question**, and it is worth
+being clear about it: the `utm_source`/`utm_medium`/`utm_campaign` on each
+`buy.polar.sh` link leave with the visitor and are read by **Polar**. Umami's
+last sight of a buyer is the page they left from — not even the click, since
+no event is wired to the checkout links. Wiring one (`checkout clicked`, with
+the placement) is the missing rung of that ladder, and it is one line in
+`assets/js/main.js`.
 
 **The trade-off, and it is a real one: a Share URL is public.** Anyone holding
 the link reads the site's traffic — no password, no expiry. For a marketing
