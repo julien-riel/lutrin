@@ -27,19 +27,19 @@ gallery: eight kits, one specimen deck compiled into each of them, and
 real URL. Item 9 of the plan, the Polar expiry test, is the one thing on that
 list an agent cannot do at all.
 
-Four remain on the list, and they are the ones that decide whether any of it
-earns money. **1** has its answer as of today — Umami Cloud, Hobby — but stays
-here until the account exists and the script is in the pages:
+Three remain, and they are the ones that decide whether any of it earns money.
+**1** is closed as of 2026-08-01 — Umami Cloud is installed and the site is
+measured — and stays in the table struck through, so a reader who remembers it
+as open sees what happened to it:
 
 | # | Still open | Why it matters now |
 | --- | --- | --- |
-| **1** | Analytics provider | **decided — Umami Cloud (Hobby)**; the account and the site id are still a person's |
+| ~~**1**~~ | ~~Analytics provider~~ | **done 2026-08-01** — Umami Cloud is live on all nine pages; only the API key is still to hand over |
 | **6** | What the Team tier gets | Team and Organisation are now purely a headcount — see 3 |
 | **7** | The Polar expiry test | **the one that blocks selling**, and the page now sells |
 | **10** | Self-serve, or high-touch | still worth its own afternoon |
 
-Three more are not decisions but errands: **the Umami Cloud account**, without
-which decision 1's answer changes nothing; **the `contact@lutrin.app` mailbox**,
+Two more are not decisions but errands: **the `contact@lutrin.app` mailbox**,
 which the site advertises in six places; and **`Enforce HTTPS`** in
 *Settings → Pages*, one checkbox. The DNS errand turned out not to exist — see
 the correction dated 2026-07-31 under decision 2: the site is served at
@@ -49,7 +49,7 @@ the correction dated 2026-07-31 under decision 2: the site is served at
 
 ## Now
 
-### ☐ 1. Analytics provider — *blocks item 1*
+### ☑ 1. Analytics provider — *blocks item 1*
 
 Plausible or Umami. Both are cookie-free, which is the requirement; Umami can
 be self-hosted, Plausible cannot without work. Create the account and put the
@@ -58,9 +58,25 @@ site key somewhere the agent can read it.
 Without this, every other item ships blind — there is no way to tell whether it
 worked.
 
-> **Answer:** **Umami Cloud, Hobby plan (free).** Not installed yet — see
-> below for the two steps only a person can take.
-> **Date:** 2026-07-30
+> **Answer:** **Umami Cloud, Hobby plan (free) — INSTALLED.**
+> **Date:** 2026-07-30 (decided), 2026-08-01 (installed)
+>
+> The account exists and the site id arrived: `40e68dbe-…`. One
+> `<script defer>` now sits in the `<head>` of all nine pages —
+> `kit-editor.html` included, which had never been given the socket in the
+> first place — and `assets/js/main.js` needed no change at all: the `track()`
+> written in July calls `window.umami.track` the moment it exists.
+>
+> Checked in a real browser rather than assumed: the tag is in the DOM,
+> `window.umami.track` is a function, and a page served on 127.0.0.1 fetches
+> the script and **sends nothing**, because `data-domains="info.lutrin.app"`
+> holds local work out of the numbers.
+>
+> **Still missing, and it is the half that made this provider the choice: the
+> API key.** Without it the numbers can only be read by a human in front of a
+> dashboard, which is exactly what Plausible was rejected for. Drop it in
+> `~/.config/lutrin/analytics.json` (`chmod 600`, outside the repository) with
+> the account's region, and the reading side works from here on.
 >
 > **Why this one, and not Plausible.** The deciding criterion was that the
 > numbers be readable by an agent, not only by a human in front of a browser.

@@ -169,19 +169,47 @@ presents them. The trailing slash is what keeps `/gallery.html` crawlable.
 
 ## Analytics
 
-**None is installed.** The decision was deliberately deferred; what is in place
-is the socket for one.
+**Umami Cloud**, one `<script defer>` in the `<head>` of all nine pages and
+nothing else — `assets/js/main.js` needed no change, because the `track()` it
+already had calls `window.umami.track` when it is there and does nothing when
+it is not.
 
-- Each page carries an `ANALYTICS GOES HERE` comment in `<head>`. Installing a
-  provider is that one line, in each page, and nothing else.
-- **Cookie-free is a requirement, not a preference.** It keeps the page out of
-  consent-banner territory, and a consent banner is itself a conversion cost.
-  Plausible and Umami both qualify; Umami can be self-hosted, Plausible cannot
-  without work.
-- `assets/js/main.js` defines a `track(name, props)` that calls
-  `window.plausible` or `window.umami.track`, whichever is present, and does
-  nothing when neither is. So the events below are already wired and start
-  reporting the moment a script is added.
+```html
+<script defer src="https://cloud.umami.is/script.js"
+        data-website-id="40e68dbe-f445-4ae8-a1e7-505d2824cd02"
+        data-domains="info.lutrin.app"></script>
+```
+
+- **The site id is public**: it ships in every page, and it identifies the site
+  rather than granting anything. The API key that READS the numbers is not
+  here and never will be — see below.
+- **Cookie-free, so no consent banner.** That is a requirement rather than a
+  preference: a banner is itself a conversion cost, and consent declines make
+  the numbers wrong on top of it.
+- **`data-domains` is why local work does not pollute the numbers.** The
+  tracker only reports from the host named there, so `npm run site:serve` on
+  127.0.0.1 loads the script and sends nothing — verified in a real browser,
+  not assumed. The consequence to remember: served from any other hostname,
+  the page records nothing at all.
+
+### Reading the numbers
+
+The dashboard is `cloud.umami.is`; the API answers at `https://api.umami.is/v1`
+with an `x-umami-api-key` header, 50 calls per 15 seconds. That API is the
+reason this provider was chosen over Plausible, whose Stats API and custom
+event properties are both Business-plan features — the numbers have to be
+readable by whoever is asking, including an agent, without a browser session.
+
+The key lives **outside this repository**, in
+`~/.config/lutrin/analytics.json` (`chmod 600`):
+
+```json
+{ "provider": "umami", "websiteId": "…", "apiKey": "…", "region": "us" }
+```
+
+Useful shapes: `/websites/<id>/stats?startAt=<ms>&endAt=<ms>` for the totals,
+`/websites/<id>/metrics?type=utm_medium&…` to see which checkout link converts,
+`/websites/<id>/events/series` for the three events below.
 
 ### The three custom events
 

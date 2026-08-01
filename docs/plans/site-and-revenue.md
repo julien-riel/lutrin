@@ -29,7 +29,7 @@ one.
 
 | # | What | Cost | Status |
 |---|---|---|---|
-| 1 | [Analytics and UTM](#1-analytics-and-utm) | 2 hours | **partly** — UTM and the three events shipped; Umami Cloud chosen, and nothing is measured until the account exists |
+| 1 | [Analytics and UTM](#1-analytics-and-utm) | 2 hours | **done** — Umami Cloud live on all nine pages since 2026-08-01; the API key is the last piece |
 | 2 | [The upsell line at the end of `build`](#2-the-upsell-line-at-the-end-of-build) | 1 hour | **done** |
 | 3 | [A real domain](#3-a-real-domain) | an evening | **done** — the site is served at `info.lutrin.app`; see the 2026-07-31 correction in the checklist |
 | 4 | [FAQ and social proof](#4-faq-and-social-proof) | a day | **done** — FAQ in full; proof is live counters, no testimonial invented |

@@ -14,13 +14,16 @@
 <meta property="og:image" content="https://info.lutrin.app/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="assets/css/main.css">
-<!-- ANALYTICS GOES HERE — one cookie-free script, and nothing else. None is
-     installed yet (see site/README.md for the decision and for what the three
-     custom events mean). Cookie-free is a requirement, not a preference: it
-     keeps the page out of consent-banner territory, and a consent banner is
-     itself a conversion cost. The custom events in assets/js/main.js already
-     call whichever of the two providers is present, so installing one is this
-     one line and no other change. -->
+<!-- Analytics — Umami Cloud, cookie-free, which is what keeps this page out
+     of consent-banner territory: a banner is itself a conversion cost. The
+     three custom events in assets/js/main.js call `window.umami.track` and
+     needed no change when this line landed. `data-domains` limits reporting
+     to the served host, so `npm run site:serve` never counts as traffic.
+     The site id is public — it ships in this file. site/README.md records
+     what the events mean and how the numbers are read. -->
+<script defer src="https://cloud.umami.is/script.js"
+        data-website-id="40e68dbe-f445-4ae8-a1e7-505d2824cd02"
+        data-domains="info.lutrin.app"></script>
 </head>
 <body>
 
