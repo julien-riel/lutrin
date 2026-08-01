@@ -688,9 +688,19 @@ export async function startDeckEditServer(rootDir, { port = DECK_EDIT_DEFAULT_PO
   }
   // recursive watch is not supported on every platform — a server without
   // live reload is degraded, a server that cannot start is useless
+  //
+  // WATCHED THROUGH realpath, like every other path in this file. libuv's
+  // Windows backend compares each event's filename against the directory it
+  // was handed — `_wcsnicmp(filename, dir, dirlen)`, src/win/fs-event.c — and
+  // when the two do not share that prefix it does not raise, it ABORTS THE
+  // PROCESS. The catch below cannot see it: the abort happens later, from
+  // inside libuv, on an event. A root reached through a junction or a short
+  // name is one way to arrange precisely that mismatch, and it took down
+  // `lutrin edit` on windows-latest / Node 24 while the same code passed on
+  // Node 22 and on every other platform.
   let watcher = null;
   try {
-    watcher = fs.watch(root, { recursive: true }, onFsEvent);
+    watcher = fs.watch(fs.realpathSync(root), { recursive: true }, onFsEvent);
   } catch {
     /* no watch: the SPA simply receives no deck-changed events */
   }
