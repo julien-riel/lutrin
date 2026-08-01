@@ -98,12 +98,33 @@ worked.
 >    `{ "provider": "umami", "websiteId": "…", "apiKey": "…", "region": "us" }`
 > 3. Hand over the `data-website-id`. That one is public — it ships in the HTML.
 >
-> **One thing is unverified**: whether the free Hobby plan allows creating an
-> API key at all. The documentation describes API keys for Umami Cloud without
-> naming a plan restriction, but no page confirms the free tier either. It is a
-> two-minute check at signup. If it is blocked, the fallback is Umami Pro
-> ($20/month) or Plausible Business ($19/month) — the same order of price, and
-> at that price Plausible is the better dashboard.
+> **The unverified point is now verified, and the answer is the bad one —
+> 2026-08-01.** `cloud.umami.is` answers *"API access requires a Pro plan"*:
+> the free Hobby plan grants no API key. So the criterion that chose this
+> provider over Plausible — numbers readable without a browser session, at $0 —
+> **does not exist at $0 anywhere**. Plausible gates its Stats API behind
+> Business at $19/month; Umami gates its API behind Pro at $20/month.
+>
+> That does not make the installation wrong: it is cookie-free, it costs
+> nothing, and it is collecting. What it removes is the tiebreaker, and the
+> consequence is worth stating rather than absorbing — **nobody but a human in
+> front of a dashboard can read these numbers today.**
+>
+> **The recommendation is to pay nothing yet.** The site has no traffic to
+> speak of; the question this month is "did anyone arrive at all", which the
+> dashboard answers. Paying $20 for an API over an empty dataset buys nothing.
+> Two things to do instead, in order:
+>
+> 1. **Enable a Share URL** on the website (Websites → Edit → Share URL). Umami
+>    serves its public dashboards through `/api/share/<id>`, which hands back a
+>    token used with `x-umami-share-token` — no API key involved. Whether that
+>    is readable programmatically on Hobby is not documented either way, and it
+>    is one click to find out. If it works: $0 **and** readable.
+> 2. **Revisit when the traffic makes a weekly automated read worth $20** — and
+>    at that moment compare afresh, because the reason Umami beat Plausible is
+>    gone. At the same price, Plausible's dashboard, funnels and properties are
+>    the stronger product; switching is one line in nine pages, `main.js`
+>    already speaks both, and the cost is whatever history has accumulated.
 >
 > **Installing is one line in each of the eight pages and nothing else.**
 > `site/assets/js/main.js` needs no change: the Cloud tracker (4.6 kB) exposes
