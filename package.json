@@ -4,15 +4,12 @@
   "description": "Markdown \u2192 PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives. CLI, VS Code extension and agent skill.",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": ["packages/*"],
   "scripts": {
     "pptx": "node packages/core/src/cli.mjs build",
     "html": "node packages/core/src/cli.mjs build --html",
     "site": "node packages/core/src/cli.mjs build examples/demo.deck.md --html -o site/demo.html && node packages/core/src/cli.mjs build examples/demo.deck.md -o site/demo.pptx && node scripts/gallery.mjs site",
     "site:serve": "node scripts/site-serve.mjs",
-    "analytics": "node scripts/analytics.mjs",
     "test": "npm test --workspaces --if-present",
     "test:core": "npm test -w @lutrin/core",
     "typecheck": "npm run typecheck -w lutrin-vscode && npm run typecheck -w lutrin-obsidian",
@@ -23,15 +20,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4"
   },
-  "keywords": [
-    "markdown",
-    "powerpoint",
-    "pptx",
-    "slides",
-    "presentation",
-    "deck",
-    "html"
-  ],
+  "keywords": ["markdown", "powerpoint", "pptx", "slides", "presentation", "deck", "html"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/julien-riel/lutrin.git"

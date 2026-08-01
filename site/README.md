@@ -208,9 +208,16 @@ curl -s -H "x-umami-share-token: <token>" -H "x-umami-share-context: 1" \
   "https://gateway-us.umami.is/api/websites/<websiteId>/stats?startAt=<ms>&endAt=<ms>"
 ```
 
-`npm run analytics` does all of that and prints it — `-- --days 30` for a
-longer window, `-- --json` to pipe it somewhere. The credentials it reads are
-described below.
+The script that does all of that and prints it — `npm run analytics`, with
+`-- --days 30` for a longer window and `-- --json` to pipe it somewhere — is
+**kept outside this repository**, as of 2026-08-01, along with the readings it
+produces. It holds no credential, but a tool whose whole purpose is to turn a
+Share URL into figures belongs with the figures. The recipe above is left here
+because it contains no secret, and because the `x-umami-share-context` header
+appears on no Umami documentation page — it was found by watching what their
+own shared dashboard sends, and that is worth writing down somewhere public.
+
+The credentials it reads are described below.
 
 Accepted metric types on this route are `path`, `event`, `referrer`, `channel`
 and `query`; the `utm_*` types are refused (measured, not assumed). Host is

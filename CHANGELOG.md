@@ -138,8 +138,8 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
   capabilities every user already has: `lutrin kit install` takes any URL and
   checks no licence, and one key already runs on a laptop, a desktop and a
   build server alike. Both are gone from the pricing section. What Team gets
-  instead is an open question, recorded in
-  `docs/plans/site-and-revenue-checklist.md`.
+  instead is an open question, recorded in the checklist that is no longer kept
+  here (see *Removed*, below).
 
 - **The README's comparison overstated two things and got Pandoc wrong.** It
   said Marp and Pandoc deliver "an image or a frozen block"; Pandoc's PowerPoint
@@ -152,6 +152,31 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
 - **"Lutrin" is now stated as a trademark** in `LICENSE` and both READMEs. The
   code stays MIT, licensing check included; the name does not travel with it. A
   fork is free — under another name.
+
+### Removed
+
+- **The two revenue planning documents**, `docs/plans/site-and-revenue.md` and
+  its checklist, are no longer kept here. A price considered and not announced
+  is not the same kind of document as a plan for auto-fit, and this repository
+  is public.
+
+- **`scripts/analytics.mjs`, and with it `npm run analytics`.** The reader went
+  where its readings are kept, which is not here. It holds no credential —
+  those are in `<config>/analytics.json` and always were — but a tool whose
+  whole purpose is to turn a Share URL into the site's traffic belongs with the
+  traffic. The `curl` recipe it automates stays documented in `site/README.md`:
+  it contains no secret, and Umami's undocumented `x-umami-share-context`
+  header is worth writing down somewhere public.
+
+  **Nothing else moved, and the site least of all.** `site/` is deployed at
+  `info.lutrin.app` — its pages are public whatever repository holds them — and
+  `pages.yml` compiles the demo deck and serves `packages/core` to the
+  playground from `HEAD`. That is what makes the demo unable to drift from the
+  compiler; splitting the site out would have spent it to hide something
+  already visible. The licence path (`packages/core/src/license/`) stays for the
+  same reason: the paywall is runtime, and it ships inside the MIT package. So
+  does the instrumentation in `site/assets/js/main.js` — three custom events
+  that fire in the visitor's own browser, where devtools already shows them.
 
 ## [1.2.0] — 2026-07-29
 

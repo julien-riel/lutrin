@@ -195,10 +195,19 @@ export function blockFontSize(block) { … } // today: TYPE.body, twice
 That is the shape parity takes here: not two tables kept in sync by hand, but
 one function neither renderer can disagree with.
 
-## Not about the engine
+## Not about the engine — and no longer here
 
-[site-and-revenue.md](site-and-revenue.md) is the odd one out: ten items on the
-landing page, the licensing path and what stands between them and revenue. It
-is here because it is a plan and this is where plans live, and it says up front
-which of its items an agent may take whole and which hold a decision only a
-human can make.
+`site-and-revenue.md` and its checklist used to sit in this directory: ten
+items on the landing page, the licensing path and what stands between them and
+revenue. They are kept outside this repository as of 2026-08-01, because a
+price considered and not announced is not the same kind of document as a plan
+for auto-fit, and this directory is public.
+
+Nothing in `site/` went with them, and nothing needs to: the pages are deployed
+at `info.lutrin.app`, so they are public wherever their source is kept — and
+`pages.yml` compiles the demo deck and serves `packages/core` to the playground
+from `HEAD`, which is the guarantee that the site cannot drift from the
+compiler. Taking the site out would have cost that guarantee to hide something
+already visible.
+
+What is left here is what it says on the tin: plans about the engine.
