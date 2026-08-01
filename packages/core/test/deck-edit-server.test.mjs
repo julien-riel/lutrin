@@ -870,17 +870,27 @@ test('SSE: an external deck change emits deck-changed with its path; a server wr
     // external edit → one event carrying the file's rel path. A DIFFERENT
     // deck than the one just saved: the suppression window is per path, and
     // a sibling's external change must keep its event (kit editor's rule)
+    //
+    // NESTED, so Windows is excluded: the server watches non-recursively there
+    // (see edit-server.mjs — libuv's recursive backend aborts the process
+    // rather than raising), and a deck two directories down is exactly what
+    // that costs. The assertion is kept for every other platform rather than
+    // weakened for all of them, because a root-only event would prove much
+    // less: it is the REL PATH of a nested file that shows the watcher reports
+    // where a change happened, not merely that one did.
     const cPath = path.join(root, 'sub', 'deep', 'c.deck.md');
     fs.writeFileSync(cPath, fs.readFileSync(cPath, 'utf8'));
-    assert.ok(
-      await waitFor(() => seen.count() > before),
-      'an external change must emit deck-changed',
-    );
-    assert.match(
-      seen.frames(),
-      /data: \{"path":"sub\/deep\/c\.deck\.md"\}/,
-      'the event names the file',
-    );
+    if (process.platform !== 'win32') {
+      assert.ok(
+        await waitFor(() => seen.count() > before),
+        'an external change must emit deck-changed',
+      );
+      assert.match(
+        seen.frames(),
+        /data: \{"path":"sub\/deep\/c\.deck\.md"\}/,
+        'the event names the file',
+      );
+    }
 
     // a non-deck file moves → nothing (the watcher filters on .deck.md)
     const after = seen.count();
