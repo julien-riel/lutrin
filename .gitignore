@@ -31,6 +31,7 @@ site/gallery/
 
 # the kit editor SPA shell is source, not a compilation artifact
 !packages/core/design/editor/index.html
+!packages/core/design/deck-editor/index.html
 
 # local pointer to a brand kit (see scripts/package.mjs)
 .brandkit

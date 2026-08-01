@@ -7,6 +7,7 @@
  * Usage:
  *   lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--verbose] [--force]
  *   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
+ *   lutrin edit [directory] [--port 4323]
  *   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
  *   lutrin inspect <input.md> [-o output.json] [--kit <kit|file.json|directory>]
  *   lutrin vendor <input.md> [--kit <kit|file.json|directory>]
@@ -88,6 +89,7 @@ import {
 const COMMANDS = [
   'build',
   'preview',
+  'edit',
   'validate',
   'inspect',
   'capabilities',
@@ -101,6 +103,7 @@ const COMMANDS = [
 const USAGE = `Usage:
   lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--verbose] [--force]
   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
+  lutrin edit [directory] [--port 4323]
   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
   lutrin inspect <input.md> [-o output.json] [--kit <kit|file.json|directory>]
   lutrin vendor <input.md> [--kit <kit|file.json|directory>]
@@ -166,6 +169,9 @@ const FLAG_SPECS = {
     ir: 'boolean',
   },
   preview: { ...FLAGS_KIT, port: 'value' },
+  // `edit` serves a DIRECTORY, not a deck: no kit flags — each deck resolves
+  // its own kit from its frontmatter and surroundings, like a build would
+  edit: { port: 'value' },
   validate: { ...FLAGS_KIT, json: 'boolean' },
   // no `ir` here: on `inspect`, the flag never did anything — the command IS
   // the dump. It is kept only on `build` (compatibility with the old `--ir`,
@@ -613,7 +619,8 @@ function cmdInspect(argv) {
 const SSE_CLIENT = `<script>new EventSource('/__events').onmessage = () => location.reload();</script>`;
 
 /** The `--port` flag of a serving command: an integer in the TCP range, or
- *  the command's default. Shared by preview (4321) and kit edit (4322). */
+ *  the command's default. Shared by preview (4321), kit edit (4322) and
+ *  edit (4323). */
 function portOf(args, fallback) {
   const requested = args.port ?? String(fallback);
   if (!/^\d+$/.test(String(requested)) || Number(requested) < 1 || Number(requested) > 65535)
@@ -700,6 +707,41 @@ async function cmdPreview(argv) {
 
   const listening = await listenFromPort(server, port);
   console.log(`Preview: http://localhost:${listening}  (Ctrl-C to quit)`);
+}
+
+// ---------------------------------------------------------------------------
+// edit — local server for the deck editor UI
+// ---------------------------------------------------------------------------
+
+/**
+ * `lutrin edit [directory] [--port 4323]` — serves the deck editor (API + UI)
+ * for one directory tree, on 127.0.0.1 only.
+ *
+ * The positional is the ROOT the editor browses (`.deck.md` files only); it
+ * defaults to the current directory, and must already exist — an editor that
+ * scaffolded directories would write before anything was asked of it (rule 1).
+ * Port 4323 by default: a deck preview (4321), a kit editor (4322) and a deck
+ * editor must be able to run side by side.
+ */
+async function cmdEdit(argv) {
+  const args = parseArgs(argv, FLAG_SPECS.edit);
+  if (args._.length > 1)
+    fail(`a single directory is expected — got ${args._.length}: ${args._.join(', ')}`);
+  const dir = path.resolve(args._[0] ?? process.cwd());
+  if (!fs.existsSync(dir)) fail(`directory not found: ${dir}`);
+  if (!fs.statSync(dir).isDirectory()) fail(`${dir} is not a directory — point at one to edit.`);
+  const port = portOf(args, 4323);
+
+  const { startDeckEditServer } = await import('./edit-server.mjs');
+  const { close, port: listening } = await startDeckEditServer(dir, { port });
+  console.log(`Deck editor: http://localhost:${listening}  (Ctrl-C to quit)`);
+  console.log(`  serving ${dir}`);
+  // clean Ctrl-C: close the watcher, the SSE clients and the server before
+  // exiting — every write in the API is a single writeFileSync, but the port
+  // must not be left in doubt
+  process.on('SIGINT', () => {
+    close().finally(() => process.exit(0));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1423,6 +1465,9 @@ try {
       break;
     case 'preview':
       await cmdPreview(rest2);
+      break;
+    case 'edit':
+      await cmdEdit(rest2);
       break;
     case 'validate':
       cmdValidate(rest2);

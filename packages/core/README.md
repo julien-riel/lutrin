@@ -36,6 +36,7 @@ build step.
 ```bash
 lutrin build <deck.md> [-o output.pptx|output.html] [--kit <ref>] [--vendor-assets] [--force] [--verbose]
 lutrin preview <deck.md> [--port 4321] [--kit <ref>]
+lutrin edit [directory] [--port 4323]
 lutrin validate <deck.md> [--json] [--kit <ref>]
 lutrin vendor <deck.md> [--kit <ref>]
 lutrin inspect <deck.md> [--kit <ref>]
@@ -49,6 +50,12 @@ lutrin license activate <key> | status [--json] | deactivate
 The output format is deduced from the extension of `-o`. `--kit` takes
 precedence over the deck's frontmatter; a bare name designates an installed
 kit, everything else is a path resolved against the current directory.
+
+`lutrin edit` serves a local web editor for the `.deck.md` files of a
+directory (the current one by default): tree, live preview, and per-slide
+editing — a save rewrites only the lines of that slide, never the rest of
+the file. It binds 127.0.0.1 only, like `lutrin kit edit` (port 4322) and
+`lutrin preview` (port 4321).
 
 **`build` does not deliver a deck in error.** If validation returns at least
 one diagnostic of severity `error` — unknown directive, non-existent layout,

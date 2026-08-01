@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lutrin deck editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E%3Crect%20width='16'%20height='16'%20rx='3'%20fill='%231E2126'/%3E%3Cpath%20d='M8%203.2l4.8%204.8L8%2012.8%203.2%208z'%20fill='%23A87F3D'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="editor.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <span class="brand-name">lutrin deck editor</span>
+    </div>
+    <h1 class="topbar-file" id="file-name">…</h1>
+    <span class="topbar-dirty" id="dirty-indicator" hidden>Modifications non enregistrées</span>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" id="btn-save" type="button" disabled>Enregistrer</button>
+    </div>
+  </header>
+
+  <div class="banner" id="conflict-banner" hidden>
+    <p id="conflict-message">Le fichier a changé sur disque.</p>
+    <button class="btn btn-sm" id="btn-conflict-reload" type="button">Recharger</button>
+    <button class="btn btn-sm" id="btn-conflict-keep" type="button">Garder ma version</button>
+    <button class="btn btn-sm" id="btn-conflict-dismiss" type="button" hidden>Fermer</button>
+    <textarea class="textarea mono banner-detached" id="conflict-detached" readonly hidden
+              aria-label="Texte non enregistré de la diapositive disparue"></textarea>
+  </div>
+
+  <div class="app-body">
+    <nav class="pane pane-tree" id="tree-pane" aria-label="Fichiers de présentation">
+      <h2 class="pane-title">Fichiers</h2>
+      <div id="tree-host"></div>
+    </nav>
+
+    <aside class="pane pane-slides" id="slides-pane" aria-label="Diapositives">
+      <h2 class="pane-title">Diapositives</h2>
+      <div id="slides-host"></div>
+    </aside>
+
+    <section class="viewer" id="viewer-pane" aria-label="Aperçu"></section>
+
+    <section class="pane editor-pane" id="editor-pane" aria-label="Édition de la diapositive">
+      <div id="form-host"></div>
+    </section>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
