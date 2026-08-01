@@ -566,8 +566,9 @@ A kit that repaints only half a solid pair gets:
 ## What is still not possible
 
 A guide that oversells is worse than none. The experiment these features came
-out of — `dashboard-ir.mjs` at the repository root, a real dashboard rebuilt
-by writing the IR by hand — marked every workaround it needed with `HACK:`.
+out of — `dashboard-ir.mjs`, a real dashboard rebuilt by writing the IR by
+hand, kept in the history rather than the working tree — marked every
+workaround it needed with `HACK:`.
 Some of those marks are now closed; the ones below are not, and the plans
 under `docs/plans/` record why.
 

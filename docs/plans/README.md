@@ -1,18 +1,25 @@
 # Plans — dashboard primitives
 
 Five plans, born of one experiment: rebuilding a real project-status dashboard
-**straight from the IR**. `dashboard-ir.mjs`, at the repository root, writes
-the scene by hand — 130 elements, no Markdown, no layout engine — and hands it
-to `renderDeckHtml`. Run it to regenerate the page:
+**straight from the IR**. `dashboard-ir.mjs` wrote the scene by hand — 130
+elements, no Markdown, no layout engine — and handed it to `renderDeckHtml`.
+
+The script is no longer kept in the working tree. It is still in the history,
+where it can be read without being restored:
 
 ```sh
-node dashboard-ir.mjs dashboard-ir.html   # the .html is generated, not tracked
+git show 8eaeec9:dashboard-ir.mjs
 ```
+
+Running it again takes one edit: it imports `renderDeckHtml`, `COLORS` and
+`applyTheme` through **absolute paths** into `packages/core`, so it only ever
+ran on the machine it was written on. Point those three imports at your own
+checkout and `node dashboard-ir.mjs out.html` writes the 130 elements again.
 
 The verdict was clear. The IR's geometry is not the problem: a scene is a flat
 list of `{ block, region }` in absolute pixels, so an asymmetric panel grid
 costs nothing. What the IR lacks is **block types and block properties**.
-Every one of the 130 elements that needed a workaround is marked `HACK:` in
+Every one of the 130 elements that needed a workaround was marked `HACK:` in
 that file; the five plans below are those marks, grouped.
 
 | # | Plan | What it unblocks |
