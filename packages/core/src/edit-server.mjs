@@ -698,9 +698,19 @@ export async function startDeckEditServer(rootDir, { port = DECK_EDIT_DEFAULT_PO
   // name is one way to arrange precisely that mismatch, and it took down
   // `lutrin edit` on windows-latest / Node 24 while the same code passed on
   // Node 22 and on every other platform.
+  //
+  // NOT RECURSIVE ON WINDOWS. libuv's recursive backend there is the code that
+  // asserts, and an assert is an abort: no message, no stack, the editor
+  // simply dies under its user. A root-only watch still reports the decks
+  // sitting at the top of the tree and can do none of that, which is the
+  // trade this file already states in the line above — degraded beats fatal.
+  // Nested decks lose their deck-changed event on Windows, and nothing else
+  // changes: every edit made THROUGH the editor is broadcast by the write
+  // path, not by the watcher.
+  const recursive = process.platform !== 'win32';
   let watcher = null;
   try {
-    watcher = fs.watch(fs.realpathSync(root), { recursive: true }, onFsEvent);
+    watcher = fs.watch(fs.realpathSync(root), { recursive }, onFsEvent);
   } catch {
     /* no watch: the SPA simply receives no deck-changed events */
   }
