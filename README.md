@@ -129,6 +129,7 @@ come from `examples/demo.deck.md`, which has 27 of them.
 ```bash
 npx lutrin build <deck.md> [-o output.pptx|output.html] [--kit <ref>] [--force] [--verbose]
 npx lutrin preview <deck.md> [--port 4321]     # local server + auto reload
+npx lutrin edit [directory] [--port 4323]      # local web editor, one slide at a time
 npx lutrin validate <deck.md> [--json]         # positioned diagnostics
 npx lutrin inspect <deck.md>                   # IR and scenes as JSON
 npx lutrin vendor <deck.md>                    # freezes the deck's external dependencies
@@ -140,6 +141,12 @@ npx lutrin license deactivate                  # frees the seat for another mach
 
 The output format is deduced from the extension of `-o`. Every compilation
 command accepts `--kit <name|file.json|directory>` (see "Kits").
+
+**`lutrin edit` opens the decks of a directory in a local web editor** — a
+file tree of its `.deck.md` files, a live preview compiled by the real
+engine, and editing **one slide at a time**: the server rewrites only the
+lines of the slide being saved, so nothing an author wrote elsewhere in the
+file is ever reformatted. Like the kit editor, it serves 127.0.0.1 only.
 
 `capabilities` with no argument describes the **bare** engine: built-in
 layouts and official catalog, `userLayouts` empty. **Passing it the deck** —

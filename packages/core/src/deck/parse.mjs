@@ -640,7 +640,11 @@ export function parseProgressValue(text) {
   return null;
 }
 
-function parseComment(html) {
+/** `<!-- notes|layout|animate[: value] -->` → `{ key, value }`, or null for any
+ *  other HTML. Exported for the slicer (slice.mjs): a slice boundary must read
+ *  a directive with the very same eyes as the parser, or the two would one day
+ *  disagree on who owns a comment line. */
+export function parseComment(html) {
   const m = html.match(/<!--\s*(notes|layout|animate)\s*(?::\s*([\s\S]*?))?\s*-->/);
   return m ? { key: m[1], value: (m[2] ?? '').trim() } : null;
 }
@@ -705,23 +709,36 @@ function newSlide() {
 }
 
 /**
+ * Shared front door of parseDeck and the editor's slicer (slice.mjs): strips
+ * the BOM, detaches the frontmatter, tokenizes the body and identifies the
+ * dialect. One function, so the two consumers can never disagree on what a
+ * line number or a token means.
+ *
+ * A leading U+FEFF (Windows Notepad, PowerShell `>` redirection) precedes the
+ * frontmatter's `---`: without stripping it, the frontmatter is not
+ * recognized at all — the metadata is lost and the block ends up in the body
+ * as a ghost slide. CI covers windows-latest; the BOM does not cost a line,
+ * so source positions stay correct.
+ *
+ * @returns {{ meta: object, body: string, lineOffset: number,
+ *             tokens: object[], marp: boolean }}
+ */
+export function tokenizeDeck(source) {
+  const { meta, body, lineOffset } = splitFrontmatter(source.replace(/^\uFEFF/, ''));
+  return { meta, body, lineOffset, tokens: buildMd().parse(body, {}), marp: isMarpDeck(meta) };
+}
+
+/**
  * Converts markdown-it's token stream into the IR.
  * @returns {{ meta: object, slides: object[] }}
  */
 export function parseDeck(source) {
-  // A leading U+FEFF (Windows Notepad, PowerShell `>` redirection) precedes
-  // the frontmatter's `---`: without stripping it, the frontmatter is not
-  // recognized at all — the metadata is lost and the block ends up in the body
-  // as a ghost slide. CI covers windows-latest; the BOM does not cost a line,
-  // so source positions stay correct.
-  const { meta, body, lineOffset } = splitFrontmatter(source.replace(/^\uFEFF/, ''));
+  const { meta, lineOffset, tokens, marp } = tokenizeDeck(source);
   /** Marp dialect (`marp: true` in the frontmatter): slides split on `---`
    *  only, HTML comments are presenter notes, `![bg \u2026]` images become the
    *  slide background \u2014 see marp.mjs. The lutrin DSL is unchanged without
    *  the opt-in. */
-  const marp = isMarpDeck(meta);
   const marpState = marp ? marpMeta(meta) : null;
-  const tokens = buildMd().parse(body, {});
   if (marp) {
     // headingDivider is a GLOBAL Marp directive: wherever it is written, the
     // LAST definition wins and applies to the whole deck — the slides before
