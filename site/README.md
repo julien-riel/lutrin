@@ -194,22 +194,39 @@ it is not.
 
 ### Reading the numbers
 
-The dashboard is `cloud.umami.is`; the API answers at `https://api.umami.is/v1`
-with an `x-umami-api-key` header, 50 calls per 15 seconds. That API is the
-reason this provider was chosen over Plausible, whose Stats API and custom
-event properties are both Business-plan features — the numbers have to be
-readable by whoever is asking, including an agent, without a browser session.
+The dashboard is `cloud.umami.is`. **The free plan grants no API key** — that
+is a Pro feature, and it is the one thing the documentation would not confirm
+before signing up. What does work at $0 is the **Share URL**: the public
+dashboard Umami serves is driven by a token anyone holding the link can get,
+and the same token answers the ordinary stats endpoints.
 
-The key lives **outside this repository**, in
-`~/.config/lutrin/analytics.json` (`chmod 600`):
-
-```json
-{ "provider": "umami", "websiteId": "…", "apiKey": "…", "region": "us" }
+```sh
+# 1. the share id → a token (and the website id)
+curl -s https://gateway-us.umami.is/api/share/<shareId>
+# 2. any stats endpoint, with TWO headers — the context one is not optional
+curl -s -H "x-umami-share-token: <token>" -H "x-umami-share-context: 1" \
+  "https://gateway-us.umami.is/api/websites/<websiteId>/stats?startAt=<ms>&endAt=<ms>"
 ```
 
-Useful shapes: `/websites/<id>/stats?startAt=<ms>&endAt=<ms>` for the totals,
-`/websites/<id>/metrics?type=utm_medium&…` to see which checkout link converts,
-`/websites/<id>/events/series` for the three events below.
+Useful shapes: `/stats` for the totals, `/metrics?type=path` for the pages,
+`?type=event` for the three custom events, `?type=referrer` for where people
+came from, and `?type=utm_medium` for which checkout link converts. Host is
+`gateway-us.umami.is` for a US account, `gateway-eu` for an EU one.
+
+**The trade-off, and it is a real one: a Share URL is public.** Anyone holding
+the link reads the site's traffic — no password, no expiry. For a marketing
+site that is a mild disclosure rather than a leak, but it is a choice rather
+than an accident, and it is revocable: regenerating the Share URL invalidates
+the old one. If these numbers should stay private, the alternative is $20 a
+month for Pro and a real API key.
+
+So the share id belongs **outside this repository**, in
+`~/.config/lutrin/analytics.json` (`chmod 600`) — a public repo is exactly
+where a "public enough" link stops being a considered choice:
+
+```json
+{ "provider": "umami", "websiteId": "…", "shareId": "…", "region": "us" }
+```
 
 ### The three custom events
 

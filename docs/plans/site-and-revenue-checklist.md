@@ -115,12 +115,21 @@ worked.
 > dashboard answers. Paying $20 for an API over an empty dataset buys nothing.
 > Two things to do instead, in order:
 >
-> 1. **Enable a Share URL** on the website (Websites → Edit → Share URL). Umami
->    serves its public dashboards through `/api/share/<id>`, which hands back a
->    token used with `x-umami-share-token` — no API key involved. Whether that
->    is readable programmatically on Hobby is not documented either way, and it
->    is one click to find out. If it works: $0 **and** readable.
-> 2. **Revisit when the traffic makes a weekly automated read worth $20** — and
+> 1. ~~**Enable a Share URL**~~ — **done, and it works.** The Share URL route
+>    reads the whole stats API on the free plan: `GET
+>    gateway-us.umami.is/api/share/<shareId>` hands back a token, and that
+>    token plus `x-umami-share-context: 1` answers `/stats`, `/metrics` and the
+>    rest. Verified by reading the real numbers from a terminal, not by reading
+>    the documentation — which describes none of this. **So: $0 AND readable,
+>    and nothing needs to be bought.** The recipe is in `site/README.md`.
+>
+>    What it costs is privacy rather than money: **a Share URL is public**.
+>    Anyone holding the link reads the traffic, with no password and no expiry.
+>    For this site that is a mild disclosure, it was chosen knowingly, and it
+>    is revocable — regenerating the link kills the old one. If the numbers
+>    ever need to be private, that is when $20 for Pro buys something.
+> 2. **Revisit only if the numbers must become private, or the traffic makes a
+>    weekly automated read worth $20** — and
 >    at that moment compare afresh, because the reason Umami beat Plausible is
 >    gone. At the same price, Plausible's dashboard, funnels and properties are
 >    the stronger product; switching is one line in nine pages, `main.js`
