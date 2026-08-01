@@ -871,13 +871,13 @@ test('SSE: an external deck change emits deck-changed with its path; a server wr
     // deck than the one just saved: the suppression window is per path, and
     // a sibling's external change must keep its event (kit editor's rule)
     //
-    // NESTED, so Windows is excluded: the server watches non-recursively there
-    // (see edit-server.mjs — libuv's recursive backend aborts the process
-    // rather than raising), and a deck two directories down is exactly what
-    // that costs. The assertion is kept for every other platform rather than
-    // weakened for all of them, because a root-only event would prove much
-    // less: it is the REL PATH of a nested file that shows the watcher reports
-    // where a change happened, not merely that one did.
+    // WINDOWS IS EXCLUDED, because the server does not watch there at all:
+    // libuv's fs-event backend aborts the process instead of raising
+    // (edit-server.mjs says which upstream issues, and why an abort leaves no
+    // choice). The assertion is guarded rather than weakened for everybody —
+    // it is the REL PATH of a file two directories down that shows the watcher
+    // says WHERE something changed, not merely that something did, and every
+    // platform that can still has to prove it.
     const cPath = path.join(root, 'sub', 'deep', 'c.deck.md');
     fs.writeFileSync(cPath, fs.readFileSync(cPath, 'utf8'));
     if (process.platform !== 'win32') {

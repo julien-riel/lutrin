@@ -699,20 +699,29 @@ export async function startDeckEditServer(rootDir, { port = DECK_EDIT_DEFAULT_PO
   // `lutrin edit` on windows-latest / Node 24 while the same code passed on
   // Node 22 and on every other platform.
   //
-  // NOT RECURSIVE ON WINDOWS. libuv's recursive backend there is the code that
-  // asserts, and an assert is an abort: no message, no stack, the editor
-  // simply dies under its user. A root-only watch still reports the decks
-  // sitting at the top of the tree and can do none of that, which is the
-  // trade this file already states in the line above — degraded beats fatal.
-  // Nested decks lose their deck-changed event on Windows, and nothing else
-  // changes: every edit made THROUGH the editor is broadcast by the write
-  // path, not by the watcher.
-  const recursive = process.platform !== 'win32';
+  // NOT WATCHED AT ALL ON WINDOWS, and that is upstream's doing rather than
+  // ours. libuv's Windows backend reaches
+  // `assert(!_wcsnicmp(filename, dir, dirlen))` in src/win/fs-event.c and an
+  // assert is an ABORT: no exception to catch, no stack, the editor dies
+  // under its user with one line of C. The defect is old and known —
+  // libuv#693, nodejs#4792, libuv#1009 — and the area was still being
+  // repaired upstream in Node 26.4.0 ("ignore deleted dirs in recursive watch
+  // scan"). It is reproducible here on windows-latest / Node 24 and not on
+  // Node 22, which is the same code meeting an older libuv.
+  //
+  // Removing recursion was not enough; `uv__relative_path` sits on the plain
+  // path too. So on win32 there is no watcher, and the cost is bounded: the
+  // editor stops hearing about changes made OUTSIDE it. Everything done
+  // through the editor is still broadcast by the write path, which never went
+  // near fs.watch. Re-test when the supported Node baseline moves past the
+  // upstream fixes — the line to change is this one.
   let watcher = null;
-  try {
-    watcher = fs.watch(fs.realpathSync(root), { recursive }, onFsEvent);
-  } catch {
-    /* no watch: the SPA simply receives no deck-changed events */
+  if (process.platform !== 'win32') {
+    try {
+      watcher = fs.watch(fs.realpathSync(root), { recursive: true }, onFsEvent);
+    } catch {
+      /* no watch: the SPA simply receives no deck-changed events */
+    }
   }
 
   // ------ lifecycle -----------------------------------------------------------
