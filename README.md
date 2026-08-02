@@ -246,7 +246,7 @@ The two pieces of a kit can also be used separately, placed next to the deck:
   passed the deck or `--kit`, failing which it does not see that directory.
   Examples: `examples/kit-slate/layouts/`.
 
-Warm hosts (the extensions' worker, the preview server) reapply the context on
+Warm hosts (the extension's worker, the preview server) reapply the context on
 every compilation from a snapshot — never a leak of a theme or a layout
 between two decks.
 
@@ -361,9 +361,9 @@ is verified before installation.
 ## Tests
 
 ```bash
-npm test                    # the three packages — node:test harness, zero dependencies
+npm test                    # both packages — node:test harness, zero dependencies
 npm run test:core           # the engine alone: packages/core/test/
-npm run typecheck           # the two editor hosts (tsc --noEmit)
+npm run typecheck           # the editor host (tsc --noEmit)
 npm run lint                # biome — BLOCKING in CI
 ```
 
@@ -387,12 +387,9 @@ packages/core/                 the compiler + CLI (bin: lutrin)
 packages/core/design/themes/   default.json — canonical mirror of the default theme
 packages/core/design/layouts/  the catalog of the twelve official layouts
 packages/core/src/kit/         .deckkit archives (pack, download, install)
-packages/core/src/worker/      the single IPC worker of the editor hosts (+ protocol.d.ts)
+packages/core/src/worker/      the IPC worker of the editor host (+ protocol.d.ts)
 packages/core/test/            the node:test harness (goldens, parity, validation, kits)
 packages/vscode-extension/     the extension (webview; launches the core worker)
-packages/obsidian-plugin/      an Obsidian host, work in progress — builds and
-                               tests here, but is not documented or released
-                               yet; nothing above depends on it
 .claude/skills/deck/           the agent skill
 examples/demo.deck.md          covers every layout and block type — test fixture
 examples/theme-example.json    example theme

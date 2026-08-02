@@ -158,8 +158,7 @@ export async function rasterAvailable() {
  * Resolves the path of a local image relative to the deck. markdown-it
  * percent-encodes URLs (`My photo é.png` → `My%20photo%20%C3%A9.png`): if the
  * path as given does not exist, its decoded form is tried — file names with
- * accents or spaces, and `![[…]]` embeds translated by the hosts (Obsidian
- * plugin).
+ * accents or spaces.
  */
 export function resolveImagePath(baseDir, src) {
   const direct = path.resolve(baseDir, src);
@@ -180,9 +179,9 @@ export function resolveImagePath(baseDir, src) {
  * embedded (base64) in the deliverable: `![bg](/Users/victim/.ssh/id_rsa)` or
  * `![bg](../../../.ssh/id_rsa)` in a deck received from a third party would
  * exfiltrate an arbitrary file from the machine that compiles. Image sources
- * are therefore confined to the deck directory, plus the project/vault roots
- * the host declares (VS Code: the workspace directory; Obsidian: the vault
- * root, so that attachments filed elsewhere stay readable).
+ * are therefore confined to the deck directory, plus the project roots the
+ * host declares (VS Code: the workspace directory, so that assets filed
+ * elsewhere in the project stay readable).
  *
  * Same shape as `insideKit`/`within`: lexical check first (a path that escapes
  * is refused whether it exists or not), then the real one (realpath) to close
@@ -297,7 +296,7 @@ export function kitImageWarnings(blocks) {
  *
  * `roots[0]` is the primary root (the deck directory) against which relative
  * paths are resolved; the following roots only widen the confinement (an
- * absolute path already under a project/vault root passes).
+ * absolute path already under a project root passes).
  *
  * A `kit:<alias>` source resolves to the path the kit's theme declared for
  * the alias, WITHOUT the roots' confinement: that path was already resolved
@@ -848,7 +847,7 @@ export async function renderMath(tex, { scale = 3 } = {}) {
  *  renderer's sanitizer strips `foreignObject` ALONG WITH its content (a sound
  *  security rule: it is the entry point for arbitrary HTML into an inlined
  *  SVG), and every diagram therefore displayed as a series of empty rectangles
- *  in the standalone HTML, the VS Code webview and the Obsidian shadow DOM —
+ *  in the standalone HTML as well as in the VS Code webview —
  *  while the .pptx, rasterized by mmdc itself, carried its labels. A silent
  *  HTML/PPTX divergence. Switched off here, mermaid emits native SVG `<text>`,
  *  which the sanitizer lets through. */

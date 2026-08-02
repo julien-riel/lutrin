@@ -37,11 +37,8 @@ const ROOT_PKG = read('package.json');
 const CORE = read('packages', 'core', 'package.json');
 
 /** The editor host packages, which are not published on npm but whose metadata
- *  feeds the VS Code marketplace and the Obsidian catalog. */
-const HOSTS = [
-  ['packages', 'vscode-extension', 'package.json'],
-  ['packages', 'obsidian-plugin', 'package.json'],
-];
+ *  feeds the VS Code marketplace. */
+const HOSTS = [['packages', 'vscode-extension', 'package.json']];
 
 /** The thin entry point published as the unscoped `lutrin` name, so that
  *  `npx lutrin` works without knowing the scope. It carries no code of its
@@ -170,9 +167,9 @@ test('every package carries what it takes to find the repository', () => {
   }
 });
 
-test('both editor hosts are typecheckable from the root', () => {
-  // Typechecking the VS Code extension was not scriptable: `npm run typecheck`
-  // at the root only covered the Obsidian plugin, and nothing flagged it.
+test('the editor host is typecheckable from the root', () => {
+  // A host whose typecheck is not wired into the root script is a host nobody
+  // typechecks: CI runs `npm run typecheck` and nothing else.
   for (const seg of HOSTS) {
     const pkg = read(...seg);
     assert.equal(
@@ -185,10 +182,5 @@ test('both editor hosts are typecheckable from the root', () => {
     ROOT_PKG.scripts?.typecheck ?? '',
     /lutrin-vscode/,
     'the root typecheck must include the VS Code extension',
-  );
-  assert.match(
-    ROOT_PKG.scripts?.typecheck ?? '',
-    /lutrin-obsidian/,
-    'the root typecheck must include the Obsidian plugin',
   );
 });

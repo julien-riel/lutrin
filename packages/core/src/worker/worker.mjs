@@ -1,13 +1,13 @@
 /**
- * Compilation worker — a dedicated Node process, launched by the editor hosts
- * (VS Code extension: fork; Obsidian plugin: spawn of a system Node).
+ * Compilation worker — a dedicated Node process, launched by the editor host
+ * (the VS Code extension forks it).
  *
  * All of the compilation (including mmdc/execFileSync, blocking for up to 60 s
  * per Mermaid diagram, and the native resvg module) lives here: the host only
  * does IPC round trips and never freezes.
  *
- * One and the same for both hosts: it lives in the core (the extensions point
- * at `dist/core/src/worker/worker.mjs` — a faithful copy of the core in
+ * It lives in the core rather than in the host (the extension points at
+ * `dist/core/src/worker/worker.mjs` — a faithful copy of the core in
  * production, a symlink in development), so its asset resolution through
  * import.meta.url and its node_modules stay intact.
  *

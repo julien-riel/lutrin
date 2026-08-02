@@ -7,7 +7,6 @@ packages/vscode-extension/latest.json
 # copied from the repo root by scripts/package.mjs so it travels in the VSIX
 packages/vscode-extension/THIRD-PARTY-NOTICES.md
 *.vsix
-packages/obsidian-plugin/dist/
 
 # deck compilation artifacts — never versioned
 *.pptx

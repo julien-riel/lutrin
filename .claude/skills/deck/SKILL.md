@@ -655,9 +655,7 @@ installed:
 npm workspaces monorepo: the engine lives in `packages/core` (no organization
 brand ships with it — they live in their own repositories, as kits) and the
 VS Code extension (live preview, diagnostics, export) in
-`packages/vscode-extension`. `packages/obsidian-plugin` is an unreleased
-work in progress: it builds and tests, but nothing documents or ships it, so
-do not present it to a user as an available surface.
+`packages/vscode-extension`.
 
 | File (under `packages/core/`) | Role |
 |---|---|
@@ -679,7 +677,7 @@ do not present it to a user as an available surface.
 | `src/cli.mjs` | `lutrin` CLI (`build`, `preview`, `validate`, `vendor`, `inspect`, `config`, `kit`, `capabilities`) |
 | `src/vendor.mjs` | `lutrin vendor` — freezing external dependencies into the deck's directory |
 | `src/kit/archive.mjs` | `.deckkit` archives: package, download, install (guard rails — see `SECURITY.md`) |
-| `src/worker/worker.mjs` | Single IPC worker for the editor hosts (VS Code, Obsidian); types in `protocol.d.ts` |
+| `src/worker/worker.mjs` | IPC worker for the editor host (VS Code); types in `protocol.d.ts` |
 | `test/` | `node:test` harness: IR + scene goldens, non-mutation, renderer parity, validation |
 
 To add a built-in layout: infer it in `inferLayout()`, register it in the

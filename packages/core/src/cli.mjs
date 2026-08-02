@@ -196,7 +196,7 @@ const FLAG_SPECS = {
   // real context (installed kit, layouts/ next to the deck) and not just that
   // of the bare engine.
   capabilities: { ...FLAGS_KIT, json: 'boolean' },
-  // `--json` on `status` alone: a host (VS Code, Obsidian) needs the state
+  // `--json` on `status` alone: a host (VS Code) needs the state
   // machine-readable to decide whether to offer the "buy a licence" affordance
   license: { json: 'boolean' },
   // `--yes` is what authorizes the ~200 MB download: a browser never arrives

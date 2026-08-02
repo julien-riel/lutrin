@@ -4,8 +4,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project applies [semantic versioning](https://semver.org/).
 
 The packages in this repository carry their own version numbers: `@lutrin/core`
-carries the compiler's version, `lutrin-vscode` and `lutrin-obsidian` that of
-their editor host. Unless stated otherwise, an entry describes the compiler.
+carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
+stated otherwise, an entry describes the compiler.
 
 ## [Unreleased]
 
@@ -154,6 +154,29 @@ their editor host. Unless stated otherwise, an entry describes the compiler.
   fork is free — under another name.
 
 ### Removed
+
+- **The Obsidian plugin, `packages/obsidian-plugin/`.** It was never released:
+  private, version 0.1.0, and its own README said it was a work in progress
+  that nothing documented or shipped. What it did cost was real all the same —
+  a second packager assembling its own `dist/core`, a second suite and a second
+  bundle in the CI matrix, a release directory verified and uploaded on every
+  commit, and a `>=22`-engine manifest to keep in step with three others. A
+  surface nobody could install is a surface that only ever spends.
+
+  **The engine loses nothing.** The worker is still an IPC process the host
+  forks, `imageRoots` still widens the local-image trust roots beyond the
+  deck's directory (the VS Code extension declares the workspace), and the SVG
+  sanitizer still stands between an inlined logo and an Electron renderer —
+  none of those three were the plugin's, they were the host contract's, and the
+  VS Code extension exercises all of them. The one behaviour that leaves with
+  the plugin is the translation of `![[…]]` wiki embeds, which lived entirely
+  on the host side: the core never knew that syntax existed. `resolveImagePath`
+  keeps decoding percent-encoded paths, because file names with accents and
+  spaces need it on their own.
+
+  `npm run typecheck` and `npm run build` at the root now name one host, the
+  CI keeps two test suites instead of three, and the `obsidian` types package
+  leaves `THIRD-PARTY-NOTICES.md`.
 
 - **The two revenue planning documents**, `docs/plans/site-and-revenue.md` and
   its checklist, are no longer kept here. A price considered and not announced

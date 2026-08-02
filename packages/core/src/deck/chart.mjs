@@ -772,8 +772,8 @@ ${body}
  * What the rendering is going to drop, said out loud as diagnostics — the
  * speaking counterpart of shownValues(). The plot truncates to stay inside the
  * frame; without this channel, the data loss would be mute. Wired into
- * validate.mjs (code CHART_DATA_IGNORED), hence visible to `lutrin validate`,
- * VS Code and Obsidian.
+ * validate.mjs (code CHART_DATA_IGNORED), hence visible to `lutrin validate`
+ * and to VS Code.
  *
  * The circular charts (pie/doughnut) are left to validate.mjs, which handles
  * them with their own constraints (single series, positive shares): diagnosing

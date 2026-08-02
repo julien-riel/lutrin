@@ -342,7 +342,7 @@ test('the getting-started documents name the blocking lint of the CI', () => {
   }
 });
 
-/** `npm test` at the root runs all THREE packages since it became
+/** `npm test` at the root runs EVERY package since it became
  *  `npm test --workspaces`; the docs still announced core alone. The short form
  *  for the engine alone is `npm run test:core`, and it must be cited where
  *  testing is explained. */
@@ -353,7 +353,7 @@ test('the docs no longer reduce "npm test" to the core package alone', () => {
     assert.match(
       read(doc),
       /npm run test:core/,
-      `${doc}: "npm test" now runs the three packages; "npm run test:core" is not cited`,
+      `${doc}: "npm test" now runs every package; "npm run test:core" is not cited`,
     );
   }
 });

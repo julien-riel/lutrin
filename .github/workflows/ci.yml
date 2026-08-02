@@ -64,18 +64,17 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # The three suites are DISTINCT steps, and the last two run even if an
-      # earlier one failed: when the core breaks under Windows only, we want to
-      # know in the same run whether the editor hosts break too. `npm test
-      # --workspaces` would stop at the first red package and mask the other
-      # two.
+      # The two suites are DISTINCT steps, and the second runs even if the
+      # first failed: when the core breaks under Windows only, we want to know
+      # in the same run whether the editor host breaks too. `npm test
+      # --workspaces` would stop at the first red package and mask the other.
       #
       # `--test "<glob>"` is expanded by Node itself, never by the shell: the
       # same command holds under bash and under cmd.exe.
       - name: Core tests
         run: npm test -w @lutrin/core
 
-      # These two suites run TypeScript directly through Node
+      # This suite runs TypeScript directly through Node
       # (--experimental-transform-types), which requires Node >= 22.7. The
       # matrix only installs recent 22.x and 24.x, so the condition holds; see
       # CONTRIBUTING for the minimum version in development.
@@ -83,11 +82,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: npm test -w lutrin-vscode
 
-      - name: Obsidian plugin tests
-        if: ${{ !cancelled() }}
-        run: npm test -w lutrin-obsidian
-
-      - name: Typecheck of both editor hosts
+      - name: Typecheck of the editor host
         if: ${{ !cancelled() }}
         run: npm run typecheck
 
@@ -99,9 +94,6 @@ jobs:
       - name: VS Code extension bundle
         run: node esbuild.mjs
         working-directory: packages/vscode-extension
-      - name: Obsidian plugin bundle
-        run: node esbuild.mjs
-        working-directory: packages/obsidian-plugin
 
       # Mermaid rendering itself needs no step: the runners ship a Chrome, so
       # `browser.mjs` finds one and the diagram tests in "Core tests" above
@@ -154,13 +146,10 @@ jobs:
       # No brand kit is embedded here: `.brandkit` is a local, unversioned
       # pointer and LUTRIN_BRAND_KIT is not defined. This is the situation of a
       # public clone, and it must stay silently correct — the build then starts
-      # from the generic theme. Verified locally by removing .brandkit: both
-      # packages build.
+      # from the generic theme. Verified locally by removing .brandkit: the
+      # package builds.
       - name: VS Code extension VSIX
         run: npm run vsix -w lutrin-vscode
-
-      - name: Obsidian plugin directory (release)
-        run: npm run release -w lutrin-obsidian
 
       # Artifact verification — two complementary safety nets.
       #
@@ -249,31 +238,6 @@ jobs:
           fi
           echo "✓ latest.json does describe $name"
 
-      # The Obsidian plugin is distributed as a DIRECTORY (no archive): it is
-      # that directory we verify, with the same standalone requirement.
-      - name: Obsidian directory verification
-        env:
-          OBS_DIR: ${{ runner.temp }}/obsidian
-        run: |
-          set -euo pipefail
-          rm -rf "$OBS_DIR"
-          cp -R packages/obsidian-plugin/dist "$OBS_DIR"
-
-          for required in main.js manifest.json versions.json styles.css \
-                          core/src/cli.mjs core/vendor/mermaid/mermaid.min.js \
-                          core/node_modules
-          do
-            if [ ! -e "$OBS_DIR/$required" ]; then
-              echo "✖ missing from the plugin directory: $required" >&2
-              exit 1
-            fi
-          done
-
-          fixture="$PWD/packages/core/test/fixtures/all-blocks.deck.md"
-          cd "$OBS_DIR"
-          node core/src/cli.mjs build "$fixture" -o "$OBS_DIR/smoke.pptx"
-          echo "✓ Obsidian plugin directory standalone and working"
-
       # A downloadable binary for every commit. Short retention: these are
       # verification artifacts, not a distribution.
       - name: VSIX publication
@@ -283,13 +247,5 @@ jobs:
           path: |
             packages/vscode-extension/*.vsix
             packages/vscode-extension/latest.json
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Obsidian plugin publication
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: lutrin-obsidian-plugin
-          path: packages/obsidian-plugin/dist
           if-no-files-found: error
           retention-days: 14

@@ -12,8 +12,8 @@
     "site:serve": "node scripts/site-serve.mjs",
     "test": "npm test --workspaces --if-present",
     "test:core": "npm test -w @lutrin/core",
-    "typecheck": "npm run typecheck -w lutrin-vscode && npm run typecheck -w lutrin-obsidian",
-    "build": "npm run build -w lutrin-vscode && npm run build -w lutrin-obsidian",
+    "typecheck": "npm run typecheck -w lutrin-vscode",
+    "build": "npm run build -w lutrin-vscode",
     "lint": "biome check .",
     "fmt": "biome format --write ."
   },

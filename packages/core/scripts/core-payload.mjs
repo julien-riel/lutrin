@@ -1,12 +1,12 @@
 /**
- * The part of packages/core that travels inside a packaged host — shared by the
- * packaging scripts of the VS Code extension and the Obsidian plugin, which
- * both build a standalone `dist/core`.
+ * The part of packages/core that travels inside a packaged host — used by the
+ * packaging script of the VS Code extension, which builds a standalone
+ * `dist/core`.
  *
  * `vendor/` is in the list, and that is the whole reason this file exists.
  * Mermaid renders in a browser driven by puppeteer-core, and the bundle it
  * injects into that browser is `vendor/mermaid/mermaid.min.js` (see
- * deck/assets.mjs, MERMAID_BUNDLE). The two packagers used to copy `src` and
+ * deck/assets.mjs, MERMAID_BUNDLE). The packager used to copy `src` and
  * `design` only: the bundle never reached the VSIX, `renderMermaidBrowser()`
  * found no file at its path, returned null, and EVERY diagram in a packaged
  * host degraded to its source as a code block — silently, and on every machine,

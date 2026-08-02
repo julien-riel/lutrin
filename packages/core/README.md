@@ -3,7 +3,7 @@
 The engine behind [Lutrin](../../README.md): enriched Markdown (a DSL) →
 PowerPoint `.pptx` or standalone HTML, with the page layout decided by the
 engine. It carries the CLI implementation and serves as a library for the
-editor hosts (the VS Code extension). The command itself is
+editor host (the VS Code extension). The command itself is
 published separately as [`lutrin`](https://www.npmjs.com/package/lutrin), a
 thin entry point that depends on this package.
 
@@ -147,7 +147,7 @@ Markdown → AST (markdown-it) → IR → layout engine → scene → renderer
 | `src/pptx/morph.mjs` | Morph transition of "(cont.)" slides |
 | `src/html/render.mjs` | scene → standalone HTML document (+ fragment mode) |
 | `src/kit/archive.mjs` | `.deckkit` archives — package, download, install |
-| `src/worker/worker.mjs` | IPC worker of the editor hosts (types in `protocol.d.ts`) |
+| `src/worker/worker.mjs` | IPC worker of the editor host (types in `protocol.d.ts`) |
 | `src/vendor.mjs` | `lutrin vendor` — freezing the deck's external dependencies |
 | `design/themes/default.json` | canonical mirror of the default theme, a template to copy |
 | `design/layouts/*.json` | the catalog of the twelve official layouts |

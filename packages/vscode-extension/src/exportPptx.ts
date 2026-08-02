@@ -28,7 +28,7 @@ export async function exportPptx(client: CompilerClient, uri?: vscode.Uri): Prom
   }
   if (doc.isDirty) await doc.save();
 
-  // aligned with Obsidian: `talk.deck.md` → `talk.pptx` (not `talk.deck.pptx`)
+  // the `.deck` infix is dropped: `talk.deck.md` → `talk.pptx` (not `talk.deck.pptx`)
   const outPath = `${doc.uri.fsPath.replace(/\.deck\.md$|\.md$/i, '')}.pptx`;
   try {
     const { stats } = await vscode.window.withProgress(

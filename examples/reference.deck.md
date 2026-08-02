@@ -613,7 +613,7 @@ Data, quotations and charts underneath.
 Every one of them is demonstrated in this deck — whose Markdown source is
 its own user guide.
 
-# One engine, three hosts
+# One engine, three entry points
 
 <!-- layout: portfolio -->
 
@@ -625,9 +625,9 @@ its own user guide.
 
 Live preview and diagnostics as you type.
 
-## Obsidian
+## Agent skill
 
-The same engine, wiki embeds translated.
+The same engine: write, validate, fix, build.
 
 # Kits and themes
 
@@ -643,7 +643,7 @@ Slate. Who wins, strongest first:
    travels with the deck; the document beats any configuration
 3. The project default in the nearest `package.json`
 4. The user default set by `lutrin config --kit <ref>`
-5. A host default (VS Code, Obsidian) — else the neutral Slate theme
+5. A host default (the VS Code extension) — else the neutral Slate theme
 
 <!-- notes: lutrin kit list shows what is installed. kit: none forces the neutral theme. theme: is a deprecated alias of kit: and warns with KIT_DEPRECATED_KEY. -->
 

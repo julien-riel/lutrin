@@ -1,7 +1,7 @@
 /**
  * IPC protocol of the compilation worker (worker.mjs) — the single source of
- * truth for the types exchanged between the worker and its hosts (VS Code
- * extension, Obsidian plugin). A pure type file: no code emitted.
+ * truth for the types exchanged between the worker and its host (the VS Code
+ * extension). A pure type file: no code emitted.
  */
 
 export interface DeckDiagnostic {
@@ -68,7 +68,7 @@ export interface WorkerRequest {
     /** Additional roots (beyond the deck's directory) a LOCAL image may be
      *  embedded from — containment against arbitrary file reads (assets.mjs).
      *  Absent/empty ⇒ the deck's directory only. VS Code: the workspace
-     *  directory; Obsidian: the vault root. */
+     *  directory. */
     imageRoots?: string[];
   };
 }

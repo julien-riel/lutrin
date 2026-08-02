@@ -1595,7 +1595,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
     });
   }
 
-  // trust roots of the local images: directory of the deck + project/vault
+  // trust roots of the local images: directory of the deck + project
   // roots declared by the host (containment — assets.mjs)
   const imageRoots = [baseDir, ...(opts.imageRoots ?? [])];
   const ctx = { baseDir, imageRoots, mermaid, remote, icons, math, charts };

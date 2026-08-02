@@ -1,5 +1,5 @@
 name: Feature proposal
-description: Suggest a change to the DSL, the engine or the editor hosts.
+description: Suggest a change to the DSL, the engine or the editor host.
 labels: [proposal]
 body:
   - type: markdown
