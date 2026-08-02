@@ -170,9 +170,15 @@ presents them. The trailing slash is what keeps `/gallery.html` crawlable.
 ## Analytics
 
 **Umami Cloud**, one `<script defer>` in the `<head>` of all nine pages and
-nothing else — `assets/js/main.js` needed no change, because the `track()` it
-already had calls `window.umami.track` when it is there and does nothing when
-it is not.
+nothing else — installing it took no change at all in `assets/js/main.js`,
+because the `track()` that file already had calls `window.umami.track` when it
+is there and does nothing when it is not. That is the property worth
+protecting: every event added since goes through the same helper, and reaching
+for `window.umami` directly would turn the next provider change from one line
+into a hunt.
+
+`packages/core/test/site-analytics.test.mjs` holds the pages to all of this —
+the tag, the ids, and the UTM on the checkout links.
 
 ```html
 <script defer src="https://cloud.umami.is/script.js"
@@ -219,17 +225,33 @@ own shared dashboard sends, and that is worth writing down somewhere public.
 
 The credentials it reads are described below.
 
-Accepted metric types on this route are `path`, `event`, `referrer`, `channel`
-and `query`; the `utm_*` types are refused (measured, not assumed). Host is
-`gateway-us.umami.is` for a US account, `gateway-eu` for an EU one.
+Which metric types the route accepts was **measured against the live gateway
+on 2026-08-01**, not read in a documentation page — upstream documents none of
+it, and the refusals are the interesting half:
 
-**Which checkout link converts is not an Umami question**, and it is worth
-being clear about it: the `utm_source`/`utm_medium`/`utm_campaign` on each
-`buy.polar.sh` link leave with the visitor and are read by **Polar**. Umami's
-last sight of a buyer is the page they left from — not even the click, since
-no event is wired to the checkout links. Wiring one (`checkout clicked`, with
-the placement) is the missing rung of that ladder, and it is one line in
-`assets/js/main.js`.
+| Answers `200` | Answers `400` |
+| --- | --- |
+| `path`, `entry`, `exit`, `event`, `title`, `query`, `referrer`, `channel`, `tag`, `language`, `screen`, `country`, `region`, `city`, `browser`, `device`, `os` | `url`, `host`, `utm_source`, `utm_medium`, `utm_campaign` |
+
+Three things in that table are worth spelling out:
+
+- **`entry` and `exit`** answer the landing-page and the exit-page questions,
+  and **`path` answers neither** — it counts every view, so a page everyone
+  passes through outranks the page they actually arrived on.
+- **`url` is not a type here**; on this gateway it is called `path`. So is
+  `host`, which is refused outright.
+- **The `utm_*` types are refused**, which is the whole reason the incoming-UTM
+  section below has to be written the way it is.
+
+Host is `gateway-us.umami.is` for a US account, `gateway-eu` for an EU one.
+
+**What happens past the click is not an Umami question**, and it is worth being
+clear about it: the `utm_source`/`utm_medium`/`utm_campaign` on each
+`buy.polar.sh` link leave with the visitor and are read by **Polar**. Umami now
+sees the click itself — `checkout clicked` carries the placement and the tier —
+and nothing after it. The order, the amount and whether it was refunded are
+read on the other side, and **the two halves are not reconciled here**: one
+answers *which link is persuasive*, the other *what was actually paid*.
 
 **The trade-off, and it is a real one: a Share URL is public.** Anyone holding
 the link reads the site's traffic — no password, no expiry. For a marketing
@@ -246,18 +268,39 @@ where a "public enough" link stops being a considered choice:
 { "provider": "umami", "websiteId": "…", "shareId": "…", "region": "us" }
 ```
 
-### The three custom events
+### The four custom events
 
 | Event | Fires when | Props | Why it is worth a name |
 | --- | --- | --- | --- |
 | `command copied` | any `copy` button is clicked, on either page | `command` | the reader intends to run Lutrin — the closest thing to an install this page can see |
 | `pptx downloaded` | any link ending in `.pptx` | — | proof that the "real PowerPoint, not an image" claim landed |
 | `deck opened` | `demo.html`, from the buttons or a gallery card | `slide` | which slide pulled them in, which is what the gallery is for |
+| `checkout clicked` | any `https://buy.polar.sh/` link, anywhere on the site | `placement`, `tier` | the last thing this site can see a buyer do — past it, only Polar knows |
 
 `command copied` fires on the click, not on the clipboard promise: a browser
 that denies clipboard access still tells us the reader wanted the command.
 
-### UTM on the checkout links
+`checkout clicked` reads its two props **out of the link's own UTM parameters**
+— `utm_medium` → `placement`, `utm_campaign` → `tier` — rather than from a list
+in the JavaScript. A second list is a list that drifts; this way the act that
+makes a new checkout link attributable in Polar is the same act that
+instruments it here. A link carrying no UTM reports `untagged` instead of
+nothing, so the omission shows up in the report rather than looking like a link
+nobody clicked.
+
+**It fires on the click and does not delay it.** The visitor leaves for
+`buy.polar.sh` immediately, and the event still lands: the tracker served at
+`cloud.umami.is/script.js` posts with `fetch(…, { keepalive: true })` — read out
+of the shipped script itself on 2026-08-01, not assumed — and `keepalive` is
+precisely the browser's undertaking to let a request outlive the document that
+started it. So there is no `preventDefault()` and no timeout in that branch,
+and there must not be: a slower checkout would cost more than the datum is
+worth. If that ever stops being true of the tracker, the symptom is silent —
+an event that is dropped this way is dropped without a trace — so it is the
+first thing to re-read if the `checkout clicked` count starts looking thin
+against the orders on Polar's side.
+
+### UTM going out — the checkout links
 
 Every `buy.polar.sh` link carries
 `?utm_source=site&utm_medium=<placement>&utm_campaign=<tier>`. Without the
@@ -276,7 +319,98 @@ and knowing *which one converts* is the whole reason to measure.
 `solo-lifetime`.
 
 **When adding a checkout link, give it a UTM.** One that carries none is
-invisible in the report and looks exactly like direct traffic.
+invisible in the report and looks exactly like direct traffic. That sentence
+used to be the only thing enforcing it;
+`packages/core/test/site-analytics.test.mjs` now reads the two lists **out of
+this file** and holds every `buy.polar.sh` href in `site/*.html` to them, so a
+link with no UTM — or with a placement invented on the spot — fails the build
+instead of the report. Add the row here first; the test is what makes that
+order the cheap one.
+
+### UTM coming in — the announcements
+
+The site tags what goes **out** to Polar and, until this section, tagged
+nothing coming **in**. The consequence is not theoretical: measured on
+2026-08-01, `channel` returned exactly one row — `direct`, 3 — and `referrer`
+returned none at all. Every announcement, wherever it was posted, is landing in
+the same undifferentiated bucket, and *"what did the launch actually bring"*
+has no answer to give.
+
+So every link posted anywhere gets tagged, in this shape:
+
+```
+https://info.lutrin.app/<page>?utm_source=<where>&utm_medium=<what kind of link>&utm_campaign=<why it was posted>
+```
+
+**`utm_source` — where it was posted.**
+
+| Value | Where |
+| --- | --- |
+| `hn` | Hacker News |
+| `reddit` | any subreddit |
+| `linkedin` | a post or a comment on LinkedIn |
+| `x` | X / Twitter |
+| `mastodon` | any instance |
+| `discord` | a Discord server |
+| `github` | the repository README, a release note, an issue |
+| `newsletter` | an emailed issue |
+
+**`utm_medium` — what kind of link it is.**
+
+| Value | What |
+| --- | --- |
+| `post` | a submission or a post written for the purpose |
+| `comment` | a reply inside somebody else's thread |
+| `profile` | a bio, a pinned link, a signature |
+| `readme` | a link inside a repository or a documentation page |
+| `email` | a newsletter issue or a direct mail |
+
+**`utm_campaign` — why it was posted.**
+
+| Value | Why |
+| --- | --- |
+| `launch` | the first announcement of the project |
+| `release` | a version going out |
+| `kits` | the gallery and the kit editor |
+| `playground` | the in-browser compiler |
+| `comparison` | one of the `lutrin-vs-*` pages |
+| `evergreen` | no campaign behind it — a profile, a README, a signature |
+
+Which words these are matters far less than that they were **chosen once and
+reused**. `x` and `twitter` in the same report are two sources that are one, and
+nothing in the pipeline will ever tell you so. A new value is a new row here,
+written before the link is posted.
+
+Three things this convention has to survive, and they shape it:
+
+- **`utm_source`, `utm_medium` and `utm_campaign` are not readable as metric
+  types** — the route refuses all three (measured; see the table above). What
+  reads them is `channel`, which *buckets* them into a handful of groups, plus
+  `referrer` for the ones that arrive with one.
+- **How `channel` buckets a tagged visit has not been measured**, because
+  nothing has ever arrived tagged. Neither has what `query` does with a UTM
+  string: it answers `200` and has returned zero rows to date, since no visit
+  has yet carried a query string at all. **The first tagged link is that
+  measurement** — read both back, and write down here what came out. Do not
+  fill this paragraph in from an upstream documentation page; that is how the
+  metric-type list came to be wrong.
+- **A referrer is not a fallback.** A link opened from a mobile app, a PDF, a
+  QR code or a chat client arrives with no referrer whatsoever and is
+  indistinguishable from someone typing the domain. For those, the UTM on the
+  link is the *only* record that the visit came from somewhere — which is why
+  the tag goes on every link, including the ones that would have sent a
+  referrer anyway.
+
+Point the link at the page that answers the post — `pricing.html`,
+`playground.html`, a `lutrin-vs-*` page — rather than always at `/`. `entry`
+is then the metric that says which one people actually arrived on, and `path`
+is the one that cannot tell you.
+
+**`utm_source=site` is reserved** and never appears on an inbound link: it is
+the word this site speaks to Polar on the way out. Inbound sources name the
+place the visitor came *from*, outbound ones name this site as the place they
+came from — same parameter, opposite ends of the visit, and mixing them makes
+both unreadable.
 
 ## Rules this directory is held to
 
