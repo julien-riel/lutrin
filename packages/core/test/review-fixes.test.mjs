@@ -55,8 +55,8 @@ test('B2: a local image outside the deck directory is neither embedded nor passe
   }
 });
 
-test('B2: an explicit trust root (vault/project) re-allows the image', async (t) => {
-  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-vault-'));
+test('B2: an explicit trust root (the project) re-allows the image', async (t) => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-project-'));
   const deckDir = path.join(rootDir, 'notes');
   const attDir = path.join(rootDir, 'media');
   fs.mkdirSync(deckDir);
@@ -66,7 +66,7 @@ test('B2: an explicit trust root (vault/project) re-allows the image', async (t)
   fs.copyFileSync(PIXEL, img);
 
   // the deck lives in notes/, the image in a sibling directory — outside baseDir
-  // but under the vault root: this is the Obsidian attachments case
+  // but under a declared trust root: this is the shared-assets directory case
   const deck = `# OK\n\n![background](${img})\n`;
   assert.ok(
     !codes(deck, { baseDir: deckDir, imageRoots: [rootDir] }).includes('IMAGE_PATH_ESCAPE'),

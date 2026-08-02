@@ -5,8 +5,8 @@
  * installed will ever be executed" — and `.svg` is on its allowlist of
  * extensions. Yet the HTML renderer inlined logos, Lucide icons and Mermaid
  * diagrams just as they came: a `<script>` or an `onload=` inside a logo ran,
- * and the Obsidian plugin drops that HTML in by innerHTML, inside an Electron
- * renderer, with no CSP.
+ * and a host dropping that HTML in by innerHTML — the VS Code webview — runs
+ * it inside an Electron renderer.
  *
  * The cases in this file are therefore HOSTILE SVGs, not malformed ones: each
  * is a known way around a naive sanitizer (mixed case, unquoted attribute,

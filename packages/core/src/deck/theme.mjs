@@ -17,9 +17,9 @@
  *      plugins included. Below the project default (more specific), above
  *      the host default (the brand imposed by a plugin is thereby overridden
  *      by the user's explicit choice);
- *   5. HOST default (`defaultTheme`): branded extensions (VS Code,
- *      Obsidian) ship their kit and impose it on decks that choose
- *      nothing — below everything else, so that the document always wins;
+ *   5. HOST default (`defaultTheme`): a branded extension (VS Code) ships
+ *      its kit and imposes it on decks that choose nothing — below
+ *      everything else, so that the document always wins;
  *   6. otherwise, the default theme (generic design tokens from tokens.mjs).
  *
  * THREE FORMS of reference, and three only (see resolveThemeRef):
@@ -430,10 +430,10 @@ export const userKitsDir = () => path.join(userConfigRoot(), 'kits');
 /**
  * Migrates the old `themes/` configuration to `kits/`, once.
  *
- * Called by the config reads rather than by an entry point: the hosts
- * (extension worker, Obsidian plugin) have no startup to hook it into, and a
- * user moving from one version to the next must find their themes again
- * without a gesture, whichever tool they arrive through.
+ * Called by the config reads rather than by an entry point: the extension
+ * worker has no startup to hook it into, and a user moving from one version
+ * to the next must find their themes again without a gesture, whichever tool
+ * they arrive through.
  *
  * Migrates ONLY if `kits/` does not exist: two directories side by side mean
  * the migration has already happened and that `themes/` is a leftover —

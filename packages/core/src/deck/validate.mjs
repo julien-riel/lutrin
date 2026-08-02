@@ -119,7 +119,7 @@ export function validateDeck(
     kitData = null,
   } = {},
 ) {
-  // trust roots for local images: the deck's directory + the project/vault
+  // trust roots for local images: the deck's directory + the project
   // roots declared by the host (containment — assets.mjs)
   const imageTrustRoots = [baseDir, ...imageRoots];
   const diags = [];
@@ -421,7 +421,7 @@ export function validateDeck(
           push(
             'error',
             'IMAGE_PATH_ESCAPE',
-            `Image outside the deck's directory: ${b.src} — refused (it will not be embedded). An image must sit under the deck's directory or under a project/vault directory allowed by the editor.`,
+            `Image outside the deck's directory: ${b.src} — refused (it will not be embedded). An image must sit under the deck's directory or under a project directory allowed by the editor.`,
             b.line,
           );
         } else if (!fs.existsSync(file)) {

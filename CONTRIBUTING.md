@@ -11,9 +11,9 @@ project's MIT licence (see `LICENSE`).
 ```sh
 git clone https://github.com/julien-riel/lutrin.git && cd lutrin
 npm install
-npm test                    # all three packages (core, VS Code, Obsidian)
+npm test                    # both packages (core, VS Code)
 npm run test:core           # the engine alone, when that is what you touch
-npm run typecheck           # both editor hosts (tsc --noEmit)
+npm run typecheck           # the editor host (tsc --noEmit)
 npm run lint                # biome — BLOCKING in CI
 node packages/core/src/cli.mjs build examples/demo.deck.md -o /tmp/demo.pptx
 ```

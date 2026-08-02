@@ -4,9 +4,9 @@ Lutrin is distributed under the MIT licence (see `LICENSE`). It depends on the
 components below, which remain under their own licences. None is strong
 copyleft: the combination is compatible with MIT distribution.
 
-The table lists the **direct** dependencies. The VSIX and Obsidian deliverables
-also embed their **transitive** dependencies: each one is redistributed with its
-own `LICENSE` file, exactly as it appears in `node_modules`.
+The table lists the **direct** dependencies. The VSIX deliverable also embeds
+its **transitive** dependencies: each one is redistributed with its own
+`LICENSE` file, exactly as it appears in `node_modules`.
 
 ## Runtime dependencies
 
@@ -51,7 +51,6 @@ carries no `LICENSE` file of its own: it points at the same text.
 | [esbuild](https://github.com/evanw/esbuild) | MIT | bundling of the extensions |
 | [typescript](https://github.com/microsoft/TypeScript) | Apache-2.0 | |
 | [@mermaid-js/mermaid-cli](https://github.com/mermaid-js/mermaid-cli) | MIT | Mermaid rendering, optional — the compiler drives a system browser instead |
-| [obsidian](https://github.com/obsidianmd/obsidian-api) | MIT | types for the plugin API |
 | [@biomejs/biome](https://github.com/biomejs/biome) | MIT OR Apache-2.0 | format and lint |
 
 ## Example content

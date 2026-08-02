@@ -1,7 +1,7 @@
 /**
- * Native rasterizer for EVERY platform the packaged host runs on — shared by
- * the packaging scripts of the hosts (VS Code extension, Obsidian plugin),
- * which each run `npm install --omit=dev` inside their dist/core.
+ * Native rasterizer for EVERY platform the packaged host runs on — used by
+ * the packaging script of the VS Code extension, which runs
+ * `npm install --omit=dev` inside its dist/core.
  *
  * That install keeps only the @resvg/resvg-js prebuild of the MACHINE THAT
  * BUILDS: the binaries are twelve optionalDependencies that npm filters by
@@ -14,8 +14,8 @@
  * refusal to install a foreign binary; `--no-save` keeps the throwaway
  * package.json out of it.
  *
- * The list mirrors the platforms VS Code (desktop and remote server) and
- * Obsidian run on — resvg naming: `msvc` for Windows, `gnu`/`musl` for
+ * The list mirrors the platforms VS Code runs on (desktop and remote
+ * server) — resvg naming: `msvc` for Windows, `gnu`/`musl` for
  * glibc/Alpine Linux. A prebuild that did not land FAILS the build: a
  * silently dropped platform would only surface at a user's end, as a deck
  * whose charts turned into text.

@@ -120,7 +120,7 @@ const MIME_BY_EXT = {
 };
 
 /** Cache key carrying the file's digest (path + mtime + size). Without it, in
- *  a warm process — `lutrin preview`, VS Code worker, Obsidian plugin — an
+ *  a warm process — `lutrin preview`, the VS Code worker — an
  *  image replaced on disk would serve its old content forever: the watcher
  *  recompiles, but the cache returned the stale base64. Same recipe as the
  *  font memo (fontFacesCss). */
@@ -169,8 +169,8 @@ function uniquifySvgIds(svg, prefix) {
  * `kit/archive.mjs` promises in so many words that a kit is DATA — "nothing
  * that is installed will ever be executed" — while `.svg` sits in its
  * extension allow-list. Without what follows, a logo carrying `<script>` or
- * `onload=` runs: the Obsidian plugin drops this HTML through innerHTML into
- * an Electron renderer, with no CSP to catch it.
+ * `onload=` runs: a host dropping this HTML into an Electron renderer through
+ * innerHTML executes it, and the fragment mode is made for exactly that.
  *
  * The parsing is done by hand rather than by successive replacements: a
  * `replace(/<script[^>]*>/gi, '')` is easy to bypass (mixed case, an
@@ -1048,9 +1048,9 @@ body{margin:0;background:#${C.underground2};font-family:"${FONTS.body}",-apple-s
 a{color:#${C.primary};text-decoration:none}
 a:hover{text-decoration:underline}
 /* inline code — every surface property EXPLICIT, not only the ones the theme
-   cares about. The fragment mode injects this CSS into hosts (VS Code
-   webview, Obsidian) whose own default stylesheets give "code" a padded,
-   theme-colored chip (VS Code: --vscode-textPreformat-background); any
+   cares about. The fragment mode injects this CSS into a host (the VS Code
+   webview) whose own default stylesheet gives "code" a padded,
+   theme-colored chip (--vscode-textPreformat-background); any
    property left undeclared here is repainted by the host — dark chips under
    dark editor themes, unreadable on a light slide. (No backticks in these
    comments: we are inside a JS template literal.) */
@@ -1635,7 +1635,7 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
     }),
   );
 
-  // trust roots for local images: the deck's directory, plus the project/vault
+  // trust roots for local images: the deck's directory, plus the project
   // roots declared by the host (containment — assets.mjs)
   const imageRoots = [baseDir, ...(opts.imageRoots ?? [])];
   const ctx = { baseDir, imageRoots, mermaid, remote, icons, math };

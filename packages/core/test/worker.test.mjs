@@ -1,5 +1,5 @@
 /**
- * Worker IPC (editor hosts): requests are SERIALIZED — since the theme and
+ * Worker IPC (editor host): requests are SERIALIZED — since the theme and
  * the user layouts are module state mutated by each compilation, two
  * interleaved requests would produce a hybrid rendering that is silently
  * wrong. These tests fork the real worker and pin down: the queue (two
