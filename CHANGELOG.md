@@ -11,6 +11,48 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **`checkout clicked` — the site can finally see someone leave to buy.** The
+  three events already there watched a reader arrive, copy a command and open
+  the deck, and then lost them: the `utm_*` on a `buy.polar.sh` link travels
+  OUT with the visitor and is read by Polar, so this site's last sight of a
+  buyer was the page they left from — not even the click. It now fires with the
+  placement and the tier, **read out of the link's own UTM parameters** rather
+  than a list in the JavaScript: a second list is a list that drifts, and this
+  way the act that makes a new checkout link attributable in Polar is the same
+  act that instruments it here. A link carrying none reports `untagged`, so the
+  omission shows up in the report instead of looking like a link nobody
+  clicked.
+
+  It does not delay the navigation, and does not need to: the tracker served at
+  `cloud.umami.is/script.js` posts with `fetch(…, { keepalive: true })` — read
+  out of the shipped script, which is the only way to know — and that is
+  precisely the browser's undertaking to let a request outlive the document
+  that started it. A `preventDefault()` and a timeout would have bought the
+  datum at the price of a slower checkout.
+
+- **A convention for the UTM coming IN, and the measured reason it has to be
+  one.** The site tagged everything going out and nothing coming in, so every
+  announcement — a Hacker News post, a Reddit comment, a README link — arrived
+  indistinguishable from someone typing the domain. Measured on 2026-08-01,
+  `channel` returned exactly one row (`direct`) and `referrer` returned none:
+  *"what did the launch bring"* had no answer to give. `site/README.md` now
+  fixes a small closed vocabulary for each of `utm_source`, `utm_medium` and
+  `utm_campaign`, chosen to survive the one constraint that shapes it — **the
+  stats route refuses the `utm_*` metric types outright**, leaving them
+  readable only through `channel`, which buckets them, and `referrer`, which a
+  link opened from an app, a PDF or a QR code never sends at all.
+
+- **`packages/core/test/site-analytics.test.mjs` — the prose is now enforced.**
+  *"When adding a checkout link, give it a UTM"* was a sentence, and a sentence
+  fails silently. The test reads the placement and tier lists **out of
+  `site/README.md`** — one list, not a copy — and holds every `buy.polar.sh`
+  href in `site/*.html` to them; it requires the Umami tag, the right website
+  id and `data-domains` on every page, **with an explicit allowlist for the
+  ones that must not have it**, so an uninstrumented page is a decision on the
+  record rather than an oversight; and it keeps `sitemap.xml` equal to that
+  same set of pages. A page that ships blind is a page nobody notices is blind:
+  no visitors and no tracker look identical from a dashboard.
+
 - **The playground — the real compiler, in the visitor's browser.**
   `site/playground.html` imports `packages/core/src` **unchanged**: a textarea
   on the left, the compiled slides on the right, recompiled as you type, with
@@ -92,6 +134,18 @@ stated otherwise, an entry describes the compiler.
   hand-edited `expiresAt` is refused for the same reason.
 
 ### Fixed
+
+- **`site/README.md` listed the wrong metric types for the stats route**, and
+  wrongly in the direction that costs something: `entry` and `exit` were
+  missing, and they are the ones that answer *which page did they arrive on* —
+  a question `path` cannot answer at all, since it counts every view and a page
+  everybody passes through outranks the page they landed on. `title`,
+  `country`, `region`, `city`, `browser`, `device`, `os`, `language`, `screen`
+  and `tag` were missing too, and `url` was listed although this gateway
+  refuses it: here the type is called `path`. Re-measured against the live
+  route on 2026-08-01 and written down as a table of what answers `200` and
+  what answers `400` — the refusals being the half that changes what you can
+  ask.
 
 - **The Lucide icon download had been dead, and said nothing.** The guard
   admitting a downloaded SVG required `<svg` at byte zero, and `lucide-static`
@@ -198,7 +252,7 @@ stated otherwise, an entry describes the compiler.
   compiler; splitting the site out would have spent it to hide something
   already visible. The licence path (`packages/core/src/license/`) stays for the
   same reason: the paywall is runtime, and it ships inside the MIT package. So
-  does the instrumentation in `site/assets/js/main.js` — three custom events
+  does the instrumentation in `site/assets/js/main.js` — four custom events
   that fire in the visitor's own browser, where devtools already shows them.
 
 ## [1.2.0] — 2026-07-29

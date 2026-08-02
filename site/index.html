@@ -16,11 +16,12 @@
 <link rel="stylesheet" href="assets/css/main.css">
 <!-- Analytics — Umami Cloud, cookie-free, which is what keeps this page out
      of consent-banner territory: a banner is itself a conversion cost. The
-     three custom events in assets/js/main.js call `window.umami.track` and
-     needed no change when this line landed. `data-domains` limits reporting
-     to the served host, so `npm run site:serve` never counts as traffic.
-     The site id is public — it ships in this file. site/README.md records
-     what the events mean and how the numbers are read. -->
+     four custom events in assets/js/main.js call `window.umami.track` through
+     one provider-agnostic helper; three of them predated this line and needed
+     no change when it landed. `data-domains` limits reporting to the served
+     host, so `npm run site:serve` never counts as traffic. The site id is
+     public — it ships in this file. site/README.md records what the events
+     mean and how the numbers are read. -->
 <script defer src="https://cloud.umami.is/script.js"
         data-website-id="40e68dbe-f445-4ae8-a1e7-505d2824cd02"
         data-domains="info.lutrin.app"></script>

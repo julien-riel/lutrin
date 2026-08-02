@@ -107,25 +107,46 @@
   });
 
   // ------------------------------------------------------------ analytics
-  // Provider-agnostic, and deliberately so: no analytics script is installed
-  // yet (site/README.md records the decision and what each event means), and
-  // until one is these calls cost a property lookup and do nothing. Whichever
-  // cookie-free provider lands in <head> is picked up with no change here —
-  // installing one must be one line in one place, not a hunt through this file.
+  // Provider-agnostic, and deliberately so: the tag in <head> is Umami today
+  // (site/README.md records the decision and what each event means), and this
+  // helper predates it — it cost a property lookup and did nothing until the
+  // day the tag landed, which is exactly why installing one was one line in
+  // one place rather than a hunt through this file. Keep calls going through
+  // here: reaching for `window.umami` directly is what would undo that.
   const track = (name, props) => {
     if (typeof window.plausible === 'function') window.plausible(name, { props });
     else if (window.umami && typeof window.umami.track === 'function')
       window.umami.track(name, props);
   };
 
-  // Two of the three events. Delegated from the document rather than bound per
-  // link, because the gallery cards, the two hero buttons and the footer all
-  // point at the same two files and the list grows every time a page is added.
+  const CHECKOUT = 'https://buy.polar.sh/';
+
+  // All four events. Delegated from the document rather than bound per link,
+  // because the gallery cards, the two hero buttons, the pricing table and the
+  // footer all point at the same handful of targets and the list grows every
+  // time a page is added.
   document.addEventListener('click', (e) => {
     const a = e.target instanceof Element ? e.target.closest('a[href]') : null;
     if (!a) return;
     const href = a.getAttribute('href') || '';
-    if (href.endsWith('.pptx')) track('pptx downloaded');
+    if (href.indexOf(CHECKOUT) === 0) {
+      // The props are read out of the link's OWN UTM parameters rather than
+      // from a list kept here. A second list is a list that drifts; this way
+      // the act that makes a new checkout link attributable in Polar is the
+      // same act that instruments it. One carrying no UTM reports `untagged`
+      // rather than nothing at all, so the drift is visible in the report
+      // instead of silently looking like a link nobody clicked.
+      const utm = new URL(href).searchParams;
+      track('checkout clicked', {
+        placement: utm.get('utm_medium') || 'untagged',
+        tier: utm.get('utm_campaign') || 'untagged',
+      });
+      // Nothing here defers the navigation, and nothing needs to: the Umami
+      // tracker posts with `fetch(…, { keepalive: true })` — read out of the
+      // script it actually serves — which the browser is required to let
+      // outlive the document. A preventDefault() and a timeout would buy a
+      // datum at the price of a slower checkout, which is the wrong trade.
+    } else if (href.endsWith('.pptx')) track('pptx downloaded');
     else if (href === 'demo.html' || href.indexOf('demo.html#') === 0)
       track('deck opened', { slide: href.split('#')[1] || 'first' });
   });
