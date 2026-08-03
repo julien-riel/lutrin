@@ -57,6 +57,7 @@ import { buildScenes } from './deck/layout.mjs';
 import { prepareDeckContext } from './deck/context.mjs';
 import { FONTS } from './deck/tokens.mjs';
 import { closest } from './deck/suggest.mjs';
+import { newDeckSample } from './deck/sample.mjs';
 import {
   isKitName,
   resolveTheme,
@@ -87,6 +88,7 @@ import {
 } from './kit/archive.mjs';
 
 const COMMANDS = [
+  'new',
   'build',
   'preview',
   'edit',
@@ -101,6 +103,7 @@ const COMMANDS = [
 ];
 
 const USAGE = `Usage:
+  lutrin new [file.deck.md] [--force]
   lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--verbose] [--force]
   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
   lutrin edit [directory] [--port 4323]
@@ -158,6 +161,9 @@ function printVersion() {
  */
 const FLAGS_KIT = { kit: 'value', theme: 'value' }; // `--theme`: deprecated alias
 const FLAG_SPECS = {
+  // `--force` overwrites an existing deck — same word, same meaning as on
+  // `build` and `kit install`
+  new: { force: 'boolean' },
   build: {
     ...FLAGS_KIT,
     o: 'value',
@@ -746,6 +752,42 @@ async function cmdEdit(argv) {
   process.on('SIGINT', () => {
     close().finally(() => process.exit(0));
   });
+}
+
+// ---------------------------------------------------------------------------
+// new — the first deck, for someone who has nothing yet
+// ---------------------------------------------------------------------------
+
+/**
+ * `lutrin new [file.deck.md] [--force]` — writes the starter deck.
+ *
+ * The counterpart of `lutrin edit`'s refusal to scaffold: the editor must
+ * never write before it is asked, and this command IS the asking. Without it
+ * a CLI user had nothing to open the editor on, and the only starter deck the
+ * project ships was reachable from VS Code alone.
+ *
+ * A name with no extension gets `.deck.md` — the suffix that makes every host
+ * treat the file as a presentation without a frontmatter key. An existing file
+ * is REFUSED rather than overwritten, `--force` being the escape hatch: the
+ * same policy as `kit install`, for the same reason — the deck already there
+ * is someone's work.
+ */
+function cmdNew(argv) {
+  const args = parseArgs(argv, FLAG_SPECS.new);
+  if (args._.length > 1)
+    fail(`a single file name is expected — got ${args._.length}: ${args._.join(', ')}`);
+  const asked = args._[0] ?? 'presentation.deck.md';
+  const output = /\.[a-z0-9]+$/i.test(asked) ? asked : `${asked}.deck.md`;
+
+  if (fs.existsSync(output) && !args.force)
+    fail(`${output} already exists — pick another name, or overwrite it with --force.`);
+  const dir = path.dirname(path.resolve(output));
+  if (!fs.existsSync(dir)) fail(`directory not found: ${dir}`);
+
+  fs.writeFileSync(output, newDeckSample(output), 'utf8');
+  console.log(`✓ ${output}`);
+  console.log(`  lutrin preview ${output}     # watch it while you write`);
+  console.log(`  lutrin build ${output}       # compile it to .pptx`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1464,6 +1506,9 @@ const rest2 = COMMANDS.includes(head) ? rest : argv;
 
 try {
   switch (command) {
+    case 'new':
+      cmdNew(rest2);
+      break;
     case 'build':
       await cmdBuild(rest2);
       break;

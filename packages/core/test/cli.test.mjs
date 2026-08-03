@@ -69,6 +69,9 @@ test('CLI: --help goes to STDOUT with exit code 0 (help that was asked for is an
   assert.equal(r.code, 0);
   assert.match(r.stdout, /^Usage:/);
   assert.match(r.stdout, /lutrin build/);
+  // a command absent from the usage block does not exist for anyone who did
+  // not read the source — `new` is the very first one a newcomer needs
+  assert.match(r.stdout, /lutrin new/);
   assert.equal(r.stderr, '', 'help that was asked for must write nothing to stderr');
 });
 
@@ -1095,4 +1098,117 @@ test('config --unset: removes the user default', (t) => {
   const u = lutrin(['config', '--unset'], { env: { LUTRIN_CONFIG: conf } });
   assert.equal(u.code, 0, u.stderr);
   assert.match(u.stdout, /removed/);
+});
+
+// ---------------------------------------------------------------------------
+// `lutrin new` — the first deck, for someone who has nothing yet.
+// The starter deck used to be reachable from VS Code alone; it now lives in
+// the core (deck/sample.mjs) and both surfaces hand out the SAME first file.
+// The extension's suite asserts that deck compiles clean; the CLI path — a
+// name turned into a file name, then written to disk — is asserted here.
+// Every case runs from a disposable cwd: `new` writes RELATIVE to the working
+// directory, so a forgotten `cwd:` would leave a deck in the repository.
+// ---------------------------------------------------------------------------
+
+/** Disposable EMPTY working directory (tmpDeck's already holds a deck.md). */
+function tmpCwd(t) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-new-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  return dir;
+}
+
+test('CLI new: with no argument, writes presentation.deck.md and says what to do with it', (t) => {
+  const dir = tmpCwd(t);
+  const r = lutrin(['new'], { cwd: dir });
+  assert.equal(r.code, 0, r.stderr);
+  assert.deepEqual(fs.readdirSync(dir), ['presentation.deck.md']);
+  assert.match(r.stdout, /✓ presentation\.deck\.md/);
+  // someone who had nothing a second ago must not have to guess the next step
+  assert.match(r.stdout, /lutrin preview presentation\.deck\.md/);
+  assert.match(r.stdout, /lutrin build presentation\.deck\.md/);
+});
+
+test('CLI new: the deck it writes validates with ZERO diagnostics — a starter that greets its author with a warning says "broken"', (t) => {
+  const dir = tmpCwd(t);
+  assert.equal(lutrin(['new'], { cwd: dir }).code, 0);
+
+  const r = lutrin(['validate', 'presentation.deck.md', '--json'], { cwd: dir });
+  assert.equal(r.code, 0, r.stderr);
+  assert.deepEqual(
+    JSON.parse(r.stdout).diagnostics,
+    [],
+    'not merely "no error": a single warning in a document we wrote ourselves reads as a tool complaining about its own example',
+  );
+
+  // "no diagnostic" alone is blind here: a frontmatter the core does NOT
+  // recognize degrades into ordinary Markdown — a horizontal rule, then the
+  // keys as heading slides — and validation stays green while the author sees
+  // garbage. Only the structure catches that drift, read from the IR the CLI
+  // itself publishes.
+  const ir = JSON.parse(lutrin(['inspect', 'presentation.deck.md'], { cwd: dir }).stdout);
+  assert.equal(ir.scenes[0]?.layout, 'cover', 'the frontmatter was read as a frontmatter');
+  assert.equal(ir.scenes[0]?.title, 'My presentation');
+  assert.ok(ir.scenes.length > 1, 'the starter shows more than its cover');
+});
+
+test('CLI new: an existing file is REFUSED — and it is not truncated on the way to the refusal', (t) => {
+  const dir = tmpCwd(t);
+  const existing = path.join(dir, 'presentation.deck.md');
+  const mine = '---\ntitle: A week of work\n---\n\n# Do not lose me\n\nText.\n';
+  fs.writeFileSync(existing, mine);
+
+  const r = lutrin(['new'], { cwd: dir });
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /already exists/);
+  assert.match(r.stderr, /--force/, 'a refusal must name the way through it');
+  assert.equal(r.stdout, '', 'nothing must be announced');
+  // the half of the guarantee that costs something: "write first, check
+  // afterwards" — the fault this whole file is built around — would have
+  // destroyed the very file the refusal exists to protect
+  assert.equal(fs.readFileSync(existing, 'utf8'), mine, 'the deck on disk is untouched');
+});
+
+test('CLI new --force: the escape hatch does overwrite (the same word, the same meaning as on kit install)', (t) => {
+  const dir = tmpCwd(t);
+  const existing = path.join(dir, 'presentation.deck.md');
+  fs.writeFileSync(existing, 'an abandoned draft\n');
+  const r = lutrin(['new', '--force'], { cwd: dir });
+  assert.equal(r.code, 0, r.stderr);
+  const written = fs.readFileSync(existing, 'utf8');
+  assert.doesNotMatch(written, /abandoned draft/);
+  assert.match(written, /title: My presentation/);
+});
+
+test('CLI new: a name with no extension gets .deck.md, a name that carries one is taken literally', (t) => {
+  const dir = tmpCwd(t);
+  // `.deck.md` is the suffix that makes every host treat the file as a
+  // presentation with no frontmatter key — so a bare name earns it, and a name
+  // its author already spelled out is never rewritten behind their back
+  assert.equal(lutrin(['new', 'kickoff'], { cwd: dir }).code, 0);
+  assert.equal(lutrin(['new', 'talk.md'], { cwd: dir }).code, 0);
+  assert.deepEqual(fs.readdirSync(dir).sort(), ['kickoff.deck.md', 'talk.md']);
+});
+
+test('CLI new: a *.deck.md name omits the "deck: true" preamble, a plain .md keeps it — and both validate clean', (t) => {
+  const dir = tmpCwd(t);
+  assert.equal(lutrin(['new', 'kickoff.deck.md'], { cwd: dir }).code, 0);
+  assert.equal(lutrin(['new', 'talk.md'], { cwd: dir }).code, 0);
+  const suffixed = fs.readFileSync(path.join(dir, 'kickoff.deck.md'), 'utf8');
+  const plain = fs.readFileSync(path.join(dir, 'talk.md'), 'utf8');
+
+  // the key exists to mark a deck WHATEVER its name; under *.deck.md the name
+  // already says it, and the key plus the five lines explaining it would be the
+  // first thing the author has to delete
+  assert.doesNotMatch(suffixed, /^deck\s*:\s*true\s*$/m);
+  assert.match(plain, /^deck\s*:\s*true\s*$/m, 'a deck saved under any name keeps its diagnostics');
+  // and where it IS written it must open the frontmatter: the core only
+  // recognizes a block whose first line is a "key:" line — a leading comment
+  // would turn the whole thing into an hr followed by headings
+  assert.match(plain, /^---\r?\ndeck: true\r?\n/);
+
+  for (const name of ['kickoff.deck.md', 'talk.md']) {
+    const r = lutrin(['validate', name, '--json'], { cwd: dir });
+    assert.equal(r.code, 0, `${name}: ${r.stderr}`);
+    assert.deepEqual(JSON.parse(r.stdout).diagnostics, [], `${name} must be clean too`);
+  }
 });
