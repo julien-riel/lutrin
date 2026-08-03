@@ -11,6 +11,173 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Figures in the `.pptx` now carry their vector as well as their raster.** A
+  chart, a Mermaid diagram, a Lucide icon and a LaTeX equation are all born as
+  SVG, and until now that SVG was thrown away the instant resvg had rasterised
+  it: the deck shipped the PNG alone, and the comparison pages on the site
+  conceded as much. The picture now carries both. **What it does not change is
+  the important half**: the PNG is still the picture's fill, byte for byte, and
+  still what Keynote, LibreOffice, QuickLook and every Office before 2019 draw
+  — they ignore an extension they do not know. The vector rides beside it, in
+  the extension Office reserves for exactly this, so PowerPoint 2019 and later
+  scale a diagram to the projector without softening it. Nothing to write in
+  the deck; `build` reports how many images carry one, next to the line that
+  already counts the animated slides. Text, tables and shapes were never images
+  and still are not.
+
+  **The vector is opt-in on evidence, and that asymmetry is deliberate.** A
+  malformed SVG costs nothing today — resvg returns nothing, the block degrades
+  to a readable fallback. The same bytes *inside* the package make PowerPoint
+  declare the whole file corrupt, which is a failure of an entirely different
+  order. So three structural checks run first — an `<svg>` root carrying the
+  SVG namespace, no bare `&`, balanced tags — and anything that does not pass
+  simply stays the raster it already was. The injection is a post-processor
+  that reopens the zip and leaves the file untouched on any surprise, and it
+  finds its pictures **by the name the renderer gave them**, never by counting
+  `<p:pic>` ordinals: a hero image or a logo is a picture too, and would shift
+  every count after it. Measured on a 200 KB deck: 7.3 KB, no part removed, no
+  PNG altered, every existing relationship still pointing where it did.
+
+- **A kit can be derived from the brand's PowerPoint template** —
+  `lutrin kit import <brand.potx|brand.pptx>`. A brand rarely starts on a blank
+  page: it exists as a `.potx` a designer maintains, and asking someone to
+  retype twelve hex values into a `theme.json` was asking them to copy a file
+  they already had. The command reads the theme part's colour scheme and its
+  body typeface and writes an ordinary kit directory — one you can open in
+  `lutrin kit edit`, pack with `lutrin kit create`, install anywhere. Twelve
+  scheme slots become fourteen colour tokens by *derivation*, not
+  transcription: a straight copy would have left the primary ramp, the surface
+  ramp and the highlight tints on the engine's default blue, so an indigo brand
+  would have got blue architecture layers.
+
+  **It reads no geometry, and that is the design decision, not an unfinished
+  importer.** The template's slide layouts, its placeholder boxes, its master
+  geometry and its type sizes are left where they are — honouring a
+  placeholder box would import exactly the author-positioning this project
+  refuses, and it would arrive under the honest-sounding name of "completing
+  the importer". A title's point size was chosen *for* a box of a given width
+  at a given position; importing the number without the box imports half a
+  decision. Since a designer who hands over `brand.potx` reasonably believes
+  the layouts came along, the refusal is said out loud twice: a note that
+  **counts** what was discarded, on every import, and a `README.md` written
+  into the generated kit — with the template's SHA-256 — so the fact outlives
+  whoever ran the command.
+
+  **A palette that fails the WCAG thresholds is reported, never adjusted.** A
+  colour corrected behind the user's back is a brand that is not the brand,
+  shipped under the brand's name, with nothing downstream saying which token
+  moved. The verdict is the `THEME_CONTRAST` check every build already runs, on
+  the kit as actually written — Microsoft's own default Office theme, imported,
+  warns on five chart colours and stays exactly as Microsoft drew it. One
+  palette is refused rather than half-imported: a master that maps its
+  background to the dark slot yields the accent ramp and the chart colours
+  only, because every surface token lutrin derives ramps toward the
+  *template's* background while the engine's own stays light — and "ordinary
+  ink on a muted panel" is a pair the contrast check does not measure, so half
+  a dark palette would fail silently instead of loudly.
+
+- **The HTML deck stopped being the poor relation of the `.pptx`.** An animated
+  deck built to HTML made its blocks *appear*, one step per click, and that was
+  the whole of it: `<!-- animate: zoom -->` produced a zoom in PowerPoint and a
+  plain toggle in the browser — one source line meaning two different things.
+  The four effects (`fade`, `wipe`, `zoom`, `appear`) now apply in both outputs,
+  and they are read from **one table**, `deck/anim.mjs`, that both renderers
+  ask. Not a copy kept in step: the same table. It moved out of `pptx/` for a
+  second reason as well — the browser playground compiles the HTML renderer, and
+  `pptx/anim.mjs` drags `node:fs` and JSZip in behind it, which is a whole OOXML
+  post-processor loaded into a page that will never write a `.pptx`.
+
+  Movement is something a reader can be made ill by, so every effect rule sits
+  under `@media (prefers-reduced-motion:no-preference)`: ask your system for
+  stillness and the steps still reveal, they simply arrive without travel. The
+  print block neutralises all three properties, because an entrance effect left
+  standing prints what the audience has not seen yet — a metric frozen at 40 %
+  scale, a panel clipped down to nothing. And every rule is gated on
+  `.slide-frame[data-anim-steps]`, the attribute the deck editor strips to show
+  a slide whole: an ungated `opacity:0` would have blanked the editor, the print
+  rendering and the site's demo iframe alike.
+
+- **Presentation mode grew the chrome a projector needs: a progress bar,
+  on-screen controls and an overview grid.** A thin bar along the bottom says
+  how far through the deck you are, and two arrow buttons sit above it — for a
+  room where the laptop is out of reach, or a deck driven from a touch screen.
+  Both follow the pointer: shown while it moves, gone a couple of seconds after
+  it stops, so a slide left standing is projected with nothing on it. The
+  buttons grey out at the *real* ends of the deck only — a step still to be
+  revealed counts as a "next", so the last slide of an animated deck is not
+  finished yet. They are named `present-*` on purpose: `.progress` and its two
+  children already belong to the `:::progress` block of the DSL.
+
+  **`O` shows the whole deck at once.** Not thumbnails: the slides themselves,
+  already in the document at their fixed geometry, laid into a CSS grid and
+  rescaled by the fit script from a single dispatched `resize` — a stylesheet
+  and one event are the entire implementation. Click a slide, or move with the
+  arrows and press `Enter`, to jump there. The click listener is registered in
+  the **capture** phase, or a tap in the grid would also reach the reveal
+  handler on the slide and advance a step on the way out.
+
+  **`Esc` now steps out one level at a time** — the help panel, then the grid,
+  then the mode — instead of tearing everything down from wherever you were.
+
+- **A wall clock in the presenter view.** Beside the elapsed timer, the time of
+  day, to the minute and no further: a clock that ticks steals the eye the notes
+  need. The two answer different questions — the timer says how long you have
+  been talking, the clock says whether you are late, and a room is booked by the
+  second one. It is filled in when the window opens rather than half a second
+  later on the first tick, which is the half second in which a presenter looks
+  at it.
+
+- **Printing the standalone HTML now gives a 16:9 PDF.** The page declared
+  `@page{margin:0}` and nothing else, so the browser laid a 1280 × 720 frame
+  onto the reader's default paper — A4 portrait — and scaled or cropped it. The
+  document now emits `@page{size:1280px 720px;margin:0}`, and with the print
+  rules that were already there (one slide per page, the fit transform undone,
+  every animation step open, notes hidden) the browser's own print dialog became
+  a working export. It is injected by the **complete document only**: the same
+  stylesheet is handed to hosts — the VS Code webview, the editing SPA — where
+  an `@page` rule is not ours to set and would repaginate the host's own
+  printing, which is why the old rule had to leave `baseCss()` to make room for
+  this one.
+
+  It is not a Lutrin PDF *writer*, and the difference is worth saying out loud
+  rather than letting a user discover it: no notes annotations, no outline of
+  the slides, no PNG or JPEG export. It gives a handout and a fallback for a
+  machine with no PowerPoint.
+
+- **`lutrin new` — a first deck without a blank page.** The starter deck that
+  "Lutrin: New Presentation" has always opened in VS Code now lives in the
+  compiler (`deck/sample.mjs`), and the command line hands out the same one: two
+  surfaces giving a different first deck is a second thing to keep correct.
+  `lutrin new` writes `presentation.deck.md`, `lutrin new talk` adds the
+  extension you left off, and a file that already exists is **refused** unless
+  `--force` — the same word and the same policy as `kit install` and `build`. A
+  name ending in `.deck.md` drops the `deck: true` preamble it does not need,
+  while the VS Code untitled buffer, which has no name at all, keeps it, since
+  nothing else would mark it as a deck. The deck it writes validates with zero
+  diagnostics: a starter that greets you with warnings says "broken" before you
+  have typed anything.
+
+- **Frontmatter `notes:` — the cover finally has somewhere to put its note.**
+  The cover generated from `title:` is the one slide no `<!-- notes: -->` can
+  reach: there is no line in the source to hang the comment on. `notes:` in the
+  frontmatter is that missing line, and it lands in the `.pptx` notes slide and
+  the HTML presenter view like any other slide's notes. A flat one-line value,
+  like every key there — the frontmatter reader is a one-line-per-key scanner,
+  so no block form exists to write. With no cover to carry it (no `title:`, or a
+  Marp deck, where `title:` is HTML metadata and the first slide is the author's
+  own) the line is inert, and now says so: `COVER_NOTES_ORPHAN`, positioned on
+  the `notes:` line.
+
+  One consequence stated plainly, because the documentation promises that
+  unknown frontmatter keys are ignored: a deck already carrying `notes:` as
+  private metadata will now hand that line to its cover. Rename the key if it
+  was never meant to be spoken.
+
+  Deliberately **not** done: making a `<!-- notes: -->` written before the first
+  heading attach to the cover. That comment already belongs to the first real
+  slide, and moving it would silently relocate the notes of every deck that has
+  one.
+
 - **`checkout clicked` — the site can finally see someone leave to buy.** The
   three events already there watched a reader arrive, copy a command and open
   the deck, and then lost them: the `utm_*` on a `buy.polar.sh` link travels
@@ -135,6 +302,19 @@ stated otherwise, an entry describes the compiler.
 
 ### Fixed
 
+- **A mistyped callout in a Marp deck was silent.** Validation used to abandon
+  its `:::` scan entirely for a `marp: true` deck, on the sound ground that three
+  colons are not Marp syntax — a line starting that way there is usually prose, a
+  Docusaurus admonition or a Pandoc fenced div. What it cost was the one case
+  that matters: `:::Info` opens no callout (the container plugin is
+  case-sensitive), so it printed its own colons onto the slide with nothing said
+  anywhere. The scan now **narrows** instead of stopping. In a Marp deck only a
+  casing slip on a real lutrin callout is reported, and as a **warning** rather
+  than an error, since a Marp deck must keep compiling. Everything else starting
+  with `:::` is still left alone, on purpose: it is someone else's syntax, and
+  turning a third-party deck that compiles today into one that refuses to is not
+  a trade a heuristic may make.
+
 - **`site/README.md` listed the wrong metric types for the stats route**, and
   wrongly in the direction that costs something: `entry` and `exit` were
   missing, and they are the ones that answer *which page did they arrive on* —
@@ -202,6 +382,40 @@ stated otherwise, an entry describes the compiler.
   charts, which are rasterised images in the `.pptx`. All three corrected.
 
 ### Changed
+
+- **Morph is no longer the privilege of paginated slides.** The transition
+  existed, and only the engine could ask for it: a slide too long to fit was
+  split into "(cont.)" pages, and those pages morphed. An author who wrote two
+  slides called `# Roadmap` — the same board, one step further on — got a cut.
+  The rule is now the one a reader would have guessed: **any run of consecutive
+  slides showing the same title morphs**, the title holding still while the
+  content changes under it. A paginated run followed by a slide the author
+  titled the same way is one continuity, not two: a continuation page still
+  *shows* "(cont.)", but it remembers the title the author wrote and is paired
+  on that, so the chain no longer cuts at the seam. Titles are compared
+  trimmed — leading and trailing
+  space is invisible on the slide, and refusing to pair on it would be a
+  failure the author cannot see — while case and inner spacing are visible and
+  left to mean what they say. An untitled slide breaks the run, and a title
+  that comes back on slide 3 and slide 20 gets nothing: that is a coincidence,
+  not a continuity, and dissolving slide 19 into slide 20 for 700 ms would be
+  the tool inventing a relationship.
+
+  **The behaviour change is deliberate and there is no flag for it.** A deck of
+  ten slides all titled `# Question` now carries nine Morph transitions where
+  it carried none. The engine decides the presentation of a deck — that is the
+  contract, and an opt-out flag would be a coordinate by another name — so the
+  way to say "these are separate slides" is to give them separate titles, which
+  is also what tells the audience.
+
+  It fixed a latent bug on the way. The shape renamed to pair the two slides
+  was "the first `<p:sp>` of the slide", which on a `hero` slide is the Lutrin
+  attribution and not the title. No deck could reach that case while only
+  pagination built chains; widening the rule made it reachable, and the old
+  code would have morphed two watermarks into each other while the titles
+  blinked. The rename is now anchored on the title placeholder itself, and a
+  chain whose slides are not really consecutive is refused with a warning
+  instead of written.
 
 - **"Lutrin" is now stated as a trademark** in `LICENSE` and both READMEs. The
   code stays MIT, licensing check included; the name does not travel with it. A
