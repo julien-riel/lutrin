@@ -989,9 +989,17 @@ export function renderMermaidBrowser(sourceText, tmpDir, idx, { format = 'png' }
         defaultFontFamily: FONTS.body,
       }),
     );
-    // 60 s, as for mmdc: a cold browser launch costs a few seconds, and a
-    // diagram that has not rendered by then never will.
-    execFileSync(process.execPath, [MERMAID_CHILD, request], { stdio: 'pipe', timeout: 60_000 });
+    // 120 s, raised from 60 on EVIDENCE rather than on caution. "A diagram that
+    // has not rendered by then never will" held everywhere except the Windows
+    // CI runner, where the same fixture was measured at 49 s (green), 58 s and
+    // 70 s (both red) across three runs: a cold Chrome launch there sometimes
+    // costs more than the whole budget, and the render then falls back to its
+    // source with nothing to say it was a clock rather than a broken diagram.
+    //
+    // What the doubling costs is paid only on the failing path — a genuinely
+    // broken source takes two minutes to give up instead of one — and only
+    // once, since the result is cached to disk either way.
+    execFileSync(process.execPath, [MERMAID_CHILD, request], { stdio: 'pipe', timeout: 120_000 });
     if (fs.existsSync(out)) {
       _mermaidError = null;
       return out;
