@@ -720,13 +720,23 @@ milestones and metrics. An unknown value produces `UNKNOWN_ANIMATE`.
 
 Depending on the output:
 
-- **PowerPoint** — native on-click animations, imported by Keynote too. The
-  "(cont.)" slides produced by pagination also receive the **Morph**
-  transition (fade fallback before PowerPoint 2019). QuickLook and PNG
+- **PowerPoint** — native on-click animations, imported by Keynote too.
+  **Consecutive slides showing the same title** also receive the **Morph**
+  transition (fade fallback before PowerPoint 2019): the pages of a paginated
+  slide, and the slides you deliberately titled the same way — the title holds
+  still while the content changes under it. Nothing to write, and giving two
+  slides different titles is how you opt out. A title that comes back far
+  apart is a coincidence, not a continuity, and gets nothing. QuickLook and PNG
   exports ignore animations: everything is visible there.
 - **HTML** — clicking the slide reveals the next step (counter at the top
-  right; a click after the last one resets). Without JavaScript, in print and
-  in PDF export, everything is visible.
+  right; a click after the last one resets), and the four effects apply here
+  too. They are read from the **same table** the `.pptx` reads, so
+  `<!-- animate: zoom -->` means one movement in both outputs, and a block with
+  no imposed effect gets the same one on both sides — fade for a paragraph,
+  zoom for a `:::metric`. A reader whose system asks for stillness
+  (`prefers-reduced-motion`) gets the steps without the movement: what appears
+  is unchanged, only the travel is dropped. Without JavaScript, in print and in
+  PDF export, everything is visible and at rest.
 
 ---
 

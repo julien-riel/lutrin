@@ -38,13 +38,19 @@ Three entry points, one compiler (`packages/core`):
 
 ## Getting started
 
-Node ≥ 22 is required. Nothing else — write a `deck.md` and run:
+Node ≥ 22 is required. Nothing else:
 
 ```bash
+npx lutrin new deck.md                    # a starter deck that already compiles
 npx lutrin build deck.md -o deck.pptx     # PowerPoint
 npx lutrin build deck.md -o deck.html     # standalone HTML
 npx lutrin preview deck.md                # local server, reloads on save
 ```
+
+`lutrin new` with no name writes `presentation.deck.md`, adds the extension to
+a bare name, and refuses to overwrite a file that already exists — pass
+`--force` if that is what you meant. It is the same starter deck the VS Code
+command "Lutrin: New Presentation" opens.
 
 Install it once if you use it often:
 
@@ -130,6 +136,7 @@ come from `examples/demo.deck.md`, which has 27 of them.
 ## CLI
 
 ```bash
+npx lutrin new [file.deck.md] [--force]        # starter deck, already compiles
 npx lutrin build <deck.md> [-o output.pptx|output.html] [--kit <ref>] [--force] [--verbose]
 npx lutrin preview <deck.md> [--port 4321]     # local server + auto reload
 npx lutrin edit [directory] [--port 4323]      # local web editor, one slide at a time
