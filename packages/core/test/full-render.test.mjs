@@ -44,7 +44,7 @@ import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeck } from '../src/pptx/render.mjs';
 import { renderDeckHtml } from '../src/html/render.mjs';
-import { rasterAvailable, renderMermaidCached } from '../src/deck/assets.mjs';
+import { lastMermaidError, rasterAvailable, renderMermaidCached } from '../src/deck/assets.mjs';
 import { COLORS, SEMANTIC, contrastRatio } from '../src/deck/tokens.mjs';
 import { ALL_BLOCKS_DIR, readAllBlocks } from './helpers.mjs';
 
@@ -279,7 +279,17 @@ test('pptx: each of the nineteen block types leaves its marker in the XML', asyn
   // mermaid: mmdc is optional, both branches have their marker
   const diagram = await xmlOf('Diagram');
   if (mermaidAvailable()) {
-    assert.match(diagram, /descr="Mermaid diagram"/, 'mermaid: PNG rendered by mmdc');
+    // The REASON travels with the failure. This assertion has gone red on the
+    // Windows runner more than once, and each time the report was the bare
+    // words below plus 40 kB of slide XML — which says the diagram is a
+    // fallback and nothing at all about why. `lastMermaidError()` is where the
+    // renderer already wrote the answer; not reading it cost three rounds of
+    // guessing.
+    assert.match(
+      diagram,
+      /descr="Mermaid diagram"/,
+      `mermaid: PNG rendered by mmdc — renderer said: ${lastMermaidError() ?? '(nothing)'}`,
+    );
   } else {
     assert.match(diagram, /ZQMERMAID/, 'mermaid: fallback, the source stays readable');
     assert.match(diagram, /lutrin setup-mermaid/, 'mermaid: mention of the fallback');
