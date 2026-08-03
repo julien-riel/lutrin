@@ -115,6 +115,7 @@ const USAGE = `Usage:
   lutrin kit list
   lutrin kit remove <name>
   lutrin kit create <directory> [-o <file.deckkit>]
+  lutrin kit import <brand.potx|brand.pptx> [-o <directory>] [--name <name>] [--force]
   lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]
   lutrin license activate <key>
   lutrin license status [--json]
@@ -869,7 +870,7 @@ function cmdConfig(argv) {
 // kit — install, list, remove, pack
 // ---------------------------------------------------------------------------
 
-const KIT_ACTIONS = ['install', 'list', 'remove', 'create', 'edit'];
+const KIT_ACTIONS = ['install', 'list', 'remove', 'create', 'edit', 'import'];
 
 async function cmdKit(argv) {
   const args = parseArgs(argv, FLAG_SPECS.kit);
@@ -880,12 +881,16 @@ async function cmdKit(argv) {
   lutrin kit list
   lutrin kit remove <name>
   lutrin kit create <directory> [-o <file.deckkit>]
+  lutrin kit import <brand.potx|brand.pptx> [-o <directory>] [--name <name>] [--force]
   lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]`);
     process.exit(1);
   }
 
   // ------ edit ----------------------------------------------------------------
   if (action === 'edit') return cmdKitEdit(target, args);
+
+  // ------ import ------------------------------------------------------------
+  if (action === 'import') return cmdKitImport(target, args);
 
   // ------ list --------------------------------------------------------------
   if (action === 'list') {
@@ -1040,7 +1045,7 @@ const defaultThemeFile = () =>
  * writes into. Refusing an EXISTING kit is the caller's job (rule 1: checked
  * before anything is written).
  */
-function scaffoldKit(dir, nameFlag) {
+function scaffoldKit(dir, nameFlag, { theme: themeOverride = null, readme = null } = {}) {
   // the name becomes the manifest's `name`: derived from the directory unless
   // --name says otherwise, and re-validated either way (KIT_NAME_RE is a
   // safety constraint — the name is a directory at install time)
@@ -1069,7 +1074,10 @@ function scaffoldKit(dir, nameFlag) {
   // kit must not open on a diagnostic the tool itself caused — the editor's
   // metadata panel adds the key when the user fills it in
   fs.writeFileSync(path.join(dir, 'kit.json'), `${JSON.stringify({ name: derived }, null, 2)}\n`);
-  const theme = JSON.parse(fs.readFileSync(defaultThemeFile(), 'utf8'));
+  // `kit import` supplies a palette read out of a PowerPoint template; a bare
+  // scaffold starts from the engine's own default. Same directory layout, one
+  // function — the two commands cannot drift apart.
+  const theme = themeOverride ?? JSON.parse(fs.readFileSync(defaultThemeFile(), 'utf8'));
   theme.name = derived;
   // The DERIVED groups (deriveTokens: theme.mjs) follow the palette — the
   // engine recomputes them from colors on every compile. default.json spells
@@ -1081,7 +1089,74 @@ function scaffoldKit(dir, nameFlag) {
   // wants explicit tones gets them the moment they touch the Layer/Trend cards.
   for (const g of ['semantic', 'trendInk', 'layerShades']) delete theme[g];
   fs.writeFileSync(path.join(dir, 'theme.json'), `${JSON.stringify(theme, null, 2)}\n`);
-  console.log(`✓ kit "${derived}" scaffolded — ${dir}`);
+  // an imported kit carries a README saying what was read and what was left
+  // behind, so the fact outlives the person who ran the command
+  if (readme) fs.writeFileSync(path.join(dir, 'README.md'), readme);
+  return derived;
+}
+
+/**
+ * `lutrin kit import <brand.potx|brand.pptx> [-o <directory>] [--name] [--force]`
+ *
+ * The brand arrives as the file the designer already knows how to make. What
+ * is read out of it is DATA — the colour scheme and the two type families —
+ * and never geometry: the template's layouts, its placeholder boxes and its
+ * master are left where they are, because honouring a coordinate is the one
+ * thing this project refuses (CONTRIBUTING). The import says so out loud
+ * rather than letting the designer assume their layouts travelled: a
+ * KIT_IMPORT_LAYOUTS_DISCARDED note that COUNTS what it left, and a README
+ * written into the kit so the fact outlives whoever ran the command.
+ *
+ * A palette that fails WCAG contrast is reported, never quietly corrected —
+ * a brand adjusted behind the user's back is no longer their brand.
+ */
+async function cmdKitImport(file, args) {
+  if (!file)
+    fail(
+      'kit import — give the template to read: lutrin kit import <brand.potx|brand.pptx> [-o <directory>] [--name <name>]',
+    );
+  if (!fs.existsSync(file)) fail(`file not found: ${file}`);
+
+  const derived =
+    typeof args.name === 'string' && args.name.trim()
+      ? args.name.trim()
+      : path
+          .basename(file)
+          .replace(/\.(potx|pptx)$/i, '')
+          .toLowerCase()
+          .replace(/[\s_]+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+  if (!KIT_NAME_RE.test(derived))
+    fail(
+      `kit import — "${derived}" is not an allowed kit name (lowercase letters, digits and hyphens, e.g. "brand-acme"). Pick one with --name <name>.`,
+    );
+  // `-o` designates a DIRECTORY here, not a file: checkOutputExt guards the
+  // `.deckkit`/`.pptx` outputs and would reject a perfectly good directory
+  const dir = path.resolve(args.o ?? args.output ?? `./${derived}`);
+
+  // rule 1 — every refusal before the first byte is written
+  if (fs.existsSync(path.join(dir, 'kit.json')) && !args.force)
+    fail(
+      `${dir} already carries a kit.json — pick another directory, or overwrite it with --force.`,
+    );
+
+  const { kitFromTemplate } = await import('./kit/from-template.mjs');
+  const { theme, readme, diagnostics } = await kitFromTemplate(fs.readFileSync(file), {
+    name: derived,
+    sourceName: path.basename(file),
+  });
+  const errors = diagnostics.filter((d) => d.severity === 'error');
+  if (errors.length) {
+    for (const d of errors) console.error(`✖ ${d.code} — ${d.message}`);
+    process.exit(1);
+  }
+
+  scaffoldKit(dir, derived, { theme, readme });
+  console.log(`✓ kit "${derived}" imported from ${path.basename(file)} — ${dir}`);
+  for (const d of diagnostics)
+    console.log(`  ${d.severity === 'warning' ? '⚠' : '·'} ${d.message}`);
+  console.log(`  Adjust it: lutrin kit edit ${dir}`);
+  console.log(`  Use it:    lutrin build deck.md --kit ${dir}`);
 }
 
 /**
@@ -1134,7 +1209,7 @@ async function cmdKitEdit(target, args) {
       // --create on an existing kit is an error (rule 1: nothing overwritten)
       if (fs.existsSync(manifestFile))
         fail(`kit edit --create — ${kitDir} already carries kit.json: edit it without --create.`);
-      scaffoldKit(kitDir, args.name);
+      console.log(`✓ kit "${scaffoldKit(kitDir, args.name)}" scaffolded — ${kitDir}`);
     } else if (!fs.existsSync(manifestFile)) {
       fail(
         `${kitDir} carries no kit.json — this is not a kit. Scaffold one with: lutrin kit edit ${target} --create`,

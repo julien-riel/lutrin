@@ -44,6 +44,74 @@ side by side; a busy port switches to the next free one and says so. The
 server listens on **127.0.0.1 only** — it is a workbench, not a service (see
 the security model below).
 
+## Starting from the brand's PowerPoint template
+
+A brand rarely starts on a blank page: it usually already exists as a `.potx`
+the designer maintains. That file is a legitimate starting point, and there is
+a command for it:
+
+```bash
+lutrin kit import <brand.potx|brand.pptx> [-o <directory>] [--name <name>] [--force]
+```
+
+It writes a kit directory — `./<name>` unless `-o` says otherwise, the name
+derived from the file unless `--name` says otherwise — with the same layout
+`--create` scaffolds, so what comes out is an ordinary kit you can open in the
+editor, pack with `lutrin kit create` and install anywhere.
+
+**What is read is data, and only data**: the theme part's colour scheme (its
+twelve slots) and its two type families, plus the slide master's colour map —
+which is what decides whether the dark slot is the ink or the background — and
+the presentation's slide size, used *only* to warn that a 4:3 template will
+not compose as 4:3.
+
+Those twelve slots become **fourteen colour tokens**, by derivation rather
+than transcription: a straight copy would leave the primary ramp, the surface
+ramp and the highlight tints on the engine's default blue, so an indigo brand
+would get blue architecture layers. The accent ramp and the neutral ramp are
+rebuilt with the engine's own relationships applied to your accent, and the
+chart palette becomes accents 1 to 6 in that order. Three things are read and
+dropped, each with a note saying so: the heading family (lutrin composes with
+one text family), the link colours (there is no link-colour token), and any
+semantic reading of the accents — a template carries no semantics, and calling
+an accent "warning" because it happens to be yellow would assign a meaning the
+designer never assigned.
+
+**What is not read is a decision, not an unfinished importer.** The template's
+slide layouts, its placeholder positions, its master geometry and its type
+sizes are all left behind — deliberately. Honouring a placeholder box would
+import exactly the author-positioning this project refuses: the engine
+composes the page from the deck's intent, and a kit carries colours, type and
+assets, never coordinates. A title's 44 pt was chosen *for* a box of a given
+width at a given position; importing the number without the box imports half a
+decision. The template's images are left behind too — a kit's signatures are
+picked deliberately (`logos.cover`, `logos.section`) — and so is its embedded
+font data: a `.potx` ships TrueType only, and `resolveTheme` drops any
+`fonts.files` variant with no `.woff2` twin, which is what keeps the HTML and
+the `.pptx` identical. Naming a family is not redistributing it, and the one
+path that would redistribute stays closed.
+
+Because a designer handing over `brand.potx` reasonably believes the layouts
+came along, the import never leaves that silent: it prints a note **counting**
+what it discarded, and writes a `README.md` into the generated kit saying what
+was imported, what was not and why — with the template's SHA-256, so whoever
+inherits the directory in six months can tell which file it came from.
+
+**A palette that fails the WCAG thresholds is reported, never adjusted.** A
+colour corrected behind your back would be a brand that is not the brand,
+shipped under the brand's name, with nothing downstream ever saying which
+token moved. The verdict comes from the same `THEME_CONTRAST` check every
+build runs, on the kit as actually written — Microsoft's own default Office
+theme, imported, warns on five chart colours.
+
+The import is a starting point, not a conversion: PowerPoint tints its accents
+per theme variant, and a very light or very saturated accent will need a hand.
+That hand is the next command:
+
+```bash
+lutrin kit edit ./brandkit
+```
+
 ## The preview
 
 The right-hand side always shows the **specimen deck** — metrics, a split with
