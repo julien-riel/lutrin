@@ -440,6 +440,161 @@ test('CLI kit create: -o without a .deckkit extension — refused BEFORE packagi
 });
 
 // ---------------------------------------------------------------------------
+// kit import: a brand read out of a PowerPoint template
+// ---------------------------------------------------------------------------
+// The command turns the file a designer already knows how to make into a kit:
+// colours and type, never geometry. Its contract on disk is the one this file
+// exists for — a refusal writes nothing, and what it does write is a kit that
+// compiles, not a report about a template.
+
+/**
+ * The template the cases below import, BUILT HERE by the tool itself.
+ *
+ * A .potx committed to the repository would be an opaque binary nobody can
+ * review, frozen on the day it was recorded; a .pptx lutrin produces carries
+ * exactly the parts the importer opens — a theme, a slideMaster with its
+ * <p:clrMap>, a presentation.xml — and stays valid Office XML for as long as
+ * the writer does. Everything lands in the disposable directory: the import
+ * defaults its output to `./<name>`, so a forgotten `-o` or `cwd:` would
+ * scaffold a kit inside the repository.
+ */
+function tmpTemplate(t) {
+  const { dir, deck } = tmpDeck(t);
+  const template = path.join(dir, 'brand.pptx');
+  const built = lutrin(['build', deck, '-o', template]);
+  assert.equal(built.code, 0, `the template could not be built: ${built.stderr}`);
+  return { dir, deck, template };
+}
+
+test('CLI kit import: a template that does not exist — file not found, and no kit directory left behind', (t) => {
+  const { dir } = tmpDeck(t);
+  const r = lutrin(['kit', 'import', path.join(dir, 'nope.potx')], { cwd: dir });
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /file not found/i);
+  // the output directory is DERIVED from the template's name when `-o` is
+  // absent: a command that could not read one byte must not leave a "./nope"
+  // scaffold behind, empty of everything it promised to import
+  assert.deepEqual(fs.readdirSync(dir), ['deck.md'], 'nothing must have been created');
+});
+
+test('CLI kit import: a .pptx becomes a kit — kit.json, theme.json, a README naming the source, and the asset directories', (t) => {
+  const { dir, template } = tmpTemplate(t);
+  const kit = path.join(dir, 'brand');
+  const r = lutrin(['kit', 'import', template, '-o', kit]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.deepEqual(
+    fs.readdirSync(kit).sort(),
+    ['README.md', 'fonts', 'images', 'kit.json', 'layouts', 'theme.json'],
+    'the same directory layout a scaffolded kit has — the two commands cannot drift apart',
+  );
+
+  // kit.json and theme.json must agree on the name: `kit create` packs the
+  // manifest, `--kit` resolves the theme, and a kit answering to two names is
+  // one nobody can name in a frontmatter
+  const manifest = JSON.parse(fs.readFileSync(path.join(kit, 'kit.json'), 'utf8'));
+  const theme = JSON.parse(fs.readFileSync(path.join(kit, 'theme.json'), 'utf8'));
+  assert.equal(manifest.name, 'brand', 'the name is derived from the template file name');
+  assert.equal(theme.name, manifest.name);
+  assert.ok(
+    theme.colors && Object.keys(theme.colors).length,
+    'an import that produced no colour token imported nothing',
+  );
+
+  // the two places the silence is broken, because a designer handing over
+  // brand.potx believes their layouts came along: the note COUNTS what stayed
+  // behind, and the README outlives whoever ran the command
+  assert.match(r.stdout, /\d+ slide layouts/, 'what was discarded is counted, not glossed over');
+  assert.match(r.stdout, /not imported/);
+  assert.match(
+    fs.readFileSync(path.join(kit, 'README.md'), 'utf8'),
+    /brand\.pptx/,
+    'the README names the file the colours came from',
+  );
+});
+
+test('CLI kit import: an existing kit is not overwritten without --force — and the refusal writes nothing FIRST', (t) => {
+  const { dir, template } = tmpTemplate(t);
+  const kit = path.join(dir, 'brand');
+  assert.equal(lutrin(['kit', 'import', template, '-o', kit]).code, 0);
+
+  // a palette tuned by hand after the import — the very thing the refusal
+  // exists to protect. Comparing the bytes the import itself wrote would stay
+  // green even if the second run had rewritten the file with identical content,
+  // which is the fault ("write first, check afterwards"), not the guarantee.
+  const themeFile = path.join(kit, 'theme.json');
+  const tuned = `${JSON.stringify({ name: 'brand', colors: { primary: 'FF00FF' } }, null, 2)}\n`;
+  fs.writeFileSync(themeFile, tuned);
+
+  const refused = lutrin(['kit', 'import', template, '-o', kit]);
+  assert.equal(refused.code, 1);
+  assert.match(refused.stderr, /already carries a kit\.json/);
+  assert.match(refused.stderr, /--force/, 'a refusal must name the way through it');
+  assert.equal(
+    fs.readFileSync(themeFile, 'utf8'),
+    tuned,
+    'the kit on disk is byte-for-byte the one that was there',
+  );
+
+  const forced = lutrin(['kit', 'import', template, '-o', kit, '--force']);
+  assert.equal(forced.code, 0, forced.stderr);
+  assert.doesNotMatch(
+    fs.readFileSync(themeFile, 'utf8'),
+    /FF00FF/,
+    'the escape hatch does overwrite — the same word, the same meaning as everywhere else',
+  );
+});
+
+test('CLI kit import: a --name that is not an allowed kit name — refused BEFORE the directory exists', (t) => {
+  const { dir, template } = tmpTemplate(t);
+  const kit = path.join(dir, 'brandkit');
+  const r = lutrin(['kit', 'import', template, '-o', kit, '--name', 'Not A Name']);
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /not an allowed kit name/);
+  assert.match(r.stderr, /--name/, 'the remedy names the flag that fixes it');
+  assert.equal(
+    fs.existsSync(kit),
+    false,
+    'the name is validated before the first mkdir — no half-built kit under a name nothing can resolve',
+  );
+});
+
+test('CLI kit import: the kit it writes actually compiles a deck (an import is a kit, not a report about a template)', (t) => {
+  const { dir, deck, template } = tmpTemplate(t);
+  const r = lutrin(['kit', 'import', template, '-o', path.join(dir, 'brand')]);
+  assert.equal(r.code, 0, r.stderr);
+
+  const out = path.join(dir, 'out.pptx');
+  const built = lutrin(['build', deck, '--kit', './brand', '-o', out], { cwd: dir });
+  assert.equal(built.code, 0, `a freshly imported kit must compile: ${built.stderr}`);
+  assert.ok(fs.statSync(out).size > 0, 'the deck was delivered under the imported brand');
+
+  // the trap worth an afternoon: a BARE name designates an INSTALLED kit — the
+  // directory sitting right there in the cwd does NOT shadow it (themeRefOf),
+  // so the imported kit is reached as `./brand` or by absolute path
+  const bare = lutrin(['build', deck, '--kit', 'brand', '-o', path.join(dir, 'bare.pptx')], {
+    cwd: dir,
+  });
+  assert.equal(bare.code, 1);
+  assert.match(bare.stderr, /KIT_NOT_FOUND/);
+});
+
+test('CLI kit: the usage recalled without an action lists "import", and --help carries its full form', () => {
+  // TWO hand-maintained blocks say what `kit` can do — the global USAGE and the
+  // one cmdKit prints when the action is missing — and an action absent from
+  // either does not exist for anyone who did not read the source. docs.test.mjs
+  // checks the documents against the global block in the SOURCE; what the tool
+  // PRINTS, and the second block in particular, is only checked here.
+  const noAction = lutrin(['kit']);
+  assert.equal(noAction.code, 1);
+  assert.equal(noAction.stdout, '', 'usage recalled for want of an action is an error');
+  assert.match(noAction.stderr, /lutrin kit import <brand\.potx\|brand\.pptx>/);
+
+  const help = lutrin(['--help']);
+  assert.equal(help.code, 0);
+  assert.match(help.stdout, /lutrin kit import <brand\.potx\|brand\.pptx>/);
+});
+
+// ---------------------------------------------------------------------------
 // kit edit: which kit a name designates, and what --create refuses
 // ---------------------------------------------------------------------------
 
