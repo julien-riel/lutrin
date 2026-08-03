@@ -88,7 +88,8 @@ One comment, `<!-- animate -->`, and this slide appears on click:
 
 :::success
 The same steps are native on-click animations in PowerPoint and a
-click-to-reveal in the HTML. Covers and section slides never animate.
+click-to-reveal in the HTML, and the effect is chosen by one table both
+outputs read. Covers and section slides never animate.
 :::
 
 # Notes for the presenter

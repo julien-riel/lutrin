@@ -30,6 +30,7 @@ Contents:
 [equations](#equations-latex) ·
 [animations](#animations) ·
 [notes](#presenter-notes) ·
+[HTML and PDF](#html-output-presentation-mode-and-pdf) ·
 [diagnostics](#diagnostics)
 
 ---
@@ -732,6 +733,63 @@ Invisible on screen. In the `.pptx` these are the native notes; in the HTML, a
 `<details class="notes">` under the slide, and the **presenter view** of
 presentation mode (the `N` key) displays them with the timer and the next
 slide.
+
+The generated cover takes its note from the frontmatter instead — `notes:`,
+see [Frontmatter](#frontmatter) — because no comment in the source can reach a
+slide the engine synthesized.
+
+---
+
+## HTML output: presentation mode and PDF
+
+`lutrin build deck.md -o deck.html` writes one standalone page: fonts, images
+and diagrams inlined, nothing to serve. It scrolls like a document, and the `P`
+key turns it into a projector.
+
+| Key | Effect |
+|---|---|
+| `P` | enter / leave presentation mode — full screen, one slide fitted to the window |
+| `→` `Space` `PgDn` | next animation step, then the next slide |
+| `←` `PgUp` | previous step, then the previous slide |
+| `Home` `End` | first / last slide |
+| `N` | presenter view, in a second window |
+| `O` | overview of the whole deck as a grid |
+| `Esc` | step out **one level**: the help panel, then the grid, then the mode |
+| `?` | the list above, on screen |
+
+While you present, a thin **progress bar** runs along the bottom of the screen
+and two **arrow buttons** sit above it — for a room where the laptop is out of
+reach, or a deck driven from a touch screen. Both follow the pointer: shown
+while it moves, gone a couple of seconds after it stops, so a slide left
+standing is projected with nothing on it. The buttons grey out at the real ends
+of the deck only: a step still to be revealed counts as a "next", so the last
+slide of an animated deck is not finished yet.
+
+`O` lays the whole deck out as a grid. These are not images but the slides
+themselves, rescaled: **click one to jump there**. The selected slide is
+outlined and kept scrolled into view, and `Enter`, `O` or `Esc` all leave the
+grid on it.
+
+The **presenter view** (`N`) opens a second window with the current slide, the
+next one, the notes of the slide — the cover's frontmatter `notes:` included —
+an elapsed timer (click it to start or pause, `reset` to zero it) and the
+**wall clock**, to the minute. The two answer different questions: the timer
+says how long you have been talking, the clock says whether you are late, and a
+room is booked by the clock.
+
+### PDF
+
+Printing the standalone page from the browser (`⌘P` / `Ctrl-P`, "Save as PDF")
+now produces the deck at its own size: one slide per page, 1280 × 720, no
+margin — before, the browser laid that frame onto the reader's default paper
+and scaled or cropped it. Every animation step is printed open (printing what
+the audience has not seen yet would be worse than useless) and the notes are
+left out.
+
+Say what this is not, because the gap matters: it is the **browser's** PDF, not
+a Lutrin PDF writer. No notes annotations, no outline of the slides, no PNG or
+JPEG export. It gives a handout and a fallback for a machine with no
+PowerPoint; anything more is the `.pptx`.
 
 ---
 

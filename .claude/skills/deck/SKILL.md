@@ -675,7 +675,11 @@ VS Code extension (live preview, diagnostics, export) in
 | `src/deck/assets.mjs` | Remote images, Lucide icons, LaTeX, Mermaid (persistent cache `~/.cache/lutrin/`) |
 | `src/pptx/fonts.mjs` | Embedding the active theme's TTFs into the .pptx (zip post-processing) |
 | `src/pptx/anim.mjs` | Native reveal animations in the .pptx (zip post-processing, `<p:timing>`, effect per block type) |
-| `src/pptx/morph.mjs` | Morph transition of the "(cont.)" slides (zip post-processing, fade fallback) |
+| `src/deck/anim.mjs` | The one entrance-effect table both renderers read |
+| `src/pptx/svg.mjs` | Vector twin of a picture in the .pptx (`asvg:svgBlip`), PNG kept as the fallback |
+| `src/deck/svg.mjs` | Sanitizing outside SVG, and fitness to become an XML part |
+| `src/kit/from-template.mjs` | Kit derived from a `.potx`/`.pptx` — colours and type only, never geometry |
+| `src/pptx/morph.mjs` | Morph transition between consecutive slides sharing a title (zip post-processing, fade fallback) |
 | `src/cli.mjs` | `lutrin` CLI (`build`, `preview`, `validate`, `vendor`, `inspect`, `config`, `kit`, `capabilities`) |
 | `src/vendor.mjs` | `lutrin vendor` — freezing external dependencies into the deck's directory |
 | `src/kit/archive.mjs` | `.deckkit` archives: package, download, install (guard rails — see `SECURITY.md`) |

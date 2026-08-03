@@ -141,10 +141,14 @@ Markdown → AST (markdown-it) → IR → layout engine → scene → renderer
 | `src/deck/assets.mjs` | remote images, Lucide icons, LaTeX, Mermaid (cache `~/.cache/lutrin/`) |
 | `src/deck/highlight.mjs` | syntax highlighting of code blocks |
 | `src/deck/suggest.mjs` | did you mean…? (edit distance) |
+| `src/deck/anim.mjs` | the one entrance-effect table both renderers read |
+| `src/deck/svg.mjs` | sanitizing outside SVG, and fitness to become an XML part |
 | `src/pptx/render.mjs` | scene → PptxGenJS |
 | `src/pptx/fonts.mjs` | embedding the theme's TTFs into the `.pptx` |
 | `src/pptx/anim.mjs` | native animations (`<p:timing>`, one effect per block type) |
-| `src/pptx/morph.mjs` | Morph transition of "(cont.)" slides |
+| `src/pptx/morph.mjs` | Morph transition between consecutive slides sharing a title |
+| `src/pptx/svg.mjs` | vector twin of a picture (`asvg:svgBlip`), the PNG kept as the fallback |
+| `src/kit/from-template.mjs` | kit derived from a `.potx`/`.pptx` — colours and type only, never geometry |
 | `src/html/render.mjs` | scene → standalone HTML document (+ fragment mode) |
 | `src/kit/archive.mjs` | `.deckkit` archives — package, download, install |
 | `src/worker/worker.mjs` | IPC worker of the editor host (types in `protocol.d.ts`) |
