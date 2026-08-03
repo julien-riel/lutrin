@@ -87,8 +87,15 @@
           48,000 GitHub stars, themes and addons distributed as ordinary npm
           packages you switch on from the frontmatter, a zero-install browser
           playground at <a href="https://sli.dev/new">sli.dev/new</a>, a presenter
-          route with three layouts and an overview mode. Lutrin has twelve
-          official layouts, one maintainer and no theme market.</li>
+          route with three layouts. Lutrin has twelve
+          official layouts, one maintainer, and eight first-party kits each
+          installable in one <code>lutrin kit install</code> — but nothing
+          third-party at all, which is the part that matters. We do have
+          <a href="playground.html">a browser playground</a> of our own; it runs
+          the real compiler with nothing installed, but it stops at HTML: no
+          <code>.pptx</code> from the page, and Mermaid, LaTeX, icons and images
+          degrade there — each one named on the page rather than dropped in
+          silence.</li>
       </ul>
     </div>
   </div>
@@ -117,8 +124,8 @@
       <li><strong>Validation that measures geometry, not syntax.</strong>
         <code>lutrin validate --json</code> reports measured overflow, images too
         low-resolution for the area they land in, and a better-suited layout, as
-        positioned JSON built for an agent's write → validate → fix loop. Slidev
-        documents no equivalent.</li>
+        JSON anchored to source lines and built for an agent's write → validate →
+        fix loop. Slidev documents no equivalent.</li>
       <li><strong>A brand that travels as data.</strong> A Slidev theme is an npm
         package of Vue components and CSS — more powerful than a kit, and code
         you are running. A Lutrin kit is tokens, layouts, fonts and logos;
@@ -128,11 +135,19 @@
         assets to host. Lutrin's HTML output is one standalone document with
         presenter mode inside it. Both work offline; the difference is a file
         versus a folder.</li>
-      <li><strong>No browser in the toolchain.</strong> Slidev's PDF, PPTX and
-        PNG exports rely on Playwright, so <code>playwright-chromium</code> has
-        to be installed in the project. Lutrin builds on Node ≥ 22 with no
-        headless browser at all — which is what makes it survivable in a
-        locked-down runner.</li>
+      <li><strong>No browser is needed to produce the files.</strong> Slidev's
+        PDF, PPTX and PNG exports rely on Playwright, so
+        <code>playwright-chromium</code> has to be installed in the project:
+        without it there is no export. Lutrin's <code>.pptx</code> and HTML are
+        written by Node ≥ 22 alone. We do ship
+        <code>puppeteer-core</code>, and exactly one thing uses it — Mermaid,
+        which measures the text it lays out and so needs a real layout engine.
+        It drives a Chrome, Edge, Brave or Chromium already on the machine, or
+        one <code>lutrin setup-mermaid</code> downloads. On a machine with
+        neither, the build still succeeds: the diagram degrades to its source as
+        a code block and the build reports how many did. That is the difference
+        worth having in a locked-down runner — a missing browser costs Slidev
+        the export, and costs us a diagram.</li>
       <li><strong>Charts as a DSL block.</strong> Slidev has Mermaid and PlantUML;
         for a bar or donut chart from data you write a component. Lutrin has
         <code>```chart</code> alongside Mermaid, LaTeX and Lucide icons, sized by
@@ -153,17 +168,17 @@
           <tr>
             <th scope="row">PPTX export</th>
             <td>Yes — slides land as images, text not selectable (its own docs). Presenter notes are carried over per slide.</td>
-            <td>Native shapes, text boxes and tables, fonts embedded — the text is text. Charts, equations and icons are rasterised images.</td>
+            <td>Native shapes, text boxes and tables, fonts embedded — the text is text. Charts, diagrams, equations and icons are pictures — each one carrying its vector as well as its raster, so PowerPoint 2019+ keeps them sharp at any zoom and every other reader draws the raster.</td>
           </tr>
           <tr>
             <th scope="row">PDF export</th>
             <td>Yes, the default format, with <code>--with-clicks</code>, <code>--range</code>, <code>--dark</code>.</td>
-            <td>None. The two outputs are <code>.pptx</code> and standalone HTML.</td>
+            <td>No PDF writer: the two outputs are <code>.pptx</code> and standalone HTML. That HTML carries a print stylesheet, so a browser prints it to a 16:9 PDF, one slide per page, every step open — with none of Slidev's flags.</td>
           </tr>
           <tr>
             <th scope="row">Export dependencies</th>
-            <td>Playwright — <code>playwright-chromium</code> must be installed in the project.</td>
-            <td>Node ≥ 22. No browser, no headless Chromium.</td>
+            <td>Playwright — <code>playwright-chromium</code> must be installed in the project, or there is no export.</td>
+            <td>Node ≥ 22 writes both outputs. A browser is used only to render Mermaid; without one the build still succeeds and the diagram stays as source.</td>
           </tr>
           <tr>
             <th scope="row">Who decides the layout</th>
@@ -182,18 +197,18 @@
           </tr>
           <tr>
             <th scope="row">Presenter mode</th>
-            <td>Ahead of us here: a <code>/presenter</code> route with three layouts, next-slide preview, sync across every open window, an overview route and a batch notes editor.</td>
-            <td>Built into the exported file: <kbd>P</kbd> for full screen, <kbd>N</kbd> for notes and timer in a second window. No server needed.</td>
+            <td>Ahead of us here: a <code>/presenter</code> route with three layouts, sync across every open window and a batch notes editor.</td>
+            <td>Built into the exported file: <kbd>P</kbd> for full screen, <kbd>N</kbd> for notes, timer, wall clock and next-slide preview in a second window, <kbd>O</kbd> for an overview grid. No server needed.</td>
           </tr>
           <tr>
             <th scope="row">Interactivity in the deliverable</th>
             <td>Monaco editors, iframes, arbitrary Vue components, live drawing, camera and screen recording.</td>
-            <td>None. The deliverable is a static file, on purpose.</td>
+            <td>None of that: the file runs no code of yours, on purpose. What moves in it is click-to-reveal steps, keyboard navigation and the presenter window.</td>
           </tr>
           <tr>
             <th scope="row">Animation</th>
             <td>Per element, with absolute or relative click indexes and motion presets.</td>
-            <td>Four effects — fade, wipe, zoom, appear — applied per block by the engine.</td>
+            <td>Four effects — fade, wipe, zoom, appear — applied per block by the engine, from one table both outputs read, so a named effect means the same thing in the <code>.pptx</code> and in the HTML.</td>
           </tr>
           <tr>
             <th scope="row">Diagrams &amp; charts</th>
@@ -208,12 +223,12 @@
           <tr>
             <th scope="row">Getting started</th>
             <td>Node ≥ 20.12. <code>pnpm create slidev</code> scaffolds a project — or run a single <code>.md</code> with the global CLI, or start from the browser playground.</td>
-            <td>Node ≥ 22. <code>npx lutrin build deck.md -o deck.pptx</code> against a bare <code>.md</code>. No scaffold.</td>
+            <td>Node ≥ 22. <code>npx lutrin new</code> writes a starter deck that compiles with no diagnostics, then <code>npx lutrin build deck.md -o deck.pptx</code> — or point it at any <code>.md</code> you already have. One file, not a project.</td>
           </tr>
           <tr>
             <th scope="row">Validation</th>
             <td>Not a documented feature.</td>
-            <td>Measured overflow, under-resolved images, layout suggestions, <code>--json</code>. <code>build</code> refuses to emit a deck holding an error.</td>
+            <td>Measured overflow, under-resolved images, layout suggestions, <code>--json</code>. <code>build</code> writes nothing while validation holds an error, short of an explicit <code>--force</code>.</td>
           </tr>
           <tr>
             <th scope="row">Licence and price</th>

@@ -72,9 +72,10 @@
         <li><strong>It converts in every direction — including
           <em>out</em> of PowerPoint.</strong> Since 3.8.3 it reads
           <code>.pptx</code> as an input format: hand it a deck somebody else
-          wrote and get Markdown, docx, LaTeX or EPUB back. Lutrin has one input
-          — its own DSL — and can never open an existing deck. That is not a gap
-          we intend to close.</li>
+          wrote and get Markdown, docx, LaTeX or EPUB back. Lutrin reads text and
+          nothing else — its own DSL, plus Marp Markdown when the frontmatter
+          says <code>marp: true</code> — and can never open a
+          <code>.pptx</code>. That is not a gap we intend to close.</li>
         <li><strong>Math survives as math.</strong> Pandoc writes equations into
           the <code>.pptx</code> as OMML: real PowerPoint equations the recipient
           clicks into and edits. Lutrin renders LaTeX through MathJax and drops a
@@ -85,8 +86,14 @@
           PowerPoint template containing the seven layout names it needs, and the
           manual notes that templates shipped with recent PowerPoint already
           qualify. Your brand team edits the corporate template in PowerPoint,
-          with no new format to learn. A Lutrin kit is JSON plus assets, authored
-          in a separate editor.</li>
+          with no new format to learn, and Pandoc honours its layouts — the
+          placeholder boxes included. Lutrin now reads a template too
+          (<code>lutrin kit import brand.potx</code>), but only for what a kit
+          is allowed to carry: the colour scheme and the two type families. The
+          layouts and every placeholder position are deliberately left behind,
+          because honouring a coordinate is the one thing this engine refuses.
+          If what you want is your designer's boxes, that is Pandoc's, not
+          ours.</li>
         <li><strong>It is programmable and scholarly.</strong> Lua filters rewrite
           the document tree between reading and writing, and
           <code>--citeproc</code> resolves citations and builds a bibliography
@@ -115,9 +122,11 @@
         documents no fit checking, no overflow report and no image-resolution
         warning for PowerPoint output. <code>lutrin validate</code> measures the
         overflow, flags images under-resolved for the area they land in, suggests
-        a better-suited layout, and returns it as positioned JSON; a
-        <code>build</code> holding an error-severity diagnostic writes no file at
-        all.</li>
+        a better-suited layout, and prints the lot as JSON anchored to source
+        lines — the positioned geometry is a second command,
+        <code>lutrin inspect</code>. A <code>build</code> whose validation holds
+        an error-severity diagnostic writes no file at all, short of an explicit
+        <code>--force</code>.</li>
       <li><strong>Column widths.</strong> Pandoc states it plainly: specifying
         column widths does not currently work for PowerPoint. Lutrin does not
         accept widths, coordinates or explicit columns anywhere — same outcome,
@@ -129,8 +138,10 @@
         writing a filter that produces an image. Lutrin ships
         <code>```chart</code>, <code>:::metric</code>, <code>:::progress</code>,
         <code>:::status</code>, Mermaid and Lucide icons as DSL blocks, sized by
-        the engine — though in the <code>.pptx</code> those particular blocks
-        arrive as rasterised images, exactly as a Pandoc filter's would.</li>
+        the engine — the cards are drawn in the <code>.pptx</code> as native
+        rounded rectangles and text, while the charts, the diagrams and the icons
+        arrive as pictures — each one carrying its vector alongside its raster,
+        where a Pandoc filter's image would carry only what the filter drew.</li>
       <li><strong>Fonts.</strong> Lutrin embeds the theme's fonts into the
         <code>.pptx</code> it writes, after reading each font's embedding
         permission. Pandoc inherits whatever the reference document carries.</li>
@@ -166,12 +177,12 @@
           <tr>
             <th scope="row">Reads <code>.pptx</code></th>
             <td>Yes, since 3.8.3 (2025-12-01).</td>
-            <td>No, and never will — the input is always the Markdown DSL.</td>
+            <td>No, and never will — the input is always Markdown, its own DSL or Marp's.</td>
           </tr>
           <tr>
             <th scope="row">Is the <code>.pptx</code> editable?</th>
             <td>Yes. Native text boxes, native tables, OMML equations, highlighted code. Not images.</td>
-            <td>Yes for text, tables and shapes. Charts, equations and icons are rasterised images.</td>
+            <td>Yes for text, tables and shapes. Charts, diagrams, equations and icons are pictures — each one carrying its vector as well as its raster, so PowerPoint 2019+ keeps them sharp at any zoom and every other reader draws the raster — pictures all the same, not editable objects.</td>
           </tr>
           <tr>
             <th scope="row">Layout selection</th>
@@ -181,12 +192,12 @@
           <tr>
             <th scope="row">Where the brand lives</th>
             <td><code>--reference-doc</code>: a real <code>.pptx</code>/<code>.potx</code> carrying the seven required layout names. A missing name warns and falls back.</td>
-            <td>A kit — theme JSON, layouts, fonts, logos — resolved through a documented precedence chain.</td>
+            <td>A kit — theme JSON, layouts, fonts, logos — resolved through a documented precedence chain. <code>lutrin kit import brand.potx</code> derives one from your template's colour scheme and type families; its layouts and placeholder positions are left behind on purpose, and the command counts what it left rather than letting you assume it travelled.</td>
           </tr>
           <tr>
             <th scope="row">Speaker notes</th>
-            <td>Yes, via a <code>::: notes</code> div — and since 3.9 also on the generated title slide through a metadata field, which Lutrin's cover has no equivalent for.</td>
-            <td>Yes, <code>&lt;!-- notes: … --&gt;</code>, surfaced in the HTML presenter mode and in the <code>.pptx</code>.</td>
+            <td>Yes, via a <code>::: notes</code> div — and since 3.9 also on the generated title slide, through a metadata field.</td>
+            <td>Yes, <code>&lt;!-- notes: … --&gt;</code> on any slide you write — a cover slide included — surfaced in the HTML presenter mode and in the <code>.pptx</code>. The cover Lutrin generates itself takes a frontmatter <code>notes:</code> line, the same answer to the same problem; a flat one-liner, where Pandoc's metadata field takes a block.</td>
           </tr>
           <tr>
             <th scope="row">Background images</th>
