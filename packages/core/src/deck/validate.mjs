@@ -348,8 +348,14 @@ export function validateDeck(
       // two-columns/three-columns, SAME condition here). Counting it made us
       // announce "4 sections found: the surplus will be ignored" where nothing
       // is ignored: a lying warning, worse than none.
+      // `radial` joins them for the same reason with a different meaning: the
+      // paragraph before the first "##" is the HUB, not a spoke. Counting it
+      // made a slide with a hub and eight spokes report nine sections and be
+      // told its ninth would be dropped, when the layout had used all of them.
       const lead =
-        (layoutBase === 'two-columns' || layoutBase === 'three-columns') &&
+        (layoutBase === 'two-columns' ||
+          layoutBase === 'three-columns' ||
+          layoutBase === 'radial') &&
         secs.length &&
         !secs[0].heading &&
         secs.some((s) => s.heading);
@@ -384,6 +390,48 @@ export function validateDeck(
     // block to quote (rather than crashing the renderers). It places, it does
     // not speak: without this diagnostic, the author sees a bare slide and
     // never learns why.
+    // Diagram layouts. Two things LAYOUT_SECTIONS cannot see, because it
+    // counts "##" and a diagram may be fed by a bullet list instead.
+    if (['cycle', 'hierarchy', 'venn', 'radial'].includes(layoutBase)) {
+      // SCOPED to hierarchy on purpose: cycle, venn and radial declare
+      // section bounds, so an unscoped "fewer than two nodes" would warn
+      // beside LAYOUT_SECTIONS about the same slide, in slightly different
+      // words — the lying-warning failure again, this time by duplication.
+      if (layoutBase === 'hierarchy') {
+        const items = slide.sections.some((s) => s.heading)
+          ? slide.sections.filter((s) => s.heading)
+          : slide.sections.flatMap((s) =>
+              s.blocks.filter((b) => b.type === 'bullets').flatMap((b) => b.items),
+            );
+        if (items.length < 2) {
+          push(
+            'warning',
+            'SMARTART_NODES',
+            `The "${slide.layout}" layout draws a tree, and this slide yields ${items.length} node${items.length === 1 ? '' : 's'}: write a nested bullet list, or one "##" section per branch.`,
+            slide.layoutLine ?? slide.line,
+          );
+        }
+      }
+      // Inline formatting inside a node label is DROPPED, and nothing else
+      // says so: parse.mjs only records the run types a run cannot hold, and
+      // HEADING_CONTENT_DROPPED speaks about icons and images. A `## **Plan**`
+      // feeding a diagram would otherwise be flattened in silence.
+      const decorated = [...walkBlocks(slide)]
+        .concat(slide.sections.map((s) => ({ type: 'heading', runs: s.heading ?? [] })))
+        .some((b) =>
+          (b.runs ?? b.items?.flatMap((i) => i.runs) ?? []).some(
+            (r) => r.bold || r.italic || r.code || r.href || r.badge,
+          ),
+        );
+      if (decorated) {
+        push(
+          'info',
+          'SMARTART_TEXT',
+          `A diagram label is drawn as plain text: bold, italic, code, links and badges are dropped inside the "${slide.layout}" layout.`,
+          slide.layoutLine ?? slide.line,
+        );
+      }
+    }
     if (layoutBase === 'quote' && ![...walkBlocks(slide)].length) {
       push(
         'warning',
@@ -991,6 +1039,8 @@ export function capabilities() {
       'ORPHAN_DIRECTIVE',
       'UNKNOWN_LAYOUT',
       'LAYOUT_SECTIONS',
+      'SMARTART_NODES',
+      'SMARTART_TEXT',
       'UNKNOWN_ANIMATE',
       'COVER_NOTES_ORPHAN',
       'METRICS_DROPPED',

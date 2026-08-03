@@ -835,3 +835,95 @@ test('grid spans: six and eight sections lay out without leaving the content are
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// Diagram layouts
+//
+// A diagram is ONE element carrying the whole family, so what is checked here
+// is the reading — what the generator made of the sections — not the drawing.
+// The drawing has its own golden, in smartart.test.mjs, and deliberately does
+// not travel through demo.scenes.json.
+// ---------------------------------------------------------------------------
+
+const smartOf = (src) => {
+  const els = buildScenes(parseDeck(src)).flatMap((s) => s.elements);
+  const smart = els.filter((e) => e.block.type === 'smartart');
+  assert.equal(smart.length, 1, 'a diagram layout emits exactly one element');
+  return smart[0];
+};
+
+test('a diagram layout fills the content area, and only it', () => {
+  const area = contentArea();
+  for (const [layout, body] of [
+    ['cycle', '## A\n\n## B\n\n## C\n'],
+    ['venn', '## A\n\n## B\n'],
+    ['radial', 'The hub\n\n## A\n\n## B\n'],
+    ['hierarchy', '- Root\n  - Child\n'],
+  ]) {
+    const { region } = smartOf(`# D\n\n<!-- layout: ${layout} -->\n\n${body}`);
+    assert.deepEqual(region, { ...area }, `${layout}: the region IS the content area`);
+  }
+});
+
+test('cycle, venn and radial read one node per "##" section, clamped at the bounds', () => {
+  const secs = (n) => Array.from({ length: n }, (_, i) => `## S${i + 1}\n`).join('\n');
+  assert.equal(smartOf(`# D\n\n<!-- layout: cycle -->\n\n${secs(5)}`).block.nodes.length, 5);
+  // the surplus is dropped AT THE BOUNDS the registry announces — validation
+  // (LAYOUT_SECTIONS) is the only place that reports it
+  assert.equal(smartOf(`# D\n\n<!-- layout: cycle -->\n\n${secs(12)}`).block.nodes.length, 8);
+  assert.equal(smartOf(`# D\n\n<!-- layout: venn -->\n\n${secs(9)}`).block.nodes.length, 4);
+});
+
+test("cycle takes a section's first paragraph as the node's second line", () => {
+  const b = smartOf(
+    '# D\n\n<!-- layout: cycle -->\n\n## Plan\n\nWith the sponsors.\n\n## Build\n\n## Ship\n',
+  ).block;
+  assert.equal(b.nodes[0].text, 'Plan');
+  assert.equal(b.nodes[0].sub, 'With the sponsors.');
+  assert.equal(b.nodes[1].sub, undefined, 'a section with no paragraph carries no second line');
+});
+
+test('radial takes its hub from the lead paragraph, and falls back to the title', () => {
+  const withLead = smartOf(
+    '# Platform\n\n<!-- layout: radial -->\n\nCompiler core\n\n## A\n\n## B\n',
+  ).block;
+  assert.equal(withLead.hub, 'Compiler core');
+  assert.equal(withLead.nodes.length, 2, 'the lead is the hub, NOT a spoke');
+  // a hub with no name is a circle with no argument
+  const noLead = smartOf('# Platform\n\n<!-- layout: radial -->\n\n## A\n\n## B\n').block;
+  assert.equal(noLead.hub, 'Platform');
+});
+
+test('hierarchy reads a nested bullet list, and "##" sections just as well', () => {
+  const fromBullets = smartOf(
+    '# Org\n\n<!-- layout: hierarchy -->\n\n- CEO\n  - Eng\n    - Platform\n  - Sales\n',
+  ).block;
+  assert.equal(fromBullets.nodes.length, 1, 'one root');
+  assert.deepEqual(
+    fromBullets.nodes[0].children.map((c) => c.text),
+    ['Eng', 'Sales'],
+  );
+  assert.deepEqual(
+    fromBullets.nodes[0].children[0].children.map((c) => c.text),
+    ['Platform'],
+  );
+
+  const fromSections = smartOf(
+    '# Org\n\n<!-- layout: hierarchy -->\n\n## Eng\n\n- Platform\n- Product\n\n## Sales\n',
+  ).block;
+  assert.deepEqual(
+    fromSections.nodes.map((n) => n.text),
+    ['Eng', 'Sales'],
+  );
+  assert.deepEqual(
+    fromSections.nodes[0].children.map((c) => c.text),
+    ['Platform', 'Product'],
+  );
+});
+
+test('a diagram sets no parameter key when the deck asked for none', () => {
+  const b = smartOf('# D\n\n<!-- layout: cycle -->\n\n## A\n\n## B\n\n## C\n').block;
+  assert.equal('numbered' in b, false, 'a default written out would move the golden for nothing');
+  const v = smartOf('# D\n\n<!-- layout: venn -->\n\n## A\n\n## B\n').block;
+  assert.equal('overlap' in v, false);
+});

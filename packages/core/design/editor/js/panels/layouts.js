@@ -998,6 +998,17 @@ function bodyFor(root) {
       return ['A short placeholder line under the title.', ''];
     case 'focus':
       return ['One short key message.', ''];
+    // `hierarchy` is the one diagram family that declares no section bounds,
+    // so it lands here rather than taking the "##" branch above — and a tree
+    // previewed with one level would show nothing of what it is for.
+    case 'hierarchy':
+      return [
+        '- Placeholder root',
+        '  - First branch',
+        '    - A leaf',
+        '  - Second branch',
+        '',
+      ];
     default:
       return ['A short placeholder paragraph.', '', '- A short bullet', '- Another short bullet', ''];
   }

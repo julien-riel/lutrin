@@ -127,7 +127,7 @@ you want to place an element at a precise spot, Lutrin will tell you no.
 ## A few layouts
 
 Not a single coordinate was written in the Markdown: the three slides below
-come from `examples/demo.deck.md`, which has 27 of them.
+come from `examples/demo.deck.md`, which has 41 of them.
 
 | Cover | Chart | Comparison |
 |---|---|---|

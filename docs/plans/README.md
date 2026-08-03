@@ -103,6 +103,17 @@ are invisible in Keynote — a drawn disc has nothing left to substitute or
 misinterpret. Which makes a scorecard a **chart type** rather than a block, at
 a tenth of the cost the rejection was weighed against.
 
+## Shipped since, outside the two reviews
+
+[smartart.md](smartart.md) — four diagram layouts (`cycle`, `hierarchy`,
+`venn`, `radial`) and, behind an opt-in flag, real OOXML SmartArt: five
+`ppt/diagrams/*` parts and a `<p:graphicFrame>`, so PowerPoint opens its own
+editing UI on the object. It is the first thing here that adds PARTS to the
+package rather than rewriting existing ones, and the first whose acceptance
+criterion cannot be asserted from a test — that plan carries the gate a human
+has to answer, and the per-family switch that turns off whatever the gate
+refuses.
+
 ## Order to build — what is left
 
 Everything in the two reviews above has shipped: plans 1–5, and the six items

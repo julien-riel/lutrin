@@ -39,7 +39,7 @@ const PNG_2PX = Buffer.from(
 );
 
 /** Compile a source in a disposable directory and return the reopened zip. */
-async function compilePptx(t, source, { files = {} } = {}) {
+async function compilePptx(t, source, { files = {}, opts = {} } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-pptx-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   for (const [name, content] of Object.entries(files))
@@ -47,7 +47,7 @@ async function compilePptx(t, source, { files = {} } = {}) {
   const out = path.join(dir, 'e2e.pptx');
   const deck = parseDeck(source);
   const scenes = buildScenes(deck);
-  const stats = await renderDeck(scenes, deck.meta, dir, out);
+  const stats = await renderDeck(scenes, deck.meta, dir, out, opts);
   const zip = await JSZip.loadAsync(fs.readFileSync(out));
   return { dir, out, deck, scenes, stats, zip };
 }
@@ -1413,4 +1413,227 @@ test('svgPartSafe: refuses what no XML parser would accept', () => {
   assert.equal(svgPartSafe(null), false);
   assert.equal(svgPartSafe(undefined), false);
   assert.equal(svgPartSafe(''), false);
+});
+
+// ---------------------------------------------------------------------------
+// Real OOXML SmartArt
+//
+// The most invasive post-processing pass in this directory: it does not patch
+// a shape, it REPLACES one, and it adds five parts per diagram. Everything
+// below reopens the zip, because none of it is visible from the outside.
+// ---------------------------------------------------------------------------
+
+const SMART_SOURCE = `---
+title: Diagrams
+---
+
+# Loop
+
+<!-- layout: cycle -->
+
+## Plan
+
+## Build
+
+## Ship
+
+# Tree
+
+<!-- layout: hierarchy -->
+
+- Delivery
+  - Engineering
+  - Design
+`;
+
+/** Every `--smartart` assertion is gated: without @resvg/resvg-js there is no
+ *  placeholder picture, `addSmartArt` falls back to native shapes, and the
+ *  feature legitimately does not happen. Asserting it anyway would paint a
+ *  platform gap as a regression. */
+async function smartArtDeps(t) {
+  const { rasterAvailable } = await import('../src/deck/assets.mjs');
+  if (!(await rasterAvailable())) {
+    t.skip('@resvg/resvg-js absent on this platform');
+    return false;
+  }
+  return true;
+}
+
+test('smartart: the five diagram parts are written, typed and reachable', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { zip, stats } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: true } });
+
+  assert.equal(stats.smartArtDiagrams, 2, 'both diagrams converted');
+  assert.deepEqual(stats.warnings, [], 'a clean conversion says nothing');
+
+  const ct = await zip.file('[Content_Types].xml').async('string');
+  for (const n of [1, 2]) {
+    for (const part of ['data', 'layout', 'quickStyle', 'colors', 'drawing']) {
+      const file = `ppt/diagrams/${part}${n}.xml`;
+      assert.ok(zip.file(file), `${file} missing`);
+      // an Override is not optional: the package's Default for the `xml`
+      // extension would type these as generic XML and PowerPoint would drop
+      // the diagram without a word
+      assert.match(
+        ct,
+        new RegExp(`<Override PartName="/${file}" ContentType="[^"]+"/>`),
+        `${file}: no content-type override`,
+      );
+    }
+  }
+});
+
+test('smartart: the picture becomes a graphicFrame, in place and with its own id', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { zip } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: true } });
+  const xml = await slideXml(zip, 2);
+
+  const frame = xml.match(/<p:graphicFrame>[\s\S]*?<\/p:graphicFrame>/);
+  assert.ok(frame, 'no graphic frame on the diagram slide');
+  assert.match(
+    frame[0],
+    /<a:graphicData uri="http:\/\/schemas\.openxmlformats\.org\/drawingml\/2006\/diagram">/,
+  );
+  assert.match(
+    frame[0],
+    /<dgm:relIds[^>]*r:dm="rId\d+"[^>]*r:lo="rId\d+"[^>]*r:qs="rId\d+"[^>]*r:cs="rId\d+"/,
+  );
+  assert.match(frame[0], /<p:xfrm><a:off x="\d+" y="\d+"\/><a:ext cx="\d+" cy="\d+"\/><\/p:xfrm>/);
+  assert.ok(
+    !/<p:pic>[\s\S]*?Diagram 1[\s\S]*?<\/p:pic>/.test(xml),
+    'the placeholder picture is still there beside the frame',
+  );
+});
+
+test('smartart: the drawing cache is reachable exactly the way POI reads it', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { zip } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: true } });
+
+  for (const n of [1, 2]) {
+    const data = await zip.file(`ppt/diagrams/data${n}.xml`).async('string');
+    const relId = /<dsp:dataModelExt[^>]*relId="([^"]+)"/.exec(data);
+    assert.ok(relId, `data${n}.xml: no dataModelExt`);
+    // Apache POI substitutes `data` → `drawing` and then looks the id up in
+    // the SLIDE's relations. LibreOffice does the same. Renumber the parts
+    // without keeping this in step and every non-PowerPoint renderer shows a
+    // blank frame while the suite stays green.
+    const slideNo = n + 1;
+    const rels = await zip.file(`ppt/slides/_rels/slide${slideNo}.xml.rels`).async('string');
+    const target = new RegExp(
+      `Id="${relId[1]}"[^>]*Target="\\.\\./diagrams/(drawing\\d+\\.xml)"`,
+    ).exec(rels);
+    assert.ok(target, `slide ${slideNo}: ${relId[1]} does not resolve to a drawing part`);
+    assert.equal(target[1], `drawing${n}.xml`, 'the cache paired with the wrong data part');
+    const drawing = await zip.file(`ppt/diagrams/drawing${n}.xml`).async('string');
+    assert.match(
+      drawing,
+      /<dsp:sp modelId="\{[0-9A-F-]+\}">/,
+      'an empty cache is a blank slide elsewhere',
+    );
+  }
+});
+
+test('smartart: all four diagram relationships resolve, on ids above the ones already used', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { zip } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: true } });
+  const xml = await slideXml(zip, 2);
+  const rels = await zip.file('ppt/slides/_rels/slide2.xml.rels').async('string');
+  const targets = new Map(
+    [...rels.matchAll(/Id="(rId\d+)"[^>]*Target="([^"]*)"/g)].map((m) => [m[1], m[2]]),
+  );
+  const frame = /<dgm:relIds[^>]*\/>/.exec(xml)[0];
+  for (const attr of ['r:dm', 'r:lo', 'r:qs', 'r:cs']) {
+    const id = new RegExp(`${attr}="([^"]+)"`).exec(frame)[1];
+    assert.ok(targets.has(id), `${attr} → ${id} resolves to nothing`);
+    assert.match(targets.get(id), /^\.\.\/diagrams\//, `${attr} points outside ppt/diagrams`);
+  }
+});
+
+test('smartart: converting twice changes nothing, and says nothing', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { out, zip } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: true } });
+  const before = fs.readFileSync(out);
+
+  // the names read back OUT of the document, so this stays a test of the
+  // per-diagram guard rather than of the shape-label table
+  const again = new Map();
+  for (const n of [2, 3]) {
+    const frame = (await slideXml(zip, n)).match(/<p:graphicFrame>[\s\S]*?<\/p:graphicFrame>/);
+    const name = /<p:cNvPr\b[^>]*\sname="([^"]*)"/.exec(frame[0])[1];
+    again.set(n, [
+      { name, payload: { family: 'cycle', block: { family: 'cycle', nodes: [] }, geometry: null } },
+    ]);
+  }
+  const { embedSmartArt } = await import('../src/pptx/smartart.mjs');
+  const r = await embedSmartArt(out, again);
+  assert.equal(r.count, 0, 'a second pass must convert nothing');
+  assert.deepEqual(r.warnings, [], 'an already-converted diagram is done, not broken');
+  assert.ok(before.equals(fs.readFileSync(out)), 'a no-op pass rewrote the file');
+});
+
+test('smartart: a shape it cannot find keeps its picture, and the give-up is said out loud', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { out } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: true } });
+  const { embedSmartArt } = await import('../src/pptx/smartart.mjs');
+  const r = await embedSmartArt(
+    out,
+    new Map([
+      [2, [{ name: 'No such shape', payload: { family: 'cycle', block: {}, geometry: null } }]],
+    ]),
+  );
+  assert.equal(r.count, 0);
+  assert.match(r.warnings.join('\n'), /not found — it stays a picture/);
+  // and the file is still a file
+  await JSZip.loadAsync(fs.readFileSync(out));
+});
+
+test('smartart: a builder that throws costs a diagram, never the export', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { out, zip } = await compilePptx(t, SMART_SOURCE);
+  const pic = (await slideXml(zip, 2)).match(/<p:pic>[\s\S]*?<\/p:pic>/);
+  const name = pic ? /<p:cNvPr\b[^>]*\sname="([^"]*)"/.exec(pic[0])[1] : 'Diagram 1';
+  const { embedSmartArt } = await import('../src/pptx/smartart.mjs');
+  // no geometry: buildDiagramParts refuses, which must be a warning and a
+  // surviving picture rather than a rejected promise
+  const r = await embedSmartArt(
+    out,
+    new Map([[2, [{ name, payload: { family: 'cycle', block: { nodes: [] }, geometry: null } }]]]),
+  );
+  assert.equal(r.count, 0);
+  await JSZip.loadAsync(fs.readFileSync(out));
+});
+
+test('smartart: no [Content_Types].xml is a warning, not a crash', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { out } = await compilePptx(t, SMART_SOURCE);
+  const zip = await JSZip.loadAsync(fs.readFileSync(out));
+  zip.remove('[Content_Types].xml');
+  fs.writeFileSync(out, await zip.generateAsync({ type: 'nodebuffer' }));
+  const { embedSmartArt } = await import('../src/pptx/smartart.mjs');
+  const r = await embedSmartArt(
+    out,
+    new Map([
+      [2, [{ name: 'Diagram 1', payload: { family: 'cycle', block: {}, geometry: null } }]],
+    ]),
+  );
+  assert.equal(r.count, 0);
+  assert.match(r.warnings.join('\n'), /\[Content_Types\]\.xml missing/);
+});
+
+test('smartart: without the flag, a diagram is native shapes and no diagram part is written', async (t) => {
+  const { zip, stats } = await compilePptx(t, SMART_SOURCE);
+  assert.equal(stats.smartArtDiagrams, 0);
+  assert.deepEqual(
+    Object.keys(zip.files).filter((n) => n.startsWith('ppt/diagrams/')),
+    [],
+    'the default export must carry no diagram part at all',
+  );
+  const xml = await slideXml(zip, 2);
+  assert.doesNotMatch(xml, /<p:graphicFrame>/);
+  // discs and arrows, as real editable PowerPoint shapes
+  assert.match(xml, /<a:prstGeom prst="ellipse">/);
+  assert.match(xml, /<a:prstGeom prst="rightArrow">/);
+  // the arrows are placed by ROTATION, which is the half of the geometry the
+  // boxes alone cannot express
+  assert.match(xml, /<a:xfrm rot="-?\d+">/);
 });

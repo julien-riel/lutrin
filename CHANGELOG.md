@@ -11,6 +11,49 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Four diagram layouts, and real OOXML SmartArt behind them.** `cycle`,
+  `hierarchy`, `venn` and `radial` are the four shapes the catalog could not
+  express: a process that closes on itself, a tree, an intersection, a hub. As
+  ever they are asked for, never inferred — `<!-- layout: cycle -->` — and the
+  content is the ordinary DSL: `##` sections are the nodes, a nested bullet
+  list is the tree, and the paragraph before the first `##` is the hub of a
+  radial. A `cycle` section's first paragraph becomes its node's second line.
+
+  **By default they are native editable PowerPoint shapes** — real discs,
+  boxes and arrows a presenter can select — and an inline SVG in the HTML,
+  from the same coordinates. The two outputs are pixel-identical, and the
+  geometry lives in one module both renderers read, so they cannot drift.
+
+  **`--smartart` asks for the other thing.** With the flag (or `smartart:` in
+  the frontmatter), the `.pptx` carries a genuine `<p:graphicFrame>` and five
+  `ppt/diagrams/*` parts, and PowerPoint opens its own *SmartArt Design*
+  ribbon on the object — Text Pane, Change Layout, Change Colors. It is the
+  first thing this compiler adds to the package rather than rewriting, and the
+  first that is **opt-in because it costs something**: Keynote and macOS Quick
+  Look show nothing for it, PowerPoint re-lays the diagram out with its own
+  engine (so what is guaranteed there is the frame, the node count, the
+  reading order and the palette — not the coordinates), and the object is not
+  animated. Every other reader draws the cached geometry, which *is* the
+  coordinates. Without the flag nothing changes and a diagram displays
+  everywhere, which is why the published demo is built without it.
+
+  The colours are the kit's, written out literally rather than referenced from
+  the theme: PptxGenJS ships a fixed Office palette and lutrin never rewrites
+  it, so a theme-accent diagram would have rendered Office blue inside a
+  branded deck. The consequence is worth knowing — running *Change Colors* in
+  PowerPoint's gallery replaces the brand palette, and the way back is to
+  rebuild.
+
+  None of the five parts is vendored from Microsoft; all are authored from the
+  ECMA-376 vocabulary, because this repository is MIT and MIT grants
+  downstream sublicensing. Two diagnostics come with the layouts:
+  `SMARTART_NODES` when a tree yields fewer than two nodes, and
+  `SMARTART_TEXT` when formatting inside a label is dropped. A family whose
+  layout definition PowerPoint mislays can be turned off on its own line and
+  falls back to native shapes. See
+  [docs/plans/smartart.md](docs/plans/smartart.md) — including the checks a
+  human with PowerPoint still has to sign off.
+
 - **Figures in the `.pptx` now carry their vector as well as their raster.** A
   chart, a Mermaid diagram, a Lucide icon and a LaTeX equation are all born as
   SVG, and until now that SVG was thrown away the instant resvg had rasterised

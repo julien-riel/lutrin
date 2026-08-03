@@ -134,7 +134,7 @@ function firstLine(xml) {
 // PPTX: every block type leaves its trace in the XML of ITS slide
 // ---------------------------------------------------------------------------
 
-test('pptx: each of the eighteen block types leaves its marker in the XML', async (t) => {
+test('pptx: each of the nineteen block types leaves its marker in the XML', async (t) => {
   const { stats, zip, xmlOf } = await renderFixture(t);
   assert.deepEqual(stats.warnings, [], 'the fixture must compile without giving anything up');
 
@@ -301,10 +301,10 @@ test('pptx: each of the eighteen block types leaves its marker in the XML', asyn
 });
 
 // ---------------------------------------------------------------------------
-// HTML: the same eighteen types, the same markers, another translation
+// HTML: the same nineteen types, the same markers, another translation
 // ---------------------------------------------------------------------------
 
-test('html: each of the eighteen block types leaves its marker in the document', async (t) => {
+test('html: each of the nineteen block types leaves its marker in the document', async (t) => {
   const { htmlStats, htmlOf } = await renderFixture(t);
   assert.deepEqual(htmlStats.warnings, [], 'the fixture must compile without giving anything up');
 
