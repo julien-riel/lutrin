@@ -1,6 +1,14 @@
 /**
  * PDF and image export: the artefacts a browser prints.
  *
+ * ONE BROWSER LAUNCH PER TEST, AND AS FEW TESTS AS THE ASSERTIONS ALLOW. Node's
+ * runner executes test FILES in parallel — as many as there are cores — so
+ * every launch here competes with the Chrome `full-render.test.mjs` starts for
+ * Mermaid. The first version of this file made five, and the Mermaid assertion
+ * on the Windows runner went from intermittently red to reliably so, its
+ * duration climbing 49 s → 70 s → 102 s as the contention grew. Three launches
+ * is the floor the three output formats impose.
+ *
  * These run for real across the whole CI matrix — the runners ship a Chromium
  * and `browser.mjs` finds it, which is the same reason the Mermaid tests
  * render rather than skip. Where no browser exists the suite skips rather than
@@ -66,7 +74,7 @@ function browserOr(t) {
   return true;
 }
 
-test('pdf: one page per slide, and it is really a PDF', async (t) => {
+test('pdf: one page per slide, really a PDF, and an outline that names them', async (t) => {
   if (!browserOr(t)) return;
   const { html, slides } = await deckHtml();
   const out = path.join(tmpDir(t), 'deck.pdf');
@@ -77,20 +85,15 @@ test('pdf: one page per slide, and it is really a PDF', async (t) => {
   assert.equal(buf.subarray(0, 5).toString('latin1'), '%PDF-', 'not a PDF');
   assert.equal(r.pages, slides, `${r.pages} page(s) for ${slides} slide(s)`);
   assert.deepEqual(r.warnings, [], 'a clean export says nothing');
-});
 
-test('pdf: the outline names the slides, which is the whole reason for this module', async (t) => {
-  if (!browserOr(t)) return;
-  const { html } = await deckHtml();
-  const out = path.join(tmpDir(t), 'deck.pdf');
-  const r = await renderDeckPdf(html, out);
-
+  // The outline is the whole reason this module exists: hand-printing already
+  // gave a correct handout, with nothing to navigate by.
   assert.equal(r.outline, true, 'no outline in the PDF');
-  const text = fs.readFileSync(out).toString('latin1');
+  const text = buf.toString('latin1');
   // OUTLINE ITEMS specifically. `/Title` also names the document in the Info
   // dictionary, so matching it anywhere counts the deck title as an outline
-  // entry — which is what the first version of this test did, and it reported
-  // the cover twice. An outline item is the object that also carries `/Parent`.
+  // entry — which is what the first version of this did, and it reported the
+  // cover twice. An outline item is the object that also carries `/Parent`.
   const items = [...text.matchAll(/<<[^<>]*\/Title\s*\(([^)]*)\)[^<>]*>>/g)]
     .filter((m) => m[0].includes('/Parent'))
     .map((m) => m[1]);
@@ -124,23 +127,13 @@ test('images: one file per slide, at twice the slide size', async (t) => {
     assert.equal(buf.readUInt32BE(16), PAGE.width * 2, `${file}: width`);
     assert.equal(buf.readUInt32BE(20), PAGE.height * 2, `${file}: height`);
   }
-});
 
-test('images: the on-screen chrome is not in them', async (t) => {
-  if (!browserOr(t)) return;
-  const { html } = await deckHtml();
-  const stem = path.join(tmpDir(t), 'clean');
-  // The first version of this shipped "P: presentation mode · ?: help" sitting
-  // over the attribution, because a screenshot is not an impression. The fix
-  // was to emulate print media, so the assertion is that the export reads the
-  // SAME stylesheet the PDF does: no `.present-hint` in the captured region.
-  //
-  // Asserted through the page rather than the pixels: comparing images would
-  // fail on a font hint. What matters is that the element is not rendered.
-  const r = await renderDeckImages(html, stem, { format: 'png' });
-  assert.ok(r.count > 0);
+  // The export reads the PRINT stylesheet, which is what keeps the on-screen
+  // chrome out of it: the first version shipped images with "P: presentation
+  // mode · ?: help" sitting over the attribution, because a screenshot is not
+  // an impression. Asserted through the stylesheet rather than the pixels —
+  // comparing images would fail on a font hint.
   assert.ok(html.includes('present-hint'), 'the fixture must really contain the chrome');
-  // the print stylesheet is what hides it, and it must keep doing so
   assert.match(
     html,
     /@media print\{\.present-hint,\.present-help,\.present-nav,\.present-bar\{display:none\}\}/,
