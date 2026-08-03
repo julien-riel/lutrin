@@ -419,6 +419,88 @@ test('validate: no UNKNOWN_DIRECTIVE on ::: prose in a Marp deck', () => {
   assert.ok(!diags.some((d) => d.code === 'UNKNOWN_DIRECTIVE'));
 });
 
+// `:::` is not part of the Marp syntax, so a line opening with it in a Marp
+// deck is usually SOMEONE ELSE'S: a Docusaurus admonition, a Pandoc fenced div,
+// or plain prose. The scan therefore narrows here rather than stopping — the
+// one thing it still reports is the casing slip, because the callout plugin is
+// registered in the Marp dialect too: `:::info` renders a real callout there,
+// while `:::Info` opens nothing and prints its own colons onto the slide.
+test('validate: :::Info in a Marp deck is still reported, positioned, with the lowercase fix', () => {
+  const diags = validateDeck(`${FM}# T\n\n:::Info\nmiscased\n:::\n`).filter(
+    (d) => d.code === 'UNKNOWN_DIRECTIVE',
+  );
+  assert.equal(diags.length, 1);
+  assert.equal(diags[0].line, 7); // the ":::Info" line, frontmatter counted
+  assert.equal(diags[0].suggestion, 'info');
+  assert.match(diags[0].message, /lowercase/);
+});
+
+// A warning and NOT an error, deliberately: an error stops the compilation
+// (cli.mjs writes nothing and exits 1 without --force). Turning a third-party
+// deck that compiles today into one that refuses to is not a price a heuristic
+// about someone else's syntax gets to charge.
+test('validate: the Marp casing slip is a warning, never an error — an error would refuse a deck that compiles today', () => {
+  const diags = validateDeck(`${FM}# T\n\n:::Info\nmiscased\n:::\n`);
+  assert.equal(diags.find((d) => d.code === 'UNKNOWN_DIRECTIVE').severity, 'warning');
+  assert.deepEqual(
+    diags.filter((d) => d.severity === 'error'),
+    [],
+  );
+});
+
+test('validate: :::note in a Marp deck is left alone — an admonition is not a mistyped callout', () => {
+  const diags = validateDeck(`${FM}# T\n\n:::note\nAn admonition from another generator.\n:::\n`);
+  assert.deepEqual(
+    diags.filter((d) => d.code === 'UNKNOWN_DIRECTIVE'),
+    [],
+  );
+});
+
+// The narrowing is a property of the DIALECT, not of the scan: the very same
+// body outside Marp must still raise both errors, casing slip and foreign
+// syntax alike. `marp: false` rather than a stripped frontmatter keeps the line
+// numbers aligned, so the two readings compare line for line.
+test('validate: outside the Marp dialect the same body is two errors, exactly as before', () => {
+  const body = '# T\n\n:::Info\nmiscased\n:::\n\n:::note\nAn admonition.\n:::\n';
+  const lutrin = validateDeck(`---\nmarp: false\n---\n\n${body}`).filter(
+    (d) => d.code === 'UNKNOWN_DIRECTIVE',
+  );
+  assert.deepEqual(
+    lutrin.map((d) => [d.severity, d.line]),
+    [
+      ['error', 7],
+      ['error', 11],
+    ],
+  );
+  // and the same body read as Marp keeps the casing slip alone, demoted
+  const marp = validateDeck(`${FM}${body}`).filter((d) => d.code === 'UNKNOWN_DIRECTIVE');
+  assert.deepEqual(
+    marp.map((d) => [d.severity, d.line]),
+    [['warning', 7]],
+  );
+});
+
+test(':::info opens a real callout in a Marp deck, :::Info prints its colons', () => {
+  const ok = blocksOf(parseDeck(`${FM}# T\n\n:::info\nCareful.\n:::\n`))[0];
+  assert.equal(ok.type, 'alert');
+  assert.equal(ok.kind, 'info');
+  // what the diagnostic above exists for: the miscased form is not a callout
+  // rendered plainly, it is the author's colons on the slide
+  const slip = blocksOf(parseDeck(`${FM}# T\n\n:::Info\nCareful.\n:::\n`))[0];
+  assert.equal(slip.type, 'para');
+  assert.match(runsToText(slip.runs), /:::Info/);
+});
+
+// a fenced block is documentation ABOUT the DSL, not a use of it — the scan
+// steps over it in the Marp dialect too, casing slip included
+test('validate: the ::: scan stays off inside a fenced code block in a Marp deck', () => {
+  const source = `${FM}# T\n\n\`\`\`md\n:::Info\nmiscased, but quoted\n:::\n\`\`\`\n`;
+  assert.deepEqual(
+    validateDeck(source).filter((d) => d.code === 'UNKNOWN_DIRECTIVE'),
+    [],
+  );
+});
+
 test('validate: a healthy Marp deck yields no error', () => {
   const source = `${FM}# Cover\n\nA subtitle line.\n\n---\n\n# Content\n\n* point one\n* point two\n\n![bg right](img.png)\n`;
   const errors = validateDeck(source).filter((d) => d.severity === 'error');

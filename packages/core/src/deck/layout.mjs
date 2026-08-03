@@ -1319,7 +1319,17 @@ export function buildScenes(deck) {
       title: meta.title,
       subtitle: meta.subtitle ?? '',
       byline: [meta.author, meta.date].filter(Boolean).join(' · '),
-      notes: [],
+      // The generated cover is the ONE slide no `<!-- notes: -->` can reach:
+      // there is no slide in the source to hang the comment on. A frontmatter
+      // `notes:` is that missing line, and it lands in the .pptx notesSlide
+      // and the HTML presenter mode like any other slide's notes.
+      // Flat scalar only — the frontmatter reader is a one-line-per-key
+      // scanner, so there is no block form to write here.
+      // Deliberately NOT done: attaching a `<!-- notes: -->` written before
+      // the first heading to this cover. That comment already belongs to the
+      // first real slide, and moving it would silently relocate the notes of
+      // every deck that has one.
+      notes: meta.notes ? [String(meta.notes)] : [],
       elements: [],
       sourceLine: 1,
     });

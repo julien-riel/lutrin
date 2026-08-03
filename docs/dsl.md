@@ -47,6 +47,7 @@ subtitle: Subtitle
 author: Author
 date: July 2026
 footer: Footer text                # default: title
+notes: what to say over the cover  # presenter notes of the generated cover
 kit: my-kit                        # brand to apply (see below)
 animate: true                      # animates the whole deck
 assets: vendor                     # keeps remote images next to the .md
@@ -58,6 +59,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `title` | cover title, and default footer |
 | `subtitle`, `author`, `date` | secondary lines of the cover |
 | `footer` | footer text, when it must differ from the title |
+| `notes` | presenter notes of the **cover generated from `title:`** — the one slide no `<!-- notes: -->` can reach, since there is no line in the source to hang the comment on. A flat one-line value like every key here (the frontmatter reader is a one-line-per-key scanner: there is no block form to write). With no generated cover — no `title:`, or a Marp deck — the line is inert and says so: `COVER_NOTES_ORPHAN` |
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
@@ -66,6 +68,11 @@ assets: vendor                     # keeps remote images next to the .md
 Surrounding quotes are stripped (`title: "My title"` = `title: My title`).
 Other keys are ignored by the compiler — `deck: true`, for example, only
 helps the VS Code extension recognize a deck.
+
+`notes` used to be one of those ignored keys, and the consequence is worth
+stating plainly: a deck that already carries `notes:` as private metadata now
+hands that line to its cover — in the `.pptx` notes and in the HTML presenter
+view. Rename the key if it was never meant to be spoken.
 
 `theme:` is still accepted as a **deprecated alias** of `kit:` and produces
 the `KIT_DEPRECATED_KEY` diagnostic.
@@ -815,7 +822,7 @@ The main ones:
 
 | Code | Severity | Meaning |
 |---|---|---|
-| `UNKNOWN_DIRECTIVE` | error | unknown `:::name` |
+| `UNKNOWN_DIRECTIVE` | error | unknown `:::name` — in a Marp deck, only a casing slip is reported, and as a warning ([docs/marp.md](marp.md)) |
 | `ORPHAN_DIRECTIVE` | warning | `<!-- layout/notes/animate -->` that no slide follows |
 | `UNKNOWN_LAYOUT` | error | layout does not exist (with a suggestion) |
 | `LAYOUT_SECTIONS` | warning | `##` section count outside the layout's bounds |
@@ -831,6 +838,7 @@ The main ones:
 | `QUOTE_CONTENT_DROPPED` | warning | block not rendered inside a quotation |
 | `TABLE_CONTENT_DROPPED`, `LIST_CONTENT_DROPPED`, `HEADING_CONTENT_DROPPED` | warning | an image or icon written into a cell, a bullet or a heading, which render text only |
 | `UNKNOWN_ANIMATE` | warning | unknown animation effect |
+| `COVER_NOTES_ORPHAN` | warning | frontmatter `notes:` with no cover to carry it — no `title:`, or a Marp deck |
 | `KIT_*`, `THEME_*` | error/warning | kit not found or invalid theme entry |
 | `THEME_CONTRAST` | warning | WCAG threshold not met by the applied theme |
 | `LAYOUT_SUGGESTION` | info | the content betrays a structured intent |
