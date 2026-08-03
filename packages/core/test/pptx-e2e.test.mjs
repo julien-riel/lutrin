@@ -1,15 +1,19 @@
 /**
  * PPTX end to end: compile a deck with known content, reopen the zip and
  * check what the post-processing steps promise — animations differentiated
- * by block type, Morph transition on the "(cont.)" slides, embedded fonts.
- * This is the only safety net over the regex OOXML injections (anim, morph, fonts).
+ * by block type, Morph between consecutive slides sharing a title, embedded
+ * fonts, and the SVG twin that now rides alongside every rasterized picture.
+ * This is the only safety net over the regex OOXML injections (anim, morph,
+ * fonts, svg).
  *
  * Added to it is what an export must NEVER do, and what no diff review
  * catches because you have to reopen the zip to see it:
  *   - falling over while running (a bullet whose only content is an image, an
  *     icon name that contains a slash);
  *   - carrying the author's LOCAL PATH inside a file that gets passed around;
- *   - embedding a font whose vendor forbids embedding.
+ *   - embedding a font whose vendor forbids embedding;
+ *   - shipping a part no XML parser accepts, which is the one thing that makes
+ *     PowerPoint declare the whole file corrupt.
  */
 
 import './setup.mjs'; // hermetic even under direct invocation (see setup.mjs)
@@ -23,6 +27,8 @@ import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeck } from '../src/pptx/render.mjs';
 import { embedFonts, readFsType } from '../src/pptx/fonts.mjs';
+import { embedVectorImages } from '../src/pptx/svg.mjs';
+import { svgPartSafe } from '../src/deck/svg.mjs';
 import { FONT_FILES, PAGE, SPACE, px } from '../src/deck/tokens.mjs';
 
 /** A valid 2×2 PNG: enough for imageDims() to read a ratio and for
@@ -45,6 +51,9 @@ async function compilePptx(t, source, { files = {} } = {}) {
   const zip = await JSZip.loadAsync(fs.readFileSync(out));
   return { dir, out, deck, scenes, stats, zip };
 }
+
+/** slideN.xml as text, N being 1-based like everywhere in the format. */
+const slideXml = (zip, n) => zip.file(`ppt/slides/slide${n}.xml`).async('string');
 
 /** Every part of the zip as text, name included — THIS is the corpus we search
  *  for a leak: the path can just as well escape through docProps or through a
@@ -738,4 +747,670 @@ test('pptx: rasterizer present → the chart is an image, with no diagnostic', a
   );
   const media = Object.keys(zip.files).filter((f) => /^ppt\/media\/.*\.png$/.test(f));
   assert.ok(media.length >= 1, 'the chart must be embedded as a PNG');
+});
+
+// ---------------------------------------------------------------------------
+// Morph: any run of CONSECUTIVE slides sharing a title
+// ---------------------------------------------------------------------------
+
+// Morph used to reach only the "(cont.)" pages pagination creates. It now
+// covers any maximal run of consecutive slides showing the same title — the
+// paginated pages and the slides an author deliberately titled the same way
+// are ONE rule, not two. Three things then have to hold at once and none of
+// them shows up in a diff: the whole run shares a single `!!title-N` (that is
+// what Morph pairs the titles ON), the transition sits on every slide but the
+// first (PowerPoint compares a slide with the one BEFORE it), and a title that
+// merely comes back later is not a run at all.
+
+/** The `!!title-N` a chain gave a slide, or null. */
+const chainKey = (xml) => /name="(!!title-\d+)"/.exec(xml)?.[1] ?? null;
+
+const MORPH_CONSECUTIVE = `---
+title: Morph
+---
+
+# Roadmap
+
+- ship the importer
+- ship the editor
+
+# Roadmap
+
+- and then everything else
+
+# Elsewhere
+
+- unrelated
+`;
+
+test('pptx: two consecutive slides sharing a title morph, and the slide after them is left alone', async (t) => {
+  const { scenes, stats, zip } = await compilePptx(t, MORPH_CONSECUTIVE);
+
+  assert.deepEqual(
+    scenes.map((s) => s.title),
+    ['Morph', 'Roadmap', 'Roadmap', 'Elsewhere'],
+    'cover from the frontmatter, then the pair, then the slide that breaks the run',
+  );
+  assert.deepEqual(stats.warnings, []);
+  assert.equal(stats.morphSlides, 1, 'a pair carries ONE transition, not two');
+
+  const second = await slideXml(zip, 2);
+  const third = await slideXml(zip, 3);
+  const fourth = await slideXml(zip, 4);
+
+  // both slides of the pair, the first included: the renaming is the pairing
+  // mechanism, so a chain where only the arriving slide were renamed would
+  // morph the title into nothing
+  const key = chainKey(second);
+  assert.ok(key, 'the slide the chain STARTS at is renamed too');
+  assert.equal(chainKey(third), key, 'the pair must share ONE title name');
+
+  // the transition goes on the slide you arrive AT. On the first it would
+  // morph the chain out of whatever happens to precede it — here the cover.
+  assert.doesNotMatch(second, /p159:morph/, 'no transition on the first slide of a chain');
+  assert.match(third, /p159:morph/);
+
+  assert.equal(chainKey(fourth), null, 'a different title is a different chain');
+  assert.doesNotMatch(fourth, /p159:morph/, 'and nothing morphs into it');
+});
+
+// THE REGRESSION NET FOR CONSECUTIVENESS. `# A`, `# B`, `# A` is not a
+// continuity, it is a coincidence: grouping by title rather than by run would
+// pair slides 2 and 4 and dissolve slide 3 into slide 4 for 700 ms, in front
+// of an audience, for no reason. If anyone ever turns the run-grouping into a
+// group-by-title, this is the test that has to fail.
+test('pptx: a title that comes BACK — A, B, A — is a coincidence, and morphs nothing', async (t) => {
+  const source = '---\ntitle: Morph\n---\n\n# A\n\n- one\n\n# B\n\n- two\n\n# A\n\n- three\n';
+  const { scenes, stats, zip } = await compilePptx(t, source);
+
+  assert.deepEqual(
+    scenes.map((s) => s.title),
+    ['Morph', 'A', 'B', 'A'],
+  );
+  assert.deepEqual(stats.warnings, []);
+  assert.equal(stats.morphSlides, 0, 'no run of two: nothing to morph');
+  for (let n = 1; n <= scenes.length; n++) {
+    const xml = await slideXml(zip, n);
+    assert.equal(chainKey(xml), null, `slide ${n}: renamed although it belongs to no chain`);
+    assert.doesNotMatch(xml, /p159:morph/, `slide ${n}`);
+  }
+});
+
+const MORPH_PAGINATED = `---
+title: Morph
+---
+
+# Roadmap
+
+${Array.from({ length: 26 }, (_, k) => `- item number ${k + 1} with enough text to make this paginate`).join('\n')}
+
+# Roadmap
+
+- and the author's own slide, repeating the title
+`;
+
+// Before `titleKey`, a paginated run and the author slide repeating its title
+// were two chains: the pages morphed among themselves, then the transition
+// stuttered on the join because the author's "Roadmap" did not match the
+// displayed "Roadmap (cont.)". One title, one chain.
+test('pptx: a paginated run and the author slide repeating its title are ONE chain', async (t) => {
+  const { scenes, stats, zip } = await compilePptx(t, MORPH_PAGINATED);
+
+  assert.deepEqual(
+    scenes.map((s) => s.title),
+    ['Morph', 'Roadmap', 'Roadmap (cont.)', 'Roadmap'],
+    'the fixture must still paginate into exactly one continuation page',
+  );
+  assert.deepEqual(stats.warnings, []);
+  assert.equal(stats.morphSlides, 2, 'a chain of three slides carries two transitions');
+
+  const key = chainKey(await slideXml(zip, 2));
+  assert.ok(key);
+  for (const n of [3, 4]) {
+    const xml = await slideXml(zip, n);
+    assert.equal(chainKey(xml), key, `slide ${n}: a SECOND chain where there should be one`);
+    assert.match(xml, /p159:morph/, `slide ${n}: no transition`);
+  }
+});
+
+const MORPH_HERO = `---
+title: Morph
+---
+
+# Skyline
+
+![cover](photo.png)
+
+# Skyline
+
+![cover](photo.png)
+`;
+
+// THE LATENT BUG THIS CHANGE UNCOVERED. The renaming used to take the FIRST
+// `<p:sp>` of the slide. On a content slide that is indeed the title — but the
+// `hero` layout writes the Lutrin attribution first, over the full-frame
+// image, and the title only after it. Morph would then have paired two
+// watermarks (which sit at the same place on both slides, so nothing visible
+// would move) while the titles blinked. `hero` was unreachable as long as only
+// pagination built chains, and became reachable the moment two consecutive
+// author slides could morph.
+test('pptx: on a hero slide the renamed shape is the title placeholder, not the attribution', async (t) => {
+  const { scenes, stats, zip } = await compilePptx(t, MORPH_HERO, {
+    files: { 'photo.png': PNG_2PX },
+  });
+
+  assert.deepEqual(
+    scenes.map((s) => s.master),
+    ['cover', 'hero', 'hero'],
+    'the fixture must really produce hero slides — that is the whole point',
+  );
+  assert.deepEqual(stats.warnings, []);
+  assert.equal(stats.morphSlides, 1);
+
+  for (const n of [2, 3]) {
+    const xml = await slideXml(zip, n);
+    const renamed = (xml.match(/<p:sp>[\s\S]*?<\/p:sp>/g) ?? []).filter((sp) =>
+      /name="!!title-\d+"/.test(sp),
+    );
+    assert.equal(renamed.length, 1, `slide ${n}: exactly one shape carries the chain name`);
+    assert.match(
+      renamed[0],
+      /<p:ph\b[^>]*\stype="title"/,
+      `slide ${n}: the chain name landed on a shape that is NOT the title`,
+    );
+    // …and the shape it would have landed on before is still called what it
+    // is. Without this line the assertion above would stay green on a deck
+    // that simply stopped writing an attribution, and the regression would go
+    // unnoticed.
+    assert.match(xml, /name="Lutrin attribution"/, `slide ${n}: the attribution was renamed`);
+  }
+});
+
+// Trimmed, and only trimmed. Space around a title is INVISIBLE on the slide,
+// so refusing to pair over it would be a failure the author cannot see and
+// cannot debug. The escape below is a NON-BREAKING space, written as an escape
+// on purpose: that is exactly the character a word processor or a French
+// keyboard slips in without anyone typing it, and Markdown does not strip it
+// the way it strips an ordinary trailing space. Case and inner spacing ARE
+// visible — they are left to mean what they say, and giving two slides
+// different titles stays the way to opt out of the morph.
+const MORPH_SPACE = `---
+title: Morph
+---
+
+# Reprise
+
+- a
+
+# Reprise\u00a0
+
+- b
+
+# reprise
+
+- c
+`;
+
+test('pptx: titles differing only by invisible space still pair; differing by case, they do not', async (t) => {
+  const { scenes, stats, zip } = await compilePptx(t, MORPH_SPACE);
+
+  assert.deepEqual(
+    scenes.map((s) => s.title),
+    ['Morph', 'Reprise', 'Reprise\u00a0', 'reprise'],
+    'the fixture depends on the parser keeping BOTH the trailing space and the case',
+  );
+  assert.deepEqual(stats.warnings, []);
+  assert.equal(stats.morphSlides, 1, 'the pair across the invisible space, and nothing else');
+
+  const key = chainKey(await slideXml(zip, 2));
+  assert.ok(key);
+  const third = await slideXml(zip, 3);
+  assert.equal(chainKey(third), key, 'a trailing space nobody can see must not break the pairing');
+  assert.match(third, /p159:morph/);
+  assert.equal(chainKey(await slideXml(zip, 4)), null, 'case is visible: it means what it says');
+});
+
+// ---------------------------------------------------------------------------
+// The vector twin of a picture: the SVG rides ALONGSIDE the PNG
+// ---------------------------------------------------------------------------
+
+// A chart, a Mermaid diagram, a Lucide icon and a LaTeX equation are all born
+// as SVG and used to be thrown away the instant resvg had rasterized them. The
+// .pptx now carries both: the PNG stays the picture's fill and the SVG rides
+// in an `<a:extLst>` extension that Office 2019+ prefers. Everything below is
+// about the honesty of that pair — and about the one failure mode that costs
+// the deliverable rather than merely its sharpness, a part no parser accepts.
+
+const VECTOR_SOURCE = `---
+title: Vectors
+---
+
+# Sales
+
+\`\`\`chart
+type: bar
+categories: Q1, Q2
+Sales: 3, 5
+\`\`\`
+
+# Icon
+
+![](lucide:coffee)
+
+# Equation
+
+$$E = mc^2$$
+`;
+
+/** The three slides of VECTOR_SOURCE that carry a picture (the cover is 1). */
+const VECTOR_SLIDES = [2, 3, 4];
+
+/** rId → the part it designates, as a zip path. A relationship Target is
+ *  relative to the DIRECTORY of the part that cites it — `ppt/slides/` here —
+ *  so `../media/vector-2-1.svg` has to be resolved, not string-matched. */
+async function slideRels(zip, n) {
+  const xml = await zip.file(`ppt/slides/_rels/slide${n}.xml.rels`).async('string');
+  return new Map(
+    [...xml.matchAll(/<Relationship\b[^>]*\bId="([^"]+)"[^>]*\bTarget="([^"]+)"/g)].map((m) => [
+      m[1],
+      path.posix.normalize(`ppt/slides/${m[2]}`),
+    ]),
+  );
+}
+
+/** The vector path needs a rasterizer (no PNG, no picture at all) and
+ *  lucide-static (no icon SVG). Both are optional on some platforms, and a
+ *  skip that says WHY beats a red suite nobody can reproduce. */
+async function vectorDepsPresent(t) {
+  const { rasterAvailable, hasLucideIcon } = await import('../src/deck/assets.mjs');
+  if (!(await rasterAvailable())) {
+    t.skip('@resvg/resvg-js absent on this platform');
+    return false;
+  }
+  if (hasLucideIcon('coffee') !== true) {
+    t.skip('lucide-static absent on this machine');
+    return false;
+  }
+  return true;
+}
+
+test('pptx: chart, icon and equation each carry an SVG twin reachable through a real relationship', async (t) => {
+  if (!(await vectorDepsPresent(t))) return;
+  const { stats, zip } = await compilePptx(t, VECTOR_SOURCE);
+
+  assert.deepEqual(stats.warnings, []);
+  assert.equal(stats.vectorImages, 3, 'all three blocks are born as SVG');
+
+  const svgParts = Object.keys(zip.files).filter((f) =>
+    /^ppt\/media\/vector-\d+-\d+\.svg$/.test(f),
+  );
+  assert.equal(svgParts.length, 3, `one part per vector, got: ${svgParts.join(', ') || 'none'}`);
+
+  for (const n of VECTOR_SLIDES) {
+    const xml = await slideXml(zip, n);
+    const rels = await slideRels(zip, n);
+    const ids = [...xml.matchAll(/<asvg:svgBlip\b[^>]*\sr:embed="([^"]+)"/g)].map((m) => m[1]);
+    assert.equal(ids.length, 1, `slide ${n}: exactly one vector twin expected`);
+
+    // A DANGLING r:embed is the classic way an injected extension makes
+    // PowerPoint refuse a file, and nothing else in the package would notice:
+    // the extension is the only thing that points at the part.
+    const target = rels.get(ids[0]);
+    assert.ok(target, `slide ${n}: ${ids[0]} matches no relationship`);
+    assert.ok(
+      svgParts.includes(target),
+      `slide ${n}: ${ids[0]} → ${target}, which is not one of the SVG parts`,
+    );
+
+    const svg = await zip.file(target).async('string');
+    assert.match(svg, /^\s*<svg\b/, `${target}: not an SVG document`);
+    // a standalone part has no host document to inherit the namespace from,
+    // unlike an SVG inlined into the HTML export
+    assert.match(svg, /xmlns="http:\/\/www\.w3\.org\/2000\/svg"/, `${target}: no SVG namespace`);
+  }
+});
+
+// THE GUARANTEE THE WHOLE DESIGN RESTS ON. `r:embed` on the `<a:blip>` itself
+// is the picture's fill; the extension only names a second representation.
+// Keynote, QuickLook, LibreOffice and every Office before 2019 ignore an
+// extension they do not know and draw the PNG — so swapping the fill for the
+// SVG would show a broken picture to precisely the readers the fallback exists
+// for. That is what handing PptxGenJS an `.svg` path does on the Node path,
+// and it is why this module reopens the zip by hand.
+test('pptx: the PNG stays the picture fill — the vector is an ADDITION, never a substitution', async (t) => {
+  if (!(await vectorDepsPresent(t))) return;
+  const { zip } = await compilePptx(t, VECTOR_SOURCE);
+  const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+  for (const n of VECTOR_SLIDES) {
+    const xml = await slideXml(zip, n);
+    const rels = await slideRels(zip, n);
+    const pic = (xml.match(/<p:pic>[\s\S]*?<\/p:pic>/g) ?? []).find((p) =>
+      p.includes('asvg:svgBlip'),
+    );
+    assert.ok(pic, `slide ${n}: no picture carrying a vector twin`);
+
+    // `[^>]*` cannot cross a `>`, so this reads the r:embed of the BLIP and
+    // never the one of the svgBlip nested inside it
+    const fill = /<a:blip\b[^>]*\sr:embed="([^"]+)"/.exec(pic);
+    assert.ok(fill, `slide ${n}: the blip carries no r:embed at all`);
+    const target = rels.get(fill[1]);
+    assert.match(
+      target ?? '',
+      /^ppt\/media\/.*\.png$/,
+      `slide ${n}: the fill is no longer a PNG (${target})`,
+    );
+
+    // and the raster is really there: a relationship pointing at an absent or
+    // empty part draws exactly the broken-image icon this test exists to rule out
+    const png = await zip.file(target).async('nodebuffer');
+    assert.ok(png.subarray(0, 8).equals(PNG_MAGIC), `${target}: not a PNG`);
+    assert.ok(png.length > 100, `${target}: suspiciously small (${png.length} bytes)`);
+
+    // two representations, two parts — never one relationship doing both jobs
+    const vector = /<asvg:svgBlip\b[^>]*\sr:embed="([^"]+)"/.exec(pic)[1];
+    assert.notEqual(vector, fill[1], `slide ${n}: raster and vector share one relationship`);
+  }
+});
+
+// A malformed part is what makes PowerPoint declare the whole file corrupt and
+// offer to repair it — the worst failure mode this feature can have, and one
+// that no other test in the suite would catch, since a broken SVG used to cost
+// nothing more than a fallback code block. The reader below is deliberately
+// STRICTER than the one in deck/svg.mjs: XML, unlike HTML, has no boolean
+// attributes, no unquoted values, no bare `&` and no second root — everything
+// a well-formedness parser refuses is refused here too, so that "it parses" in
+// this file means what it means in Office.
+
+/** A `&` that starts no entity or character reference. */
+const BARE_AMP = /&(?!(#\d+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9.\-_]*);)/;
+
+/** Reads one tag; null as soon as it is not a WELL-FORMED XML tag. */
+function readStrictXmlTag(s, start) {
+  let i = start + 1;
+  const closing = s[i] === '/';
+  if (closing) i++;
+  const nm = /^[A-Za-z_:][\w:.-]*/.exec(s.slice(i));
+  if (!nm) return null;
+  const name = nm[0];
+  i += name.length;
+  let selfClose = false;
+  for (;;) {
+    while (i < s.length && /\s/.test(s[i])) i++;
+    if (i >= s.length) return null; // tag never closed
+    if (s[i] === '>') {
+      i++;
+      break;
+    }
+    if (s[i] === '/' && s[i + 1] === '>') {
+      selfClose = true;
+      i += 2;
+      break;
+    }
+    if (closing) return null; // `</a foo="1">` is not a closing tag
+    const am = /^[A-Za-z_:][\w:.-]*/.exec(s.slice(i));
+    if (!am) return null;
+    i += am[0].length;
+    while (i < s.length && /\s/.test(s[i])) i++;
+    if (s[i] !== '=') return null; // no boolean attributes in XML
+    i++;
+    while (i < s.length && /\s/.test(s[i])) i++;
+    const quote = s[i];
+    if (quote !== '"' && quote !== "'") return null; // and no unquoted values
+    const close = s.indexOf(quote, i + 1);
+    if (close < 0) return null;
+    const value = s.slice(i + 1, close);
+    if (value.includes('<') || BARE_AMP.test(value)) return null;
+    i = close + 1;
+  }
+  return { name, closing, selfClose, end: i };
+}
+
+/** null when the document is well formed, otherwise WHY — a bare "corrupt"
+ *  would send whoever sees this fail into the whole zip by hand. */
+function xmlProblem(xml) {
+  const stack = [];
+  let roots = 0;
+  let i = 0;
+  while (i < xml.length) {
+    const lt = xml.indexOf('<', i);
+    const text = xml.slice(i, lt < 0 ? xml.length : lt);
+    if (BARE_AMP.test(text))
+      return `bare "&" in character data: ${JSON.stringify(text.slice(0, 40))}`;
+    if (lt < 0) break;
+    if (xml.startsWith('<!--', lt)) {
+      const e = xml.indexOf('-->', lt + 4);
+      if (e < 0) return 'comment never terminated';
+      i = e + 3;
+      continue;
+    }
+    if (xml.startsWith('<![CDATA[', lt)) {
+      const e = xml.indexOf(']]>', lt + 9);
+      if (e < 0) return 'CDATA never terminated';
+      i = e + 3;
+      continue;
+    }
+    if (xml.startsWith('<?', lt)) {
+      const e = xml.indexOf('?>', lt + 2);
+      if (e < 0) return 'processing instruction never terminated';
+      i = e + 2;
+      continue;
+    }
+    if (xml.startsWith('<!', lt)) {
+      const e = xml.indexOf('>', lt);
+      if (e < 0) return 'declaration never terminated';
+      i = e + 1;
+      continue;
+    }
+    const tag = readStrictXmlTag(xml, lt);
+    if (!tag) return `not a well-formed tag: ${JSON.stringify(xml.slice(lt, lt + 60))}`;
+    i = tag.end;
+    if (tag.closing) {
+      const open = stack.pop();
+      if (open !== tag.name) return `</${tag.name}> closes ${open ? `<${open}>` : 'nothing'}`;
+      if (!stack.length) roots++;
+    } else if (tag.selfClose) {
+      if (!stack.length) {
+        if (roots) return `second root element <${tag.name}>`;
+        roots++;
+      }
+    } else {
+      if (!stack.length && roots) return `second root element <${tag.name}>`;
+      stack.push(tag.name);
+    }
+  }
+  if (stack.length) return `<${stack[stack.length - 1]}> never closed`;
+  if (!roots) return 'no root element';
+  return null;
+}
+
+test('pptx: every XML and SVG part of the package is well formed — that is what "not corrupt" means', async (t) => {
+  if (!(await vectorDepsPresent(t))) return;
+  const { zip } = await compilePptx(t, VECTOR_SOURCE);
+
+  const parts = Object.keys(zip.files).filter(
+    (n) => !zip.files[n].dir && /\.(xml|rels|svg)$/i.test(n),
+  );
+  // the count is asserted so that a filter quietly matching nothing — a
+  // renamed extension, a zip walked the wrong way — cannot make this test pass
+  // by examining zero parts
+  assert.ok(parts.length > 30, `too few parts to be the whole package: ${parts.length}`);
+  assert.equal(parts.filter((n) => n.endsWith('.svg')).length, 3, 'the SVG parts must be in there');
+
+  const bad = [];
+  for (const name of parts) {
+    const problem = xmlProblem(await zip.file(name).async('string'));
+    if (problem) bad.push(`${name}: ${problem}`);
+  }
+  assert.deepEqual(bad, [], `malformed parts:\n${bad.join('\n')}`);
+});
+
+// We do not write it ourselves: PptxGenJS declares it unconditionally, which
+// is verified on a real output and relied on by pptx/svg.mjs. If a library
+// upgrade dropped the line, the parts would become unreachable — Office
+// refuses a package part whose extension no content type covers — and NOTHING
+// else in the suite would notice, since the slide XML and the relationships
+// would all still be perfectly correct.
+test('pptx: [Content_Types].xml declares the svg extension, or the parts are unreachable', async (t) => {
+  const { rasterAvailable } = await import('../src/deck/assets.mjs');
+  if (!(await rasterAvailable())) return t.skip('@resvg/resvg-js absent on this platform');
+  const { stats, zip } = await compilePptx(t, CHART_SOURCE);
+
+  assert.ok(stats.vectorImages >= 1, 'the fixture must really produce an SVG part');
+  const ct = await zip.file('[Content_Types].xml').async('string');
+  assert.match(ct, /<Default Extension="svg" ContentType="image\/svg\+xml"\/>/);
+});
+
+test('embedVectorImages: run twice over the same file, the second pass adds nothing', async (t) => {
+  if (!(await vectorDepsPresent(t))) return;
+  const { out, zip } = await compilePptx(t, VECTOR_SOURCE);
+  const before = fs.readFileSync(out);
+
+  // the names the renderer really gave those pictures, read back OUT of the
+  // document rather than assumed: this stays a test of the guard, not of the
+  // label table
+  const again = new Map();
+  for (const n of VECTOR_SLIDES) {
+    const pic = ((await slideXml(zip, n)).match(/<p:pic>[\s\S]*?<\/p:pic>/g) ?? []).find((p) =>
+      p.includes('asvg:svgBlip'),
+    );
+    again.set(n, [
+      {
+        name: /<p:cNvPr\b[^>]*\sname="([^"]*)"/.exec(pic)[1],
+        // deliberately a DIFFERENT vector: the guard has to fire on the
+        // extension already present, not on the bytes happening to match
+        svg: '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h1"/></svg>',
+      },
+    ]);
+  }
+
+  const r = await embedVectorImages(out, again);
+  assert.equal(r.count, 0, 'a second pass must add no part');
+  assert.deepEqual(r.warnings, [], 'and it is not a failure either — there is nothing to report');
+  assert.ok(before.equals(fs.readFileSync(out)), 'a no-op pass rewrote the file');
+});
+
+// A name that is missing means the document is not the one we wrote — another
+// tool passed over it, or a picture moved. Matching by `<p:pic>` ordinal would
+// then quietly graft the vector onto the wrong picture; matching by name gives
+// up on that one picture instead, and says so. The user still gets their
+// raster, which is what they had yesterday.
+test('embedVectorImages: a picture it cannot find stays a raster, and the give-up is said out loud', async (t) => {
+  const source = '---\ntitle: Photo\n---\n\n# Figure\n\n![A photo](photo.png)\n';
+  const { out, stats } = await compilePptx(t, source, { files: { 'photo.png': PNG_2PX } });
+
+  assert.equal(stats.vectorImages, 0, 'a bitmap has no vector source: nothing to embed');
+  const before = fs.readFileSync(out);
+
+  const r = await embedVectorImages(
+    out,
+    new Map([
+      [
+        2,
+        [
+          {
+            name: 'Nope 42',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h1"/></svg>',
+          },
+        ],
+      ],
+    ]),
+  );
+
+  assert.equal(r.count, 0);
+  assert.equal(r.warnings.length, 1, `one give-up expected, got: ${r.warnings.join(' ; ')}`);
+  assert.match(r.warnings[0], /"Nope 42"/, 'the diagnostic names the picture at fault');
+  assert.match(r.warnings[0], /raster/, 'and says what happens instead: nothing changes');
+  // byte-identical, not merely "still opens": rewriting a document the module
+  // has just declared it does not recognize is the one thing it must not do
+  assert.ok(before.equals(fs.readFileSync(out)), 'the file was rewritten on a give-up path');
+});
+
+// ---------------------------------------------------------------------------
+// svgPartSafe: the gate the whole vector path opens on
+// ---------------------------------------------------------------------------
+
+// It lives here rather than in sanitize.test.mjs on purpose. sanitizeSvg
+// answers "is this safe to INLINE in a page" — a hostile-input question, and
+// that file is full of hostile inputs. svgPartSafe answers "may these bytes
+// become an XML PART of a .pptx", a well-formedness question that exists only
+// because of the module above and whose consequence is far harder: an ugly SVG
+// renders badly and nothing else, an SVG that is not well-formed XML makes
+// PowerPoint declare the whole deck corrupt. Hence opt IN on evidence — a
+// false negative costs sharpness, a false positive costs the deliverable.
+
+/** A real lucide-static icon, verbatim: the multi-line root tag and the
+ *  licence comment are how the package actually ships them. */
+const LUCIDE_COFFEE = `<!-- @license lucide-static v1.24.0 - ISC -->
+<svg
+  class="lucide lucide-coffee"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M10 2v2" />
+  <path d="M14 2v2" />
+  <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" />
+  <path d="M6 2v2" />
+</svg>
+`;
+
+test('svgPartSafe: a comment is not a malformation — every Lucide icon opens with one', () => {
+  // the everyday case, and the one an early cut of this function got wrong:
+  // readSvgTag returns null on `<!--`, which read as "unbalanced" would have
+  // refused every lucide-static icon over its licence header
+  assert.equal(svgPartSafe(LUCIDE_COFFEE), true, 'a real Lucide icon, licence comment included');
+  assert.equal(
+    svgPartSafe(LUCIDE_COFFEE.replace('<path d="M6 2v2" />', '<!-- and one inside -->')),
+    true,
+    'a comment inside the document is no different',
+  );
+});
+
+test('svgPartSafe: refuses what no XML parser would accept', () => {
+  // truncated — a rasterizer killed mid-write, a cache entry cut short
+  assert.equal(
+    svgPartSafe(LUCIDE_COFFEE.slice(0, LUCIDE_COFFEE.lastIndexOf('</svg>'))),
+    false,
+    'an SVG truncated before its closing tag',
+  );
+  assert.equal(svgPartSafe(LUCIDE_COFFEE.slice(0, 60)), false, 'truncated inside the root tag');
+  assert.equal(
+    svgPartSafe('<svg xmlns="http://www.w3.org/2000/svg"><!-- cut here'),
+    false,
+    'truncated inside a comment',
+  );
+
+  // a bare `&`: the classic way a generator produces XML no parser accepts
+  assert.equal(
+    svgPartSafe(LUCIDE_COFFEE.replace('lucide-coffee', 'Ben & Jerry')),
+    false,
+    'a bare "&"',
+  );
+  assert.equal(
+    svgPartSafe(LUCIDE_COFFEE.replace('lucide-coffee', 'Ben &amp; Jerry')),
+    true,
+    'the escaped form is exactly what the entity is FOR',
+  );
+
+  // no namespace: an inlined SVG inherits it from the host document, a
+  // standalone part has no host to inherit it from
+  assert.equal(
+    svgPartSafe(LUCIDE_COFFEE.replace(/\s*xmlns="[^"]*"/, '')),
+    false,
+    'no xmlns on the root',
+  );
+  assert.equal(svgPartSafe('<path d="M0 0h1"/>'), false, 'no <svg> root at all');
+
+  // the callers hand over whatever the renderer returned, which is null on
+  // every failure path: nothing that is not a string may get a free pass
+  assert.equal(svgPartSafe(null), false);
+  assert.equal(svgPartSafe(undefined), false);
+  assert.equal(svgPartSafe(''), false);
 });

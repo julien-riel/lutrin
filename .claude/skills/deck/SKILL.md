@@ -574,9 +574,11 @@ slides are never animated; the title and the chrome stay visible throughout.
   effect on the slide — `animate: fade` in the frontmatter, on the whole
   deck. QuickLook and the PNG export ignore animations: all the content is
   visible there.
-- **PPTX, "(cont.)" slides**: every slide produced by pagination gets the
-  **Morph** transition (the title slides across, the content carries on;
-  fade fallback before PowerPoint 2019) — automatic, nothing to write.
+- **PPTX, slides that share a title**: consecutive slides showing the same
+  title get the **Morph** transition (the title holds still, the content
+  carries on; fade fallback before PowerPoint 2019) — the pages of a paginated
+  slide, and the slides an author titled the same way. Automatic, nothing to
+  write; different titles opt out. A title repeated far apart gets nothing.
 - **HTML**: clicking the slide reveals the next step (counter in the top
   right; a click after the last step resets). Without JS, and in
   print / PDF export, everything is visible.
