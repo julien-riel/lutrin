@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -33,8 +33,12 @@ const fail = (msg) => {
 };
 
 // --- the browser, first and loudly ----------------------------------------
+// `pathToFileURL`, not the bare path: on Windows a dynamic import of
+// `D:\\a\\lutrin\\…` is refused outright — "absolute paths must be valid
+// file:// URLs. Received protocol 'd:'". It is the whole reason this step was
+// red on both Windows cells while the export itself worked there.
 const { findBrowser } = await import(
-  path.resolve(here, '..', 'packages', 'core', 'src', 'deck', 'browser.mjs')
+  pathToFileURL(path.resolve(here, '..', 'packages', 'core', 'src', 'deck', 'browser.mjs')).href
 );
 const browser = findBrowser();
 if (!browser)
@@ -103,7 +107,10 @@ console.log(`  PDF: ${pages} pages, outline: ${items.join(' · ')}`);
 const stem = path.join(dir, 'frame');
 console.log(run(['build', deck, '--png', '-o', `${stem}.png`]).trim());
 
-const files = Array.from({ length: SLIDES }, (_, i) => `${stem}-0${i + 1}.png`);
+const files = Array.from(
+  { length: SLIDES },
+  (_, i) => `${stem}-${String(i + 1).padStart(2, '0')}.png`,
+);
 for (const file of files) {
   if (!fs.existsSync(file)) fail(`${path.basename(file)} was not written`);
   const img = fs.readFileSync(file);

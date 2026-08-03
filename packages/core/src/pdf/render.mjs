@@ -32,6 +32,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { findBrowser } from '../deck/browser.mjs';
 import { PAGE } from '../deck/tokens.mjs';
 
@@ -89,10 +90,11 @@ async function withDeckPage(html, fn) {
       args: ['--no-sandbox', '--disable-dev-shm-usage'],
     });
     const page = await chrome.newPage();
-    await page.goto(`file://${page1.split(path.sep).join('/')}`, {
-      waitUntil: 'load',
-      timeout: 60_000,
-    });
+    // `pathToFileURL`, not a hand-built `file://` + separator swap: under
+    // Windows the latter yields `file://C:/…`, which names "C:" as the URL's
+    // HOST rather than as a drive. Chrome tolerated it, which is worse than
+    // failing — it worked by luck on the one platform where it is wrong.
+    await page.goto(pathToFileURL(page1).href, { waitUntil: 'load', timeout: 60_000 });
     // Fonts are inlined, but "inlined" is not "laid out": printing before the
     // faces are ready measures the fallback and shifts every line.
     await page.evaluate(() => document.fonts.ready);
