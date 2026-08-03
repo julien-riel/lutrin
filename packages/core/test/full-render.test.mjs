@@ -288,6 +288,15 @@ test('pptx: each of the nineteen block types leaves its marker in the XML', asyn
   // panel, timeline-axis, timeline-dot: no text of their own — the marker is
   // the primitive they alone write ON THIS slide
   assert.match(await xmlOf('Pillars'), /prst="roundRect"/, 'panel: the pillar frame');
+  // smartart: without --smartart a diagram is NATIVE shapes, so the marker is
+  // the label plus the two primitives only a ring writes
+  const ring = await xmlOf('Cycle diagram');
+  assert.match(ring, /<a:t>ZQSMART<\/a:t>/, 'smartart: the node label');
+  assert.match(ring, /prst="ellipse"/, 'smartart: the node discs');
+  assert.match(ring, /prst="rightArrow"/, 'smartart: the arrows that close the ring');
+  // `&` and `<` are what would break the part; the quote form is PptxGenJS's
+  // business (it writes &quot;) and asserting it would test the library
+  assert.match(ring, /A &amp; B &lt;c&gt;/, 'smartart: a label with XML metacharacters, escaped');
   const markers = await xmlOf('Milestones');
   assert.match(markers, /prst="ellipse"/, 'timeline-dot: the dot');
   assert.match(markers, /prst="triangle"/, 'timeline-axis: the arrowhead');
@@ -413,6 +422,10 @@ test('html: each of the nineteen block types leaves its marker in the document',
   }
 
   assert.match(htmlOf('Pillars'), /class="panel el"/, 'panel');
+  const ringHtml = htmlOf('Cycle diagram');
+  assert.match(ringHtml, /class="figure el"[\s\S]*<svg/, 'smartart: the inlined SVG');
+  assert.match(ringHtml, />ZQSMART</, 'smartart: the node label');
+  assert.match(ringHtml, /A &amp; B &lt;c&gt;/, 'smartart: escaped in the HTML too');
   const markers = htmlOf('Milestones');
   assert.match(markers, /class="tl-dot el"/, 'timeline-dot');
   assert.match(markers, /class="tl-axis el"/, 'timeline-axis');

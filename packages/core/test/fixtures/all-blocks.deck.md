@@ -122,7 +122,7 @@ First milestone of the fixture.
 
 Second milestone.
 
-# Diagram
+# Cycle diagram
 
 <!-- layout: cycle -->
 
