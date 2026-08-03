@@ -94,8 +94,10 @@ answers a different need, which comes down to three points:
   LibreOffice Impress on top of a browser. *Slidev*'s PPTX is images, by its own
   documentation. *reveal.js* has no PowerPoint path at all. Lutrin writes native
   shapes, text boxes and tables with the fonts embedded, in its only PPTX mode,
-  from a pure Node pipeline — charts, equations and icons are rasterised images
-  there, and saying otherwise would be the same overstatement. See the four
+  from a pure Node pipeline — charts, equations and icons are pictures there,
+  each carrying its vector as well as its raster (sharp at any zoom in
+  PowerPoint 2019+, the raster everywhere else), and calling them editable
+  objects would be the same overstatement. See the four
   comparison pages under [info.lutrin.app](https://info.lutrin.app/), each checked against
   the other project's current documentation and dated.
 - **The layout is decided by the engine.** Elsewhere, you write HTML/CSS or
@@ -185,8 +187,21 @@ lutrin kit install <file.deckkit | https://…>   # into ~/.config/lutrin/kits/
 lutrin kit list
 lutrin kit remove <name>
 lutrin kit create <directory>                   # produces the .deckkit
+lutrin kit import <brand.potx|brand.pptx>       # derives a kit from a template
 lutrin kit edit <name|directory> [--create]     # local web editor (see below)
 ```
+
+**`lutrin kit import` starts a kit from the file the designer already has** —
+the brand's PowerPoint template. It reads the theme's colour scheme and its
+body typeface and derives the kit's palette from them. Out comes an ordinary
+kit directory — `./<name>` unless `-o` says otherwise, with a generated
+`README.md` recording the template's SHA-256. It reads **no
+geometry**: the template's layouts, its placeholder boxes and its master's
+type sizes stay where they are, and the command says so on every import rather
+than let you assume they travelled — the engine composes the page, which is
+the whole contract. A palette that fails the WCAG thresholds is **reported,
+never silently adjusted**. Details:
+[docs/kit-editor.md](docs/kit-editor.md).
 
 **`lutrin kit edit` opens a kit in a local web editor** — tokens with live
 WCAG contrast checks, embedded fonts, layouts, images, `.deckkit` export —
