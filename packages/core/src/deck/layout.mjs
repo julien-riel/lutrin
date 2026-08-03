@@ -2017,6 +2017,12 @@ export function buildScenes(deck) {
             title: p === 0 ? slide.title : slide.title ? `${slide.title} (cont.)` : null,
             notes: p === 0 ? slide.notes : [],
             continued: p > 0 || undefined,
+            // The title the AUTHOR wrote, kept on the continuation pages whose
+            // displayed title gained a "(cont.)" suffix. The Morph chains pair
+            // slides on this: without it a paginated run and an author slide
+            // repeating the same heading would never merge, and the deck would
+            // glide across the pages then cut hard into the author's slide.
+            titleKey: (p > 0 && slide.title) || undefined,
           });
         });
         break;

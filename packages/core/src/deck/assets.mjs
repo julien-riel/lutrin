@@ -827,7 +827,10 @@ export async function renderMath(tex, { scale = 3 } = {}) {
   const m = await mathSvg(tex);
   if (!m) return null;
   const out = await svgToPng(m.svg, m.displayW * scale);
-  return out ? { ...out, displayW: m.displayW, displayH: m.displayH } : null;
+  // `svg` travels with the raster: the .pptx ships both, the vector as the
+  // representation PowerPoint prefers and the PNG as what everything else
+  // reads (pptx/svg.mjs). The HTML renderer calls mathSvg directly.
+  return out ? { ...out, svg: m.svg, displayW: m.displayW, displayH: m.displayH } : null;
 }
 
 // ---------------------------------------------------------------------------

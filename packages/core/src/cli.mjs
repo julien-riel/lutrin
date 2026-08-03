@@ -490,7 +490,11 @@ async function cmdBuild(argv) {
     );
   if (stats.morphSlides)
     console.log(
-      `  ${stats.morphSlides} "(cont.)" slide${stats.morphSlides > 1 ? 's' : ''} in Morph transition (fade fallback before PowerPoint 2019)`,
+      `  ${stats.morphSlides} slide${stats.morphSlides > 1 ? 's' : ''} in Morph transition — same title as the slide before (fade fallback before PowerPoint 2019)`,
+    );
+  if (stats.vectorImages)
+    console.log(
+      `  ${stats.vectorImages} image${stats.vectorImages > 1 ? 's carrying their' : ' carrying its'} vector as well — sharp at any zoom in PowerPoint 2019+, the raster everywhere else`,
     );
   if (stats.mermaidTotal && stats.mermaidRendered < stats.mermaidTotal) {
     const missing = stats.mermaidTotal - stats.mermaidRendered;

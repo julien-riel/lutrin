@@ -564,6 +564,15 @@ browser already installed on the machine (Chrome, Edge, Brave or Chromium; set
 to a readable fallback — the source, with a note; `lutrin setup-mermaid`
 reports what is missing and can download one.
 
+**Figures in the `.pptx` carry their vector as well.** A chart, a Mermaid
+diagram, a Lucide icon and a LaTeX equation are all born as SVG, and the
+`.pptx` now ships that SVG alongside the raster it used to ship alone. The
+picture's fill stays the PNG; the vector rides in an extension that PowerPoint
+2019 and later prefer, so the figure stays sharp at any zoom there, while
+Keynote, LibreOffice and older Office ignore an extension they do not know and
+draw exactly the image they always drew. Nothing to write, and nothing lost
+either way. Text, tables and shapes were never images and still are not.
+
 ---
 
 ## Charts

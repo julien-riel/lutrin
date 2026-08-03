@@ -57,6 +57,8 @@ import { brandMention } from '../license/index.mjs';
 import { embedFonts } from './fonts.mjs';
 import { embedAnimations } from './anim.mjs';
 import { embedMorph } from './morph.mjs';
+import { embedVectorImages } from './svg.mjs';
+import { sanitizeSvg, svgPartSafe } from '../deck/svg.mjs';
 
 /**
  * Text inset of a shape whose box the layout engine sized to the text itself.
@@ -836,6 +838,7 @@ function addMermaid(slide, block, r, ctx) {
     // the PNG comes from the user cache (~/…): altText mandatory (altOf)
     slide.addImage({
       path: png,
+      _svg: ctx.vectorSvg?.get(block),
       altText: 'Mermaid diagram',
       x: px(fit.x),
       y: px(fit.y),
@@ -891,6 +894,7 @@ function addIcon(slide, block, r, ctx) {
   // system — a centered icon breaks the grid of the column)
   slide.addImage({
     path: asset,
+    _svg: ctx.vectorSvg?.get(block),
     altText: `Icon ${iconLabel(block.name)}`,
     x: px(r.x),
     y: px(r.y + (r.h - size) / 2),
@@ -908,6 +912,7 @@ function addMath(slide, block, r, ctx) {
     const h = asset.displayH * scale;
     slide.addImage({
       path: asset.path,
+      _svg: ctx.vectorSvg?.get(block),
       // the LaTeX source is the best possible alt text for an equation
       // rendered as an image (and avoids leaking the path, see altOf)
       altText: `Equation: ${block.source}`,
@@ -942,6 +947,7 @@ function addChartBlock(slide, block, r, ctx) {
     // carries what the figure shows (and never the path, see altOf)
     slide.addImage({
       path: png,
+      _svg: ctx.vectorSvg?.get(block),
       altText: `Chart ${block.chartType}: ${block.categories.join(', ')}`,
       x: px(r.x),
       y: px(r.y),
@@ -993,7 +999,7 @@ const SHAPE_LABELS = {
  * The options are always the LAST argument of the four methods used
  * (`addImage` takes only one); that is where `objectName` is set.
  */
-function wrapSlide(slide, { label, rec = null, current = null }) {
+function wrapSlide(slide, { label, rec = null, current = null, vectors = null }) {
   const ranks = new Map();
   const nextName = () => {
     const base = label();
@@ -1009,6 +1015,15 @@ function wrapSlide(slide, { label, rec = null, current = null }) {
       // an array would be the content (runs, lines), not options
       if (opts && typeof opts === 'object' && !Array.isArray(opts) && !opts.objectName)
         opts.objectName = nextName();
+      // `_svg` is ours, not PptxGenJS's: harvest it and take it back out of the
+      // options before they reach the library. The vector is filed under the
+      // shape's NAME, which is what lands in `cNvPr name=` — a far steadier key
+      // than the ordinal of the picture in the spTree, since a hero image and a
+      // logo are pictures too and would shift every count after them.
+      if (opts && typeof opts === 'object' && !Array.isArray(opts) && opts._svg) {
+        if (vectors) vectors.push({ name: opts.objectName, svg: opts._svg });
+        opts._svg = undefined;
+      }
       return slide[name](...args);
     };
   return {
@@ -1482,12 +1497,30 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   ]);
   const ofType = (t) => allBlocks.filter((b) => b.type === t);
 
+  // Vector twin of the rasters below: block → the SVG string its PNG was made
+  // from. The .pptx ships BOTH — the PNG stays the picture's fill, the SVG
+  // rides along in an extension that PowerPoint 2019+ prefers and every other
+  // reader ignores (pptx/svg.mjs). A block absent from this map simply stays
+  // the raster it has always been, which is why every entry goes through
+  // svgPartSafe first: a malformed part would make PowerPoint call the whole
+  // file corrupt, where a missing one costs nothing but sharpness.
+  const vectorSvg = new Map();
+  const keepVector = (block, svg) => {
+    if (svg && svgPartSafe(svg)) vectorSvg.set(block, svg);
+  };
+
   // Mermaid (optional, persistent cache)
   const mermaidBlocks = ofType('mermaid');
   const mermaid = new Map();
   for (const b of mermaidBlocks) {
     const png = renderMermaidCached(b.source, { baseDir });
     if (png) mermaid.set(b, png);
+    // only once the raster is in hand: a diagram that failed to render must not
+    // spend a second mmdc run to fail again. Warm cache: free.
+    if (png) {
+      const svgFile = renderMermaidCached(b.source, { format: 'svg', baseDir });
+      if (svgFile) keepVector(b, sanitizeSvg(fs.readFileSync(svgFile, 'utf8')));
+    }
   }
 
   // Remote images → user cache, or assets/remote/ if the deck vendors them
@@ -1540,7 +1573,10 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
         svg,
         Math.round(ICON_RASTER_PX * Math.max(1, ICON_SCALE[b.size] ?? 1)),
       );
-      if (out) icons.set(b, writeTmpPng(tmp(), `icon-${k}-${iconSlug(b.name)}`, out.png));
+      if (out) {
+        icons.set(b, writeTmpPng(tmp(), `icon-${k}-${iconSlug(b.name)}`, out.png));
+        keepVector(b, sanitizeSvg(svg)); // outside source (lucide-static or CDN)
+      }
     }),
   );
   // `kit:` aliases no theme declared join the same channel as the missing
@@ -1552,12 +1588,23 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   await Promise.all(
     ofType('math').map(async (b, k) => {
       const out = await renderMath(b.source);
-      if (out)
+      if (out) {
         math.set(b, {
           path: writeTmpPng(tmp(), `math-${k}`, out.png),
           displayW: out.displayW,
           displayH: out.displayH,
         });
+        // MathJax sizes its root in `ex`, a unit that resolves against nothing
+        // in a standalone part: rewrite it in px, exactly as htmlMath does
+        keepVector(
+          b,
+          out.svg.replace(/^<svg[^>]*>/, (tag) =>
+            tag
+              .replace(/width="[^"]+"/, `width="${out.displayW.toFixed(1)}px"`)
+              .replace(/height="[^"]+"/, `height="${out.displayH.toFixed(1)}px"`),
+          ),
+        );
+      }
     }),
   );
 
@@ -1568,7 +1615,12 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
     chartEls.map(async (e, k) => {
       const svg = chartSvg(e.block, e.region.w, e.region.h);
       const out = await svgToPng(svg, e.region.w * 2);
-      if (out) charts.set(e.block, writeTmpPng(tmp(), `chart-${k}`, out.png));
+      if (out) {
+        charts.set(e.block, writeTmpPng(tmp(), `chart-${k}`, out.png));
+        // in-house and already entity-escaped by chart.mjs, but it goes through
+        // the same gate as the rest: one rule, no exceptions to remember
+        keepVector(e.block, svg);
+      }
     }),
   );
 
@@ -1598,9 +1650,10 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   // trust roots of the local images: directory of the deck + project
   // roots declared by the host (containment — assets.mjs)
   const imageRoots = [baseDir, ...(opts.imageRoots ?? [])];
-  const ctx = { baseDir, imageRoots, mermaid, remote, icons, math, charts };
+  const ctx = { baseDir, imageRoots, mermaid, remote, icons, math, charts, vectorSvg };
 
   const slideAnims = new Map(); // slide no. (1-based) → log of the shapes
+  const slideVectors = new Map(); // slide no. (1-based) → [{ name, svg }]
   scenes.forEach((scene, sceneIdx) => {
     let slide;
     if (scene.master === 'cover') slide = renderCover(pptx, scene);
@@ -1611,7 +1664,13 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       const rec = scene.animSteps ? [] : null;
       let cur = null;
       let shapeLabel = 'Content';
-      const target = wrapSlide(slide, { label: () => shapeLabel, rec, current: () => cur });
+      const vectors = [];
+      const target = wrapSlide(slide, {
+        label: () => shapeLabel,
+        rec,
+        current: () => cur,
+        vectors,
+      });
       if (scene.master === 'hero' && scene.image) {
         addImage(target, scene.image, { x: 0, y: 0, w: PAGE.width, h: PAGE.height }, ctx);
         // the full-frame image covers the master's chrome, attribution included:
@@ -1664,20 +1723,39 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       }
       if (rec?.some(Boolean))
         slideAnims.set(sceneIdx + 1, { entries: rec, preset: scene.animPreset ?? null });
+      if (vectors.length) slideVectors.set(sceneIdx + 1, vectors);
     }
     if (scene.notes?.length) slide.addNotes(scene.notes.join('\n'));
   });
 
-  // pagination chains: [original slide, …(cont.)] as 1-based numbers — each
-  // "(cont.)" gets the Morph transition
+  // Morph chains: maximal runs of CONSECUTIVE slides showing the same title,
+  // as 1-based numbers. Two sources, one rule — the pages of a paginated slide
+  // (identical up to the "(cont.)" suffix, hence titleKey) and the slides an
+  // author deliberately gave the same title. The transition is placed on every
+  // slide of the run but the first.
+  //
+  // Consecutive only. A title that comes back on slide 3 and slide 20 is not a
+  // continuity, it is a coincidence: morphing there would dissolve slide 19
+  // into slide 20 for 700 ms for no reason.
+  //
+  // With no title there is nothing to pair: the !!title renaming would match
+  // two unrelated content blocks, so an untitled slide breaks the run.
+  const morphKey = (s) => {
+    const t = s.titleKey ?? s.title;
+    // trimmed: leading and trailing space is INVISIBLE on the slide, so
+    // refusing to pair on it would be a failure the author cannot see. Case
+    // and inner spacing are visible — they are left to mean what they say.
+    return typeof t === 'string' && t.trim() ? t.trim() : null;
+  };
   const chains = [];
+  let run = null;
   scenes.forEach((s, i) => {
-    // with no title, the first shape is not a title: the !!title renaming
-    // would pair two different content blocks — no Morph in that case
-    if (!s.continued || !s.title) return;
-    const last = chains[chains.length - 1];
-    if (last && last[last.length - 1] === i) last.push(i + 1);
-    else chains.push([i, i + 1]);
+    const key = morphKey(s);
+    if (key && run?.key === key) run.nums.push(i + 1);
+    else run = key ? { key, nums: [i + 1] } : null;
+    // registered as soon as it holds two slides; `nums` keeps growing by
+    // reference afterwards, so a run of three or four extends the same chain
+    if (run?.nums.length === 2) chains.push(run.nums);
   });
 
   await pptx.writeFile({ fileName: outPath });
@@ -1689,12 +1767,14 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const fonts = await embedFonts(outPath);
   const morph = await embedMorph(outPath, chains);
   const anims = await embedAnimations(outPath, slideAnims);
+  const vectors = await embedVectorImages(outPath, slideVectors);
   return {
     slideCount: scenes.length,
     titledSlides: titles.count,
     fontsEmbedded: fonts.count,
     animatedSlides: anims.count,
     morphSlides: morph.count,
+    vectorImages: vectors.count,
     // the structured diagnostics ALSO travel as warnings: that is the only
     // channel the CLI prints today, and a diagnostic we do not display is no
     // better than the silence it corrects
@@ -1707,6 +1787,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       ...fonts.warnings,
       ...morph.warnings,
       ...anims.warnings,
+      ...vectors.warnings,
     ],
     mermaidRendered: mermaid.size,
     mermaidTotal: mermaidBlocks.length,

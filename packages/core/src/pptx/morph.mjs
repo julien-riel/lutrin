@@ -1,12 +1,16 @@
 /**
- * Morph transition on the "(cont.)" slides (post-processing).
+ * Morph transition between consecutive slides sharing a title
+ * (post-processing).
  *
- * When pagination splits a dense slide, the chrome (title, rules) keeps its
- * geometry from one page to the next: that is exactly the ground the
- * PowerPoint Morph transition (2019+/365) covers. We reopen the zip and, for
- * each continuation slide, inject `<p159:morph>` wrapped in
- * `mc:AlternateContent` with a `<p:fade/>` fallback — versions that ignore
- * the p159 namespace play a fade, never an error.
+ * When two slides in a row show the same title, the chrome (title, rules)
+ * keeps its geometry from one to the next: that is exactly the ground the
+ * PowerPoint Morph transition (2019+/365) covers. It happens for two reasons,
+ * and the injector does not distinguish them — pagination splitting a dense
+ * slide into "(cont.)" pages, and an author deliberately titling two slides
+ * the same way. We reopen the zip and, for every slide of a chain but the
+ * first, inject `<p159:morph>` wrapped in `mc:AlternateContent` with a
+ * `<p:fade/>` fallback — versions that ignore the p159 namespace play a fade,
+ * never an error.
  *
  * Shape pairing is made reliable by the PowerPoint "!!name" convention:
  * every slide of one chain receives the same title name `!!title-N` in its
@@ -25,18 +29,32 @@ const NS_P14 = 'http://schemas.microsoft.com/office/powerpoint/2010/main';
 
 const MORPH_XML = `<mc:AlternateContent xmlns:mc="${NS_MC}"><mc:Choice xmlns:p159="${NS_P159}" Requires="p159"><p:transition xmlns:p14="${NS_P14}" spd="slow" p14:dur="700"><p159:morph option="byObject"/></p:transition></mc:Choice><mc:Fallback><p:transition spd="slow"><p:fade/></p:transition></mc:Fallback></mc:AlternateContent>`;
 
-/** Renames the `cNvPr` of the first shape (the title — the renderer's first
- *  write on a content slide). Returns null if not found. */
-function renameFirstShape(xml, newName) {
-  const spStart = xml.indexOf('<p:sp>');
+/** Renames the `cNvPr` of the shape carrying the TITLE placeholder.
+ *
+ *  Anchored on `<p:ph type="title">`, not on shape order: on a content slide
+ *  the title is indeed the renderer's first write, but on a `hero` slide the
+ *  first `<p:sp>` is the Lutrin attribution, written after the full-frame
+ *  image. Renaming that one would pair two watermarks and leave the titles
+ *  blinking. `hero` was unreachable while only pagination built chains, and
+ *  became reachable the moment consecutive author slides could morph.
+ *
+ *  The pattern matches both the canonical `<p:ph type="title"/>` left by
+ *  canonicalizeTitlePlaceholders and the raw PptxGenJS form that survives
+ *  wherever canonicalization bailed out.
+ *
+ *  Returns null when the slide carries no title placeholder. */
+function renameTitleShape(xml, newName) {
+  const ph = xml.search(/<p:ph\b[^>]*\stype="title"/);
+  if (ph === -1) return null;
+  const spStart = xml.lastIndexOf('<p:sp>', ph);
   if (spStart === -1) return null;
-  const zone = xml.slice(spStart, spStart + 400);
+  const zone = xml.slice(spStart, ph); // cNvPr precedes the ph inside nvSpPr
   const m = zone.match(/<p:cNvPr id="(\d+)" name="([^"]*)"/);
   if (!m) return null;
   return (
     xml.slice(0, spStart) +
     zone.replace(m[0], `<p:cNvPr id="${m[1]}" name="${newName}"`) +
-    xml.slice(spStart + 400)
+    xml.slice(ph)
   );
 }
 
@@ -45,9 +63,9 @@ function renameFirstShape(xml, newName) {
  * Idempotent; any chain with an unexpected structure is ignored (and reported).
  *
  * @param {string} pptxPath path of the .pptx to modify in place
- * @param {Array<number[]>} chains pagination chains: 1-based slide numbers,
- *        the first being the original slide and the following ones its
- *        "(cont.)" slides (the transition is placed on those).
+ * @param {Array<number[]>} chains runs of CONSECUTIVE 1-based slide numbers
+ *        sharing a title; the transition is placed on every slide but the
+ *        first. A chain that is not consecutive is refused, with a warning.
  * @returns {Promise<{count:number, warnings:string[]}>} transitions placed
  */
 export async function embedMorph(pptxPath, chains) {
@@ -57,6 +75,14 @@ export async function embedMorph(pptxPath, chains) {
   let done = 0;
 
   for (const [ci, chain] of chains.entries()) {
+    // Morph only ever compares a slide with the one BEFORE it, so a chain
+    // whose numbers are not strictly consecutive would pair slides the
+    // audience never sees in sequence. The caller guarantees this; refusing
+    // rather than trusting, because the feature is unsound without it.
+    if (chain.some((n, k) => k > 0 && n !== chain[k - 1] + 1)) {
+      warnings.push(`slides ${chain.join(', ')}: not consecutive — Morph transition ignored`);
+      continue;
+    }
     // atomic edit per chain: renaming the titles only makes sense if every
     // slide in the chain conforms
     const edits = [];
@@ -70,9 +96,9 @@ export async function embedMorph(pptxPath, chains) {
         ok = false;
         break;
       }
-      let out = renameFirstShape(xml, `!!title-${ci + 1}`);
+      let out = renameTitleShape(xml, `!!title-${ci + 1}`);
       if (!out) {
-        warnings.push(`slide ${n}: title not found — Morph transition ignored`);
+        warnings.push(`slide ${n}: title placeholder not found — Morph transition ignored`);
         ok = false;
         break;
       }
