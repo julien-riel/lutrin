@@ -918,19 +918,38 @@ an elapsed timer (click it to start or pause, `reset` to zero it) and the
 says how long you have been talking, the clock says whether you are late, and a
 room is booked by the clock.
 
-### PDF
+### PDF and images
 
-Printing the standalone page from the browser (`⌘P` / `Ctrl-P`, "Save as PDF")
-now produces the deck at its own size: one slide per page, 1280 × 720, no
-margin — before, the browser laid that frame onto the reader's default paper
-and scaled or cropped it. Every animation step is printed open (printing what
-the audience has not seen yet would be worse than useless) and the notes are
-left out.
+```sh
+lutrin build deck.md --pdf              # deck.pdf — one page per slide
+lutrin build deck.md --png -o out.png   # out-01.png, out-02.png, …
+lutrin build deck.md --jpeg -o out.jpg  # the same, in JPEG
+```
 
-Say what this is not, because the gap matters: it is the **browser's** PDF, not
-a Lutrin PDF writer. No notes annotations, no outline of the slides, no PNG or
-JPEG export. It gives a handout and a fallback for a machine with no
-PowerPoint; anything more is the `.pptx`.
+The extension of `-o` is enough on its own: `-o handout.pdf` needs no flag.
+
+The PDF is the standalone HTML, printed by a browser the compiler drives — so
+it is the page you already previewed, at 1280 × 720, one slide per sheet, no
+margin, every animation step open and the notes left out. It carries an
+**outline**: the slide titles, in order, so a reader navigates by name rather
+than by scrolling.
+
+`--png` and `--jpeg` name a **stem**, not a file: one image per slide is written
+beside it, numbered and zero-padded, at twice the slide size. They read the same
+print stylesheet the PDF does, so an exported image and its PDF page are the
+same picture.
+
+**A browser is required for these three**, and it is the only place in the
+compiler where one is. A chart without a rasterizer degrades to its source and
+says so; there is no degraded PDF, so the build refuses before writing a byte
+and tells you how to fix it. Chrome, Edge, Brave or Chromium already installed
+will do; `lutrin setup-mermaid` downloads one; `LUTRIN_BROWSER=/path/to/chrome`
+overrides everything.
+
+Say what this is not: **the notes are not in the PDF**. Marp writes them as PDF
+annotation objects; doing that means writing PDF objects, which means a PDF
+library, and this compiler does not take a dependency for one flag. The notes
+are in the `.pptx` and in the HTML presenter view (`N`).
 
 ---
 

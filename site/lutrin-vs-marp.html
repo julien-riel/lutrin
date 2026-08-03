@@ -83,15 +83,16 @@
           <em>Made with Lutrin</em> on every slide. On the plain question "what
           does it cost to hand a client a clean deck", Marp's answer is nothing
           and ours is $59 a year.</li>
-        <li><strong>Formats we simply do not have.</strong> PDF, PNG, JPEG and a
-          presenter-notes text dump. Its PDF is not a flat print either —
-          <code>--pdf-notes</code> writes the notes as PDF annotations and
-          <code>--pdf-outlines</code> adds real bookmarks. Lutrin produces
-          <code>.pptx</code> and standalone HTML. Printing that HTML from a
-          browser does now produce a correct 16:9 PDF — the stylesheet sets the
-          page size, puts one slide per sheet and opens every animation step —
-          but that is a print stylesheet, not a PDF writer: no notes
-          annotations, no bookmarks, and no image export at all.</li>
+        <li><strong>Notes as PDF annotations, and a presenter-notes text
+          dump.</strong> <code>--pdf-notes</code> writes each slide's notes into
+          the PDF as annotation objects a reader can open. Lutrin now writes PDF,
+          PNG and JPEG of its own — <code>--pdf</code> gives one page per slide
+          with an outline to navigate by, <code>--png</code> and
+          <code>--jpeg</code> one file per slide at twice the slide size — but
+          the notes are not in them. Writing PDF annotation objects means
+          shipping a PDF library, and this compiler will not take a dependency
+          for one flag: the notes stay in the <code>.pptx</code> and in the HTML
+          presenter view.</li>
         <li><strong>Maturity, reach, and a richer web deck.</strong> The VS Code
           extension reported 827,114 installs when this page was checked, and it
           is a web extension that works on vscode.dev with nothing installed at
@@ -219,12 +220,12 @@
           <tr>
             <th scope="row">Export formats</th>
             <td>HTML, PDF, PPTX, PNG, JPEG, notes as text.</td>
-            <td><code>.pptx</code> and standalone HTML — plus whatever a browser prints from that HTML, which the stylesheet sizes to 16:9, one slide per page. No PDF writer of our own, no image export.</td>
+            <td><code>.pptx</code>, standalone HTML, PDF (one page per slide, with an outline), PNG and JPEG (one file per slide, at 2×). No presenter-notes dump, and no notes annotations in the PDF.</td>
           </tr>
           <tr>
             <th scope="row">External runtime</th>
             <td>A browser (Chrome, Edge or Firefox) for every PDF, PPTX and image conversion. LibreOffice Impress on top, for editable PPTX.</td>
-            <td>Node ≥ 22 for both outputs, whatever is in the deck. A browser is used for one thing only — rendering Mermaid — and without one the build still writes the file, with the diagram left as source.</td>
+            <td>Node ≥ 22 for <code>.pptx</code> and HTML, whatever is in the deck. A browser is needed for two things — rendering Mermaid, where its absence still writes the file with a reported diagnostic, and the PDF/image export, where it is required and the build refuses without it before writing a byte.</td>
           </tr>
           <tr>
             <th scope="row">Branding</th>

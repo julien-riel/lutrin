@@ -11,6 +11,34 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **A PDF writer, and image export.** `lutrin build deck.md --pdf` writes the
+  deck as a PDF: one page per slide at 1280 × 720, no margin, every animation
+  step open, the notes left out — and an **outline** of the slide titles, so a
+  reader navigates by name instead of scrolling. `--png` and `--jpeg` name a
+  stem and write one file per slide beside it, at twice the slide size. The
+  extension of `-o` is enough on its own: `-o handout.pdf` needs no flag.
+
+  It is the same standalone HTML the `--html` output already produced, printed
+  by a browser the compiler already knew how to find — `browser.mjs` and
+  `puppeteer-core` were there for Mermaid. Nothing in the new module decides
+  geometry or pagination; the images even read the same `@media print`
+  stylesheet the PDF does, which is what makes an exported frame and its PDF
+  page the same picture rather than two renderings that agree today.
+
+  **A browser is REQUIRED for these three, and that is new.** Everywhere else a
+  missing browser or rasterizer degrades and says so; there is no degraded PDF,
+  so the build refuses before writing a byte and names the three ways to fix it
+  (an installed Chromium, `lutrin setup-mermaid`, or `LUTRIN_BROWSER`). CI
+  proves it works headless on Linux, macOS and Windows through a smoke step
+  that fails rather than skips when no browser is found — a skipped export is
+  not a tested one.
+
+  **The presenter notes are not in the PDF.** Marp writes them as annotation
+  objects; that means writing PDF objects, which means a PDF library, and this
+  compiler does not take a dependency for one flag. The comparison pages were
+  narrowed to that one remaining claim rather than losing the concession —
+  including two that had quietly become false in our favour.
+
 - **Four diagram layouts, and real OOXML SmartArt behind them.** `cycle`,
   `hierarchy`, `venn` and `radial` are the four shapes the catalog could not
   express: a process that closes on itself, a tree, an intersection, a hub. As

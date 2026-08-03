@@ -114,6 +114,15 @@ criterion cannot be asserted from a test — that plan carries the gate a human
 has to answer, and the per-family switch that turns off whatever the gate
 refuses.
 
+## The other backlog: what the comparison pages concede
+
+[competitor-gaps.md](competitor-gaps.md) — the four `lutrin-vs-*` pages open by
+naming what the other tool does better, and every claim on them is meant to be
+checkable. Concede honestly for long enough and those sections become a
+backlog: five items, sorted by value ÷ cost, two of them argued against. It
+exists because that list had been arrived at twice and written down neither
+time.
+
 ## Order to build — what is left
 
 Everything in the two reviews above has shipped: plans 1–5, and the six items

@@ -5,7 +5,7 @@
  * as a KIT — directory or .deckkit archive, see `lutrin kit`).
  *
  * Usage:
- *   lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
+ *   lutrin build <input.md> [-o output.pptx|.html|.pdf|.png] [--html] [--pdf] [--png] [--jpeg] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
  *   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
  *   lutrin edit [directory] [--port 4323]
  *   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
@@ -104,7 +104,7 @@ const COMMANDS = [
 
 const USAGE = `Usage:
   lutrin new [file.deck.md] [--force]
-  lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
+  lutrin build <input.md> [-o output.pptx|.html|.pdf|.png] [--html] [--pdf] [--png] [--jpeg] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
   lutrin edit [directory] [--port 4323]
   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
@@ -172,6 +172,9 @@ const FLAG_SPECS = {
     html: 'boolean',
     'vendor-assets': 'boolean',
     smartart: 'boolean',
+    pdf: 'boolean',
+    png: 'boolean',
+    jpeg: 'boolean',
     verbose: 'boolean',
     force: 'boolean',
     ir: 'boolean',
@@ -338,15 +341,33 @@ function requireKit(meta, { baseDir, themePath }) {
  * the format actually written, and the path must not be a directory (the write
  * otherwise failed with a bare EISDIR, halfway through rendering).
  */
-function checkOutput(output, html) {
+const FORMAT_EXT = { pptx: '.pptx', html: '.html', pdf: '.pdf', png: '.png', jpeg: '.jpg' };
+
+/** Output extension → format, for the `-o deck.pdf` form that names no flag.
+ *  `.htm` and `.jpeg` are accepted spellings; neither is what we write. */
+const EXT_FORMAT = {
+  '.pptx': 'pptx',
+  '.html': 'html',
+  '.htm': 'html',
+  '.pdf': 'pdf',
+  '.png': 'png',
+  '.jpg': 'jpeg',
+  '.jpeg': 'jpeg',
+};
+
+/** What an output of each format must be called, said the way a reader can act
+ *  on it rather than as a rule number. */
+const EXT_HELP = {
+  pptx: 'a PowerPoint output must have the .pptx extension (or compile to HTML with --html).',
+  html: 'an HTML output must have the .html extension.',
+  pdf: 'a PDF output must have the .pdf extension.',
+  png: 'a PNG export names a stem: give it the .png extension, and one file per slide is written beside it.',
+  jpeg: 'a JPEG export names a stem: give it the .jpg extension, and one file per slide is written beside it.',
+};
+
+function checkOutput(output, format) {
   const ext = path.extname(output).toLowerCase();
-  const ok = html ? ext === '.html' || ext === '.htm' : ext === '.pptx';
-  if (!ok)
-    fail(
-      html
-        ? `output "${output}": an HTML output must have the .html extension.`
-        : `output "${output}": a PowerPoint output must have the .pptx extension (or compile to HTML with --html).`,
-    );
+  if (EXT_FORMAT[ext] !== format) fail(`output "${output}": ${EXT_HELP[format]}`);
   let st = null;
   try {
     st = fs.statSync(output);
@@ -388,9 +409,37 @@ async function cmdBuild(argv) {
   if (args.ir) return cmdInspect(argv.filter((a) => a !== '--ir' && a !== '-ir'));
   const input = requireInput(args);
   let output = args.o ?? args.output ?? null;
-  const html = Boolean(args.html) || /\.html?$/i.test(output ?? '');
-  output ??= input.replace(/\.md$/i, '') + (html ? '.html' : '.pptx');
-  checkOutput(output, html);
+  // The output FORMAT, resolved once: an explicit flag, otherwise the
+  // extension of `-o`, otherwise PowerPoint. `png`/`jpeg` write one file per
+  // slide, so their `-o` names a STEM rather than a file.
+  const format = args.pdf
+    ? 'pdf'
+    : args.png
+      ? 'png'
+      : args.jpeg
+        ? 'jpeg'
+        : args.html
+          ? 'html'
+          : (EXT_FORMAT[path.extname(output ?? '').toLowerCase()] ?? 'pptx');
+  const html = format === 'html';
+  output ??= input.replace(/\.md$/i, '') + FORMAT_EXT[format];
+  checkOutput(output, format);
+
+  // A PDF or an image cannot degrade the way a missing rasterizer degrades a
+  // chart: there is no half-printed page. So the browser is required, and the
+  // refusal is pronounced HERE — before the deck is compiled and before the
+  // first byte (rule 1).
+  if (format === 'pdf' || format === 'png' || format === 'jpeg') {
+    const { pdfAvailable } = await import('./pdf/render.mjs');
+    if (!pdfAvailable())
+      fail(
+        [
+          `a ${format.toUpperCase()} export needs a Chromium-based browser, and none was found.`,
+          '  Install Chrome, Edge, Brave or Chromium — or run `lutrin setup-mermaid`, which downloads one.',
+          '  An explicit path also works: LUTRIN_BROWSER=/path/to/chrome',
+        ].join('\n'),
+      );
+  }
 
   const baseDir = baseDirOf(input);
   const themePath = themePathOf(args);
@@ -451,17 +500,37 @@ async function cmdBuild(argv) {
 
   prepareOutputDir(output);
   let stats;
-  if (html) {
-    const { renderDeckHtml } = await import('./html/render.mjs');
-    const out = await renderDeckHtml(scenes, deck.meta, baseDir, { vendor });
-    fs.writeFileSync(output, out.html);
-    stats = out.stats;
-  } else {
+  if (format === 'pptx') {
     const { renderDeck } = await import('./pptx/render.mjs');
     stats = await renderDeck(scenes, deck.meta, baseDir, output, {
       vendor,
       ...(args.smartart ? { smartart: true } : {}),
     });
+  } else {
+    // PDF and the image exports are the SAME document as `--html`, handed to a
+    // browser. Nothing below decides geometry: one HTML renderer feeds all
+    // three, which is what keeps a printed handout identical to the page it
+    // was printed from.
+    const { renderDeckHtml } = await import('./html/render.mjs');
+    const out = await renderDeckHtml(scenes, deck.meta, baseDir, { vendor });
+    stats = out.stats;
+    if (format === 'html') {
+      fs.writeFileSync(output, out.html);
+    } else if (format === 'pdf') {
+      const { renderDeckPdf } = await import('./pdf/render.mjs');
+      const pdf = await renderDeckPdf(out.html, output);
+      stats = { ...stats, pdfPages: pdf.pages, pdfOutline: pdf.outline };
+      stats.warnings = [...(out.stats.warnings ?? []), ...pdf.warnings];
+    } else {
+      const { renderDeckImages } = await import('./pdf/render.mjs');
+      const stem = output.replace(/\.[^.]+$/, '');
+      const img = await renderDeckImages(out.html, stem, { format });
+      stats = { ...stats, imageFiles: img.count, imageFormat: format };
+      stats.warnings = [...(out.stats.warnings ?? []), ...img.warnings];
+      // `-o` named a stem, so the path the success line prints must be the
+      // shape that was actually written, not a file nobody will find
+      output = `${stem}-NN.${format === 'jpeg' ? 'jpg' : 'png'}`;
+    }
   }
   stats.warnings = [...prep.diagnostics.map((d) => d.message), ...(stats.warnings ?? [])];
 
@@ -509,6 +578,18 @@ async function cmdBuild(argv) {
     );
   // Named for what the reader gets, not for what was written: the two halves
   // of this guarantee are genuinely different, and one of them is weaker.
+  if (stats.pdfPages)
+    console.log(
+      `  ${stats.pdfPages} page${stats.pdfPages > 1 ? 's' : ''}, one per slide${
+        stats.pdfOutline
+          ? ', with an outline to navigate by'
+          : ' (no outline: the browser is too old for it)'
+      }`,
+    );
+  if (stats.imageFiles)
+    console.log(
+      `  ${stats.imageFiles} ${stats.imageFormat === 'jpeg' ? 'JPEG' : 'PNG'} file${stats.imageFiles > 1 ? 's' : ''}, one per slide, at 2× the slide size`,
+    );
   if (stats.smartArtDiagrams)
     console.log(
       `  ${stats.smartArtDiagrams} diagram${stats.smartArtDiagrams > 1 ? 's' : ''} as native SmartArt — editable in PowerPoint, which lays them out with its own engine; drawn exactly as previewed everywhere else`,
