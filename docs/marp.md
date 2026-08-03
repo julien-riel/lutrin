@@ -80,9 +80,27 @@ enriched** without leaving the dialect:
 - ```` ```chart ````, ```` ```mermaid ````, `![](lucide:name)` — charts,
   diagrams, icons.
 
-Mind one nuance: with `marp: true`, the `:::` scan of validation is off (three
-colons are prose in Marp), so a mistyped `:::Info` degrades to a paragraph
-without a diagnostic.
+One lutrin key that does *not* apply here: the frontmatter `notes:`, which
+carries the presenter note of the cover generated from `title:`. A Marp deck
+generates no such cover — there, `title:` is HTML metadata and the first slide
+is the author's own — so the line is inert and reports `COVER_NOTES_ORPHAN`.
+Write the note on the slide itself, with `<!-- notes: … -->`.
+
+Mind one nuance about `:::`. Three colons are not Marp syntax, so with
+`marp: true` the validation scan **narrows** rather than judging everything it
+sees. What it still reports is a **casing slip on a real lutrin callout** —
+`:::Info` for `:::info` — because the container plugin opens case-sensitively:
+that line opens no callout and prints its own colons onto the slide, and
+silence there costs the author more than a false positive would. It is a
+`UNKNOWN_DIRECTIVE` of severity **warning**, not an error: a Marp deck must
+keep compiling.
+
+Anything else beginning with `:::` is left alone on purpose. A Docusaurus
+admonition (`:::note`), a Pandoc fenced div, a line of prose that happens to
+start that way — that is someone else's syntax, and turning a third-party deck
+that compiles today into one that refuses to is not a trade a heuristic may
+make. Outside a Marp deck, the same scan still raises an **error** for every
+unknown directive.
 
 ## What does not carry over
 

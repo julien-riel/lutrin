@@ -156,7 +156,13 @@ export function validateDeck(
     }
   }
   // Marp dialect: `:::` is not part of its syntax \u2014 a line starting with
-  // `:::` there is prose, not a mistyped directive. Whole scan off.
+  // `:::` there is usually prose, a Docusaurus admonition or a Pandoc fenced
+  // div, not a mistyped directive. So the scan NARROWS rather than stopping
+  // (see the marpDoc test below): only a name that is a lutrin callout but for
+  // its casing is reported there, and as a warning. The callout plugin is
+  // registered in the Marp dialect too, so `:::info` works in a Marp deck and
+  // `:::Info` prints its own colons onto the slide \u2014 the one case where
+  // silence costs the author more than a false positive would.
   const marpDoc = isMarpDeck(deck.meta);
   let inFence = null;
   let inFrontmatter = lines[0]?.trim() === '---' ? 'open' : null;
@@ -174,7 +180,6 @@ export function validateDeck(
       return;
     }
     if (inFence) return;
-    if (marpDoc) return;
     const dir = line.match(/^:{3,}\s*([A-Za-z][\w-]*)/);
     // CASE-SENSITIVE comparison, like markdown-it-container when opening:
     // `:::Info` opens no callout and renders as a literal paragraph.
@@ -188,8 +193,12 @@ export function validateDeck(
       // only the case differs: name the cause, otherwise the author re-reads a
       // correctly spelled word without seeing what is wrong
       const cased = CONTAINERS.includes(dir[1].toLowerCase()) ? dir[1].toLowerCase() : null;
+      // in a Marp deck, anything that is NOT a casing slip is left alone: it is
+      // someone else's syntax, and turning a third-party deck that compiles
+      // today into one that refuses to is not a trade a heuristic may make
+      if (marpDoc && !cased) return;
       push(
-        'error',
+        marpDoc ? 'warning' : 'error',
         'UNKNOWN_DIRECTIVE',
         cased
           ? `Unknown directive ":::${dir[1]}": directives are written in lowercase — ":::${cased}".`
@@ -273,6 +282,21 @@ export function validateDeck(
       `Unknown value "${deck.meta.animate}" for animate: (presets: ${ANIM_PRESETS.join(', ')} — or true/none).`,
       metaLine('animate'),
       closest(String(deck.meta.animate), ANIM_CANDIDATES) ?? undefined,
+    );
+  }
+
+  // `notes:` in the frontmatter is read by ONE thing: the cover buildScenes
+  // generates from `title:`. With no such cover — no `title:`, or a Marp deck
+  // where `title:` is HTML metadata — the line is inert, and saying so here is
+  // the only trace the author will get that their note is going nowhere.
+  if (deck.meta.notes != null && (!deck.meta.title || marpDoc)) {
+    push(
+      'warning',
+      'COVER_NOTES_ORPHAN',
+      marpDoc
+        ? 'Frontmatter `notes:` applies to the cover generated from `title:` — a Marp deck generates none (there, `title:` is metadata). Write the note on the slide itself: `<!-- notes: … -->`.'
+        : 'Frontmatter `notes:` applies to the cover generated from `title:`, and this deck has no `title:`. Add one, or write the note on a slide: `<!-- notes: … -->`.',
+      metaLine('notes'),
     );
   }
 
@@ -895,6 +919,9 @@ export function capabilities() {
       'author',
       'date',
       'footer',
+      // presenter notes of the cover generated from `title:` — the one slide
+      // no <!-- notes: --> can reach; inert without a title (COVER_NOTES_ORPHAN)
+      'notes',
       'animate',
       'kit',
       'assets',
@@ -965,6 +992,7 @@ export function capabilities() {
       'UNKNOWN_LAYOUT',
       'LAYOUT_SECTIONS',
       'UNKNOWN_ANIMATE',
+      'COVER_NOTES_ORPHAN',
       'METRICS_DROPPED',
       'MISSING_IMAGE',
       'KIT_IMAGE_UNKNOWN',

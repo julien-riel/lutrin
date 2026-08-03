@@ -386,6 +386,74 @@ test('animate: unknown value in the FRONTMATTER → UNKNOWN_ANIMATE, positioned'
   assert.equal(d.suggestion, 'zoom');
 });
 
+// The cover generated from `title:` is the ONE slide no `<!-- notes: -->` can
+// reach — there is no heading in the source to hang the comment on. A
+// frontmatter `notes:` is that missing line, and the only proof it is not
+// decoration is that it comes back out of buildScenes on the cover scene.
+test('frontmatter `notes:` lands on the generated cover', () => {
+  const source =
+    '---\ntitle: Quarterly review\nsubtitle: Q3\nnotes: Thank them for coming, then hand over to Ana.\n---\n\n# Results\n\n- a\n';
+  const [cover] = buildScenes(parseDeck(source));
+  assert.equal(cover.layout, 'cover');
+  assert.deepEqual(cover.notes, ['Thank them for coming, then hand over to Ana.']);
+  // a note that HAS a cover to land on is not an orphan
+  assert.equal(
+    validateDeck(source).find((x) => x.code === 'COVER_NOTES_ORPHAN'),
+    undefined,
+    'the normal case must stay silent',
+  );
+});
+
+test('a cover without `notes:` carries no notes (the default is unchanged)', () => {
+  const [cover] = buildScenes(
+    parseDeck('---\ntitle: Quarterly review\nsubtitle: Q3\n---\n\n# Results\n\n- a\n'),
+  );
+  assert.deepEqual(cover.notes, []);
+});
+
+// Without a `title:` there is no cover, so the note is read by nothing at all.
+// Silence here would leave the author believing their note is in the deck —
+// this diagnostic is the only trace they will ever get.
+test('`notes:` without a `title:` → COVER_NOTES_ORPHAN, on the `notes:` line', () => {
+  const source =
+    '---\nauthor: Ana\ndate: 2026-03-01\nnotes: A note nobody will ever hear.\n---\n\n# Results\n\n- a\n';
+  const d = validateDeck(source).find((x) => x.code === 'COVER_NOTES_ORPHAN');
+  assert.ok(d, 'COVER_NOTES_ORPHAN expected');
+  assert.equal(d.severity, 'warning');
+  // positioned on what the author wrote, not at the top of the file
+  assert.equal(d.line, 4);
+  assert.match(d.message, /no `title:`/);
+  // and the scenes confirm the diagnostic: the note reached no slide
+  assert.ok(
+    buildScenes(parseDeck(source)).every((s) => s.notes.length === 0),
+    'with no cover, the frontmatter note is carried nowhere',
+  );
+});
+
+// A Marp deck DOES have a `title:` — it is HTML metadata there (Marp CLI) and
+// generates no slide, so the note is just as orphaned, and the message has to
+// say so differently: "add a title:" would be wrong advice.
+test('`notes:` in a Marp deck → COVER_NOTES_ORPHAN (`title:` generates no cover there)', () => {
+  const source =
+    '---\nmarp: true\ntitle: Quarterly review\nnotes: A note nobody will ever hear.\n---\n\n# Results\n\n- a\n';
+  const d = validateDeck(source).find((x) => x.code === 'COVER_NOTES_ORPHAN');
+  assert.ok(d, 'COVER_NOTES_ORPHAN expected for a Marp deck');
+  assert.equal(d.severity, 'warning');
+  assert.equal(d.line, 4);
+  assert.match(d.message, /Marp/);
+  assert.ok(
+    buildScenes(parseDeck(source)).every((s) => s.notes.length === 0),
+    'a Marp deck generates no cover to carry the note',
+  );
+});
+
+test('COVER_NOTES_ORPHAN and the `notes:` key are published by capabilities()', () => {
+  assert.ok(capabilities().diagnostics.includes('COVER_NOTES_ORPHAN'));
+  // an agent that cannot read `notes` back from the frontmatter list will never
+  // write the one line that gives a cover its presenter notes
+  assert.ok(capabilities().frontmatter.includes('notes'));
+});
+
 test('metrics: more than 4 cards → METRICS_DROPPED warning', () => {
   const cards = Array.from({ length: 5 }, (_, k) => `:::metric\n${k + 1}\nCard ${k + 1}\n:::`).join(
     '\n\n',
