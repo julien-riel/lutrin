@@ -5,7 +5,7 @@
  * as a KIT — directory or .deckkit archive, see `lutrin kit`).
  *
  * Usage:
- *   lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--verbose] [--force]
+ *   lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
  *   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
  *   lutrin edit [directory] [--port 4323]
  *   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
@@ -104,7 +104,7 @@ const COMMANDS = [
 
 const USAGE = `Usage:
   lutrin new [file.deck.md] [--force]
-  lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--verbose] [--force]
+  lutrin build <input.md> [-o output.pptx|output.html] [--html] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
   lutrin edit [directory] [--port 4323]
   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
@@ -171,6 +171,7 @@ const FLAG_SPECS = {
     output: 'value',
     html: 'boolean',
     'vendor-assets': 'boolean',
+    smartart: 'boolean',
     verbose: 'boolean',
     force: 'boolean',
     ir: 'boolean',
@@ -457,7 +458,10 @@ async function cmdBuild(argv) {
     stats = out.stats;
   } else {
     const { renderDeck } = await import('./pptx/render.mjs');
-    stats = await renderDeck(scenes, deck.meta, baseDir, output, { vendor });
+    stats = await renderDeck(scenes, deck.meta, baseDir, output, {
+      vendor,
+      ...(args.smartart ? { smartart: true } : {}),
+    });
   }
   stats.warnings = [...prep.diagnostics.map((d) => d.message), ...(stats.warnings ?? [])];
 
@@ -502,6 +506,12 @@ async function cmdBuild(argv) {
   if (stats.vectorImages)
     console.log(
       `  ${stats.vectorImages} image${stats.vectorImages > 1 ? 's carrying their' : ' carrying its'} vector as well — sharp at any zoom in PowerPoint 2019+, the raster everywhere else`,
+    );
+  // Named for what the reader gets, not for what was written: the two halves
+  // of this guarantee are genuinely different, and one of them is weaker.
+  if (stats.smartArtDiagrams)
+    console.log(
+      `  ${stats.smartArtDiagrams} diagram${stats.smartArtDiagrams > 1 ? 's' : ''} as native SmartArt — editable in PowerPoint, which lays them out with its own engine; drawn exactly as previewed everywhere else`,
     );
   if (stats.mermaidTotal && stats.mermaidRendered < stats.mermaidTotal) {
     const missing = stats.mermaidTotal - stats.mermaidRendered;

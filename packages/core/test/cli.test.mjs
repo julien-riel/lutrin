@@ -1367,3 +1367,59 @@ test('CLI new: a *.deck.md name omits the "deck: true" preamble, a plain .md kee
     assert.deepEqual(JSON.parse(r.stdout).diagnostics, [], `${name} must be clean too`);
   }
 });
+
+// --- --smartart ------------------------------------------------------------
+
+const SMART_DECK = `---
+title: Diagrams
+---
+
+# Loop
+
+<!-- layout: cycle -->
+
+## Plan
+
+## Build
+
+## Ship
+`;
+
+test('--smartart is a .pptx concern and never reaches the HTML renderer', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-smart-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const src = path.join(dir, 'd.deck.md');
+  fs.writeFileSync(src, SMART_DECK);
+
+  const plain = path.join(dir, 'plain.html');
+  const flagged = path.join(dir, 'flagged.html');
+  assert.equal(lutrin(['build', src, '--html', '-o', plain]).code, 0);
+  assert.equal(lutrin(['build', src, '--html', '--smartart', '-o', flagged]).code, 0);
+  // byte-identical, deliberately: the HTML always draws the SVG, and coupling
+  // the HTML renderer to a PowerPoint export option is exactly what
+  // boundary.test.mjs exists to prevent
+  assert.ok(
+    fs.readFileSync(plain).equals(fs.readFileSync(flagged)),
+    '--smartart changed the HTML output',
+  );
+});
+
+test('smartart: true in the frontmatter turns the mode on', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-smart-fm-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const src = path.join(dir, 'd.deck.md');
+  // the frontmatter reader hands EVERY value over as a string, so `true` here
+  // arrives as "true": an identity test against a boolean could never fire,
+  // and this route — the one the VS Code extension takes, since it passes
+  // `meta` and no options — would be dead code
+  fs.writeFileSync(src, SMART_DECK.replace('title: Diagrams', 'title: Diagrams\nsmartart: true'));
+  const out = path.join(dir, 'd.pptx');
+  const r = lutrin(['build', src, '-o', out]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /native SmartArt/, 'the frontmatter key did not reach the renderer');
+});
+
+test('--smartart is a documented flag of build', () => {
+  const r = lutrin(['--help']);
+  assert.match(r.stdout, /lutrin build [^\n]*--smartart/);
+});

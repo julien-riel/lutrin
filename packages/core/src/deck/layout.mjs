@@ -802,6 +802,50 @@ export function registerLayout(def) {
       radius: radiusParam(),
     },
   },
+  // ---- Diagram layouts -----------------------------------------------------
+  //
+  // The four SmartArt families the rest of the catalog cannot express: a
+  // process that CLOSES on itself, a tree, an intersection, a hub. Each emits
+  // ONE `smartart` element whose inner geometry comes from deck/smartart.mjs —
+  // the generators here decide the region and read the content, nothing else.
+  //
+  // They publish no `density`/`align`/`panels`/`radius`: a diagram's labels do
+  // not flow through flowBlocks, so those parameters would be lies.
+  {
+    name: 'cycle',
+    description: 'stages on a closed loop, joined by arrows',
+    sections: { min: 3, max: 8 },
+    paramSchema: {
+      numbered: {
+        type: 'boolean',
+        default: true,
+        description: 'number the stages in reading order',
+      },
+    },
+  },
+  {
+    name: 'hierarchy',
+    description: 'a tree of boxes joined by elbows — an org chart, a breakdown',
+  },
+  {
+    name: 'venn',
+    description: 'overlapping discs, the intersection as the argument',
+    sections: { min: 2, max: 4 },
+    paramSchema: {
+      overlap: {
+        type: 'number',
+        min: 0,
+        max: 0.6,
+        default: 0.32,
+        description: 'share of a disc covered by its neighbour',
+      },
+    },
+  },
+  {
+    name: 'radial',
+    description: 'a hub surrounded by what depends on it',
+    sections: { min: 2, max: 8 },
+  },
   {
     name: 'focus',
     description: 'one key message set large in the middle of the slide',
@@ -1931,6 +1975,90 @@ export function buildScenes(deck) {
           elements.push(...flowed);
         });
         push({ elements });
+        break;
+      }
+      case 'cycle':
+      case 'venn':
+      case 'radial': {
+        // Three diagram families fed the same way: one `##` section per node.
+        // `radial` alone reads a LEAD paragraph — what stands before the first
+        // `##` is the hub, not a spoke — falling back to the slide's title,
+        // because a hub with no name is a circle with no argument.
+        const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
+        const lead =
+          kind === 'radial' && secs.length && !secs[0].heading && secs.some((s) => s.heading)
+            ? secs.shift()
+            : null;
+        const titled = secs.filter((s) => s.heading);
+        // surplus dropped at the registry bounds, as `timeline` and `layers`
+        // do — validation (LAYOUT_SECTIONS) is the one place that reports it
+        const nodes = titled.slice(0, bounds?.max ?? 8).map((s) => {
+          const first = s.blocks.find((b) => b.type === 'para');
+          return {
+            text: runsToText(s.heading),
+            ...(kind === 'cycle' && first ? { sub: runsToText(first.runs) } : {}),
+          };
+        });
+        const block = {
+          type: 'smartart',
+          family: kind,
+          nodes,
+          ...(kind === 'radial'
+            ? {
+                // `slide.title` is already flat text; `titleRuns` is the rich
+                // form. A hub label is plain either way, so the flat one is
+                // the right source and needs no run walk.
+                hub:
+                  (lead && runsToText(lead.blocks.find((b) => b.type === 'para')?.runs ?? [])) ||
+                  slide.title ||
+                  '',
+              }
+            : {}),
+          // omit-at-the-default, like every other generator: a deck that sets
+          // no parameter must produce a byte-identical scene
+          ...(kind === 'cycle' && P.numbered === false ? { numbered: false } : {}),
+          ...(kind === 'venn' && P.overlap != null && P.overlap !== 0.32
+            ? { overlap: P.overlap }
+            : {}),
+        };
+        push({ elements: [{ block, region: { ...area } }] });
+        break;
+      }
+      case 'hierarchy': {
+        // A tree, from the one Markdown shape that already IS a tree: a nested
+        // bullet list. `##` sections are also accepted — each heading a root,
+        // its bullets the branches — because an author who has been writing
+        // sections all deck should not have to learn a second grammar for one
+        // slide.
+        const secs = slide.sections.filter((s) => s.heading);
+        // parse.mjs clamps `level` to 0..2, so three levels is the whole
+        // domain: the walk below cannot recurse past it.
+        const treeOf = (items) => {
+          const roots = [];
+          const at = [];
+          for (const it of items) {
+            const node = { text: runsToText(it.runs), children: [] };
+            const level = Math.min(it.level ?? 0, 2);
+            if (level === 0 || !at[level - 1]) roots.push(node);
+            else at[level - 1].children.push(node);
+            at[level] = node;
+            at.length = level + 1;
+          }
+          return roots;
+        };
+        const nodes = secs.length
+          ? secs.map((s) => ({
+              text: runsToText(s.heading),
+              children: treeOf(
+                s.blocks.filter((b) => b.type === 'bullets').flatMap((b) => b.items),
+              ),
+            }))
+          : treeOf(blocks.filter((b) => b.type === 'bullets').flatMap((b) => b.items));
+        push({
+          elements: [
+            { block: { type: 'smartart', family: 'hierarchy', nodes }, region: { ...area } },
+          ],
+        });
         break;
       }
       case 'focus': {

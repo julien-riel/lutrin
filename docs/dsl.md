@@ -26,6 +26,7 @@ Contents:
 [text](#text-lists-tables-quotes) ·
 [callouts, metrics, progress, status](#callouts-metrics-progress-and-status) ·
 [images and icons](#images-icons-diagrams) ·
+[diagrams](#diagrams-cycle-hierarchy-venn-radial) ·
 [charts](#charts) ·
 [equations](#equations-latex) ·
 [animations](#animations) ·
@@ -63,6 +64,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
+| `smartart` | `true` exports the diagram layouts as real OOXML SmartArt (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial)) — ignored on the HTML path |
 | `marp` | `true` reads the deck as **Marp Markdown** instead of this DSL — see [docs/marp.md](marp.md) |
 
 Surrounding quotes are stripped (`title: "My title"` = `title: My title`).
@@ -148,10 +150,10 @@ validation does accept them.
 
 ## Structured layouts (on request)
 
-Eight layouts express an **intent** that content alone does not reveal. They
+Twelve layouts express an **intent** that content alone does not reveal. They
 are **never inferred**: they must be asked for with `<!-- layout: … -->`. In
 all of them, each `## H2` section becomes a panel, a milestone, a layer, a
-quadrant or a step.
+quadrant, a step or a node.
 
 | Layout | `##` sections | Rendering |
 |---|---|---|
@@ -163,6 +165,13 @@ quadrant or a step.
 | `grid` | 2 to 8 | a mosaic of panels — portfolio, offerings, 2 × 2 matrix |
 | `steps` | 2 to 6 | steps joined by arrows — a journey, "how it works" |
 | `focus` | — | ONE message: the first paragraph becomes a large figure or a full-frame sentence, the rest serves as context |
+| `cycle` | 3 to 8 | discs on a closed loop, joined by arrows — a process that returns to its start |
+| `hierarchy` | — | a tree with elbow connectors, fed by a **nested bullet list** (or `##` sections, each heading a branch) |
+| `venn` | 2 to 4 | overlapping translucent discs; the intersection is the argument |
+| `radial` | 2 to 8 | a hub and its satellites — the **lead paragraph** is the hub, each `##` a spoke |
+
+The last four are the **diagram layouts**; they have a section of their own
+[below](#diagrams-cycle-hierarchy-venn-radial).
 
 Their content is **not paginated**: keep it short. A section count outside the
 bounds produces `LAYOUT_SECTIONS` (the surplus will be ignored, a shortfall
@@ -245,6 +254,13 @@ Parameters published by the bases (exact types, domains and defaults in
 | `steps` | `connector` (`arrow`/`line`/`none`), `panels`, `density`, `radius` |
 | `content` | `density`, `align` |
 | `focus` | `align` (default `center`), `accent`, `scale` (0.5–2.5) |
+| `cycle` | `numbered` (boolean, default `true`) |
+| `venn` | `overlap` (0–0.6, default 0.32 — the share of a disc its neighbour covers) |
+
+`hierarchy` and `radial` publish no parameter: a tree and a wheel have nothing
+to configure that is not already in the content. Nor do any of the four take
+`density`, `align`, `panels` or `radius` — a diagram's labels do not flow
+through the block layout, so those settings would be lies.
 
 `panels` takes the neutral variants (`muted`, `highlight`, `pillar`) and the
 four tints in two tones: `warning` is the pale callout surface, `warning-solid`
@@ -583,6 +599,114 @@ either way. Text, tables and shapes were never images and still are not.
 
 ---
 
+## Diagrams (`cycle`, `hierarchy`, `venn`, `radial`)
+
+Four shapes an outline cannot make. They are layouts, not blocks: the slide IS
+the diagram, and its `##` sections (or its bullet list) are its nodes.
+
+```markdown
+# How a release moves
+
+<!-- layout: cycle -->
+
+## Plan
+
+Scope agreed with the sponsors.
+
+## Build
+
+## Review
+
+## Ship
+```
+
+A heading is the node's label; a section's first paragraph becomes its second
+line (`cycle` only). A tree is written the way a tree already reads:
+
+```markdown
+# Who reports to whom
+
+<!-- layout: hierarchy -->
+
+- Delivery
+  - Engineering
+    - Platform
+    - Product
+  - Design
+```
+
+`hierarchy` also accepts `##` sections — each heading a branch, its bullets the
+leaves. `radial` reads the paragraph before the first `##` as the **hub**, and
+falls back to the slide title when there is none:
+
+```markdown
+# The compiler and what leans on it
+
+<!-- layout: radial -->
+
+Compiler core
+
+## CLI
+
+## VS Code
+
+## Web playground
+```
+
+Labels are drawn as **plain text**: bold, italic, code, links and badges inside
+a node are dropped, and `SMARTART_TEXT` says so. A `hierarchy` that yields
+fewer than two nodes produces `SMARTART_NODES`.
+
+### Real SmartArt in the `.pptx`
+
+By default a diagram is drawn as **native PowerPoint shapes** — real discs,
+boxes and arrows a presenter can select and nudge — and as an inline SVG in the
+HTML, from the same coordinates. Both outputs are pixel-identical.
+
+`--smartart` asks for the other thing: a genuine SmartArt object.
+
+```sh
+lutrin build deck.md --smartart -o deck.pptx
+```
+
+or, for the hosts that pass no options (the VS Code extension among them):
+
+```yaml
+---
+title: Operating model
+smartart: true
+---
+```
+
+The flag is a `.pptx` concern and is **ignored on the HTML path**: `--html
+--smartart` produces exactly the bytes `--html` produces.
+
+What you gain: PowerPoint opens its own *SmartArt Design* ribbon on the object
+— Text Pane, Change Layout, Change Colors — and re-lays the diagram out with
+its own engine.
+
+What it costs, stated plainly because it reverses a rule this compiler
+otherwise keeps:
+
+- **Keynote and macOS Quick Look show nothing.** Apple's importer dispatches on
+  the layout identifier and does not know lutrin's. Everywhere else — charts,
+  Mermaid, equations, icons — this engine ships an image precisely so that it
+  displays everywhere; a SmartArt object cannot. That is why the flag is
+  opt-in and why the default stays native shapes.
+- **The two outputs stop being pixel-identical inside the frame.** PowerPoint
+  re-runs its own layout, so what is guaranteed there is the frame rectangle,
+  the node count, the reading order and the palette — not the coordinates.
+  Every other reader (LibreOffice, Google Slides, Apache POI) draws the cached
+  geometry, which IS the coordinates.
+- **A converted diagram is not animated** in the `.pptx`. The HTML twin still
+  reveals it on click.
+- **Change Colors replaces the brand palette** with an Office one, and the only
+  way back is to rebuild. The colours shipped are the kit's, written out
+  literally rather than referenced from the theme — which is what keeps a
+  branded deck branded in every renderer.
+
+---
+
 ## Charts
 
 A ```` ```chart ```` block carries a line-by-line specification:
@@ -836,6 +960,8 @@ The main ones:
 | `ORPHAN_DIRECTIVE` | warning | `<!-- layout/notes/animate -->` that no slide follows |
 | `UNKNOWN_LAYOUT` | error | layout does not exist (with a suggestion) |
 | `LAYOUT_SECTIONS` | warning | `##` section count outside the layout's bounds |
+| `SMARTART_NODES` | warning | a `hierarchy` slide yields fewer than two nodes |
+| `SMARTART_TEXT` | info | bold, italic, code, a link or a badge inside a diagram label — drawn as plain text |
 | `BLOCK_OVERFLOW` | warning | a block overflows its region in a non-paginated layout, the text scale spent |
 | `METRICS_DROPPED` | warning | more `:::metric` cards than the layout displays |
 | `MISSING_IMAGE`, `UNKNOWN_ICON` | warning | resource not found |

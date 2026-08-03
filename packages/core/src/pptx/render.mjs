@@ -36,7 +36,7 @@ import {
   px,
   LINE_HEIGHT,
 } from '../deck/tokens.mjs';
-import { ALERT_BLOCK_TYPES } from '../deck/parse.mjs';
+import { ALERT_BLOCK_TYPES, animateFlag } from '../deck/parse.mjs';
 import {
   fetchRemoteImage,
   iconSvg,
@@ -52,6 +52,9 @@ import {
   writeTmpPng,
 } from '../deck/assets.mjs';
 import { chartSvg } from '../deck/chart.mjs';
+import { smartArtGeometry, smartArtSvg } from '../deck/smartart.mjs';
+import { FAMILIES } from './diagram-parts.mjs';
+import { embedSmartArt } from './smartart.mjs';
 import { highlightLine } from '../deck/highlight.mjs';
 import { brandMention } from '../license/index.mjs';
 import { embedFonts } from './fonts.mjs';
@@ -746,6 +749,95 @@ function addTimelineDot(slide, block, r) {
   });
 }
 
+/** Alt text of a diagram: the family and the labels, in reading order — the
+ *  one description a screen reader can give of a shape group. */
+function smartArtAltText(block) {
+  const walk = (list) =>
+    (list ?? []).flatMap((n) => [n.text, ...(n.children ? walk(n.children) : [])]);
+  const names = [block.hub, ...walk(block.nodes)].filter(Boolean);
+  return `SmartArt ${block.family}: ${names.join(', ')}`;
+}
+
+/**
+ * A diagram, drawn as NATIVE editable shapes: discs, boxes, arrows and their
+ * labels, each a real PowerPoint object a presenter can nudge.
+ *
+ * The geometry is not computed here. It comes from deck/smartart.mjs, region-
+ * local, and is translated by `r.x`/`r.y` on the way out — the same numbers
+ * the HTML twin lays out and the same numbers the OOXML injector serialises
+ * into `drawingN.xml`. Reading it from one place is what makes those three
+ * agree by construction instead of by coincidence.
+ */
+function drawSmartArtShapes(slide, g, r) {
+  // links first: an arrow is BEHIND the discs it joins, so the shaft that
+  // runs under a node's edge does not draw over it
+  for (const l of g.links) {
+    slide.addShape(l.prst, {
+      x: px(r.x + l.x),
+      y: px(r.y + l.y),
+      w: px(l.w),
+      h: px(l.h),
+      fill: { color: l.color },
+      line: { type: 'none' },
+      ...(l.rotate ? { rotate: l.rotate } : {}),
+    });
+  }
+  for (const s of g.shapes) {
+    slide.addShape(s.prst, {
+      x: px(r.x + s.x),
+      y: px(r.y + s.y),
+      w: px(s.w),
+      h: px(s.h),
+      // PptxGenJS's `transparency` is the INVERSE of alpha, in percent: it
+      // writes `<a:alpha val="(100 − transparency) × 1000"/>`, so 78 here is
+      // the 0.22 the SVG writes as fill-opacity.
+      fill: {
+        color: s.fill,
+        ...(s.alpha < 1 ? { transparency: Math.round(100 - s.alpha * 100) } : {}),
+      },
+      line: { type: 'none' },
+      ...(s.radius ? { rectRadius: px(s.radius) } : {}),
+    });
+  }
+  for (const l of g.labels) {
+    const runs = [{ text: l.text, options: { bold: true, fontSize: l.pt } }];
+    if (l.sub) runs.push({ text: `\n${l.sub}`, options: { fontSize: Math.max(8, l.pt - 2) } });
+    slide.addText(runs, {
+      x: px(r.x + l.x),
+      y: px(r.y + l.y),
+      w: px(l.w),
+      h: px(l.h),
+      color: l.ink,
+      fontFace: FONTS.body,
+      align: l.align,
+      valign: l.valign,
+      margin: 0,
+    });
+  }
+}
+
+function addSmartArt(slide, block, r, ctx) {
+  const d = ctx.diagrams?.get(block);
+  // SmartArt mode: ONE picture standing in for the diagram, which the
+  // post-write pass swaps for a real `<p:graphicFrame>`. If the swap does not
+  // happen — no rasterizer, an unrecognised family, a surprise in the zip —
+  // the picture is already a correct rendering of the diagram, so nothing is
+  // lost but the editability.
+  if (d?.png && FAMILIES[block.family]?.smartart) {
+    slide.addImage({
+      path: d.png,
+      altText: smartArtAltText(block),
+      x: px(r.x),
+      y: px(r.y),
+      w: px(r.w),
+      h: px(r.h),
+      _dgm: { family: block.family, block, geometry: d.geometry },
+    });
+    return;
+  }
+  drawSmartArtShapes(slide, d?.geometry ?? smartArtGeometry(block, r.w, r.h), r);
+}
+
 function addQuote(slide, block, r) {
   // `block.color`: the panel repainted us. The mark and the attribution carry
   // colours of their own (the primary accent, the secondary ink) — both are
@@ -986,6 +1078,7 @@ const SHAPE_LABELS = {
   panel: 'Panel',
   'timeline-axis': 'Timeline axis',
   'timeline-dot': 'Milestone',
+  smartart: 'Diagram',
 };
 
 /**
@@ -999,7 +1092,7 @@ const SHAPE_LABELS = {
  * The options are always the LAST argument of the four methods used
  * (`addImage` takes only one); that is where `objectName` is set.
  */
-function wrapSlide(slide, { label, rec = null, current = null, vectors = null }) {
+function wrapSlide(slide, { label, rec = null, current = null, vectors = null, diagrams = null }) {
   const ranks = new Map();
   const nextName = () => {
     const base = label();
@@ -1023,6 +1116,14 @@ function wrapSlide(slide, { label, rec = null, current = null, vectors = null })
       if (opts && typeof opts === 'object' && !Array.isArray(opts) && opts._svg) {
         if (vectors) vectors.push({ name: opts.objectName, svg: opts._svg });
         opts._svg = undefined;
+      }
+      // `_dgm` travels the same way, and for the same reason: the SmartArt
+      // injector has to find, in the written slide XML, the one picture that
+      // stands in for a diagram — and the shape's name is the only handle that
+      // survives PptxGenJS.
+      if (opts && typeof opts === 'object' && !Array.isArray(opts) && opts._dgm) {
+        if (diagrams) diagrams.push({ name: opts.objectName, payload: opts._dgm });
+        opts._dgm = undefined;
       }
       return slide[name](...args);
     };
@@ -1055,6 +1156,7 @@ export const BLOCK_RENDERERS = {
   panel: addPanel,
   'timeline-axis': addTimelineAxis,
   'timeline-dot': addTimelineDot,
+  smartart: addSmartArt,
 };
 
 // ---------------------------------------------------------------------------
@@ -1480,6 +1582,12 @@ export async function renderDeck(scenes, meta, baseDir, outPath, opts = {}) {
 
 async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const vendor = vendorRemoteAssets(meta, opts.vendor);
+  // Real OOXML SmartArt is OPT-IN: `--smartart`, or `smartart:` in the
+  // frontmatter. `animateFlag` rather than `=== true` because the frontmatter
+  // reader hands every value over as a STRING — `smartart: true` arrives as
+  // `"true"`, so an identity test against a boolean could never fire and the
+  // VS Code route, which passes `meta` and no options, would be dead code.
+  const smartart = opts.smartart ?? (meta.smartart != null && animateFlag(meta.smartart));
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE'; // 13.33 × 7.5 in = 1280 × 720 px
   pptx.author = meta.author ?? '';
@@ -1637,8 +1745,27 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   // Severity `error`: the deliverable is truncated, not merely imperfect. The
   // fallback itself stays in place (a readable slide beats a hole) — what is
   // fixed here is the silence.
+  // Diagrams, in SmartArt mode only. The geometry is computed ONCE here and
+  // stored beside the PNG: the placeholder picture, the injected
+  // `drawingN.xml` and the native fallback all read this object, so they
+  // cannot drift apart the way three separate computations from three
+  // separately-passed rectangles eventually would.
+  const diagrams = new Map();
+  const smartEls = smartart
+    ? scenes.flatMap((sc) => sc.elements.filter((e) => e.block.type === 'smartart'))
+    : [];
+  await Promise.all(
+    smartEls.map(async (e, k) => {
+      const geometry = smartArtGeometry(e.block, e.region.w, e.region.h);
+      const out = await svgToPng(smartArtSvg(e.block, e.region.w, e.region.h), e.region.w * 2);
+      if (out)
+        diagrams.set(e.block, { png: writeTmpPng(tmp(), `smartart-${k}`, out.png), geometry });
+    }),
+  );
+
   const diagnostics = [];
-  const rasterBlocks = chartEls.length + ofType('math').length + iconBlocks.length;
+  const rasterBlocks =
+    chartEls.length + ofType('math').length + iconBlocks.length + smartEls.length;
   if (rasterBlocks && !(await rasterAvailable())) {
     diagnostics.push({
       severity: 'error',
@@ -1650,10 +1777,11 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   // trust roots of the local images: directory of the deck + project
   // roots declared by the host (containment — assets.mjs)
   const imageRoots = [baseDir, ...(opts.imageRoots ?? [])];
-  const ctx = { baseDir, imageRoots, mermaid, remote, icons, math, charts, vectorSvg };
+  const ctx = { baseDir, imageRoots, mermaid, remote, icons, math, charts, vectorSvg, diagrams };
 
   const slideAnims = new Map(); // slide no. (1-based) → log of the shapes
   const slideVectors = new Map(); // slide no. (1-based) → [{ name, svg }]
+  const slideDiagrams = new Map(); // slide no. (1-based) → [{ name, payload }]
   scenes.forEach((scene, sceneIdx) => {
     let slide;
     if (scene.master === 'cover') slide = renderCover(pptx, scene);
@@ -1665,11 +1793,13 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       let cur = null;
       let shapeLabel = 'Content';
       const vectors = [];
+      const diagramShapes = [];
       const target = wrapSlide(slide, {
         label: () => shapeLabel,
         rec,
         current: () => cur,
         vectors,
+        diagrams: diagramShapes,
       });
       if (scene.master === 'hero' && scene.image) {
         addImage(target, scene.image, { x: 0, y: 0, w: PAGE.width, h: PAGE.height }, ctx);
@@ -1716,7 +1846,17 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       );
       for (const el of scene.elements) {
         // kind → choice of the entrance effect (anim.mjs, PRESET_BY_KIND)
-        cur = el.step != null ? { step: el.step, paras: el.stepCount, kind: el.block.type } : null;
+        //
+        // A diagram about to become a `<p:graphicFrame>` is NOT animated: the
+        // frame replaces the picture after the timing tree has been written,
+        // and an entrance effect pointing at a shape that has changed identity
+        // is the kind of mismatch anim.mjs answers by dropping every animation
+        // on the slide. The HTML twin keeps its reveal; that divergence is
+        // documented rather than papered over.
+        cur =
+          el.step != null && !(smartart && el.block.type === 'smartart')
+            ? { step: el.step, paras: el.stepCount, kind: el.block.type }
+            : null;
         shapeLabel = SHAPE_LABELS[el.block.type] ?? 'Content';
         const fn = BLOCK_RENDERERS[el.block.type];
         if (fn) fn(target, el.block, el.region, ctx);
@@ -1724,6 +1864,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       if (rec?.some(Boolean))
         slideAnims.set(sceneIdx + 1, { entries: rec, preset: scene.animPreset ?? null });
       if (vectors.length) slideVectors.set(sceneIdx + 1, vectors);
+      if (diagramShapes.length) slideDiagrams.set(sceneIdx + 1, diagramShapes);
     }
     if (scene.notes?.length) slide.addNotes(scene.notes.join('\n'));
   });
@@ -1768,6 +1909,10 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const morph = await embedMorph(outPath, chains);
   const anims = await embedAnimations(outPath, slideAnims);
   const vectors = await embedVectorImages(outPath, slideVectors);
+  // Last, because it REPLACES shapes: every pass above addresses the slide XML
+  // by shape name or by order, and the graphic frame is the one edit that
+  // changes what those passes would have found.
+  const smartArt = await embedSmartArt(outPath, slideDiagrams);
   return {
     slideCount: scenes.length,
     titledSlides: titles.count,
@@ -1775,6 +1920,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
     animatedSlides: anims.count,
     morphSlides: morph.count,
     vectorImages: vectors.count,
+    smartArtDiagrams: smartArt.count,
     // the structured diagnostics ALSO travel as warnings: that is the only
     // channel the CLI prints today, and a diagnostic we do not display is no
     // better than the silence it corrects
@@ -1788,6 +1934,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       ...morph.warnings,
       ...anims.warnings,
       ...vectors.warnings,
+      ...smartArt.warnings,
     ],
     mermaidRendered: mermaid.size,
     mermaidTotal: mermaidBlocks.length,

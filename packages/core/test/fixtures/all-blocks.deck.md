@@ -1,6 +1,6 @@
 ---
 title: Renderer coverage fixture
-subtitle: One instance of each of the eighteen block types
+subtitle: One instance of each of the nineteen block types
 footer: Fixture ZQFOOTER
 ---
 
@@ -121,3 +121,15 @@ First milestone of the fixture.
 ## 2027
 
 Second milestone.
+
+# Diagram
+
+<!-- layout: cycle -->
+
+## ZQSMART
+
+The first stage of the fixture cycle.
+
+## A & B <c> "d"
+
+## Third stage

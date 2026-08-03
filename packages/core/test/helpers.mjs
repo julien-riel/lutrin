@@ -12,7 +12,7 @@ export const DEMO_PATH = path.resolve(here, '..', '..', '..', 'examples', 'demo.
 export const readDemo = () => fs.readFileSync(DEMO_PATH, 'utf8');
 
 /**
- * Renderer coverage fixture: one instance of each of the eighteen block types,
+ * Renderer coverage fixture: one instance of each of the nineteen block types,
  * each carrying a `ZQ…` marker found nowhere else.
  *
  * It exists because the demonstration deck could not play that role: it pulls

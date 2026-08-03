@@ -12,6 +12,8 @@ notes: This note is written in the frontmatter — the cover had no way to carry
 - The **HTML output** caught up: entrance effects, an overview grid, on-screen
   controls, a wall clock — and a print stylesheet that finally sizes the page
 - Every **figure in the `.pptx`** now carries its vector as well as its raster
+- Four **diagram layouts** — a cycle, a tree, a Venn, a hub — and, on request,
+  real **SmartArt** PowerPoint will edit
 - **Morph** is no longer limited to pagination: consecutive slides sharing a
   title glide into each other
 - A **kit** can be derived from your brand's PowerPoint template
@@ -119,6 +121,47 @@ demand made of the others.
 - Charts, diagrams, icons and equations, all four
 - Nothing to write in the deck
 
+# Four shapes an outline could not make
+
+<!-- layout: cycle -->
+
+<!-- notes: This slide IS a cycle layout — four `##` sections and nothing else. The other three are `hierarchy`, `venn` and `radial`. -->
+
+## Cycle
+
+A process that returns to where it started.
+
+## Hierarchy
+
+A tree, written as a nested bullet list.
+
+## Venn
+
+Discs that overlap; the intersection is the point.
+
+## Radial
+
+A hub, and whatever leans on it.
+
+# One diagram, two ways to ship it
+
+<!-- layout: comparison -->
+
+## By default
+
+- Native PowerPoint **shapes** — real discs, boxes and arrows you can select
+- Pixel-identical to the HTML, because both read one set of coordinates
+- Displays **everywhere**: Keynote, Quick Look, Google Slides, LibreOffice
+- Nothing to ask for
+
+## With `--smartart`
+
+- A genuine **SmartArt object**: Text Pane, Change Layout, Change Colors
+- PowerPoint re-lays it out with its own engine — the frame, the node count,
+  the reading order and the palette are what carry over
+- **Keynote and Quick Look show nothing**, which is why it is opt-in
+- `smartart: true` in the frontmatter does the same
+
 # Morph, without asking for it
 
 Two consecutive slides with the same `# title` now glide into each other. It
@@ -199,6 +242,9 @@ to scaffold, on purpose.
 - No PDF **writer** — a browser printing the HTML is not the same thing: no
   notes annotations, no bookmarks, no image export
 - No editable OMML equations: an equation is still a picture
+- SmartArt is **not** the default, and will not become it: the object is
+  invisible to Apple's importer, so making it automatic would silently empty a
+  slide for Mac readers
 - No per-element animation, no transitions engine in the HTML
 - The engine still decides every layout, and always will
 

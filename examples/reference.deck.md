@@ -285,10 +285,11 @@ Without `mathjax-full` installed, a readable fallback shows the source.
 
 # Layouts on request
 
-# Eight structured intents
+# Twelve structured intents
 
-Eight layouts express an intent the content alone cannot reveal — ask with
-`<!-- layout: … -->`; each `##` becomes a panel, and brevity is enforced:
+Twelve layouts express an intent the content alone cannot reveal — ask with
+`<!-- layout: … -->`; each `##` becomes a panel or a node, and brevity is
+enforced:
 
 | Layout | Sections | Intent |
 |---|---|---|
@@ -300,6 +301,10 @@ Eight layouts express an intent the content alone cannot reveal — ask with
 | `grid` | 2 – 8 | a mosaic of panels |
 | `steps` | 2 – 6 | a process, arrow-joined |
 | `focus` | — | one message, full frame |
+| `cycle` | 3 – 8 | a loop that closes |
+| `hierarchy` | — | a tree, from a nested list |
+| `venn` | 2 – 4 | discs that overlap |
+| `radial` | 2 – 8 | a hub and its satellites |
 
 # Ask, don't hint
 

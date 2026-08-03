@@ -498,6 +498,61 @@ export function pickLayout(slide: Slide): LayoutName {
 - The `.pptx` gets real PowerPoint animations, not a stack of duplicated slides
 - Which is why this slide looks empty until you press the arrow
 
+# Four shapes an outline cannot make
+
+<!-- layout: cycle -->
+
+<!-- notes: These four slides are the diagram families. Ask for `--smartart` and they leave as real, editable SmartArt in PowerPoint. -->
+
+## Plan
+
+Scope agreed with the sponsors.
+
+## Build
+
+Two-week iterations.
+
+## Review
+
+Adoption dashboard.
+
+## Ship
+
+# Who reports to whom
+
+<!-- layout: hierarchy -->
+
+- Delivery
+  - Engineering
+    - Platform
+    - Product
+  - Design
+  - Operations
+
+# Where the three overlap
+
+<!-- layout: venn -->
+
+## Desirable
+
+## Feasible
+
+## Viable
+
+# The compiler and what leans on it
+
+<!-- layout: radial -->
+
+Compiler core
+
+## CLI
+
+## VS Code
+
+## Web playground
+
+## CI
+
 # A word from the people who use it
 
 <!-- layout: quote -->

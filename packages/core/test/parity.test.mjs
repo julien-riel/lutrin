@@ -66,8 +66,8 @@ function record(table, seen) {
 
 // The net that was missing. An entry of BLOCK_RENDERERS could be deleted,
 // emptied or broken without a single test flinching, because nothing rendered a
-// deck containing all eighteen types. So we count the calls, at the source.
-test('rendering the fixture ACTUALLY calls each of the eighteen entries, in both formats', async (t) => {
+// deck containing all nineteen types. So we count the calls, at the source.
+test('rendering the fixture ACTUALLY calls each of the nineteen entries, in both formats', async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-parity-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 

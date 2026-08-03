@@ -716,3 +716,59 @@ test('directive between two "---" → orphaned, never carried over to the next s
   assert.ok(d, 'ORPHAN_DIRECTIVE expected');
   assert.equal(d.line, 5);
 });
+
+// --- diagram layouts -------------------------------------------------------
+
+test('SMARTART_NODES: a tree that yields fewer than two nodes says so', () => {
+  const d = validateDeck('# Org\n\n<!-- layout: hierarchy -->\n\n- Only one\n').find(
+    (x) => x.code === 'SMARTART_NODES',
+  );
+  assert.ok(d, 'SMARTART_NODES expected');
+  assert.equal(d.severity, 'warning');
+  assert.match(d.message, /1 node/);
+});
+
+test('SMARTART_NODES stays quiet where LAYOUT_SECTIONS already speaks', () => {
+  // cycle, venn and radial DECLARE their bounds, so a shortfall is already
+  // reported once, in the layout's own words. Saying it twice, differently,
+  // is the lying-warning failure by duplication.
+  const diags = validateDeck('# D\n\n<!-- layout: cycle -->\n\n## Only\n');
+  assert.ok(diags.some((x) => x.code === 'LAYOUT_SECTIONS'));
+  assert.equal(
+    diags.some((x) => x.code === 'SMARTART_NODES'),
+    false,
+  );
+});
+
+test('SMARTART_TEXT: formatting dropped inside a diagram label is announced', () => {
+  const d = validateDeck(
+    '# D\n\n<!-- layout: cycle -->\n\n## **Plan**\n\n## Build\n\n## Ship\n',
+  ).find((x) => x.code === 'SMARTART_TEXT');
+  assert.ok(d, 'SMARTART_TEXT expected');
+  assert.equal(d.severity, 'info');
+  // and a plain deck stays silent
+  assert.equal(
+    validateDeck('# D\n\n<!-- layout: cycle -->\n\n## Plan\n\n## Build\n\n## Ship\n').some(
+      (x) => x.code === 'SMARTART_TEXT',
+    ),
+    false,
+  );
+});
+
+test("radial's lead paragraph is the hub, and is not counted as a spoke", () => {
+  const secs = Array.from({ length: 8 }, (_, i) => `## S${i + 1}\n`).join('\n');
+  const diags = validateDeck(`# P\n\n<!-- layout: radial -->\n\nThe platform\n\n${secs}`);
+  assert.equal(
+    diags.some((x) => x.code === 'LAYOUT_SECTIONS'),
+    false,
+    'a hub plus eight spokes is eight sections, not nine — the layout used them all',
+  );
+});
+
+test('capabilities() publishes the diagram layouts and their diagnostics', () => {
+  const caps = capabilities();
+  for (const name of ['cycle', 'hierarchy', 'venn', 'radial'])
+    assert.ok(caps.layouts.includes(name), `${name} absent from capabilities()`);
+  assert.ok(caps.diagnostics.includes('SMARTART_NODES'));
+  assert.ok(caps.diagnostics.includes('SMARTART_TEXT'));
+});

@@ -612,3 +612,26 @@ test('inline scripts: every one of them parses as JavaScript', async () => {
     'the presenter script is not among the ones just checked',
   );
 });
+
+test("a diagram is one inline SVG at the region's exact size, and animates like anything else", async () => {
+  const { html } = await compileHtml(
+    '---\ntitle: D\n---\n\n# Loop\n\n<!-- animate -->\n\n<!-- layout: cycle -->\n\n## Plan\n\n## Build\n\n## Ship\n',
+  );
+  // the animation splice adds its attributes BEFORE the class, so nothing
+  // here may depend on attribute order
+  const figure = /<div [^>]*class="figure el"[^>]*>(<svg[\s\S]*?<\/svg>)<\/div>/.exec(html);
+  assert.ok(figure, 'no diagram figure in the document');
+  const [, svg] = figure;
+  const style = /style="([^"]*)"/.exec(figure[0])[1];
+  const w = Number(/width:([\d.]+)px/.exec(style)[1]);
+  const h = Number(/height:([\d.]+)px/.exec(style)[1]);
+  assert.match(svg, new RegExp(`viewBox="0 0 ${w} ${h}"`), 'the SVG is not the size of its slot');
+  // ONE top-level element: the animation splice wraps what the renderer
+  // returned, and would wrap only the first of two
+  assert.equal((figure[0].match(/^<div/g) ?? []).length, 1);
+  assert.match(
+    figure[0],
+    /data-fx="fade"/,
+    'the default preset, since no PRESET_BY_KIND entry is added',
+  );
+});

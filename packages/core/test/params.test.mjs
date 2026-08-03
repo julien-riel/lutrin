@@ -149,6 +149,7 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
   assert.deepEqual(Object.keys(caps.layoutParams).sort(), [
     'comparison',
     'content',
+    'cycle',
     'focus',
     'grid',
     'layers',
@@ -158,6 +159,7 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
     'steps',
     'swot',
     'timeline',
+    'venn',
   ]);
   assert.equal(caps.layoutParams.comparison.pad.default, 16);
   assert.deepEqual(caps.layoutParams.swot.kinds.values, ['info', 'success', 'warning', 'danger']);

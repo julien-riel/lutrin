@@ -353,6 +353,28 @@ export function contrastRatio(a, b) {
  *
  * Nothing clears 4.5:1 → the best of the three, and THEME_CONTRAST says so.
  */
+/**
+ * The colour a translucent fill actually produces over a background —
+ * `alpha × top + (1 − alpha) × bottom`, per channel.
+ *
+ * It exists so that ink on a translucent surface is chosen against the
+ * surface the READER sees, not against the opaque colour named in the token.
+ * A Venn disc painted at 22 % is, to the eye, a very pale tint; picking its
+ * ink from the full-strength shade would put white text on near-white and
+ * pass every contrast check by measuring a pair nothing displays.
+ */
+export function composite(top, bottom, alpha) {
+  const chan = (hex, i) => Number.parseInt(hex.slice(i, i + 2), 16);
+  return [0, 2, 4]
+    .map((i) =>
+      Math.round(alpha * chan(top, i) + (1 - alpha) * chan(bottom, i))
+        .toString(16)
+        .padStart(2, '0')
+        .toUpperCase(),
+    )
+    .join('');
+}
+
 export function solidInk(fill, familyDark) {
   const candidates = [familyDark, COLORS.ground, COLORS.neutralPrimary].filter(Boolean);
   return (

@@ -3945,6 +3945,183 @@
   },
   {
     "master": "content",
+    "layout": "cycle",
+    "title": "Four shapes an outline cannot make",
+    "titleRuns": [
+      {
+        "text": "Four shapes an outline cannot make"
+      }
+    ],
+    "notes": [
+      "These four slides are the diagram families. Ask for `--smartart` and they leave as real, editable SmartArt in PowerPoint."
+    ],
+    "sourceLine": 501,
+    "elements": [
+      {
+        "block": {
+          "type": "smartart",
+          "family": "cycle",
+          "nodes": [
+            {
+              "text": "Plan",
+              "sub": "Scope agreed with the sponsors."
+            },
+            {
+              "text": "Build",
+              "sub": "Two-week iterations."
+            },
+            {
+              "text": "Review",
+              "sub": "Adoption dashboard."
+            },
+            {
+              "text": "Ship"
+            }
+          ]
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 560
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "hierarchy",
+    "title": "Who reports to whom",
+    "titleRuns": [
+      {
+        "text": "Who reports to whom"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 521,
+    "elements": [
+      {
+        "block": {
+          "type": "smartart",
+          "family": "hierarchy",
+          "nodes": [
+            {
+              "text": "Delivery",
+              "children": [
+                {
+                  "text": "Engineering",
+                  "children": [
+                    {
+                      "text": "Platform",
+                      "children": []
+                    },
+                    {
+                      "text": "Product",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "text": "Design",
+                  "children": []
+                },
+                {
+                  "text": "Operations",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 560
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "venn",
+    "title": "Where the three overlap",
+    "titleRuns": [
+      {
+        "text": "Where the three overlap"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 532,
+    "elements": [
+      {
+        "block": {
+          "type": "smartart",
+          "family": "venn",
+          "nodes": [
+            {
+              "text": "Desirable"
+            },
+            {
+              "text": "Feasible"
+            },
+            {
+              "text": "Viable"
+            }
+          ]
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 560
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
+    "layout": "radial",
+    "title": "The compiler and what leans on it",
+    "titleRuns": [
+      {
+        "text": "The compiler and what leans on it"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 542,
+    "elements": [
+      {
+        "block": {
+          "type": "smartart",
+          "family": "radial",
+          "nodes": [
+            {
+              "text": "CLI"
+            },
+            {
+              "text": "VS Code"
+            },
+            {
+              "text": "Web playground"
+            },
+            {
+              "text": "CI"
+            }
+          ],
+          "hub": "Compiler core"
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 560
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
     "layout": "quote",
     "title": "A word from the people who use it",
     "titleRuns": [
@@ -3953,7 +4130,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 501,
+    "sourceLine": 556,
     "elements": [
       {
         "block": {
@@ -3971,7 +4148,7 @@
             }
           ],
           "cite": "A programme lead, after the third rebuild in one week",
-          "line": 505
+          "line": 560
         },
         "region": {
           "x": 48,
@@ -3994,7 +4171,7 @@
     "notes": [
       "Hand out the URL here. The .pptx of this very deck is on the site."
     ],
-    "sourceLine": 510,
+    "sourceLine": 565,
     "elements": [
       {
         "block": {
@@ -4040,7 +4217,7 @@
               "text": "Node 22 or later. Nothing else to install. MIT."
             }
           ],
-          "line": 516
+          "line": 571
         },
         "region": {
           "x": 48,

@@ -58,6 +58,7 @@ import { presetFor } from '../deck/anim.mjs';
 import { buildScenes } from '../deck/layout.mjs';
 import { prepareDeckContext } from '../deck/context.mjs';
 import { chartSvg } from '../deck/chart.mjs';
+import { smartArtSvg } from '../deck/smartart.mjs';
 import { highlightLine } from '../deck/highlight.mjs';
 import {
   fetchRemoteImage,
@@ -393,6 +394,14 @@ function htmlTimelineDot(block, r) {
   return `<div class="tl-dot el" style="${at(r, true)}">${block.numbered === false ? '' : block.index}</div>`;
 }
 
+/** A diagram: one inline SVG at the region's EXACT size, in one top-level
+ *  element — the animation splice wraps what this returns, and would wrap only
+ *  the first of two. No CSS of its own: everything the diagram needs is in the
+ *  geometry, which is the same object the .pptx draws. */
+function htmlSmartArt(block, r) {
+  return `<div class="figure el" style="${at(r, true)}">${smartArtSvg(block, r.w, r.h)}</div>`;
+}
+
 function htmlQuote(block, r) {
   // `.quote-mark` and `figcaption` carry colours of their own (the primary
   // accent, the secondary ink): on a repainted panel those class rules beat
@@ -485,6 +494,7 @@ export const BLOCK_RENDERERS = {
   panel: htmlPanel,
   'timeline-axis': htmlTimelineAxis,
   'timeline-dot': htmlTimelineDot,
+  smartart: htmlSmartArt,
 };
 
 // ---------------------------------------------------------------------------

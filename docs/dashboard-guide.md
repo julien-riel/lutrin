@@ -309,6 +309,7 @@ a layout name and nothing else.
 |---|---|
 | `content`, `grid`, `comparison`, `pillars`, `steps`, `swot`, `layers` | yes |
 | `metrics`, `split`, `timeline`, `focus` | no |
+| `cycle`, `hierarchy`, `venn`, `radial` | no — a diagram's labels do not flow through the block layout |
 
 The steps are **factors on each block's own theme token**, not absolute sizes,
 so a kit shipping a 16 pt body keeps its proportions. On the default theme:
@@ -609,10 +610,11 @@ own (callout, metric card, code block, badge pill, the fill of a bar) keep the
 ink that was validated against that surface.
 
 **Parameters are layout-level.** There is no per-slide override: two boards at
-different densities means two `layouts/*.json` files. And of the eleven bases
+different densities means two `layouts/*.json` files. And of the thirteen bases
 that publish parameters at all, `density` reaches seven, `radius` four
 (`comparison`, `pillars`, `grid`, `steps`) and `align` four (`content`,
-`grid`, `metrics`, `focus`).
+`grid`, `metrics`, `focus`). The two diagram bases that publish anything
+(`cycle`, `venn`) publish none of the three.
 
 **Auto-fit is not a guarantee.** It never runs in a flowing layout, it never
 runs in a region holding nothing the scale can touch, and it stops at `dense`.

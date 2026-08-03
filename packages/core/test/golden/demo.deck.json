@@ -2442,6 +2442,260 @@
       "line": 490
     },
     {
+      "title": "Four shapes an outline cannot make",
+      "titleRuns": [
+        {
+          "text": "Four shapes an outline cannot make"
+        }
+      ],
+      "layout": "cycle",
+      "animate": null,
+      "notes": [
+        "These four slides are the diagram families. Ask for `--smartart` and they leave as real, editable SmartArt in PowerPoint."
+      ],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Plan"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Scope agreed with the sponsors."
+                }
+              ],
+              "line": 509
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Build"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Two-week iterations."
+                }
+              ],
+              "line": 513
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Review"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Adoption dashboard."
+                }
+              ],
+              "line": 517
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "Ship"
+            }
+          ],
+          "blocks": []
+        }
+      ],
+      "line": 501,
+      "layoutLine": 503
+    },
+    {
+      "title": "Who reports to whom",
+      "titleRuns": [
+        {
+          "text": "Who reports to whom"
+        }
+      ],
+      "layout": "hierarchy",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "bullets",
+              "ordered": false,
+              "items": [
+                {
+                  "runs": [
+                    {
+                      "text": "Delivery"
+                    }
+                  ],
+                  "level": 0
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Engineering"
+                    }
+                  ],
+                  "level": 1
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Platform"
+                    }
+                  ],
+                  "level": 2
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Product"
+                    }
+                  ],
+                  "level": 2
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Design"
+                    }
+                  ],
+                  "level": 1
+                },
+                {
+                  "runs": [
+                    {
+                      "text": "Operations"
+                    }
+                  ],
+                  "level": 1
+                }
+              ],
+              "line": 525
+            }
+          ]
+        }
+      ],
+      "line": 521,
+      "layoutLine": 523
+    },
+    {
+      "title": "Where the three overlap",
+      "titleRuns": [
+        {
+          "text": "Where the three overlap"
+        }
+      ],
+      "layout": "venn",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": [
+            {
+              "text": "Desirable"
+            }
+          ],
+          "blocks": []
+        },
+        {
+          "heading": [
+            {
+              "text": "Feasible"
+            }
+          ],
+          "blocks": []
+        },
+        {
+          "heading": [
+            {
+              "text": "Viable"
+            }
+          ],
+          "blocks": []
+        }
+      ],
+      "line": 532,
+      "layoutLine": 534
+    },
+    {
+      "title": "The compiler and what leans on it",
+      "titleRuns": [
+        {
+          "text": "The compiler and what leans on it"
+        }
+      ],
+      "layout": "radial",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Compiler core"
+                }
+              ],
+              "line": 546
+            }
+          ]
+        },
+        {
+          "heading": [
+            {
+              "text": "CLI"
+            }
+          ],
+          "blocks": []
+        },
+        {
+          "heading": [
+            {
+              "text": "VS Code"
+            }
+          ],
+          "blocks": []
+        },
+        {
+          "heading": [
+            {
+              "text": "Web playground"
+            }
+          ],
+          "blocks": []
+        },
+        {
+          "heading": [
+            {
+              "text": "CI"
+            }
+          ],
+          "blocks": []
+        }
+      ],
+      "line": 542,
+      "layoutLine": 544
+    },
+    {
       "title": "A word from the people who use it",
       "titleRuns": [
         {
@@ -2470,13 +2724,13 @@
                 }
               ],
               "cite": "A programme lead, after the third rebuild in one week",
-              "line": 505
+              "line": 560
             }
           ]
         }
       ],
-      "line": 501,
-      "layoutLine": 503
+      "line": 556,
+      "layoutLine": 558
     },
     {
       "title": "Start in one line",
@@ -2504,7 +2758,7 @@
                   "italic": false
                 }
               ],
-              "line": 514
+              "line": 569
             },
             {
               "type": "para",
@@ -2513,13 +2767,13 @@
                   "text": "Node 22 or later. Nothing else to install. MIT."
                 }
               ],
-              "line": 516
+              "line": 571
             }
           ]
         }
       ],
-      "line": 510,
-      "layoutLine": 512
+      "line": 565,
+      "layoutLine": 567
     }
   ]
 }
