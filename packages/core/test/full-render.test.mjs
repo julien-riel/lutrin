@@ -278,6 +278,11 @@ test('pptx: each of the nineteen block types leaves its marker in the XML', asyn
 
   // mermaid: mmdc is optional, both branches have their marker
   const diagram = await xmlOf('Diagram');
+  // Captured BEFORE `mermaidAvailable()`, which renders a probe of its own and
+  // resets the renderer's last error on success. Reading it afterwards
+  // reported "(nothing)" — the probe's state, never the deck render's, which
+  // is the one that failed. The diagnostic was right; its placement was not.
+  const why = lastMermaidError() ?? '(nothing)';
   if (mermaidAvailable()) {
     // The REASON travels with the failure. This assertion has gone red on the
     // Windows runner more than once, and each time the report was the bare
@@ -288,7 +293,7 @@ test('pptx: each of the nineteen block types leaves its marker in the XML', asyn
     assert.match(
       diagram,
       /descr="Mermaid diagram"/,
-      `mermaid: PNG rendered by mmdc — renderer said: ${lastMermaidError() ?? '(nothing)'}`,
+      `mermaid: PNG rendered by mmdc — renderer said: ${why}`,
     );
   } else {
     assert.match(diagram, /ZQMERMAID/, 'mermaid: fallback, the source stays readable');

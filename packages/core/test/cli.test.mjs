@@ -1428,13 +1428,6 @@ test('--smartart is a documented flag of build', () => {
 
 const EXPORT_DECK = '---\ntitle: Export\n---\n\n# Alpha\n\n- One bullet\n';
 
-/** The export needs a browser; without one the CLI refuses, which is its own
- *  (tested) behaviour rather than a reason to fail here. */
-async function browserPresent() {
-  const { findBrowser } = await import('../src/deck/browser.mjs');
-  return Boolean(findBrowser());
-}
-
 test('build refuses an output whose extension does not match the format asked for', (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-fmt-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -1448,35 +1441,11 @@ test('build refuses an output whose extension does not match the format asked fo
   assert.equal(fs.existsSync(path.join(dir, 'out.txt')), false);
 });
 
-test('build infers the format from the output extension, with no flag', async (t) => {
-  if (!(await browserPresent())) return t.skip('no browser on this machine');
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-infer-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const src = path.join(dir, 'd.deck.md');
-  fs.writeFileSync(src, EXPORT_DECK);
-
-  const out = path.join(dir, 'deck.pdf');
-  const r = lutrin(['build', src, '-o', out]);
-  assert.equal(r.code, 0, r.stderr);
-  assert.equal(fs.readFileSync(out).subarray(0, 5).toString('latin1'), '%PDF-');
-  assert.match(r.stdout, /one per slide/);
-});
-
-test('build --png names a STEM: one file per slide beside it', async (t) => {
-  if (!(await browserPresent())) return t.skip('no browser on this machine');
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-png-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const src = path.join(dir, 'd.deck.md');
-  fs.writeFileSync(src, EXPORT_DECK);
-
-  const r = lutrin(['build', src, '--png', '-o', path.join(dir, 'shot.png')]);
-  assert.equal(r.code, 0, r.stderr);
-  // the file named on the command line is NOT what is written — the success
-  // line has to say the shape that was, or the reader looks for the wrong file
-  assert.equal(fs.existsSync(path.join(dir, 'shot.png')), false);
-  assert.ok(fs.existsSync(path.join(dir, 'shot-01.png')));
-  assert.match(r.stdout, /shot-NN\.png/);
-});
+// The two forms that actually launch a browser — `-o deck.pdf` and `--png` —
+// are NOT tested here. Three CLI spawns that each start a Chrome pushed this
+// file past the suite's 120 s budget on the Windows runner, and the whole file
+// timed out. `scripts/pdf-smoke.mjs` drives both through the real CLI as its
+// own CI step, where the cost is paid once and cannot blow a shared budget.
 
 test('--pdf, --png and --jpeg are documented flags of build', () => {
   const r = lutrin(['--help']);
