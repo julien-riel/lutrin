@@ -16,8 +16,9 @@ the layout.**
 You write the intent and the content; the compiler picks the layout, places
 the blocks, guarantees legibility and produces a `.pptx` that anyone can then
 open and retouch in PowerPoint. The HTML output is a single file, with a
-built-in presenter mode (full screen, notes, timer, second window — the `P`
-key).
+built-in presenter mode (full screen, overview grid, on-screen controls, and a
+second window with the notes, a timer and the wall clock — the `P` key);
+printing it from the browser gives a correctly sized 16:9 PDF.
 
 Validation ships a "deck doctor": measured overflows, layouts suggested from
 the content, under-resolved images. In the CLI (`--json` for agents) and

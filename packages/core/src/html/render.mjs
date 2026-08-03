@@ -18,7 +18,7 @@
  * Three optional inline scripts equip the complete document (never the
  * fragment mode): scaling (FIT_SCRIPT), steps on click (ANIM_SCRIPT) and the
  * standalone presenter mode (PRESENT_SCRIPT — key P: full screen; key N:
- * notes/timer view in a second window).
+ * notes/timer view in a second window; key O: overview of every slide).
  *
  * API for a programmatic host (VS Code plugin):
  *   - renderDeckHtml(scenes, meta, baseDir) → { html, stats }
@@ -557,12 +557,18 @@ function contentHtml(scene, num, footerText, ctx, brand) {
     if (!fn) continue;
     let frag = fn(el.block, el.region, ctx);
     if (el.step != null) {
+      // The movement is asked of the SAME table the .pptx reads
+      // (deck/anim.mjs), so `<!-- animate: zoom -->` means one thing in both
+      // outputs. `appear` is the absence of movement and carries no attribute:
+      // the visibility toggle below already is that effect.
+      const fx = presetFor(el.block.type, scene.animPreset);
+      const fxAttr = fx === 'appear' ? '' : ` data-fx="${fx}"`;
       if (el.block.type === 'bullets' && el.stepCount > 1) {
         // list bullet by bullet: one step per <li> (the container stays visible)
         let k = el.step;
-        frag = frag.replace(/<li>/g, () => `<li data-step="${k++}">`);
+        frag = frag.replace(/<li>/g, () => `<li data-step="${k++}"${fxAttr}>`);
       } else {
-        frag = frag.replace(/^<(\w+)/, `<$1 data-step="${el.step}"`);
+        frag = frag.replace(/^<(\w+)/, `<$1 data-step="${el.step}"${fxAttr}`);
       }
     }
     parts.push(frag);
@@ -749,6 +755,22 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .slide-frame[data-anim-steps] [data-step]{visibility:hidden}
 .slide-frame[data-anim-steps] [data-step].step-shown{visibility:visible}
 .anim-count{position:absolute;right:12px;top:8px;font-size:11px;color:#${C.neutralTertiary};font-variant-numeric:tabular-nums;pointer-events:none;z-index:2}
+/* the entrance effect itself (data-fx, written by contentHtml from the same
+   table the .pptx reads). EVERY rule here stays under
+   .slide-frame[data-anim-steps]: the deck editor strips that attribute to show
+   a slide whole, and an ungated opacity:0 would blank it — as it would blank
+   the print rendering and the site's demo iframe.
+   The "appear" preset carries no data-fx at all: the visibility toggle above
+   already is that effect. (No backticks: we are inside a JS template literal.) */
+@media (prefers-reduced-motion:no-preference){
+  .slide-frame[data-anim-steps] [data-step][data-fx]{opacity:0}
+  .slide-frame[data-anim-steps] [data-step][data-fx].step-shown{opacity:1;transition:opacity .4s ease,transform .4s ease,clip-path .4s ease}
+  .slide-frame[data-anim-steps] [data-step][data-fx="zoom"]{transform:scale(.4)}
+  .slide-frame[data-anim-steps] [data-step][data-fx="zoom"].step-shown{transform:none}
+  /* wipe(up) — the same direction as the PowerPoint filter of pptx/anim.mjs */
+  .slide-frame[data-anim-steps] [data-step][data-fx="wipe"]{clip-path:inset(100% 0 0 0)}
+  .slide-frame[data-anim-steps] [data-step][data-fx="wipe"].step-shown{clip-path:inset(0 0 0 0)}
+}
 
 /* presenter notes (below the slide, outside the geometry) */
 .notes{font-size:10pt;color:#${C.neutralSecondary};padding:4px 2px}
@@ -761,10 +783,30 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
   .slide-frame{width:${PAGE.width}px;height:${PAGE.height}px !important;border:none;border-radius:0;break-after:page}
   .slide{transform:none !important}
   .slide-frame [data-step]{visibility:visible !important}
+  /* an entrance effect left standing prints what the audience has not seen
+     yet: a metric frozen at 40 % scale, a panel clipped down to nothing */
+  .slide-frame [data-step][data-fx]{opacity:1 !important;transform:none !important;clip-path:none !important}
   .anim-count{display:none}
   .notes{display:none}
-  @page{margin:0}
 }`;
+}
+
+/** The printed page itself — a DOCUMENT-level rule, so it is injected by
+ *  renderDeckHtml() only and never by the fragment mode.
+ *
+ *  `size` is what makes "print to PDF" produce the deck rather than a deck
+ *  squeezed onto the reader's default paper: without it the browser lays a
+ *  1280x720 frame onto A4 portrait and scales or crops it. With it, and with
+ *  the @media print block of baseCss() (one slide per page, the fit transform
+ *  undone, every animation step open), the browser's own print dialog is a
+ *  working PDF export. It is not a lutrin PDF WRITER: there are no notes
+ *  annotations, no outlines, and no PNG or JPEG anywhere.
+ *
+ *  It lives outside baseCss() because baseCss() is also handed to a HOST — the
+ *  VS Code webview, the editing SPA — where an @page rule is not ours to set:
+ *  it would repaginate the host's own print output. */
+function pageCss() {
+  return `@media print{@page{size:${PAGE.width}px ${PAGE.height}px;margin:0}}`;
 }
 
 /** Rules of the presenter mode (PRESENT_SCRIPT) — a function separate from
@@ -789,9 +831,56 @@ body.presenting .present-hint{color:#8a8f98;background:none;border-color:transpa
 .present-help.open{display:block}
 .present-help b{display:block;margin-bottom:6px;font-size:14px}
 .present-help kbd{display:inline-block;min-width:20px;margin-right:6px;padding:0 6px;background:#2a2a2a;border-radius:4px;font-family:inherit;font-size:12px;text-align:center}
+
+/* Progress bar and on-screen controls.
+   EVERY class here is prefixed present-: .progress, .progress-track and
+   .progress-fill already belong to the :::progress block of the DSL
+   (baseCss above), and reusing those names would repaint every bar the
+   author wrote into their own slides. */
+/* The chrome sits ON TOP OF THE SLIDE, whose background is the theme's — white
+   in every default kit. So none of it may be tinted for the dark backdrop of
+   presentation mode: a rail at rgba(255,255,255,.14) and buttons at .10 were
+   invisible on a white slide, which a screenshot showed and reading the CSS did
+   not. Everything below is dark-on-translucent with a light border, the same
+   bet .present-help already makes, and it reads on either. */
+.present-bar{display:none;position:fixed;left:0;bottom:0;width:100%;height:3px;z-index:20;background:rgba(128,128,128,.32)}
+body.presenting .present-bar{display:block}
+.present-bar-fill{height:100%;width:0;background:#${C.primary};transition:width .2s ease}
+/* the controls exist for the surfaces the keyboard does not reach — a tablet,
+   a touch lectern, a laptop whose deck does not have focus. They fade out
+   with the pointer so they are not projected onto a still slide. */
+.present-nav{display:none;position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:21;gap:10px}
+body.presenting .present-nav{display:flex;opacity:0;pointer-events:none;transition:opacity .3s ease}
+body.presenting.present-active .present-nav{opacity:1;pointer-events:auto}
+.present-nav button{width:44px;height:44px;padding:0;font:inherit;font-size:17px;line-height:1;color:#f3f5f7;background:rgba(11,11,11,.58);border:1px solid rgba(255,255,255,.28);border-radius:50%;cursor:pointer}
+.present-nav button:hover{background:rgba(11,11,11,.80)}
+.present-nav button[disabled]{opacity:.35;cursor:default}
+
+/* Overview (O): the whole deck as a grid. The slides are already all in the
+   document at a fixed geometry, so this is a grid plus a rescale — FIT_SCRIPT
+   derives the scale from each frame's clientWidth and needs only a resize.
+   The .present-current rule below is written at a higher specificity than the
+   fixed-position one above ON PURPOSE: at equal specificity the source order
+   would decide, and a half-reset leaves one slide pinned over the grid. */
+body.presenting.present-overview{overflow:auto}
+body.presenting.present-overview .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;padding:14px}
+/* position:relative, NOT static: .slide is absolutely positioned inside its
+   frame (baseCss), so a static frame stops being its containing block and all
+   the slides pile up at the top-left of the page, leaving a grid of empty
+   thumbnails. Found by screenshotting the grid, not by reading the CSS. */
+body.presenting.present-overview .slide-frame{display:block;position:relative;left:auto;top:auto;width:auto;border:1px solid #2a2a2a;border-radius:4px;cursor:pointer;z-index:auto}
+body.presenting.present-overview .slide-frame.present-current{position:relative;left:auto;top:auto;right:auto;bottom:auto;margin:0;width:auto;border:2px solid #${C.primary};z-index:auto}
+body.presenting.present-overview .present-nav,body.presenting.present-overview .present-bar{display:none}
+/* an animated slide shows every step in the grid: an overview whose job is to
+   let you find a slide cannot show it as the blank it is before the first
+   click. Same reasoning as the print rendering, and written at a higher
+   specificity than the hiding rules of baseCss so it wins wherever they sit. */
+body.presenting.present-overview .slide-frame [data-step]{visibility:visible}
+body.presenting.present-overview .slide-frame [data-step][data-fx]{opacity:1;transform:none;clip-path:none;transition:none}
+
 /* the presentation-mode chrome never prints (the print rendering of baseCss()
    stays identical; PRESENT_SCRIPT exits the mode before printing) */
-@media print{.present-hint,.present-help{display:none}}`;
+@media print{.present-hint,.present-help,.present-nav,.present-bar{display:none}}`;
 }
 
 /** Scaling of the slides — the only piece of JS, optional (without it, the
@@ -860,7 +949,11 @@ const animScript = () => `
  *    ← PgUp             previous step, then previous slide;
  *    Home / End         first / last slide;
  *    N                  presenter view (2nd window);
- *    Esc                exit;  ?  help.
+ *    O                  overview: every slide as a grid, click to jump;
+ *    Esc                one step out — the help, then the overview, then the
+ *                       mode itself;  ?  help.
+ *  A progress bar and two on-screen controls follow the pointer: the keyboard
+ *  is not reachable from a tablet or a touch lectern.
  *  The presenter view is an about:blank filled in by document.write and driven
  *  by a direct window reference: over file:// the origin is opaque and
  *  BroadcastChannel is not reliable — the direct reference is the only robust
@@ -875,6 +968,7 @@ const presentScript = () => `
   if (!frames.length) return;
   var current = 0;
   var presenting = false;
+  var overview = false;                            // grid of every slide (O)
   var notesWin = null;                             // presenter view
   var timer = { acc: 0, from: 0, running: false }; // timer (state on the main side)
   var tick = null;
@@ -905,19 +999,65 @@ const presentScript = () => `
     '<div><kbd>←</kbd><kbd>PgUp</kbd>previous step or slide</div>' +
     '<div><kbd>Home</kbd><kbd>End</kbd>first / last slide</div>' +
     '<div><kbd>N</kbd>presenter view (notes, timer)</div>' +
+    '<div><kbd>O</kbd>overview of every slide</div>' +
     '<div><kbd>Esc</kbd>exit</div>';
   document.body.appendChild(help);
   help.addEventListener('click', function(){ help.classList.remove('open'); });
+
+  // ------ progress bar + on-screen controls ---------------------------------
+  var bar = document.createElement('div');
+  bar.className = 'present-bar';
+  var barFill = document.createElement('div');
+  barFill.className = 'present-bar-fill';
+  bar.appendChild(barFill);
+  document.body.appendChild(bar);
+
+  var nav = document.createElement('div');
+  nav.className = 'present-nav';
+  function navButton(label, glyph, fn){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', label);
+    b.innerHTML = glyph;
+    // stopPropagation, or the click also reaches the document listener that
+    // resynchronizes the presenter view and the reveal handler ANIM_SCRIPT
+    // put on the slide — one tap would then advance two things
+    b.addEventListener('click', function(e){ e.stopPropagation(); fn(); wake(); });
+    nav.appendChild(b);
+    return b;
+  }
+  var btnPrev = navButton('Previous slide', '&#8592;', function(){ prev(); });
+  var btnNext = navButton('Next slide', '&#8594;', function(){ next(); });
+  document.body.appendChild(nav);
+
+  /** The controls follow the pointer: shown while it moves, gone after a
+   *  pause — a still slide is projected without chrome on it. */
+  var idle = null;
+  function wake(){
+    if (!presenting || overview) return;
+    document.body.classList.add('present-active');
+    if (idle) clearTimeout(idle);
+    idle = setTimeout(function(){ document.body.classList.remove('present-active'); }, 2500);
+  }
+  document.addEventListener('mousemove', wake);
+  document.addEventListener('touchstart', wake, { passive: true });
+
   function updateHint(){
     hint.textContent = presenting
-      ? (current + 1) + ' / ' + frames.length + ' — N: notes · Esc: exit · ?: help'
+      ? (current + 1) + ' / ' + frames.length + ' — N: notes · O: overview · Esc: exit · ?: help'
       : 'P: presentation mode · ?: help';
+    barFill.style.width = ((current + 1) / frames.length * 100) + '%';
+    // a step still to reveal is a "next" even on the last slide, and a step
+    // already revealed is a "previous" even on the first
+    var a = anim(current);
+    btnPrev.disabled = current === 0 && !(a && a.shown > 0);
+    btnNext.disabled = current === frames.length - 1 && !(a && a.shown < a.total);
   }
   updateHint();
 
   // ------ scaling of the current slide --------------------------------------
   function fitCurrent(){
-    if (!presenting) return;
+    if (!presenting || overview) return; // the grid sizes its own cells
     var f = frames[current];
     var s = Math.min(window.innerWidth / W, window.innerHeight / H);
     f.style.width = (W * s) + 'px';
@@ -946,18 +1086,56 @@ const presentScript = () => `
     var a = anim(n);
     if (a) a.set(atEnd ? a.total : 0); // going backwards: every step already revealed
     frames[n].classList.add('present-current');
+    if (overview) frames[n].scrollIntoView({ block: 'nearest' }); // follow the selection
     fitCurrent(); updateHint(); sync();
   }
+  // In the grid the arrows move the SELECTION: stepping through an animation
+  // there would look like nothing at all, since the overview forces every step
+  // visible — the press would be swallowed until the last step was spent.
   function next(){
-    var a = anim(current);
-    if (a && a.shown < a.total){ a.set(a.shown + 1); sync(); return; }
+    var a = overview ? null : anim(current);
+    if (a && a.shown < a.total){ a.set(a.shown + 1); updateHint(); sync(); return; }
     goTo(current + 1, false);
   }
   function prev(){
-    var a = anim(current);
-    if (a && a.shown > 0){ a.set(a.shown - 1); sync(); return; }
+    var a = overview ? null : anim(current);
+    if (a && a.shown > 0){ a.set(a.shown - 1); updateHint(); sync(); return; }
     goTo(current - 1, true);
   }
+
+  // ------ overview (O): the whole deck as a grid -----------------------------
+  // Nothing is rebuilt: every slide is already in the document at a fixed
+  // geometry, so the grid is CSS and FIT_SCRIPT rescales each thumbnail from
+  // its new clientWidth — one resize event is the whole implementation.
+  function overviewEnter(){
+    if (!presenting || overview) return;
+    overview = true;
+    // fitCurrent() sized the current frame with INLINE width/height; inline
+    // beats the grid's stylesheet, so one cell would keep the full-screen size
+    frames[current].style.width = '';
+    frames[current].style.height = '';
+    document.body.classList.add('present-overview');
+    document.body.classList.remove('present-active');
+    window.dispatchEvent(new Event('resize'));
+    frames[current].scrollIntoView({ block: 'center' });
+    updateHint();
+  }
+  function overviewExit(n){
+    if (!overview) return;
+    overview = false;
+    document.body.classList.remove('present-overview');
+    if (n != null && n !== current) goTo(n, false);
+    else { fitCurrent(); updateHint(); sync(); }
+  }
+  // capture phase: a slide clicked in the grid must NOT also reach the reveal
+  // handler ANIM_SCRIPT put on it, which would advance a step on the way out
+  document.addEventListener('click', function(e){
+    if (!overview) return;
+    var f = e.target.closest && e.target.closest('.slide-frame');
+    if (!f) return;
+    e.stopPropagation();
+    overviewExit(frames.indexOf(f));
+  }, true);
 
   // ------ entering / leaving the mode ---------------------------------------
   function enter(){
@@ -968,7 +1146,7 @@ const presentScript = () => `
     var a = anim(current);
     if (a) a.set(0);
     frames[current].classList.add('present-current');
-    fitCurrent(); updateHint();
+    fitCurrent(); updateHint(); wake(); // the controls show themselves once, then fade
     // full screen if allowed — if refused, the mode stays windowed
     var p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
     if (p && p.catch) p.catch(function(){});
@@ -976,11 +1154,14 @@ const presentScript = () => `
   function exit(){
     if (!presenting) return;
     presenting = false;
+    overview = false;
     help.classList.remove('open');
     var f = frames[current];
     f.classList.remove('present-current');
     f.style.width = '';
     document.body.classList.remove('presenting');
+    document.body.classList.remove('present-overview');
+    document.body.classList.remove('present-active');
     closePresenter();
     if (document.fullscreenElement && document.exitFullscreen){
       var p = document.exitFullscreen();
@@ -1007,6 +1188,9 @@ const presentScript = () => `
     '#t-timer.run{color:#e9ecef}' +
     '#t-reset{font:inherit;font-size:14px;color:#8a8f98;background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 10px;cursor:pointer}' +
     '#t-count{margin-left:auto;font-size:14px;color:#8a8f98;font-variant-numeric:tabular-nums}' +
+    // wall clock: the elapsed timer says how long you have been talking, this
+    // says whether you are late — a room books the second, not the first
+    '#t-clock{font-size:14px;color:#8a8f98;font-variant-numeric:tabular-nums}' +
     '.p-cols{flex:1;min-height:0;display:flex;gap:16px;padding:16px}' +
     '.p-main{flex:3;min-width:0}' +
     '.p-side{flex:2;min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px}' +
@@ -1022,7 +1206,7 @@ const presentScript = () => `
   var PRES_BODY = '<div class="p-top">' +
     '<span id="t-timer" title="Start / pause">00:00</span>' +
     '<button id="t-reset" type="button" title="Reset">reset</button>' +
-    '<span id="t-count"></span></div>' +
+    '<span id="t-count"></span><span id="t-clock"></span></div>' +
     '<div class="p-cols"><div class="p-main"><div class="p-frame" id="p-cur"></div></div>' +
     '<div class="p-side"><div class="p-label">Next slide</div><div class="p-frame" id="p-next"></div>' +
     '<div class="p-label">Notes</div><div class="p-notes" id="p-notes"></div></div></div>';
@@ -1054,6 +1238,7 @@ const presentScript = () => `
     doc.onkeydown = presenterKeys;
     w.addEventListener('resize', fitPanes);
     if (!tick) tick = setInterval(tickTimer, 500);
+    tickTimer(); // the timer and the clock are filled in before the first tick
     sync();
   }
   function closePresenter(){
@@ -1109,6 +1294,9 @@ const presentScript = () => `
     }
     var el = notesWin.document.getElementById('t-timer');
     if (el){ el.textContent = timerText(); el.className = timer.running ? 'run' : ''; }
+    // no seconds: a wall clock that ticks steals the eye the notes need
+    var clock = notesWin.document.getElementById('t-clock');
+    if (clock) clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   function toggleTimer(){
     if (timer.running){ timer.acc += Date.now() - timer.from; timer.running = false; }
@@ -1138,8 +1326,16 @@ const presentScript = () => `
     if (k === '?'){ help.classList.toggle('open'); e.preventDefault(); return; }
     if (k === 'p' || k === 'P'){ presenting ? exit() : enter(); e.preventDefault(); return; }
     if (!presenting) return; // in scrolling mode, the browser keeps its keys
-    if (k === 'Escape'){ help.classList.contains('open') ? help.classList.remove('open') : exit(); return; }
+    if (k === 'Escape'){
+      // one step out at a time: the help, then the grid, then the mode itself
+      if (help.classList.contains('open')) help.classList.remove('open');
+      else if (overview) overviewExit(null);
+      else exit();
+      return;
+    }
     if (k === 'n' || k === 'N'){ openPresenter(); e.preventDefault(); return; }
+    if (k === 'o' || k === 'O'){ overview ? overviewExit(null) : overviewEnter(); e.preventDefault(); return; }
+    if (overview && k === 'Enter'){ overviewExit(null); e.preventDefault(); return; }
     navKey(e);
   });
   // a click on an animated slide (ANIM_SCRIPT) changes the step: resynchronize
@@ -1290,6 +1486,7 @@ export async function renderDeckHtml(scenes, meta, baseDir, opts = {}) {
 <style>
 ${fontFacesCss().css}
 ${baseCss()}
+${pageCss()}
 ${presentCss()}
 </style>
 </head>

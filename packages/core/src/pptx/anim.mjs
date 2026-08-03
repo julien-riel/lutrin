@@ -27,20 +27,11 @@
 
 import fs from 'node:fs';
 import JSZip from 'jszip';
+import { PRESET_BY_KIND, presetFor } from '../deck/anim.mjs';
 
-/** Effect per block type (default: fade). A panel is revealed by a wipe
- *  upwards, a milestone or a metric bursts in with a zoom — the brand's
- *  visual hierarchy, translated into movement. */
-export const PRESET_BY_KIND = {
-  panel: 'wipe',
-  'timeline-dot': 'zoom',
-  metric: 'zoom',
-  // a bar fills, it does not appear: the wipe is the movement the shape
-  // already describes
-  progress: 'wipe',
-};
-
-export const presetFor = (kind, override) => override ?? PRESET_BY_KIND[kind] ?? 'fade';
+// The choice of effect is shared with the HTML renderer and lives in
+// deck/anim.mjs; re-exported here for the callers that knew it at this address.
+export { PRESET_BY_KIND, presetFor };
 
 /** Top-level shapes of the spTree, in document order. */
 const SHAPE_RE = /<p:(sp|pic|graphicFrame)>([\s\S]*?)<\/p:\1>/g;

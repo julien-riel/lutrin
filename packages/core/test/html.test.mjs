@@ -14,10 +14,13 @@ import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeckHtml, compileHtml } from '../src/html/render.mjs';
 import { MERMAID_PNG_SCALE, mermaidConfig, renderMermaidCached } from '../src/deck/assets.mjs';
+import { presetFor } from '../src/deck/anim.mjs';
+import { PAGE } from '../src/deck/tokens.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import vm from 'node:vm';
 
 const SOURCE =
   '# One\n\n<!-- animate -->\n\n- a\n- b\n\n<!-- notes: speak slowly -->\n\n# Two\n\ntext\n';
@@ -229,4 +232,383 @@ test('fonts: a woff2 replaced under the same path is re-embedded on the next com
   const v2 = await compileHtml(src, { baseDir: dir, fragment: true });
   assert.ok(v2.fontsCss.includes(b64('woff2-v2-replaced')), 'the new bytes are embedded');
   assert.ok(!v2.fontsCss.includes(b64('woff2-v1')), 'the stale base64 is gone');
+});
+
+// ---------------------------------------------------------------------------
+// Entrance effects, the printed page, presentation mode
+// ---------------------------------------------------------------------------
+
+// One slide holding three kinds whose default movement DIFFERS (a metric
+// bursts, a bar wipes, prose and a list fade): it is the only shape of deck
+// that can tell "every block received the same answer" apart from "each block
+// received its own".
+const ANIM_SOURCE =
+  '# Delivery\n\n<!-- animate -->\n\n' +
+  ':::metric\n42 %\nShare\n:::\n\n' +
+  ':::progress success\n72 %\nForm\n:::\n\n' +
+  'A paragraph of prose.\n\n- first\n- second\n';
+
+/** The slides alone. The `<style>` block carries data-fx="zoom" in its
+ *  SELECTORS, and the presentation script carries a stylesheet of its own as a
+ *  JS string: counting attributes on the raw document counts the CSS too — a
+ *  trap this file has already walked into once. */
+const slidesOnly = (html) =>
+  html.replace(/<style>[\s\S]*?<\/style>|<script>[\s\S]*?<\/script>/g, '');
+
+const styleOf = (html) => html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const scriptsOf = (html) => [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+
+/** Every opening tag that carries a step, in document order. */
+const stepTags = (html) =>
+  [...slidesOnly(html).matchAll(/<[^>]*\sdata-step="\d+"[^>]*>/g)].map((m) => m[0]);
+
+/** `[{ sel, body }]` for every rule, those nested in an at-rule INCLUDED: a
+ *  selector cannot contain a brace, so `[^{}]+\{[^{}]*\}` never matches an
+ *  at-rule prelude (`@media print{` is followed by a rule, not by
+ *  declarations) and matches each of its inner rules on its own. Comments are
+ *  stripped first — they name the very class names the tests look for. */
+const cssRules = (css) =>
+  [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    sel: m[1].trim(),
+    body: m[2].trim(),
+  }));
+
+/** The declaration that leaves the element short of its resting state —
+ *  invisible, shrunk or clipped — or null when they are all neutral. */
+function hidingDecl(body) {
+  const NEUTRAL = { opacity: '1', visibility: 'visible', transform: 'none', 'clip-path': 'none' };
+  for (const [, prop, raw] of body.matchAll(
+    /(?:^|;)\s*(opacity|visibility|transform|clip-path)\s*:\s*([^;]+)/g,
+  )) {
+    const value = raw.replace(/!important/g, '').trim();
+    // inset(0 0 0 0) is the whole box: a clip-path that clips nothing
+    if (value === NEUTRAL[prop] || value === 'inset(0 0 0 0)') continue;
+    return `${prop}:${value}`;
+  }
+  return null;
+}
+
+/** Bodies of the `@media print{…}` blocks, brace-BALANCED: each one contains
+ *  rules of its own, so /@media print\{([^}]*)\}/ would stop at the first
+ *  inner closing brace and see almost nothing. */
+function printBlocks(css) {
+  const out = [];
+  const AT = '@media print{';
+  for (let at = css.indexOf(AT); at >= 0; at = css.indexOf(AT, at + 1)) {
+    const open = at + AT.length - 1;
+    for (let i = open, depth = 0; i < css.length; i++) {
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}' && --depth === 0) {
+        out.push(css.slice(open + 1, i));
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Splits the document's stylesheet into what a HOST receives (baseCss, handed
+ *  as is to the VS Code webview and to the editing SPA) and what only the
+ *  complete document adds on top — the @page rule and the presentation chrome.
+ *  The split is its own assertion: the host's sheet must still be embedded
+ *  verbatim, or "the chrome" below would be measuring something else. */
+async function stylesheetHalves(source) {
+  const { html } = await compileHtml(source);
+  const { css: host } = await compileHtml(source, { fragment: true });
+  const doc = styleOf(html);
+  assert.ok(doc.includes(host), 'the document no longer embeds the host stylesheet verbatim');
+  return { html, doc, host, chrome: doc.slice(doc.indexOf(host) + host.length) };
+}
+
+// `<!-- animate: zoom -->` is a statement about the SLIDE, not about a kind of
+// block: the author asked for one movement and expects one. A slide where the
+// metric still bursts and the paragraph still fades in spite of the directive
+// is the bug — the per-kind table is a DEFAULT, and a default that survives an
+// explicit instruction is not a default.
+test('effects: an imposed effect reaches every animated block of the slide', async () => {
+  const bare = ANIM_SOURCE.replace('<!-- animate -->\n\n', '');
+  for (const [how, source] of [
+    ['slide directive', ANIM_SOURCE.replace('<!-- animate -->', '<!-- animate: zoom -->')],
+    ['frontmatter', `---\nanimate: zoom\n---\n\n${bare}`],
+  ]) {
+    const { html } = await compileHtml(source);
+    const tags = stepTags(html);
+    assert.ok(
+      tags.length >= 4,
+      `${how}: expected a slide animated block by block, got ${tags.length}`,
+    );
+    for (const tag of tags) {
+      assert.match(tag, /data-fx="zoom"/, `${how}: a block escaped the imposed effect — ${tag}`);
+    }
+  }
+});
+
+// Left to itself, each block gets the movement its KIND deserves — and the
+// answer must be the one the .pptx writer gets, or the same deck exported twice
+// moves in two different ways. The expected values are read from the shared
+// table rather than spelled out here, so the two renderers cannot drift apart
+// without this test noticing.
+test('effects: with nothing imposed, each block gets the movement the .pptx gives it', async () => {
+  const { html, scenes } = await compileHtml(ANIM_SOURCE);
+  const slides = slidesOnly(html);
+  const fxOfStep = (step) =>
+    slides
+      .match(new RegExp(`<[^>]*\\sdata-step="${step}"([^>]*)>`))?.[1]
+      .match(/data-fx="(\w+)"/)?.[1] ?? null;
+
+  const KINDS = ['metric', 'progress', 'para'];
+  for (const kind of KINDS) {
+    const el = scenes[0].elements.find((e) => e.block.type === kind);
+    assert.ok(el && el.step != null, `the ${kind} block of the source should be animated`);
+    assert.equal(fxOfStep(el.step), presetFor(kind), `${kind}: the HTML and the .pptx disagree`);
+  }
+  // …and the answer really is per block: these three kinds are three different
+  // movements in the table, so "all zoom" or "all fade" could not pass above
+  assert.equal(
+    new Set(KINDS.map((k) => presetFor(k))).size,
+    KINDS.length,
+    'the table stopped distinguishing these kinds — the assertions above no longer prove anything',
+  );
+});
+
+// "appear" is the ABSENCE of movement, and the absence of movement is what the
+// visibility toggle already does. Writing data-fx="appear" would hand those
+// blocks the opacity/transition rules for nothing.
+test('effects: "appear" writes no attribute — the visibility toggle already is that effect', async () => {
+  const { html } = await compileHtml(
+    ANIM_SOURCE.replace('<!-- animate -->', '<!-- animate: appear -->'),
+  );
+  assert.ok(stepTags(html).length >= 4, 'the slide is still revealed block by block');
+  assert.doesNotMatch(
+    slidesOnly(html),
+    /data-fx/,
+    'appear must not paint an effect on top of the toggle',
+  );
+});
+
+// THE regression that costs the most: an effect rule must never apply to a
+// slide that is not stepping through its blocks. The deck editor STRIPS
+// data-anim-steps to show a slide whole; an ungated `opacity:0` there blanks
+// the slide being edited — and does the same to the print output and to the
+// site's demo iframe. The gate is the whole safety of the feature, so this
+// looks at every rule the stylesheet has for an animated block, not at the
+// three the implementation happens to write today.
+test('effects: nothing that hides a block escapes the .slide-frame[data-anim-steps] gate', async () => {
+  const { doc, host } = await stylesheetHalves(ANIM_SOURCE);
+  for (const [where, sheet] of [
+    ['fragment CSS (the editor, the webview)', host],
+    ['complete document', doc],
+  ]) {
+    const forAnimated = cssRules(sheet).filter((r) => /data-(step|fx)/.test(r.sel));
+    assert.ok(
+      forAnimated.length >= 6,
+      `${where}: no effect rule found, the scan reads the wrong thing`,
+    );
+    let hidden = 0;
+    for (const { sel, body } of forAnimated) {
+      const hides = hidingDecl(body);
+      if (!hides) continue;
+      hidden++;
+      assert.ok(
+        sel.includes('.slide-frame[data-anim-steps]'),
+        `${where}: "${sel}" sets ${hides} outside the gate — that blanks the editor, the print output and the demo iframe`,
+      );
+    }
+    assert.ok(
+      hidden >= 3,
+      `${where}: expected the hidden half of the effects to be found, saw ${hidden}`,
+    );
+  }
+});
+
+// On paper there is no click to reveal anything: an effect left standing prints
+// what the audience has not seen yet — a metric frozen at 40 % of its size, a
+// panel clipped down to nothing. The neutralizer is deliberately written
+// WITHOUT the gate, so it also reaches a host that stripped the attribute.
+test('printing: an entrance effect is forced back to its resting state on paper', async () => {
+  const { css } = await compileHtml(ANIM_SOURCE, { fragment: true });
+  const blocks = printBlocks(css);
+  assert.equal(blocks.length, 1, 'baseCss must keep exactly one @media print block');
+  const rule = cssRules(blocks[0]).find((r) => /\[data-fx\]/.test(r.sel));
+  assert.ok(rule, 'the print block must say something about data-fx');
+  for (const decl of [
+    'opacity:1 !important',
+    'transform:none !important',
+    'clip-path:none !important',
+  ]) {
+    assert.ok(rule.body.includes(decl), `printing: ${decl} missing — got: ${rule.body}`);
+  }
+  assert.ok(
+    !rule.sel.includes('[data-anim-steps]'),
+    'the neutralizer must reach a slide whose gate a host has stripped',
+  );
+});
+
+// Without a size, the browser lays a 1280x720 frame onto the reader's default
+// paper and scales or crops it: "print to PDF" gives a deck squeezed into A4
+// portrait. With it, the browser's own print dialog is a working 16:9 export.
+// It stays out of baseCss because baseCss is handed to HOSTS, and repaginating
+// the VS Code webview's own printing is not ours to do — that separation is the
+// entire reason pageCss() exists as a second function.
+test('printing: @page carries the slide geometry, and never leaves the complete document', async () => {
+  const { doc, host } = await stylesheetHalves(ANIM_SOURCE);
+  const page = doc.match(/@page\{([^}]*)\}/)?.[1];
+  assert.ok(page, '@page missing: the print dialog falls back to the reader’s paper');
+  assert.ok(
+    page.includes(`size:${PAGE.width}px ${PAGE.height}px`),
+    `@page must state the frame — got: ${page}`,
+  );
+  assert.ok(page.includes('margin:0'), `@page must drop the printer margins — got: ${page}`);
+  // …and it only ever applies on paper
+  assert.equal(
+    (doc.match(/@page/g) ?? []).length,
+    printBlocks(doc).join('\n').match(/@page/g)?.length,
+    '@page outside @media print: it would repaginate the screen rendering too',
+  );
+
+  const { slides } = await compileHtml(ANIM_SOURCE, { fragment: true });
+  assert.doesNotMatch(
+    host + slides.join('\n'),
+    /@page/,
+    'a host must not receive our page geometry',
+  );
+});
+
+// The chrome the projector shows: how far along the deck is, and two targets to
+// tap on a lectern or a tablet, where there is no keyboard to press.
+test('presentation mode: progress bar, labelled controls and the overview grid ride in the complete document', async () => {
+  const { html, chrome } = await stylesheetHalves(ANIM_SOURCE);
+  const rules = cssRules(chrome);
+  const ruleFor = (re) => rules.find((r) => re.test(r.sel));
+
+  assert.ok(ruleFor(/^\.present-bar$/), 'no progress bar');
+  assert.ok(ruleFor(/^\.present-bar-fill$/), 'a bar with nothing to fill it says nothing');
+  assert.ok(ruleFor(/^\.present-nav button$/), 'no on-screen controls');
+  // they fade with the pointer: a still slide is projected without chrome on it
+  assert.ok(
+    ruleFor(/^body\.presenting\.present-active \.present-nav$/),
+    'the controls never come back',
+  );
+
+  const grid = ruleFor(/^body\.presenting\.present-overview \.deck$/);
+  assert.ok(grid?.body.includes('display:grid'), 'the overview (O) is not a grid');
+  // the current slide is pinned to the four edges while presenting: a grid that
+  // does not undo that leaves one slide covering the thumbnails it is for
+  const currentInGrid = ruleFor(
+    /^body\.presenting\.present-overview \.slide-frame\.present-current$/,
+  );
+  assert.ok(currentInGrid, 'the grid never releases the pinned current slide');
+  assert.doesNotMatch(
+    currentInGrid.body,
+    /position:fixed/,
+    'the current slide stays pinned over the grid',
+  );
+  for (const decl of ['left:auto', 'width:auto']) {
+    assert.ok(
+      currentInGrid.body.includes(decl),
+      `the grid must release ${decl} — got: ${currentInGrid.body}`,
+    );
+  }
+  // …and none of it is projected onto paper
+  assert.match(
+    printBlocks(chrome).join('\n'),
+    /\.present-nav/,
+    'the chrome must hide itself when printing',
+  );
+
+  const script = scriptsOf(html).at(-1);
+  assert.match(script, /'present-bar-fill'/, 'the bar is styled but never built');
+  // a round button holding an arrow glyph reads as nothing at all without one
+  assert.match(
+    script,
+    /setAttribute\('aria-label'/,
+    'the controls are unnamed for a screen reader',
+  );
+  for (const label of ['Previous slide', 'Next slide']) {
+    assert.ok(script.includes(`'${label}'`), `no ${label.toLowerCase()} control`);
+  }
+});
+
+// The prefix is not decoration: .progress, .progress-track and .progress-fill
+// already belong to the :::progress block of the DSL. Had the presentation bar
+// taken those names, it would have repainted every bar an author wrote into
+// their own slides — with a deck-wide progress colour and a width of 0.
+test('presentation mode: the present- prefix leaves a :::progress block its own bar', async () => {
+  const source = '# Delivery\n\n:::progress success\n72 %\nForm\n:::\n';
+  const { html, chrome } = await stylesheetHalves(source);
+
+  const slides = slidesOnly(html);
+  assert.match(slides, /class="progress-track"/, 'the author’s bar left the slide');
+  assert.match(slides, /class="progress-fill"/);
+
+  const rules = cssRules(chrome);
+  for (const { sel } of rules) {
+    assert.doesNotMatch(
+      sel,
+      /\.progress(-track|-fill)?\b/,
+      `the chrome claims a DSL class: ${sel}`,
+    );
+  }
+  assert.ok(
+    rules.some((r) => r.sel === '.present-bar-fill'),
+    'the chrome has no bar of its own left',
+  );
+  // every class the script invents for the elements it creates carries it too
+  for (const [, name] of scriptsOf(html)
+    .at(-1)
+    .matchAll(/\.className\s*=\s*'([^']+)'/g)) {
+    assert.match(name, /^present-/, `a chrome element without the prefix: ${name}`);
+  }
+});
+
+// The elapsed timer says how long you have been talking; the clock says whether
+// you are late. A room is booked by the second of those, not the first.
+test('presenter view: a wall clock, without seconds, filled before the first tick', async () => {
+  const { html } = await compileHtml(ANIM_SOURCE);
+  const script = scriptsOf(html).at(-1);
+  assert.match(script, /id="t-clock"/, 'the presenter window carries no clock');
+  assert.match(script, /getElementById\('t-clock'\)/, 'the clock is built but never filled');
+
+  const format = script.match(/toLocaleTimeString\(([^)]*)\)/)?.[1];
+  assert.ok(format, 'the clock must be formatted for the reader’s locale');
+  assert.ok(
+    /hour/.test(format) && /minute/.test(format),
+    `hours and minutes expected — got: ${format}`,
+  );
+  assert.ok(!/second/.test(format), 'a clock that ticks steals the eye the notes need');
+
+  // the interval runs every 500 ms; without one call by hand the clock is blank
+  // for that long, exactly when the window has just opened
+  const opener = script.slice(
+    script.indexOf('function openPresenter()'),
+    script.indexOf('function closePresenter()'),
+  );
+  assert.ok(opener.length > 0, 'openPresenter() not found — this test needs rewriting');
+  assert.match(
+    opener,
+    /\btickTimer\(\)/,
+    'openPresenter must fill the timer and the clock itself, once',
+  );
+});
+
+// The scripts are built by string concatenation inside a template literal, and
+// nothing between here and the browser parses them: a stray quote ships a deck
+// whose slides never scale and whose P key does nothing, with no error anywhere
+// but the reader's console.
+test('inline scripts: every one of them parses as JavaScript', async () => {
+  const { html } = await compileHtml(ANIM_SOURCE);
+  const scripts = scriptsOf(html);
+  assert.equal(
+    scripts.length,
+    3,
+    'scaling, animation steps (this deck is animated), presentation mode',
+  );
+  for (const [i, src] of scripts.entries()) {
+    // parses only — nothing is executed, there is no DOM here to execute against
+    new vm.Script(src, { filename: `inline-${i}.js` });
+  }
+  assert.ok(
+    scripts.some((s) => s.includes('openPresenter') && s.includes('t-clock')),
+    'the presenter script is not among the ones just checked',
+  );
 });
