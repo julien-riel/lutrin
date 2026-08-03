@@ -87,17 +87,24 @@
           presenter-notes text dump. Its PDF is not a flat print either —
           <code>--pdf-notes</code> writes the notes as PDF annotations and
           <code>--pdf-outlines</code> adds real bookmarks. Lutrin produces
-          <code>.pptx</code> and standalone HTML, and nothing else; for a PDF
-          you go through PowerPoint or a browser yourself.</li>
+          <code>.pptx</code> and standalone HTML. Printing that HTML from a
+          browser does now produce a correct 16:9 PDF — the stylesheet sets the
+          page size, puts one slide per sheet and opens every animation step —
+          but that is a print stylesheet, not a PDF writer: no notes
+          annotations, no bookmarks, and no image export at all.</li>
         <li><strong>Maturity, reach, and a richer web deck.</strong> The VS Code
           extension reported 827,114 installs when this page was checked, and it
           is a web extension that works on vscode.dev with nothing installed at
-          all. Marp's HTML template has a presenter view, an overview mode,
-          on-screen controls, a progress bar and View Transition slide
-          transitions; there is a large third-party theme ecosystem. Lutrin
-          needs Node&nbsp;≥&nbsp;22 locally before anything happens, its
-          extension is desktop-only, and it is a young single-maintainer
-          project.</li>
+          all — Lutrin's extension is desktop-only and has nothing to answer
+          that with. Marp's HTML template has View Transition slide
+          transitions, which Lutrin has no answer to either; there
+          is a large third-party theme ecosystem. Lutrin does have a
+          <a href="playground.html">browser playground</a> that runs the real
+          compiler with nothing installed, but it stops at HTML: no
+          <code>.pptx</code>, and Mermaid, LaTeX, icons and images degrade there
+          — each one named on the page rather than dropped in silence. Anything
+          beyond that needs Node&nbsp;≥&nbsp;22 locally, and it is a young
+          single-maintainer project.</li>
       </ul>
     </div>
   </div>
@@ -119,25 +126,41 @@
         100% reproducibility to the slide design". Lutrin has one PPTX mode:
         native shapes, text boxes and tables, notes kept, fonts embedded, no
         flag and no second program.</li>
-      <li><strong>No browser anywhere in the toolchain.</strong> Marp's PDF,
-        PPTX and image conversions all need a compatible browser installed
-        (Chrome, Edge or Firefox — selectable with <code>--browser</code>).
-        Lutrin's two outputs come out of a pure Node pipeline, which is what
-        makes it plausible in a locked-down CI runner or a container with no
-        Chromium.</li>
+      <li><strong>No browser is needed to produce the files.</strong> Marp's
+        PDF, PPTX and image conversions all need a compatible browser installed
+        (Chrome, Edge or Firefox — selectable with <code>--browser</code>); with
+        none on the machine, those formats do not come out at all. Lutrin writes
+        both the <code>.pptx</code> and the HTML from Node alone, so a
+        locked-down CI runner or a container with no Chromium still compiles.
+        One block type does want a browser, and it is fairer to say so than to
+        be caught at it: Mermaid measures the text it lays out, so Lutrin
+        renders diagrams by driving a Chrome, Edge, Brave or Chromium already
+        installed, through <code>puppeteer-core</code> — and
+        <code>lutrin setup-mermaid --yes</code> will download a ~200&nbsp;MB
+        headless shell for a machine that has none. Without one the build still
+        succeeds: the diagram falls back to its own source as a labelled code
+        block, and the build counts them out loud.</li>
       <li><strong>The engine picks the layout, not you.</strong> When a slide
         overflows, Marp's answer is CSS or <code>&lt;!-- fit --&gt;</code>, and
         Marp Core does shrink headers, code blocks and KaTeX to fit. Lutrin's
         answer is to infer a different layout and paginate what is left over.
-        Marp shrinks what you wrote; Lutrin re-lays it out. That is the whole
-        trade, and it is what makes a mechanical <code>.pptx</code>
-        possible.</li>
+        That is the trade, and it is what makes a mechanical <code>.pptx</code>
+        possible. But Lutrin shrinks as well, and pretending otherwise would be
+        the easy version: inside a bounded region — a panel, a column, a table
+        cell — paragraphs, bullets, tables and alerts step down the text scale
+        one notch at a time, comfortable → compact → dense, and the whole region
+        steps together rather than the one block that overflowed. What differs
+        is that it stops and it says so. <code>dense</code> is the floor: past
+        it the engine shrinks nothing further and reports
+        <code>BLOCK_OVERFLOW</code> instead. And every step down comes back as a
+        <code>SLIDE_DENSIFIED</code> diagnostic naming the region, so nothing
+        gets smaller behind your back.</li>
       <li><strong>Validation that measures instead of parsing.</strong> Marp for
         VS Code has completion, hover help and diagnostics for its directives —
         it checks what you typed. <code>lutrin validate --json</code> measures
         what the rendered slide does: real overflow, images under-resolved for
-        the area they land in, a better-suited layout, as positioned JSON for an
-        agent's write → validate → fix loop.</li>
+        the area they land in, a better-suited layout, printed as JSON anchored
+        to source lines for an agent's write → validate → fix loop.</li>
       <li><strong>A brand that travels as data, never as code.</strong> A Marp
         theme is CSS the renderer executes — which is why the VS Code extension
         gates custom themes behind Workspace Trust. A Lutrin kit is tokens,
@@ -176,7 +199,7 @@
           <tr>
             <th scope="row">Default PPTX</th>
             <td>One pre-rendered image per slide — contents cannot be modified in PowerPoint. A deliberate choice, for near-exact reproduction of the design.</td>
-            <td>Native shapes, text boxes and tables — real, selectable, editable. Charts, equations and icons are rasterised images, which is the honest limit of it.</td>
+            <td>Native shapes, text boxes and tables — real, selectable, editable. Charts, diagrams, equations and icons are pictures — each one carrying its vector as well as its raster, so PowerPoint 2019+ keeps them sharp at any zoom and every other reader draws the raster. They are still pictures, not editable objects, which is the honest limit of it.</td>
           </tr>
           <tr>
             <th scope="row">Editable PPTX</th>
@@ -196,12 +219,12 @@
           <tr>
             <th scope="row">Export formats</th>
             <td>HTML, PDF, PPTX, PNG, JPEG, notes as text.</td>
-            <td><code>.pptx</code> and standalone HTML. No PDF, no image export.</td>
+            <td><code>.pptx</code> and standalone HTML — plus whatever a browser prints from that HTML, which the stylesheet sizes to 16:9, one slide per page. No PDF writer of our own, no image export.</td>
           </tr>
           <tr>
             <th scope="row">External runtime</th>
             <td>A browser (Chrome, Edge or Firefox) for every PDF, PPTX and image conversion. LibreOffice Impress on top, for editable PPTX.</td>
-            <td>Node ≥ 22, and nothing else, for both outputs.</td>
+            <td>Node ≥ 22 for both outputs, whatever is in the deck. A browser is used for one thing only — rendering Mermaid — and without one the build still writes the file, with the diagram left as source.</td>
           </tr>
           <tr>
             <th scope="row">Branding</th>
@@ -220,13 +243,13 @@
           </tr>
           <tr>
             <th scope="row">Web presentation</th>
-            <td>Rich: presenter view, overview, on-screen controls, progress bar, View Transition transitions, watch mode, a server mode and a preview window.</td>
-            <td>One standalone HTML file with presenter mode (<kbd>P</kbd>, notes, timer, second window), and <code>lutrin preview</code> with reload on save. No transitions engine, no server mode.</td>
+            <td>Rich: overview, on-screen controls, progress bar, View Transition transitions, watch mode, a server mode and a preview window.</td>
+            <td>One standalone HTML file: presenter mode (<kbd>P</kbd> full screen, <kbd>N</kbd> for notes, timer, wall clock and next slide in a second window), an overview grid (<kbd>O</kbd>), a progress bar and on-screen controls that follow the pointer — roughly parity, in one file rather than a template. Three local servers: <code>lutrin preview</code> reloads on save, <code>lutrin edit</code> serves a tree of <code>.deck.md</code> files, <code>lutrin kit edit</code> the kit editor. No transitions engine.</td>
           </tr>
           <tr>
             <th scope="row">Validation</th>
             <td>Syntactic: completion, hover help and directive diagnostics in VS Code.</td>
-            <td>Geometric: measured overflow, under-resolved images, layout suggestions, <code>--json</code>. <code>build</code> refuses to write a file while an error remains.</td>
+            <td>Geometric: measured overflow, under-resolved images, layout suggestions, <code>--json</code>. <code>build</code> writes no file while validation holds an error, short of an explicit <code>--force</code>.</td>
           </tr>
           <tr>
             <th scope="row">Licence and cost</th>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lutrin vs reveal.js — a web page that presents, or a PowerPoint you hand over</title>
-<meta name="description" content="An honest comparison, checked against reveal.js 6.0.1 documentation on 2026-07-30. reveal.js is the richest web presentation framework there is; it has no PowerPoint export. Lutrin has no interactivity; its output is an editable .pptx.">
+<meta name="description" content="An honest comparison, checked against reveal.js 6.0.1 documentation on 2026-07-30. reveal.js is the richest web presentation framework there is; it has no PowerPoint export. Lutrin's HTML stops at click-to-reveal and a presenter view; its output is an editable .pptx.">
 <link rel="canonical" href="https://info.lutrin.app/lutrin-vs-revealjs.html">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <meta property="og:type" content="article">
@@ -64,7 +64,7 @@
       rest of the page is beside the point.</p>
 
     <div class="concede">
-      <h3>Four things reveal.js does that Lutrin cannot and will not</h3>
+      <h3>Four things reveal.js does that Lutrin cannot</h3>
       <ul>
         <li><strong>Motion design between slides.</strong> Auto-Animate morphs
           matching elements across two adjacent slides — position, size, colour,
@@ -85,11 +85,17 @@
           variable exposed as a CSS custom property, and the freedom to drop an
           iframe, a video or a live D3 canvas into a slide. Lutrin refuses all of
           it by design — no coordinate, no CSS override, no JS hook.</li>
-        <li><strong>One deck, two reading modes.</strong> Scroll view turns the
-          same presentation into a scrollable page with fragments preserved, and
-          auto-activates below a configurable viewport width so the deck stays
-          readable on a phone. Lutrin's HTML is a slide-at-a-time surface with no
-          reading-mode counterpart.</li>
+        <li><strong>A reading mode that adapts to the viewport.</strong> Scroll
+          view turns the same presentation into a scrollable page with fragments
+          preserved, and auto-activates below a configurable viewport width so
+          the deck stays readable on a phone. Lutrin's HTML is already a
+          scrollable page — that is its default, and the slide-at-a-time mode is
+          the opt-in, entered with <kbd>P</kbd> — but that page has no breakpoint
+          of any kind. Every slide is scaled to the width of its container, so on
+          a 390&nbsp;px phone a 14&nbsp;pt body set on a 1280&nbsp;px grid comes
+          out too small to read; the honest answer there is to turn the phone
+          sideways and press <kbd>P</kbd>. What Lutrin lacks is the responsive
+          switch, not the mode.</li>
       </ul>
       <p style="margin-top:1rem"><strong>And the ecosystem gap is real.</strong>
         Around 72,000 GitHub stars, a community plugin catalogue and a decade of
@@ -105,15 +111,18 @@
     <ul class="cmp-list">
       <li><strong>There is no PowerPoint at the end of any reveal.js
         path.</strong> Its only built-in export is PDF, through a print
-        stylesheet and the browser's print dialog. A feature request for
+        stylesheet and the browser's print dialog — the same mechanism
+        Lutrin's HTML uses, and on that one point the two are even. A feature request for
         PowerPoint export has been open since January 2019 with no assignee, no
         label and no linked pull request — that is an absence, not a refusal, and
         it should not be described as one. Third-party converters and a PDF
         round trip do exist; what they cost you is flattened slides and every
         fragment and transition gone. Lutrin's primary output is a
         <code>.pptx</code> of native text boxes, tables and shapes, with the
-        fonts embedded. Charts, equations and icons in that file are rasterised
-        images — the text, the tables and the layout are not.</li>
+        fonts embedded. Charts, diagrams, equations and icons in that file are
+        pictures, each carrying its vector as well as its raster — sharp at any
+        zoom in PowerPoint 2019+, the raster everywhere else. The text, the
+        tables and the layout were never pictures at all.</li>
       <li><strong>Who owns the page.</strong> In reveal.js the author owns
         everything: HTML, CSS custom properties, classes, free positioning. In
         Lutrin the author may not position anything; the engine infers the layout
@@ -123,9 +132,10 @@
       <li><strong>Validation that measures.</strong> reveal.js documents no
         layout engine and no overflow detection — a slide that is too full simply
         overflows or gets scaled. <code>lutrin validate</code> reports measured
-        overflow, under-resolved images and a better-suited layout, positioned at
-        a line and emitted as JSON; <code>build</code> refuses to write a file
-        while an error-severity diagnostic remains.</li>
+        overflow, under-resolved images and a better-suited layout, anchored to a
+        source line and emitted as JSON; <code>build</code> writes no file while
+        validation holds an error-severity diagnostic, short of an explicit
+        <code>--force</code>.</li>
       <li><strong>Branding as data.</strong> A reveal.js theme is CSS — twelve
         built in, custom ones written as CSS or Sass — which is more expressive,
         and is also code you must review and maintain. A Lutrin kit is theme
@@ -152,7 +162,7 @@
           <tr>
             <th scope="row">What you get out</th>
             <td>A self-presenting web page you host, plus built-in PDF export.</td>
-            <td>An editable <code>.pptx</code>, or one standalone HTML file.</td>
+            <td>An editable <code>.pptx</code>, or one standalone HTML file — which prints to a 16:9 PDF from the same kind of print stylesheet.</td>
           </tr>
           <tr>
             <th scope="row">PowerPoint path</th>
@@ -182,17 +192,20 @@
           <tr>
             <th scope="row">Animation</th>
             <td>Fragments with a dozen-plus effects, indexes, nesting, custom CSS effects, JS events; Auto-Animate morphing between slides.</td>
-            <td>Four effects, applied per block by the engine.</td>
+            <td>Four effects, applied per block by the engine, from one table both outputs read — so a named effect means the same thing in the <code>.pptx</code> and in the HTML.</td>
           </tr>
           <tr>
             <th scope="row">Presenter view</th>
             <td>Notes, next-slide preview, elapsed timer, wall clock, optional pacing timer. Needs to be served from a local web server.</td>
-            <td>Built into the standalone HTML: notes, timer, next slide, second window. Native notes in the <code>.pptx</code>. Roughly parity.</td>
+            <!-- lutrin's cell below: the pacing timer is the one piece of this row
+                 we still do not have. Notes, next slide, elapsed timer and wall
+                 clock are all in the second window (html/render.mjs, PRES_BODY). -->
+            <td>Built into the standalone HTML: notes, elapsed timer, wall clock, next slide, second window — and an overview grid on <kbd>O</kbd>. Native notes in the <code>.pptx</code>. Roughly parity; the pacing timer is the piece we do not have.</td>
           </tr>
           <tr>
             <th scope="row">Reading it as a page</th>
             <td>Scroll view — the same deck as a scrollable page, auto-activating on narrow viewports.</td>
-            <td>No reading mode.</td>
+            <td>The default: every slide stacked in one scrolling page; presenting is the opt-in (<kbd>P</kbd>). No breakpoint, so a phone-width viewport shrinks the type rather than reflowing it.</td>
           </tr>
           <tr>
             <th scope="row">Extensibility</th>
