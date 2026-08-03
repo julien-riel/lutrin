@@ -83,6 +83,8 @@ frontmatter takes precedence over the last two.
    ```bash
    npx lutrin build path/to/file.md -o output.pptx --verbose   # PowerPoint
    npx lutrin build path/to/file.md -o output.html --verbose   # standalone HTML
+   npx lutrin build path/to/file.md -o output.pdf              # PDF, one page per slide
+   npx lutrin build path/to/file.md --png -o frames.png        # frames-01.png, …
    ```
    (`npm run pptx -- …` / `npm run html -- …` remain aliases.)
    `--verbose` lists the layout inferred for each slide — check that the
@@ -669,8 +671,16 @@ installed:
   // fragment: true → { slides, css, fontsCss, … } for a webview (used
   // by the VS Code extension, which updates slide by slide)
   ```
-- Printing: `@media print` puts one slide per page (hence PDF through the
-  browser).
+- Printing: `@media print` puts one slide per page — which is what both the
+  hand-printed PDF and `lutrin build --pdf` use.
+- **PDF and images**: `--pdf` writes one page per slide with an outline of the
+  slide titles; `--png` / `--jpeg` name a STEM and write one file per slide at
+  2×, reading the same print stylesheet so an image and its PDF page match.
+  `-o deck.pdf` is enough on its own. These three REQUIRE a browser (Chrome,
+  Edge, Brave, Chromium, or `lutrin setup-mermaid`'s download) and refuse
+  before writing without one — unlike Mermaid, where a missing browser only
+  degrades the diagram. The presenter notes are NOT in the PDF: annotations
+  would mean a PDF library, and that dependency is declined.
 
 ## Engine architecture (for evolving it)
 

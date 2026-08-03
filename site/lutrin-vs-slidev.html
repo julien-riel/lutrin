@@ -135,11 +135,12 @@
         assets to host. Lutrin's HTML output is one standalone document with
         presenter mode inside it. Both work offline; the difference is a file
         versus a folder.</li>
-      <li><strong>No browser is needed to produce the files.</strong> Slidev's
+      <li><strong>No browser is needed for the two main outputs.</strong> Slidev's
         PDF, PPTX and PNG exports rely on Playwright, so
         <code>playwright-chromium</code> has to be installed in the project:
         without it there is no export. Lutrin's <code>.pptx</code> and HTML are
-        written by Node ≥ 22 alone. We do ship
+        written by Node ≥ 22 alone — though our own PDF and image exports need a
+        browser just as theirs do, and refuse without one. We ship
         <code>puppeteer-core</code>, and exactly one thing uses it — Mermaid,
         which measures the text it lays out and so needs a real layout engine.
         It drives a Chrome, Edge, Brave or Chromium already on the machine, or
@@ -173,12 +174,12 @@
           <tr>
             <th scope="row">PDF export</th>
             <td>Yes, the default format, with <code>--with-clicks</code>, <code>--range</code>, <code>--dark</code>.</td>
-            <td>No PDF writer: the two outputs are <code>.pptx</code> and standalone HTML. That HTML carries a print stylesheet, so a browser prints it to a 16:9 PDF, one slide per page, every step open — with none of Slidev's flags.</td>
+            <td><code>--pdf</code> writes a 16:9 PDF, one page per slide, with an outline; <code>--png</code> and <code>--jpeg</code> write one file per slide at 2×. No per-range or dark-mode flags, and no notes annotations.</td>
           </tr>
           <tr>
             <th scope="row">Export dependencies</th>
             <td>Playwright — <code>playwright-chromium</code> must be installed in the project, or there is no export.</td>
-            <td>Node ≥ 22 writes both outputs. A browser is used only to render Mermaid; without one the build still succeeds and the diagram stays as source.</td>
+            <td>Node ≥ 22 writes <code>.pptx</code> and HTML. A browser — one already on the machine, or one <code>lutrin setup-mermaid</code> downloads — renders Mermaid (optional: without it the diagram degrades to its source) and drives the PDF and image exports (required: the build refuses before writing).</td>
           </tr>
           <tr>
             <th scope="row">Who decides the layout</th>

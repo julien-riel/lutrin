@@ -74,6 +74,15 @@ jobs:
       - name: Core tests
         run: npm test -w @lutrin/core
 
+      # The export is the one feature whose test SKIPS where no browser exists —
+      # right on a contributor's laptop, wrong here. A runner that quietly lost
+      # its Chromium would leave `--pdf` untested while the suite stayed green.
+      # This step requires a browser and fails without one, so "green" means the
+      # export actually ran headless on this OS.
+      - name: PDF export smoke (headless)
+        if: ${{ !cancelled() }}
+        run: node scripts/pdf-smoke.mjs
+
       # This suite runs TypeScript directly through Node
       # (--experimental-transform-types), which requires Node >= 22.7. The
       # matrix only installs recent 22.x and 24.x, so the condition holds; see
