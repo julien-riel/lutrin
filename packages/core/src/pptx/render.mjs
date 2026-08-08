@@ -1803,8 +1803,13 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   );
 
   const diagnostics = [];
-  const rasterBlocks =
-    chartEls.length + ofType('math').length + iconBlocks.length + smartEls.length;
+  // Diagrams are deliberately NOT counted here. This message says the blocks
+  // were replaced by their specification in TEXT, which is true of a chart, an
+  // equation and an icon and never of a diagram: with no PNG, `addSmartArt`
+  // falls through to `drawSmartArtShapes` and the diagram is drawn correctly,
+  // losing only the editability. Counting one inflated a number the sentence
+  // then attributed to the other three.
+  const rasterBlocks = chartEls.length + ofType('math').length + iconBlocks.length;
   if (rasterBlocks && !(await rasterAvailable())) {
     diagnostics.push({
       severity: 'error',
@@ -1812,6 +1817,18 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       message: `Rasterizer @resvg/resvg-js unavailable — ${rasterBlocks} chart(s), equation(s) or icon(s) are replaced by their specification in text in the .pptx. Reinstall the dependencies on this platform (\`npm install\` in the lutrin package) to restore graphical rendering.`,
     });
   }
+
+  // Taking the diagrams out of the count above must not make their own case
+  // silent: the conversion needs a stand-in picture, so with no rasterizer
+  // `--smartart` asks for something that cannot happen. Its own severity,
+  // because nothing is missing from the slide — the diagram is drawn, and only
+  // the editability that was the whole point of the flag is gone.
+  if (smartart && smartEls.length && !diagrams.size)
+    diagnostics.push({
+      severity: 'warning',
+      code: 'SMARTART_UNAVAILABLE',
+      message: `Rasterizer @resvg/resvg-js unavailable — ${smartEls.length} diagram(s) are drawn as native shapes instead of editable SmartArt. The slides are complete; only the SmartArt object asked for by \`--smartart\` is missing.`,
+    });
 
   // trust roots of the local images: directory of the deck + project
   // roots declared by the host (containment — assets.mjs)
