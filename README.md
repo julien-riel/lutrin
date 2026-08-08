@@ -381,10 +381,28 @@ a web server, then point the `lutrin.updateUrl` setting at the URL of the
 offers "Update". `http` URLs are refused and the sha256 digest of the manifest
 is verified before installation.
 
+## Agent Plugin
+
+Lutrin is also packaged as a portable **Agent Plugin**, conforming to the
+[Agent Plugins Specification v1.0.0](https://agent-plugins.org) — so any
+conformant agent client, not only Claude Code, can install the `deck` skill and
+drive the compiler through standard MCP tools. The plugin root is the
+`plugin/` directory (a plain, directly loadable folder: `plugin.json`,
+`mcp.json`, and the skill).
+
+It ships the two portable component types the spec defines: the `deck` **skill**
+(the same one under `.claude/skills/deck`, kept byte-identical by
+`scripts/sync-skill.mjs`) and an **MCP server** (`@lutrin/mcp`) exposing the
+compiler as tools — `validate_deck`, `build_deck`, `suggest_layout`. The server
+is not bundled: `mcp.json` launches it with `npx -y @lutrin/mcp@<version>`
+(pinned), so the first run needs network and a working `npx`. See
+[`plugin/README.md`](plugin/README.md) for the tool surface and the design in
+[docs/plans/agent-plugin.md](docs/plans/agent-plugin.md).
+
 ## Tests
 
 ```bash
-npm test                    # both packages — node:test harness, zero dependencies
+npm test                    # every workspace — node:test harness, zero dependencies
 npm run test:core           # the engine alone: packages/core/test/
 npm run typecheck           # the editor host (tsc --noEmit)
 npm run lint                # biome — BLOCKING in CI
@@ -413,7 +431,10 @@ packages/core/src/kit/         .deckkit archives (pack, download, install)
 packages/core/src/worker/      the IPC worker of the editor host (+ protocol.d.ts)
 packages/core/test/            the node:test harness (goldens, parity, validation, kits)
 packages/vscode-extension/     the extension (webview; launches the core worker)
+packages/mcp/                  @lutrin/mcp — the MCP server (validate/build/suggest tools)
 .claude/skills/deck/           the agent skill
+packages/core/skills/deck/     the canonical SKILL.md (synced to .claude/ and plugin/)
+plugin/                        the portable Agent Plugin (agent-plugins.org v1.0.0)
 examples/demo.deck.md          covers every layout and block type — test fixture
 examples/theme-example.json    example theme
 examples/kit-slate/            complete example kit (theme + layouts/, royalty-free)

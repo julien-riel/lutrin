@@ -1,9 +1,43 @@
 # Publishing Lutrin
 
 Where each deliverable goes and how it gets there. The npm packages
-(`lutrin`, `@lutrin/core`) are published with `npm publish` from their
-directories; this file details the channel that needs one-time setup:
-the **VS Code extension** on the Visual Studio Marketplace.
+(`@lutrin/core`, `lutrin`, `@lutrin/mcp`) are published with `npm publish`
+from their directories (see the next section); this file also details the
+channel that needs one-time setup: the **VS Code extension** on the Visual
+Studio Marketplace.
+
+## npm packages — every release
+
+The three npm packages carry the same version and are published from their
+own directories with `npm publish` (they set `publishConfig.access: public`,
+so no extra flag is needed):
+
+```bash
+npm publish -w @lutrin/core     # the compiler
+npm publish -w lutrin           # the `lutrin` CLI (depends on @lutrin/core)
+npm publish -w @lutrin/mcp      # the MCP server (depends on @lutrin/core)
+```
+
+Order matters where a dependent pins the version: `lutrin` and `@lutrin/mcp`
+both depend on the exact `@lutrin/core` version, so publish `@lutrin/core`
+first.
+
+**`@lutrin/mcp` and the Agent Plugin.** The plugin ships no server code:
+`plugin/mcp.json` launches the server with `npx -y @lutrin/mcp@<version>`,
+a PINNED version. That pin **must already exist on the registry**, or a
+plugin checkout resolves nothing on its first run. So:
+
+1. Keep `plugin/mcp.json`'s pin, `plugin/plugin.json`'s version and
+   `packages/mcp/package.json`'s version in lockstep — the `version-pin`
+   test (`packages/mcp/test/version-pin.test.mjs`, also run in the CI
+   `format` job) fails the build if they drift.
+2. **`npm publish -w @lutrin/mcp` BEFORE the plugin at that version is
+   distributed.** Publishing the server is the release step that makes the
+   pinned `npx` spec resolve; it replaces the bundled-artifact guard the
+   esbuild route would have needed.
+
+A first publish of `@lutrin/mcp` needs the same npm auth as the other two
+packages (an npm account with publish rights to the `@lutrin` scope).
 
 ## VS Code extension — one-time setup
 
