@@ -64,7 +64,7 @@ const BUILTINS = [
   'hierarchy',
   'venn',
   'radial',
-  'pyramid-diagram',
+  'apex',
   'focus',
   'table',
   'code',

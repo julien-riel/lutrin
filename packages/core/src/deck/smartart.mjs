@@ -2,7 +2,7 @@
  * Diagram geometry: a `smartart` block → pure numbers, and the SVG twin.
  *
  * This module is the SINGLE source of coordinates for the five diagram
- * layouts (`cycle`, `hierarchy`, `venn`, `radial`, `pyramid-diagram`). Three
+ * layouts (`cycle`, `hierarchy`, `venn`, `radial`, `apex`). Three
  * consumers read it and none of them computes geometry of its own:
  *
  *   - the HTML renderer inlines `smartArtSvg()` at the region's exact size;
@@ -554,7 +554,7 @@ function pyramidGeometry(nodes, w, h) {
     };
   });
 
-  return { family: 'pyramid-diagram', shapes, links: [], labels };
+  return { family: 'apex', shapes, links: [], labels };
 }
 
 // ---------------------------------------------------------------------------
@@ -585,7 +585,7 @@ export function smartArtGeometry(block, w, h) {
     case 'radial':
       g = radialGeometry(block.hub ?? '', nodes, w, h);
       break;
-    case 'pyramid-diagram':
+    case 'apex':
       g = pyramidGeometry(nodes, w, h);
       break;
     default:

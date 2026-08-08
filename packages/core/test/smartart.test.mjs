@@ -39,9 +39,9 @@ const BLOCKS = {
     hub: 'Compiler core',
     nodes: nodes('CLI', 'VS Code', 'Playground', 'CI'),
   },
-  'pyramid-diagram': {
+  apex: {
     type: 'smartart',
-    family: 'pyramid-diagram',
+    family: 'apex',
     nodes: nodes('Vision', 'Strategy', 'Execution'),
   },
   hierarchy: {
@@ -67,7 +67,7 @@ const boxes = (g) => [...g.shapes, ...g.links, ...g.labels];
 
 test('every family lays out INSIDE its region, at every node count it accepts', () => {
   const out = [];
-  for (const family of ['cycle', 'venn', 'radial', 'pyramid-diagram']) {
+  for (const family of ['cycle', 'venn', 'radial', 'apex']) {
     for (let n = 2; n <= 8; n++) {
       const block = {
         ...BLOCKS[family],

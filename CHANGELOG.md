@@ -31,16 +31,16 @@ stated otherwise, an entry describes the compiler.
   `node scripts/reference-pptx.mjs` checks the encoding against a deck
   PowerPoint itself wrote.
 
-- **`pyramid-diagram`, a fifth diagram layout.** Levels stacked into a
-  triangle, apex first, read top-down in document order like every other layout
-  in this DSL — drawn everywhere, and editable as real OOXML SmartArt under
-  `--smartart`, alongside `cycle`, `hierarchy`, `venn` and `radial`.
+- **`apex`, a fifth diagram layout.** Levels stacked into a triangle, apex
+  first, read top-down in document order like every other layout in this DSL —
+  drawn everywhere, and editable as real OOXML SmartArt under `--smartart`,
+  alongside `cycle`, `hierarchy`, `venn` and `radial`.
 
-  It carries the suffix because **`pyramid` was already taken** by the official
-  catalog layout (`layers` with `shape: pyramid`), whose bands hold a heading
-  *and* its paragraph where the diagram holds labels alone. The two are not
-  interchangeable, so they do not share a name: decks written against
-  `layout: pyramid` are untouched.
+  It is a pyramid, and is deliberately not called one: **`pyramid` was already
+  taken** by the official catalog layout (`layers` with `shape: pyramid`),
+  whose bands hold a heading *and* its paragraph where `apex` holds labels
+  alone. The two are not interchangeable, so they do not share a name — and
+  decks written against `layout: pyramid` are untouched.
 
 - **An Agent Plugin, and an MCP server.** Lutrin is now packaged as a portable
   Agent Plugin ([agent-plugins.org](https://agent-plugins.org) v1.0.0) under the

@@ -392,7 +392,7 @@ export function validateDeck(
     // never learns why.
     // Diagram layouts. Two things LAYOUT_SECTIONS cannot see, because it
     // counts "##" and a diagram may be fed by a bullet list instead.
-    if (['cycle', 'hierarchy', 'venn', 'radial', 'pyramid-diagram'].includes(layoutBase)) {
+    if (['cycle', 'hierarchy', 'venn', 'radial', 'apex'].includes(layoutBase)) {
       // SCOPED to hierarchy on purpose: cycle, venn and radial declare
       // section bounds, so an unscoped "fewer than two nodes" would warn
       // beside LAYOUT_SECTIONS about the same slide, in slightly different
