@@ -790,6 +790,12 @@ function drawSmartArtShapes(slide, g, r) {
       y: px(r.y + s.y),
       w: px(s.w),
       h: px(s.h),
+      // `custGeom`: the point list is the shape's OWN outline, relative to its
+      // box — the same list the SVG twin draws and the drawing cache writes.
+      // PptxGenJS closes nothing by itself, hence the explicit `close`.
+      ...(s.points
+        ? { points: [...s.points.map(([sx, sy]) => ({ x: px(sx), y: px(sy) })), { close: true }] }
+        : {}),
       // PptxGenJS's `transparency` is the INVERSE of alpha, in percent: it
       // writes `<a:alpha val="(100 − transparency) × 1000"/>`, so 78 here is
       // the 0.22 the SVG writes as fill-opacity.

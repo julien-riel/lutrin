@@ -847,6 +847,11 @@ export function registerLayout(def) {
     sections: { min: 2, max: 8 },
   },
   {
+    name: 'pyramid',
+    description: 'levels stacked into a triangle — proportions, priorities',
+    sections: { min: 2, max: 6 },
+  },
+  {
     name: 'focus',
     description: 'one key message set large in the middle of the slide',
     paramSchema: {
@@ -1979,8 +1984,11 @@ export function buildScenes(deck) {
       }
       case 'cycle':
       case 'venn':
-      case 'radial': {
-        // Three diagram families fed the same way: one `##` section per node.
+      case 'radial':
+      case 'pyramid': {
+        // Four diagram families fed the same way: one `##` section per node.
+        // `pyramid` reads them TOP-DOWN — the first section is the apex, in
+        // document order, like everything else in this DSL.
         // `radial` alone reads a LEAD paragraph — what stands before the first
         // `##` is the hub, not a spoke — falling back to the slide's title,
         // because a hub with no name is a circle with no argument.

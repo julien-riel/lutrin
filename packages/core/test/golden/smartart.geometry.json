@@ -433,6 +433,142 @@
       }
     ]
   },
+  "pyramid": {
+    "family": "pyramid",
+    "shapes": [
+      {
+        "role": "level",
+        "i": 0,
+        "x": 500.67,
+        "y": 0,
+        "w": 182.67,
+        "h": 182.67,
+        "prst": "custGeom",
+        "points": [
+          [
+            91.33,
+            0
+          ],
+          [
+            182.67,
+            182.67
+          ],
+          [
+            0,
+            182.67
+          ]
+        ],
+        "fill": "1E3A8A",
+        "ink": "FFFFFF",
+        "line": null,
+        "alpha": 1
+      },
+      {
+        "role": "level",
+        "i": 1,
+        "x": 407.33,
+        "y": 186.67,
+        "w": 369.33,
+        "h": 182.67,
+        "prst": "custGeom",
+        "points": [
+          [
+            91.33,
+            0
+          ],
+          [
+            278,
+            0
+          ],
+          [
+            369.33,
+            182.67
+          ],
+          [
+            0,
+            182.67
+          ]
+        ],
+        "fill": "1D4ED8",
+        "ink": "FFFFFF",
+        "line": null,
+        "alpha": 1
+      },
+      {
+        "role": "level",
+        "i": 2,
+        "x": 314,
+        "y": 373.33,
+        "w": 556,
+        "h": 182.67,
+        "prst": "custGeom",
+        "points": [
+          [
+            91.33,
+            0
+          ],
+          [
+            464.67,
+            0
+          ],
+          [
+            556,
+            182.67
+          ],
+          [
+            0,
+            182.67
+          ]
+        ],
+        "fill": "60A5FA",
+        "ink": "212529",
+        "line": null,
+        "alpha": 1
+      }
+    ],
+    "links": [],
+    "labels": [
+      {
+        "of": 0,
+        "x": 553.64,
+        "y": 2,
+        "w": 76.72,
+        "h": 178.67,
+        "text": "Vision",
+        "sub": null,
+        "pt": 14,
+        "ink": "FFFFFF",
+        "align": "center",
+        "valign": "middle"
+      },
+      {
+        "of": 1,
+        "x": 502.67,
+        "y": 188.67,
+        "w": 178.67,
+        "h": 178.67,
+        "text": "Strategy",
+        "sub": null,
+        "pt": 14,
+        "ink": "FFFFFF",
+        "align": "center",
+        "valign": "middle"
+      },
+      {
+        "of": 2,
+        "x": 409.33,
+        "y": 375.33,
+        "w": 365.33,
+        "h": 178.67,
+        "text": "Execution",
+        "sub": null,
+        "pt": 14,
+        "ink": "212529",
+        "align": "center",
+        "valign": "middle"
+      }
+    ]
+  },
   "hierarchy": {
     "family": "hierarchy",
     "shapes": [
