@@ -16,7 +16,13 @@ npm run test:core           # the engine alone, when that is what you touch
 npm run typecheck           # the editor host (tsc --noEmit)
 npm run lint                # biome — BLOCKING in CI
 node packages/core/src/cli.mjs build examples/demo.deck.md -o /tmp/demo.pptx
+node scripts/pptx-fidelity.mjs    # does the .pptx LOOK like the deck? (needs LibreOffice)
 ```
+
+The last one is the check the test suite cannot make: it reopens our PowerPoint
+in LibreOffice Impress and compares it, slide by slide, against the HTML the
+preview shows. See `docs/pptx-fidelity.md` — including how to read its numbers,
+which are not a pass mark.
 
 `npm run lint` (`biome check .`) is the CI `format` job, and it is
 **blocking**: a PR that does not pass is red before it is read. Run it before
