@@ -226,6 +226,26 @@ What makes it medium-to-large rather than medium:
   (`morph.mjs`, `anim.mjs`, `svg.mjs`, `smartart.mjs`), including the
   fail-safe rule: any surprise leaves the picture standing.
 
+### The file to match
+
+`node scripts/reference-pptx.mjs` fetches two decks that already carry OMML,
+and the difference between them is the design decision
+([reference packages](../reference-pptx.md)):
+
+- **`tdf129372.pptx`**, written by PowerPoint, wraps the equation in
+  `mc:AlternateContent` — `mc:Choice Requires="a14"` holds
+  `a14:m/m:oMathPara/m:oMath` with runs in Cambria Math, and `mc:Fallback`
+  holds a **locked picture shape** (`a:blipFill` plus `a:spLocks` on rotation,
+  aspect, points and text). PowerPoint writes both halves, every time.
+- **`linear_perm_slides.pptx`**, written by a generator, drops `a14:m` straight
+  into `<a:p>`: no `mc:AlternateContent`, no fallback. Editable in PowerPoint,
+  invisible everywhere else.
+
+The first shape means "the fallback has to stay" is satisfied by the format
+rather than by a promise — the picture we already rasterise becomes the
+`mc:Fallback` body, and a construct the transform cannot handle simply never
+gets an `mc:Choice`. That is the target.
+
 Worth doing, and worth not rushing.
 
 ---

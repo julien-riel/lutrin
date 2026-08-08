@@ -178,7 +178,14 @@ Open them in real PowerPoint (Windows **and** macOS) and fill this in:
 | 5 | Colours are the deck's, not Office blue? | | |
 | 6 | Two diagrams of one family in one deck both load? | | |
 | 7 | Keynote / LibreOffice / Google Slides — what renders? | | |
-| 8 | Literal `dsp:dataModelExt/@minVer` in a PowerPoint-authored file | | |
+
+Question 8 used to sit in this table — *the literal
+`dsp:dataModelExt/@minVer` in a PowerPoint-authored file* — and it never
+needed eyes, only a file. `node scripts/reference-pptx.mjs` fetches six of
+them and answers it, along with every other question about our zip that is
+really a question about bytes: parts, content types, relationships, gallery
+data. See [reference packages](../reference-pptx.md). What is left in the
+table is what only a person in front of PowerPoint can see.
 
 A blank frame in **Keynote is expected** and documented in
 [the DSL reference](../dsl.md): Apple's importer dispatches on the layout id
@@ -230,5 +237,7 @@ native.
   does not happen. `RASTER_UNAVAILABLE` already fires, so it is not silent —
   but every `--smartart` end-to-end assertion is gated on `rasterAvailable()`.
 - **`dsp:dataModelExt/@minVer`** is shipped as the DrawingML diagram namespace
-  URI, provisionally. Every consumer inspected ignores it and reads only
-  `relId`, so the risk is low; question 8 of the gate settles it.
+  URI. This was provisional; it no longer is. Six PowerPoint-authored files
+  write `minVer="http://schemas.openxmlformats.org/drawingml/2006/diagram"`,
+  byte for byte what we write — a namespace URI, not a version number like
+  `12.0`. `scripts/reference-pptx.mjs` re-checks it on demand.

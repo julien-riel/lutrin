@@ -32,6 +32,10 @@ site/gallery/
 !packages/core/design/editor/index.html
 !packages/core/design/deck-editor/index.html
 
+# PowerPoint-authored reference packages, fetched by scripts/reference-pptx.mjs
+# (docs/reference-pptx.md says why they are never vendored)
+.reference-pptx/
+
 # local pointer to a brand kit (see scripts/package.mjs)
 .brandkit
 
