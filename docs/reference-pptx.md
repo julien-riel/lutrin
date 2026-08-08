@@ -83,9 +83,14 @@ colours are the deck's rather than the theme's. The cost is worth naming:
 - *Change Colors* in PowerPoint's gallery replaces the brand palette with an
   Office one, and there is no way back except rebuilding.
 
-One cosmetic difference is worth a line: our zip carries 20 **directory
-entries**, an artefact of the writer; Office packages carry none. No consumer
-has objected, and nothing in OPC forbids it.
+One cosmetic difference used to be worth a line, and is now closed: our zip
+carried 20 **directory entries** — an artefact of JSZip, which materialises a
+folder for every parent of a path handed to `file()` — where Office packages
+carry none. Nothing in OPC ever forbade them and no consumer objected, so this
+was never a defect; it was simply the last row of the table that read
+differently from PowerPoint for a reason nobody had chosen. `pptx/zip-tidy.mjs`
+drops them as the last post-write pass, and the `zip directory entries` row now
+reads `0` on both sides.
 
 ## Equations: the two encodings, and why only one is the target
 

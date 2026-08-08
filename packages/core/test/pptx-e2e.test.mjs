@@ -1793,3 +1793,27 @@ test('pptx: an equation the converter refuses stays a picture, and the deck says
   assert.doesNotMatch(xml, /<a14:m>/);
   assert.match(xml, /<p:pic>/, 'the picture that was already correct is still there');
 });
+
+/**
+ * The zip our writer leaves behind should look like one PowerPoint wrote, and
+ * `docs/reference-pptx.md` measured the last place it did not: Office packages
+ * carry no directory entries, ours carried one per folder JSZip materialised.
+ *
+ * Asserting the PART COUNT beside it is the point of the test. Dropping those
+ * entries means deleting keys out of JSZip's `files` map, and the neighbouring
+ * mistake — `zip.remove()` on a folder — takes the folder's whole subtree with
+ * it. A package with no directory entries and no slides would satisfy the
+ * first assertion alone.
+ */
+test('pptx: the package carries no zip directory entries, and loses no part to the tidy', async (t) => {
+  const { zip } = await compilePptx(t, SOURCE);
+  const names = Object.keys(zip.files);
+  const dirs = names.filter((n) => zip.files[n].dir);
+  assert.deepEqual(dirs, [], 'Office packages carry none, and neither should ours');
+  assert.ok(zip.file('[Content_Types].xml'), 'the package still opens as OPC');
+  assert.ok(
+    names.filter((n) => n.startsWith('ppt/slides/slide')).length >= 2,
+    'the slides survived the pass that removed the folders',
+  );
+  assert.ok(await zip.file('ppt/presentation.xml').async('string'));
+});
