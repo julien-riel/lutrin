@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@lutrin/core": "1.2.0",
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
   },
   "keywords": ["mcp", "model-context-protocol", "presentation", "pptx", "slides", "deck", "lutrin"],
   "repository": {

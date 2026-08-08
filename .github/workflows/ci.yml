@@ -43,6 +43,13 @@ jobs:
       - run: npm ci
       - run: npm run lint
 
+      # Fast drift guards, kept off the matrix so they fail in seconds: the
+      # `deck` skill copies must be byte-identical to their canonical source,
+      # and plugin/mcp.json must pin exactly the @lutrin/mcp version that
+      # packages/mcp publishes. Both are pure-fs checks (no deck compiled).
+      - name: Skill sync and plugin version pin
+        run: node --test "packages/mcp/test/skill-sync.test.mjs" "packages/mcp/test/version-pin.test.mjs"
+
   test:
     name: Test — ${{ matrix.os }} / Node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
@@ -73,6 +80,16 @@ jobs:
       # same command holds under bash and under cmd.exe.
       - name: Core tests
         run: npm test -w @lutrin/core
+
+      # The MCP server (@lutrin/mcp): manifest conformance, the SKILL.md sync and
+      # version-pin guards, and behavioural tests that drive the server over the
+      # MCP protocol and compile the hermetic fixture to .pptx/.html. It shares
+      # the matrix so the file writes and path handling it does are exercised on
+      # Windows too. Kept a distinct step (and `!cancelled()`) for the same
+      # reason as the others: a core-only break must not mask an mcp-only one.
+      - name: MCP server tests
+        if: ${{ !cancelled() }}
+        run: npm test -w @lutrin/mcp
 
       # The export is the one feature whose test SKIPS where no browser exists —
       # right on a contributor's laptop, wrong here. A runner that quietly lost
