@@ -11,6 +11,26 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Native OMML equations.** An equation now lands in the `.pptx` as a real
+  PowerPoint equation — the one its own editor opens and edits — instead of a
+  picture of one. It is written the way PowerPoint writes its own, both halves
+  every time: `mc:Choice Requires="a14"` carries `a14:m/m:oMathPara/m:oMath`
+  with the runs set in Cambria Math, and `mc:Fallback` carries the MathJax
+  picture as a **locked** shape (`a:spLocks … noTextEdit="1"`). Nothing is lost
+  to a reader without OMML — Keynote, LibreOffice, Google Slides and Quick Look
+  draw exactly the image they drew yesterday, its SVG twin included.
+
+  The conversion is **exact or it does not happen**. `pptx/omml.mjs` walks the
+  MathML MathJax already built on its way to the SVG — no second parse of the
+  LaTeX, and no new dependency — and returns null rather than guess:
+  `menclose` (a `\cancel` that vanished would change the maths),
+  `mmultiscripts`, a ragged matrix, an unknown `mathvariant`. An equation it
+  declines keeps the picture it already was, and `lutrin build` reports how
+  many did. Closes gap #4 of
+  [docs/plans/competitor-gaps.md](docs/plans/competitor-gaps.md);
+  `node scripts/reference-pptx.mjs` checks the encoding against a deck
+  PowerPoint itself wrote.
+
 - **An Agent Plugin, and an MCP server.** Lutrin is now packaged as a portable
   Agent Plugin ([agent-plugins.org](https://agent-plugins.org) v1.0.0) under the
   top-level `plugin/` directory: a closed `plugin.json` manifest (name

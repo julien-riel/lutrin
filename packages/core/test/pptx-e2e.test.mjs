@@ -30,6 +30,7 @@ import { embedFonts, readFsType } from '../src/pptx/fonts.mjs';
 import { embedVectorImages } from '../src/pptx/svg.mjs';
 import { svgPartSafe } from '../src/deck/svg.mjs';
 import { FONT_FILES, PAGE, SPACE, px } from '../src/deck/tokens.mjs';
+import { readAllBlocks } from './helpers.mjs';
 
 /** A valid 2×2 PNG: enough for imageDims() to read a ratio and for
  *  PptxGenJS to embed a real media part. */
@@ -1005,6 +1006,19 @@ $$E = mc^2$$
 /** The three slides of VECTOR_SOURCE that carry a picture (the cover is 1). */
 const VECTOR_SLIDES = [2, 3, 4];
 
+/**
+ * The shape carrying the vector twin on a slide — a `<p:pic>`, EXCEPT for an
+ * equation, whose picture has since been wrapped in `mc:AlternateContent` and
+ * now lives as the `<p:sp>` of the `mc:Fallback`. The blip fill is lifted
+ * verbatim into it, twin and all, so everything asserted about it still holds;
+ * only the element it is nested in changed.
+ */
+const vectorShapeOf = (xml) =>
+  [
+    ...(xml.match(/<p:pic>[\s\S]*?<\/p:pic>/g) ?? []),
+    ...(xml.match(/<mc:Fallback>[\s\S]*?<\/mc:Fallback>/g) ?? []),
+  ].find((s) => s.includes('asvg:svgBlip'));
+
 /** rId → the part it designates, as a zip path. A relationship Target is
  *  relative to the DIRECTORY of the part that cites it — `ppt/slides/` here —
  *  so `../media/vector-2-1.svg` has to be resolved, not string-matched. */
@@ -1085,9 +1099,7 @@ test('pptx: the PNG stays the picture fill — the vector is an ADDITION, never 
   for (const n of VECTOR_SLIDES) {
     const xml = await slideXml(zip, n);
     const rels = await slideRels(zip, n);
-    const pic = (xml.match(/<p:pic>[\s\S]*?<\/p:pic>/g) ?? []).find((p) =>
-      p.includes('asvg:svgBlip'),
-    );
+    const pic = vectorShapeOf(xml);
     assert.ok(pic, `slide ${n}: no picture carrying a vector twin`);
 
     // `[^>]*` cannot cross a `>`, so this reads the r:embed of the BLIP and
@@ -1271,9 +1283,7 @@ test('embedVectorImages: run twice over the same file, the second pass adds noth
   // label table
   const again = new Map();
   for (const n of VECTOR_SLIDES) {
-    const pic = ((await slideXml(zip, n)).match(/<p:pic>[\s\S]*?<\/p:pic>/g) ?? []).find((p) =>
-      p.includes('asvg:svgBlip'),
-    );
+    const pic = vectorShapeOf(await slideXml(zip, n));
     again.set(n, [
       {
         name: /<p:cNvPr\b[^>]*\sname="([^"]*)"/.exec(pic)[1],
@@ -1636,4 +1646,150 @@ test('smartart: without the flag, a diagram is native shapes and no diagram part
   // the arrows are placed by ROTATION, which is the half of the geometry the
   // boxes alone cannot express
   assert.match(xml, /<a:xfrm rot="-?\d+">/);
+});
+
+// ---------------------------------------------------------------------------
+// Native OMML equations
+// ---------------------------------------------------------------------------
+
+/** The hermetic fixture already carries an equation, and the whole point of
+ *  reusing it is that this feature is asserted on the SAME deck every other
+ *  end-to-end guarantee is asserted on. */
+const EQUATION_SOURCE = readAllBlocks();
+
+/** An equation needs MathJax to exist at all and a rasterizer to become a
+ *  picture — and there is no shape to convert until it is one. */
+async function equationDeps(t) {
+  const { rasterAvailable, mathSvg } = await import('../src/deck/assets.mjs');
+  if (!(await rasterAvailable())) {
+    t.skip('@resvg/resvg-js absent on this platform');
+    return false;
+  }
+  if (!(await mathSvg('x'))) {
+    t.skip('mathjax-full absent on this machine');
+    return false;
+  }
+  return true;
+}
+
+/** The slide of the fixture that holds the equation, found rather than
+ *  hard-coded: the fixture grows, and an ordinal would rot silently. */
+async function equationSlide(zip) {
+  for (const name of Object.keys(zip.files)) {
+    const m = name.match(/^ppt\/slides\/slide(\d+)\.xml$/);
+    if (!m) continue;
+    const xml = await zip.file(name).async('string');
+    if (xml.includes('<a14:m>')) return { n: Number(m[1]), xml };
+  }
+  return null;
+}
+
+// THE FORMAT, and the reason it is this one. PowerPoint writes BOTH halves of
+// an equation every time (`.reference-pptx/tdf129372.pptx`): the OMML for
+// anything that implements it, and a locked picture for everything that does
+// not. The other shape a generator can take — `a14:m` bare inside `<a:p>`, as
+// in `.reference-pptx/linear_perm_slides.pptx` — is editable in PowerPoint and
+// INVISIBLE in LibreOffice. Asserting the pair is asserting we did not take it.
+test('pptx: an equation ships as mc:AlternateContent — OMML for PowerPoint, the picture for everyone else', async (t) => {
+  if (!(await equationDeps(t))) return;
+  const { zip, stats } = await compilePptx(t, EQUATION_SOURCE);
+
+  assert.equal(stats.nativeEquations, 1, 'the fixture holds exactly one equation');
+  assert.equal(stats.equationsConverted, stats.equationsDrawn, 'none of them degraded');
+
+  const found = await equationSlide(zip);
+  assert.ok(found, 'no slide carries a native equation');
+  const { xml } = found;
+
+  const alt = /<mc:AlternateContent\b[^>]*>[\s\S]*?<\/mc:AlternateContent>/.exec(xml)?.[0];
+  assert.ok(alt, 'the a14:m is not wrapped in mc:AlternateContent — that is the negative example');
+  assert.match(alt, /<mc:Choice\b[^>]*\sRequires="a14"/, 'no Choice, or one nobody keys off');
+  assert.match(alt, /xmlns:a14="http:\/\/schemas\.microsoft\.com\/office\/drawing\/2010\/main"/);
+  assert.match(alt, /<mc:Fallback>/, 'a Choice with no Fallback is invisible without OMML');
+
+  // the editable half
+  const choice = /<mc:Choice\b[^>]*>([\s\S]*)<\/mc:Choice>/.exec(alt)[1];
+  assert.match(choice, /<a14:m><m:oMathPara xmlns:m="[^"]*\/2006\/math">/);
+  assert.match(choice, /<m:oMath>/);
+  assert.match(choice, /<a:latin typeface="Cambria Math"/, 'the font PowerPoint sets equations in');
+
+  // the half everything else draws, and the locks that stop a reader typing
+  // into what is really a picture
+  const fallback = /<mc:Fallback>([\s\S]*)<\/mc:Fallback>/.exec(alt)[1];
+  assert.match(fallback, /<a:spLocks\b[^>]*\snoTextEdit="1"/);
+  assert.match(fallback, /<a:spLocks\b[^>]*\snoRot="1"/);
+  assert.match(fallback, /<a:spLocks\b[^>]*\snoChangeAspect="1"/);
+  assert.match(fallback, /<a:blipFill\b/, 'a p:blipFill inside p:spPr is a repair dialog');
+  assert.ok(
+    !/<p:blipFill\b/.test(fallback),
+    'the picture fill was not moved to its DrawingML form',
+  );
+
+  // the r:embed has to resolve to a real image — a dangling one draws the
+  // broken-picture icon for exactly the readers this fallback exists for
+  const rels = await slideRels(zip, found.n);
+  const embed = /<a:blip\b[^>]*\sr:embed="([^"]+)"/.exec(fallback)[1];
+  const target = rels.get(embed);
+  assert.match(target ?? '', /^ppt\/media\/.*\.png$/, `r:embed ${embed} → ${target}`);
+  assert.ok((await zip.file(target).async('nodebuffer')).length > 100, `${target}: empty`);
+
+  // both branches keep the picture's identity, exactly as the reference does:
+  // an animation or a comment addressing it by id still resolves
+  const ids = [...alt.matchAll(/<p:cNvPr\s+id="(\d+)"/g)].map((m) => m[1]);
+  assert.equal(ids.length, 2);
+  assert.equal(ids[0], ids[1], 'the two branches are one shape, not two');
+
+  // and the picture is gone from the tree — one equation, not one plus a
+  // duplicate sitting behind it
+  assert.equal((xml.match(/<a14:m>/g) ?? []).length, 1);
+});
+
+test('embedEquations: a second pass over the same file changes nothing', async (t) => {
+  if (!(await equationDeps(t))) return;
+  const { out, zip } = await compilePptx(t, EQUATION_SOURCE);
+  const before = fs.readFileSync(out);
+  const found = await equationSlide(zip);
+  // the name the renderer really gave that shape, read back OUT of the
+  // AlternateContent rather than assumed — this stays a test of the guard
+  const alt = /<mc:AlternateContent\b[^>]*>[\s\S]*?<\/mc:AlternateContent>/.exec(found.xml)[0];
+  const name = /<p:cNvPr\s+id="\d+"\s+name="([^"]*)"/.exec(alt)[1];
+
+  const { embedEquations } = await import('../src/pptx/equations.mjs');
+  const r = await embedEquations(
+    out,
+    new Map([[found.n, [{ name, omml: '<m:oMathPara xmlns:m="urn:x"/>' }]]]),
+  );
+  assert.equal(r.count, 0, 'a converted equation must not be converted twice');
+  assert.deepEqual(r.warnings, [], 'and that is not a failure either');
+  assert.ok(before.equals(fs.readFileSync(out)), 'a no-op pass rewrote the file');
+});
+
+test('embedEquations: a shape it cannot find stays a picture, and says so', async (t) => {
+  if (!(await equationDeps(t))) return;
+  const { out } = await compilePptx(t, EQUATION_SOURCE);
+  const { embedEquations } = await import('../src/pptx/equations.mjs');
+  const r = await embedEquations(
+    out,
+    new Map([[2, [{ name: 'Nothing 99', omml: '<m:oMathPara xmlns:m="urn:x"/>' }]]]),
+  );
+  assert.equal(r.count, 0);
+  assert.match(r.warnings.join('\n'), /Nothing 99.*not found.*stays a picture/);
+  // and the package is still openable, which is the contract every one of
+  // these passes keeps
+  await JSZip.loadAsync(fs.readFileSync(out));
+});
+
+// The refusal is not a hypothetical: it is the behaviour that keeps the
+// promise "exact or it does not happen", and it has to survive the whole
+// pipeline, not just the converter's unit test.
+test('pptx: an equation the converter refuses stays a picture, and the deck says how many', async (t) => {
+  if (!(await equationDeps(t))) return;
+  const source = '---\ntitle: Maths\n---\n\n# Cancel\n\n$$\\cancel{x} + 1$$\n';
+  const { zip, stats } = await compilePptx(t, source);
+  assert.equal(stats.equationsDrawn, 1);
+  assert.equal(stats.equationsConverted, 0, '\\cancel is menclose, which has no OMML');
+  assert.equal(stats.nativeEquations, 0);
+  const xml = await slideXml(zip, 2);
+  assert.doesNotMatch(xml, /<a14:m>/);
+  assert.match(xml, /<p:pic>/, 'the picture that was already correct is still there');
 });

@@ -100,10 +100,11 @@ answers a different need, which comes down to three points:
   LibreOffice Impress on top of a browser. *Slidev*'s PPTX is images, by its own
   documentation. *reveal.js* has no PowerPoint path at all. Lutrin writes native
   shapes, text boxes and tables with the fonts embedded, in its only PPTX mode,
-  from a pure Node pipeline — charts, equations and icons are pictures there,
-  each carrying its vector as well as its raster (sharp at any zoom in
-  PowerPoint 2019+, the raster everywhere else), and calling them editable
-  objects would be the same overstatement. See the four
+  from a pure Node pipeline, plus equations as native OMML with the picture kept
+  underneath as a fallback — charts and icons are pictures there, each carrying
+  its vector as well as its raster (sharp at any zoom in PowerPoint 2019+, the
+  raster everywhere else), and calling those two editable objects would be the
+  same overstatement. See the four
   comparison pages under [info.lutrin.app](https://info.lutrin.app/), each checked against
   the other project's current documentation and dated.
 - **The layout is decided by the engine.** Elsewhere, you write HTML/CSS or

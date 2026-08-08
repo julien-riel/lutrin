@@ -783,13 +783,21 @@ async function mathDocument() {
       const { liteAdaptor } = await import('mathjax-full/js/adaptors/liteAdaptor.js');
       const { RegisterHTMLHandler } = await import('mathjax-full/js/handlers/html.js');
       const { AllPackages } = await import('mathjax-full/js/input/tex/AllPackages.js');
+      // The MathML half: the same TeX input jax, stopped one state earlier.
+      // `end: STATE.CONVERT` returns the internal MathML tree instead of the
+      // SVG one, and SerializedMmlVisitor writes it out — no second engine and
+      // no second parse of the LaTeX.
+      const { SerializedMmlVisitor } = await import(
+        'mathjax-full/js/core/MmlTree/SerializedMmlVisitor.js'
+      );
+      const { STATE } = await import('mathjax-full/js/core/MathItem.js');
       const adaptor = liteAdaptor();
       RegisterHTMLHandler(adaptor);
       const doc = mathjax.document('', {
         InputJax: new TeX({ packages: AllPackages }),
         OutputJax: new SVG({ fontCache: 'local' }),
       });
-      _mathjax = { doc, adaptor };
+      _mathjax = { doc, adaptor, visitor: new SerializedMmlVisitor(), STATE };
     } catch {
       _mathjax = false;
     }
@@ -801,7 +809,14 @@ const EX_TO_PX = 9; // 1ex ≈ 9 px for a presentation body text size
 
 /**
  * Renders a LaTeX equation as SVG (the brand's neutral-primary ink).
- * @returns {{svg:string,displayW:number,displayH:number}|null}
+ *
+ * `mathml` travels beside the picture: it is what the .pptx renderer turns
+ * into a NATIVE OMML equation (`pptx/omml.mjs`), and taking it from here is
+ * what keeps the two encodings the same expression — the alternative, parsing
+ * the LaTeX a second time, is a second chance to disagree. It is null when
+ * MathJax's own serializer declines; the caller then simply has no native half.
+ *
+ * @returns {{svg:string,displayW:number,displayH:number,mathml:string|null}|null}
  */
 export async function mathSvg(tex) {
   const mj = await mathDocument();
@@ -813,7 +828,16 @@ export async function mathSvg(tex) {
     const hEx = Number.parseFloat(svg.match(/height="([\d.]+)ex"/)?.[1] ?? '0');
     if (!wEx || !hEx || /data-mjx-error/.test(svg)) return null;
     svg = svg.replace(/currentColor/g, `#${COLORS.neutralPrimary}`);
-    return { svg, displayW: wEx * EX_TO_PX, displayH: hEx * EX_TO_PX };
+    let mathml = null;
+    try {
+      mathml = mj.visitor.visitTree(
+        mj.doc.convert(tex, { display: true, end: mj.STATE.CONVERT }),
+        mj.doc,
+      );
+    } catch {
+      mathml = null; // the picture is unaffected — only the native half is lost
+    }
+    return { svg, displayW: wEx * EX_TO_PX, displayH: hEx * EX_TO_PX, mathml };
   } catch {
     return null;
   }
@@ -830,7 +854,9 @@ export async function renderMath(tex, { scale = 3 } = {}) {
   // `svg` travels with the raster: the .pptx ships both, the vector as the
   // representation PowerPoint prefers and the PNG as what everything else
   // reads (pptx/svg.mjs). The HTML renderer calls mathSvg directly.
-  return out ? { ...out, svg: m.svg, displayW: m.displayW, displayH: m.displayH } : null;
+  return out
+    ? { ...out, svg: m.svg, mathml: m.mathml, displayW: m.displayW, displayH: m.displayH }
+    : null;
 }
 
 // ---------------------------------------------------------------------------

@@ -170,19 +170,51 @@ async function readPackage(buf) {
   let a14m = 0;
   let altContent = 0;
   let fallback = 0;
+  // The four things that separate the target encoding from the negative one.
+  // Counted rather than flagged: "3 of 3 equations locked" is a statement, "the
+  // deck has locking somewhere" is not.
+  let choiceOMath = 0;
+  let lockedFallback = 0;
+  let blipResolves = 0;
+  let cambria = 0;
+  let bareA14m = 0;
   for (const n of slides) {
     const s = await text(n);
     oMath += count(s, '<m:oMath');
     a14m += count(s, '<a14:m');
+    const rels = await text(n.replace(/slides\/(slide\d+\.xml)$/, 'slides/_rels/$1.rels'));
+    // rId → the part it names, resolved against ppt/slides/ (a Target is
+    // relative to the DIRECTORY of the part that cites it)
+    const targets = new Map(
+      [...rels.matchAll(/<Relationship\b[^>]*\bId="([^"]+)"[^>]*\bTarget="([^"]+)"/g)].map((m) => [
+        m[1],
+        path.posix.normalize(`ppt/slides/${m[2]}`),
+      ]),
+    );
     // Only the AlternateContent blocks that actually wrap an equation count;
     // a deck can carry others (ink, 3D models) that say nothing about math.
+    let wrapped = 0;
     for (const block of s.split('<mc:AlternateContent').slice(1)) {
       const end = block.indexOf('</mc:AlternateContent>');
       const scope = end === -1 ? block : block.slice(0, end);
       if (!scope.includes('<a14:m')) continue;
       altContent += 1;
-      if (scope.includes('<mc:Fallback')) fallback += 1;
+      wrapped += count(scope, '<a14:m');
+      const choice = /<mc:Choice\b[^>]*>([\s\S]*?)<\/mc:Choice>/.exec(scope)?.[1] ?? '';
+      const fb = /<mc:Fallback>([\s\S]*?)<\/mc:Fallback>/.exec(scope)?.[1] ?? '';
+      if (choice.includes('<a14:m') && choice.includes('<m:oMath')) choiceOMath += 1;
+      if (choice.includes('typeface="Cambria Math"')) cambria += 1;
+      if (!fb) continue;
+      fallback += 1;
+      if (/<a:spLocks\b[^>]*\snoTextEdit="1"/.test(fb)) lockedFallback += 1;
+      const embed = /<a:blip\b[^>]*\sr:embed="([^"]+)"/.exec(fb)?.[1];
+      const target = embed ? targets.get(embed) : null;
+      // "resolves" means the part is really in the zip: a dangling r:embed
+      // draws the broken-picture icon for exactly the readers it exists for
+      if (target && zip.files[target]) blipResolves += 1;
     }
+    // an `a14:m` outside any AlternateContent is the linear_perm_slides shape
+    bareA14m += Math.max(0, count(s, '<a14:m') - wrapped);
   }
 
   const modelExt = /<dsp:dataModelExt[^>]*>/.exec(data1)?.[0] ?? '';
@@ -220,7 +252,17 @@ async function readPackage(buf) {
     colorLabels: count(colors1, '<dgm:styleLbl'),
     quickStyleLabels: count(quick1, '<dgm:styleLbl'),
     colorRefs: colors1.includes('schemeClr') ? 'schemeClr' : colors1 ? 'srgbClr' : '—',
-    math: { oMath, a14m, altContent, fallback },
+    math: {
+      oMath,
+      a14m,
+      altContent,
+      fallback,
+      choiceOMath,
+      lockedFallback,
+      blipResolves,
+      cambria,
+      bareA14m,
+    },
   };
 }
 
@@ -259,6 +301,12 @@ Put it online.
 - Direction
   - Product
   - Engineering
+
+---
+
+# Equation
+
+$$\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}$$
 `;
 
   const work = fs.mkdtempSync(path.join(CACHE, 'ours-'));
@@ -347,35 +395,57 @@ function reportSmartArt(ours, refs) {
 
 function reportMath(ours, refs) {
   console.log('OMML equations — the encodings in the wild\n');
-  for (const r of refs) {
-    const m = r.pkg.math;
+  const line = (label, m) =>
     console.log(
-      `  ${r.src.file.padEnd(30)} oMath ${String(m.oMath).padStart(3)}  a14:m ${String(m.a14m).padStart(3)}  ` +
-        `AlternateContent ${m.altContent}  Fallback ${m.fallback}`,
+      `  ${label.padEnd(30)} a14:m ${String(m.a14m).padStart(3)}  AlternateContent ${m.altContent}  ` +
+        `Fallback ${m.fallback}  locked ${m.lockedFallback}  blip resolves ${m.blipResolves}  ` +
+        `Cambria ${m.cambria}  bare a14:m ${m.bareA14m}`,
     );
+  for (const r of refs) line(r.src.file, r.pkg.math);
+  line('ours', ours.math);
+
+  // The invariants are OURS alone: `linear_perm_slides.pptx` fails every one
+  // of them on purpose, and that is the fact it is in the corpus to carry.
+  const m = ours.math;
+  const musts = [
+    ['at least one native equation', m.a14m > 0],
+    ['every a14:m wrapped in mc:AlternateContent', m.bareA14m === 0],
+    [
+      'one mc:Choice / mc:Fallback pair per equation',
+      m.altContent === m.a14m && m.fallback === m.a14m,
+    ],
+    ['the Choice carries m:oMath', m.choiceOMath === m.altContent],
+    ['the runs are set in Cambria Math', m.cambria === m.altContent],
+    ['the Fallback shape is locked (noTextEdit)', m.lockedFallback === m.fallback],
+    ['its r:embed resolves to a part that exists', m.blipResolves === m.fallback],
+  ];
+  console.log('\n  Invariants');
+  let bad = 0;
+  for (const [what, ok] of musts) {
+    if (!ok) bad += 1;
+    console.log(`    ${ok ? '✓' : '✗'} ${what}`);
   }
-  console.log(
-    `  ${'ours (--smartart deck)'.padEnd(30)} oMath ${String(ours.math.oMath).padStart(3)}  ` +
-      `a14:m ${String(ours.math.a14m).padStart(3)}  AlternateContent ${ours.math.altContent}  Fallback ${ours.math.fallback}`,
-  );
+
   console.log(`
-  Ours is zero on every column, by design and by release note: an equation is
-  a picture today (competitor-gaps.md, gap #4). The two references are the two
-  shapes gap #4 could take, and they are not equivalent:
+  The two references are the two shapes gap #4 could have taken, and they are
+  not equivalent:
 
     tdf129372.pptx        mc:AlternateContent → mc:Choice Requires="a14" → a14:m
                           → m:oMathPara/m:oMath, runs carrying Cambria Math,
                           with mc:Fallback holding a LOCKED picture shape
                           (a:blipFill + a:spLocks noEditPoints/noTextEdit/…).
-                          PowerPoint writes both halves, every time.
+                          PowerPoint writes both halves, every time. THE TARGET.
 
     linear_perm_slides    a14:m dropped straight into <a:p>, no AlternateContent
                           and no fallback. Editable in PowerPoint, INVISIBLE in
-                          renderers that do not implement OMML.
+                          renderers that do not implement OMML — which is why
+                          "bare a14:m" is a column and why ours must read 0.
 
-  The first is the target: it is the only one where "the fallback has to stay"
-  is satisfied by the format itself rather than by a promise.
+  An equation whose OMML conversion is not exact never reaches this file at all:
+  it stays the picture it already was (omml.mjs returns null), and the CLI says
+  how many did.
 `);
+  return bad;
 }
 
 /* -------------------------------------------------------------------- main */
@@ -396,11 +466,11 @@ for (const src of SOURCES) {
 }
 const ours = await readPackage(await buildOurs());
 
-const bad = reportSmartArt(
+let bad = reportSmartArt(
   ours,
   refs.filter((r) => r.src.kind === 'smartart'),
 );
-reportMath(
+bad += reportMath(
   ours,
   refs.filter((r) => r.src.kind === 'omml'),
 );

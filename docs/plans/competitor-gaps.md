@@ -22,11 +22,11 @@ taken, and two of the five are argued against.
 | 1 | [The responsive breakpoint](#1-the-responsive-breakpoint) | reveal.js | a media query and a decision | do it |
 | 2 | [A PDF writer, and image export](#2-a-pdf-writer-and-image-export) | Marp | medium — the browser plumbing existed | **shipped** |
 | 3 | [A reveal vocabulary per element](#3-a-reveal-vocabulary-per-element) | Slidev, reveal.js | medium, and it touches the timing tree | decide the principle first |
-| 4 | [Editable OMML equations](#4-editable-omml-equations) | Pandoc | medium to large | worth it, eventually |
+| 4 | [Editable OMML equations](#4-editable-omml-equations) | Pandoc | medium to large | **shipped** |
 | 5 | [Reading a `.pptx` as content](#5-reading-a-pptx-as-content) | Pandoc | large | argued against |
 
-Items 1 and 2 close a gap outright; 2 has shipped. Item 3 cannot start until a question of
-principle is answered. Items 4 and 5 are honest about being expensive.
+Items 1 and 2 close a gap outright; 2 and 4 have shipped. Item 3 cannot start until a
+question of principle is answered. Item 5 is honest about being expensive.
 
 ---
 
@@ -200,6 +200,11 @@ one ends up shipped and regretted.
 
 ## 4. Editable OMML equations
 
+**Shipped.** An equation is written as the pair PowerPoint itself writes —
+native OMML in `mc:Choice`, the rendered picture in `mc:Fallback` — and the
+conversion refuses rather than guesses. What follows is kept as it was written,
+with the outcome recorded at the end.
+
 ### The concession
 
 Pandoc writes equations into the `.pptx` as OMML — real PowerPoint equations
@@ -247,6 +252,37 @@ rather than by a promise — the picture we already rasterise becomes the
 gets an `mc:Choice`. That is the target.
 
 Worth doing, and worth not rushing.
+
+### What it turned out to be
+
+Two modules and a wire. `pptx/omml.mjs` walks the MathML MathJax already built
+on its way to the SVG — `deck/assets.mjs` now keeps it — and returns either an
+exact `m:oMathPara` or **null**; `pptx/equations.mjs` is the fifth post-write
+pass, and swaps the picture for the `mc:AlternateContent` pair, lifting the
+picture's own `blipFill` into the fallback so the SVG twin `svg.mjs` hung off it
+survives too.
+
+The estimate was right about where the cost sits. Not in the tree walk — a
+fraction, a radical, a script, a matrix each map to one element — but in the two
+places where MathML and OMML *disagree about structure*:
+
+- **the n-ary operand.** In MathML the summand is a SIBLING of `∑`; in OMML it
+  belongs inside as `m:e`. Leaving that slot empty is not cosmetic — PowerPoint
+  draws an empty operand as a dotted placeholder box, so the reader sees a hole.
+  Filling it means deciding where the sum ends, which is the one place the
+  converter interprets rather than translates (it stops at a relation or a
+  low-precedence binary operator, as every MathML→OMML transform does).
+- **`mover` is three different things.** A combining accent (`\hat`), a rule
+  (`\overline`) and a limit (`\lim`) share one MathML element and take three
+  OMML ones. Drawing a hat as a limit puts the caret on its own line above the
+  letter — a different notation, not a rounding.
+
+No XSLT engine and no DOM were added: the input is not arbitrary XML but the
+output of one serializer, and a 60-line reader covers it. Everything it does
+not recognise takes the null exit, which is the same exit an unmappable element
+takes — `menclose`, `mmultiscripts`, a ragged matrix, an unknown `mathvariant`.
+`npm run build` reports the count that degraded, so "some of your equations are
+not editable" is a fact the author is told rather than one they discover.
 
 ---
 
