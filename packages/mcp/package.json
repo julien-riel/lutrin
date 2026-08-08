@@ -1,0 +1,35 @@
+{
+  "name": "@lutrin/mcp",
+  "version": "1.2.0",
+  "description": "Model Context Protocol server for Lutrin: exposes the Markdown → PowerPoint / HTML presentation compiler as validate/build/suggest tools. Launched by the Lutrin Agent Plugin via npx.",
+  "type": "module",
+  "bin": {
+    "lutrin-mcp": "bin/lutrin-mcp.mjs"
+  },
+  "scripts": {
+    "test": "node --import ./test/setup.mjs --test --test-timeout=120000 \"test/*.test.mjs\""
+  },
+  "files": ["src", "bin", "README.md"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@lutrin/core": "1.2.0",
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "keywords": ["mcp", "model-context-protocol", "presentation", "pptx", "slides", "deck", "lutrin"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julien-riel/lutrin.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/julien-riel/lutrin/issues"
+  },
+  "homepage": "https://info.lutrin.app/",
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "author": "Julien Riel"
+}
