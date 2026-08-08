@@ -76,33 +76,31 @@ test/CI discipline still applies.
 ```
 plugin/                              # THE PLUGIN ROOT (distributed as-is)
 ├── plugin.json                      # closed manifest, name: "lutrin"
-├── mcp.json                         # one stdio server: "lutrin"
+├── mcp.json                         # one stdio server: "lutrin" (via npx)
 ├── skills/
 │   └── deck/
 │       └── SKILL.md                 # synced from packages/core (single source)
-├── bin/
-│   └── lutrin-mcp.mjs               # built MCP server (see §5 packaging)
 ├── README.md
 ├── LICENSE                          # MIT
 └── CHANGELOG.md
 
-packages/mcp/                        # @lutrin/mcp — SOURCE of the server
-├── package.json                     # depends on @lutrin/core
+packages/mcp/                        # @lutrin/mcp — the PUBLISHED server (npm)
+├── package.json                     # depends on @lutrin/core; "bin": lutrin-mcp
 ├── src/server.mjs                   # MCP stdio server (tool definitions)
-├── build.mjs                        # esbuild → ../../plugin/bin/lutrin-mcp.mjs
+├── bin/lutrin-mcp.mjs               # bin entry (published, run by npx)
 └── test/*.test.mjs                  # node:test, matches repo convention
 ```
 
-Rationale for the split: `plugin/` must stay a plain, standalone directory a
-client can load directly; but the server's code deserves to be a real workspace
-package with tests and a build step. `plugin/bin/lutrin-mcp.mjs` and
-`plugin/skills/deck/SKILL.md` are **generated artifacts kept in sync**, verified
-in CI — the same philosophy the repo already applies to the VSIX.
+Rationale for the split: `plugin/` stays a plain, standalone directory a client
+can load directly — it carries **no server code**. The server ships as the
+published npm package **`@lutrin/mcp`**, and `mcp.json` launches it with `npx`
+(§5). The only generated artifact inside `plugin/` is `skills/deck/SKILL.md`,
+kept in sync and verified in CI.
 
 > **Single source of truth for the skill.** `SKILL.md` is authored once (keep
 > the canonical copy in `packages/core`, where the demo/DSL it references lives)
 > and copied into both `.claude/skills/deck/` and `plugin/skills/deck/` by a
-> sync script, with a test asserting the three copies are byte-identical.
+> sync script, with a test asserting the copies are byte-identical.
 
 ---
 
@@ -137,44 +135,47 @@ Design constraints:
   "mcpServers": {
     "lutrin": {
       "type": "stdio",
-      "command": "node",
-      "args": ["${PLUGIN_ROOT}/bin/lutrin-mcp.mjs"],
-      "cwd": "${PLUGIN_ROOT}"
+      "command": "npx",
+      "args": ["-y", "@lutrin/mcp@<version>"]
     }
   }
 }
 ```
 
-`command: "node"` (bare token, platform-resolved) + the script path in `args`
-is the cross-platform-safe form; a `./bin/*.mjs` command token is not directly
-executable on Windows.
+`command: "npx"` is a bare token resolved by the platform PATH — spec-valid, and
+the canonical MCP-server launch form. Pin `@lutrin/mcp@<version>` (kept in step
+with the plugin version) rather than `@latest`, so a given plugin checkout always
+runs a known server build — reproducibility over auto-upgrade. `cwd` is omitted:
+the client defaults it to the plugin root (§7.2.1), which npx does not need.
 
 ---
 
-## 5. Packaging & the native-dependency decision (the crux)
+## 5. Packaging — publish `@lutrin/mcp`, launch via `npx` (chosen)
 
-The core's heavy runtime deps do **not** bundle cleanly: `@resvg/resvg-js` is a
-native `.node` binary and `puppeteer-core` needs a browser (used for Mermaid and
-PDF). esbuild can bundle the pure-JS graph (as the VSIX does) but not these.
+The plugin does **not** ship server code. `mcp.json` runs `npx -y
+@lutrin/mcp@<version>`; npm resolves the full dependency tree, including the
+native `@resvg/resvg-js` binary and `puppeteer-core`. This gives
+**full-fidelity output** (charts, equations, icons, and Mermaid all render
+natively) with no esbuild bundle and no artifact to keep in sync inside
+`plugin/bin/`.
 
-Three candidate strategies for shipping the server inside `plugin/`:
+Consequences to handle:
 
-- **A — Bundle JS, degrade the native paths.** esbuild-bundle the server +
-  core JS into `plugin/bin/lutrin-mcp.mjs`; expose `validate` / `build (pptx +
-  html without Mermaid/PDF)` which need no native binary. Charts/equations/icons
-  already carry a raster fallback; Mermaid degrades to a code block; PDF is a
-  separate opt-in. **Fully offline, no install step.** *(Recommended MVP.)*
-- **B — `npx @lutrin/mcp`.** `command: "npx"`, `args: ["-y", "@lutrin/mcp"]`.
-  Trivial to ship, always current, native deps resolve via npm — but needs
-  network on first run and an npm publish of `@lutrin/mcp`.
-- **C — Install into `${PLUGIN_DATA}` on first run.** The spec blesses
-  `PLUGIN_DATA` for `node_modules`/venvs that persist across updates. Most
-  faithful to full-fidelity output, most moving parts.
-
-**Recommendation:** ship **A** as the MVP (offline, self-contained, matches the
-repo's "artifact verified from outside the tree" ethos), and document **B** as
-the full-fidelity opt-in. Revisit **C** only if full Mermaid/PDF inside the
-plugin becomes a hard requirement.
+- **An npm publish of `@lutrin/mcp` is now a release step.** The version pinned
+  in `mcp.json` must exist on the registry. A release checklist/CI step keeps
+  `plugin/mcp.json`'s pin and the package version in lockstep (this replaces the
+  bundled-artifact reproducibility guard).
+- **First run needs network** (npx fetches the package) and a working `npx` on
+  the client. After the first fetch, npx caches it. Document both in
+  `plugin/README.md`.
+- **Browser for Mermaid/PDF.** `puppeteer-core` needs a Chrome/Chromium; the
+  server must locate an installed browser (as `browser.mjs` already does) and,
+  when none is found, degrade Mermaid to a code block and report PDF as
+  unavailable rather than crash — same graceful-degradation the CLI uses.
+- **Rejected alternatives:** esbuild bundle into `plugin/bin/` (offline but
+  drops native Mermaid/PDF), and first-run install into `${PLUGIN_DATA}` (offline
+  after install but the most moving parts). `npx` was chosen for full fidelity
+  and the simplest plugin tree.
 
 ---
 
@@ -191,12 +192,16 @@ the fix"):
    paths (no `../`). This encodes the spec's own checklist (Appendix A).
 2. **Skill-sync test**: the `SKILL.md` in `packages/core`, `.claude/skills/deck`,
    and `plugin/skills/deck` are byte-identical.
-3. **Server behaviour tests**: drive the stdio server over the MCP protocol
+3. **Version-pin test**: the `@lutrin/mcp@<version>` pinned in `plugin/mcp.json`
+   equals `packages/mcp/package.json`'s `version` — so a plugin checkout never
+   points at a server build that was never published. (Replaces the bundled-artifact
+   reproducibility guard; same spirit as the `latest.json`/VSIX consistency check.)
+4. **Server behaviour tests**: drive the stdio server over the MCP protocol
    against the hermetic `all-blocks.deck.md` fixture — `validate_deck` returns
    diagnostics, `build_deck` writes a real `.pptx`/`.html`.
-4. **CI**: add a `plugin` step to `ci.yml` that rebuilds `plugin/bin/*` and
-   `plugin/skills/*` and fails if the working tree differs (the artifacts are
-   committed *and* reproducible) — the same guard used for `latest.json`/VSIX.
+5. **CI**: run the `@lutrin/mcp` suite in the existing matrix; add the skill-sync
+   and version-pin checks to the format/lint job so a drift fails fast. Release
+   adds an `npm publish` of `@lutrin/mcp` before the pinned version can ship.
 
 ---
 
@@ -227,10 +232,11 @@ this milestone.
 
 1. **MVP scope:** skill `deck` **+** MCP server `lutrin`, in one pass. The MCP
    server is the reason to go portable.
-2. **Packaging (§5):** strategy **A** — esbuild-bundled, offline, self-contained
-   in `plugin/bin/`. `validate` + `build (pptx/html)` need no native binary;
-   Mermaid degrades to a code block and PDF is out of the bundled MVP. `npx`
-   (strategy B) is documented as the full-fidelity opt-in, not shipped in M2.
+2. **Packaging (§5):** publish **`@lutrin/mcp`** to npm and launch it from
+   `mcp.json` via `npx -y @lutrin/mcp@<version>` (pinned). Full-fidelity output
+   (native Mermaid included); first run needs network + `npx`; a browser is
+   located for Mermaid/PDF and degrades gracefully when absent. No `plugin/bin/`,
+   no esbuild bundle.
 3. **Plugin root location:** top-level `plugin/` (a plain, directly loadable
    directory, per the spec's directory-as-unit design).
 
@@ -248,7 +254,9 @@ this milestone.
 - **M1 — Scaffold & conformance.** `plugin/plugin.json`, `plugin/mcp.json`,
   `plugin/skills/deck/SKILL.md` (synced), conformance + sync tests green. Plugin
   is loadable and skill-valid even before the server exists.
-- **M2 — MCP server.** `packages/mcp` with `validate_deck` + `build_deck`,
-  esbuild build to `plugin/bin/`, behaviour tests, CI wiring.
-- **M3 — Polish.** `suggest_layout`, READMEs, CHANGELOG, root-README section,
-  the CI reproducibility guard.
+- **M2 — MCP server.** `packages/mcp` (`@lutrin/mcp`, publishable, `bin` entry)
+  with `validate_deck` + `build_deck`, behaviour tests, CI wiring; `mcp.json`
+  pins `npx @lutrin/mcp@<version>` and the version-pin test guards the drift.
+- **M3 — Polish & release.** `suggest_layout`, READMEs (incl. the npx/network
+  note), CHANGELOG, root-README section, and the release step that `npm publish`es
+  `@lutrin/mcp` so the pinned version resolves.
