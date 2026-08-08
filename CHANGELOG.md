@@ -513,25 +513,6 @@ stated otherwise, an entry describes the compiler.
 
 ### Changed
 
-- **Native SmartArt is now the default.** A diagram lands in the `.pptx` as a
-  genuine OOXML SmartArt object without being asked: `--smartart` is no longer
-  needed and is still accepted, so existing scripts keep working.
-
-  **The opt-out is `--no-smartart`, or `smartart: false` in the frontmatter**,
-  and it matters more than an opt-out usually does, because the two modes do
-  not draw the same picture: **Keynote and macOS Quick Look show nothing** for a
-  native object, PowerPoint re-lays the diagram out with its own engine (the
-  frame, the node count, the reading order and the palette are guaranteed, the
-  coordinates are not), and the object is not animated. Drawn shapes are
-  pixel-identical to the HTML preview, animatable, and visible everywhere.
-  Reach for the opt-out when a deck will be opened in Keynote or previewed in
-  Quick Look, or when the slide has to match the HTML exactly.
-
-  A platform with no rasterizer still degrades to drawn shapes on its own, and
-  no longer counts diagrams in the `RASTER_UNAVAILABLE` total — that message
-  describes blocks replaced by their specification in text, which a diagram
-  never is.
-
 - **The `.pptx` no longer carries zip directory entries.** A package Office
   writes has none; ours had one per folder, an artefact of JSZip materialising
   a parent for every path handed to `file()`. Nothing in OPC forbids them and

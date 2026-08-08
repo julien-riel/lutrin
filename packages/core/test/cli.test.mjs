@@ -1419,9 +1419,9 @@ test('smartart: true in the frontmatter turns the mode on', (t) => {
   assert.match(r.stdout, /native SmartArt/, 'the frontmatter key did not reach the renderer');
 });
 
-test('--no-smartart is a documented flag of build', () => {
+test('--smartart is a documented flag of build', () => {
   const r = lutrin(['--help']);
-  assert.match(r.stdout, /lutrin build [^\n]*--no-smartart/);
+  assert.match(r.stdout, /lutrin build [^\n]*--smartart/);
 });
 
 // --- PDF and image export --------------------------------------------------
