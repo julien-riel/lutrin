@@ -77,7 +77,12 @@ async function renderFixture(t, { withoutRaster = false } = {}) {
   const scenes = buildScenes(deck);
   const out = path.join(dir, 'blocks.pptx');
   // baseDir = the fixture's directory: that is where pixel.png resolves from
-  const stats = await renderDeck(scenes, deck.meta, ALL_BLOCKS_DIR, out);
+  // `smartart: false` on purpose. Native SmartArt is the default, but it needs
+  // a rasterizer to produce the stand-in picture, so asserting it here would
+  // make this exhaustive sweep depend on the platform — the native path has its
+  // own gated coverage in pptx-e2e. Opting out keeps every block type's marker
+  // in the slide XML, which is what this test is for.
+  const stats = await renderDeck(scenes, deck.meta, ALL_BLOCKS_DIR, out, { smartart: false });
   const zip = await JSZip.loadAsync(fs.readFileSync(out));
   const { html, stats: htmlStats } = await renderDeckHtml(scenes, deck.meta, ALL_BLOCKS_DIR);
 
@@ -303,8 +308,8 @@ test('pptx: each of the nineteen block types leaves its marker in the XML', asyn
   // panel, timeline-axis, timeline-dot: no text of their own — the marker is
   // the primitive they alone write ON THIS slide
   assert.match(await xmlOf('Pillars'), /prst="roundRect"/, 'panel: the pillar frame');
-  // smartart: without --smartart a diagram is NATIVE shapes, so the marker is
-  // the label plus the two primitives only a ring writes
+  // smartart: opted out above, so a diagram is drawn as native shapes and the
+  // marker is the label plus the two primitives only a ring writes
   const ring = await xmlOf('Cycle diagram');
   assert.match(ring, /<a:t>ZQSMART<\/a:t>/, 'smartart: the node label');
   assert.match(ring, /prst="ellipse"/, 'smartart: the node discs');

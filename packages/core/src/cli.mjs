@@ -5,7 +5,7 @@
  * as a KIT — directory or .deckkit archive, see `lutrin kit`).
  *
  * Usage:
- *   lutrin build <input.md> [-o output.pptx|.html|.pdf|.png] [--html] [--pdf] [--png] [--jpeg] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
+ *   lutrin build <input.md> [-o output.pptx|.html|.pdf|.png] [--html] [--pdf] [--png] [--jpeg] [--kit <kit|file.json|directory>] [--vendor-assets] [--no-smartart] [--verbose] [--force]
  *   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
  *   lutrin edit [directory] [--port 4323]
  *   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
@@ -104,7 +104,7 @@ const COMMANDS = [
 
 const USAGE = `Usage:
   lutrin new [file.deck.md] [--force]
-  lutrin build <input.md> [-o output.pptx|.html|.pdf|.png] [--html] [--pdf] [--png] [--jpeg] [--kit <kit|file.json|directory>] [--vendor-assets] [--smartart] [--verbose] [--force]
+  lutrin build <input.md> [-o output.pptx|.html|.pdf|.png] [--html] [--pdf] [--png] [--jpeg] [--kit <kit|file.json|directory>] [--vendor-assets] [--no-smartart] [--verbose] [--force]
   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
   lutrin edit [directory] [--port 4323]
   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
@@ -172,6 +172,7 @@ const FLAG_SPECS = {
     html: 'boolean',
     'vendor-assets': 'boolean',
     smartart: 'boolean',
+    'no-smartart': 'boolean',
     pdf: 'boolean',
     png: 'boolean',
     jpeg: 'boolean',
@@ -504,7 +505,9 @@ async function cmdBuild(argv) {
     const { renderDeck } = await import('./pptx/render.mjs');
     stats = await renderDeck(scenes, deck.meta, baseDir, output, {
       vendor,
-      ...(args.smartart ? { smartart: true } : {}),
+      // native SmartArt is the default; the flag only survives as the
+      // explicit form of it, and `--no-smartart` is the way out
+      ...(args['no-smartart'] ? { smartart: false } : {}),
     });
   } else {
     // PDF and the image exports are the SAME document as `--html`, handed to a

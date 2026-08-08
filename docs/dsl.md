@@ -64,7 +64,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
-| `smartart` | `true` exports the diagram layouts as real OOXML SmartArt (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial-apex)) — ignored on the HTML path |
+| `smartart` | `false` opts the diagram layouts OUT of real OOXML SmartArt, drawing them as native shapes instead (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial-apex)) — ignored on the HTML path |
 | `marp` | `true` reads the deck as **Marp Markdown** instead of this DSL — see [docs/marp.md](marp.md) |
 
 Surrounding quotes are stripped (`title: "My title"` = `title: My title`).
@@ -666,14 +666,16 @@ fewer than two nodes produces `SMARTART_NODES`.
 
 ### Real SmartArt in the `.pptx`
 
-By default a diagram is drawn as **native PowerPoint shapes** — real discs,
-boxes and arrows a presenter can select and nudge — and as an inline SVG in the
-HTML, from the same coordinates. Both outputs are pixel-identical.
+By default a diagram lands in the `.pptx` as a **genuine SmartArt object**:
+PowerPoint opens its own *SmartArt Design* ribbon on it and re-lays it out with
+its own engine. In the HTML it is an inline SVG, as it has always been.
 
-`--smartart` asks for the other thing: a genuine SmartArt object.
+`--no-smartart` asks for the other thing: the diagram drawn as **native
+PowerPoint shapes** — real discs, boxes and arrows a presenter can select and
+nudge, placed at our coordinates rather than PowerPoint's.
 
 ```sh
-lutrin build deck.md --smartart -o deck.pptx
+lutrin build deck.md --no-smartart -o deck.pptx
 ```
 
 or, for the hosts that pass no options (the VS Code extension among them):
@@ -681,12 +683,17 @@ or, for the hosts that pass no options (the VS Code extension among them):
 ```yaml
 ---
 title: Operating model
-smartart: true
+smartart: false
 ---
 ```
 
-The flag is a `.pptx` concern and is **ignored on the HTML path**: `--html
---smartart` produces exactly the bytes `--html` produces.
+**Which to reach for.** The default is right when the reader should be able to
+edit the diagram. Opt out when the slide must come out exactly as the HTML
+preview showed it: the two modes do not draw the same picture, because a native
+object is laid out by PowerPoint and drawn shapes are laid out by us.
+
+Either way this is a `.pptx` concern, **ignored on the HTML path**: `--html
+--no-smartart` produces exactly the bytes `--html` produces.
 
 What you gain: PowerPoint opens its own *SmartArt Design* ribbon on the object
 — Text Pane, Change Layout, Change Colors — and re-lays the diagram out with

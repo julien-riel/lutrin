@@ -1630,13 +1630,16 @@ test('smartart: no [Content_Types].xml is a warning, not a crash', async (t) => 
   assert.match(r.warnings.join('\n'), /\[Content_Types\]\.xml missing/);
 });
 
-test('smartart: without the flag, a diagram is native shapes and no diagram part is written', async (t) => {
-  const { zip, stats } = await compilePptx(t, SMART_SOURCE);
+// Native SmartArt is the default, so this is the OPT-OUT that has to keep
+// working: the two modes do not draw the same picture, and an author who wants
+// the geometry exactly as the HTML preview showed it asks for `--no-smartart`.
+test('smartart: with --no-smartart, a diagram is native shapes and no diagram part is written', async (t) => {
+  const { zip, stats } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: false } });
   assert.equal(stats.smartArtDiagrams, 0);
   assert.deepEqual(
     Object.keys(zip.files).filter((n) => n.startsWith('ppt/diagrams/')),
     [],
-    'the default export must carry no diagram part at all',
+    'opting out must carry no diagram part at all',
   );
   const xml = await slideXml(zip, 2);
   assert.doesNotMatch(xml, /<p:graphicFrame>/);
@@ -1816,4 +1819,36 @@ test('pptx: the package carries no zip directory entries, and loses no part to t
     'the slides survived the pass that removed the folders',
   );
   assert.ok(await zip.file('ppt/presentation.xml').async('string'));
+});
+
+/**
+ * The default itself, asserted with NO options passed at all — the shape every
+ * host that does not know the flag exists gets: the CLI without `--smartart`,
+ * the worker, the VS Code route. `smartart: true` in the tests above proves the
+ * mode works; only this proves it is what you get by default.
+ */
+test('smartart: a diagram is a native SmartArt object with no option passed', async (t) => {
+  if (!(await smartArtDeps(t))) return;
+  const { zip, stats } = await compilePptx(t, SMART_SOURCE);
+  assert.equal(stats.smartArtDiagrams, 2, 'both diagrams converted without being asked');
+  assert.ok(
+    Object.keys(zip.files).some((n) => n.startsWith('ppt/diagrams/data')),
+    'the diagram parts are written by default',
+  );
+  assert.match(await slideXml(zip, 2), /<p:graphicFrame>/);
+});
+
+/** The frontmatter opt-out, which is the only way out for a host that passes
+ *  no options — the VS Code extension among them. `"false"` arrives as a
+ *  STRING from the frontmatter reader, so this also guards the `animateFlag`
+ *  call an identity test against a boolean would have quietly broken. */
+test('smartart: `smartart: false` in the frontmatter opts out', async (t) => {
+  const source = SMART_SOURCE.replace('---\n\n', 'smartart: false\n---\n\n');
+  const { zip, stats } = await compilePptx(t, source);
+  assert.equal(stats.smartArtDiagrams, 0);
+  assert.deepEqual(
+    Object.keys(zip.files).filter((n) => n.startsWith('ppt/diagrams/')),
+    [],
+  );
+  assert.doesNotMatch(await slideXml(zip, 2), /<p:graphicFrame>/);
 });

@@ -1617,12 +1617,18 @@ export async function renderDeck(scenes, meta, baseDir, outPath, opts = {}) {
 
 async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const vendor = vendorRemoteAssets(meta, opts.vendor);
-  // Real OOXML SmartArt is OPT-IN: `--smartart`, or `smartart:` in the
-  // frontmatter. `animateFlag` rather than `=== true` because the frontmatter
-  // reader hands every value over as a STRING — `smartart: true` arrives as
-  // `"true"`, so an identity test against a boolean could never fire and the
-  // VS Code route, which passes `meta` and no options, would be dead code.
-  const smartart = opts.smartart ?? (meta.smartart != null && animateFlag(meta.smartart));
+  // Real OOXML SmartArt is the DEFAULT: a diagram lands as an object the
+  // reader can edit unless someone asks otherwise, with `--no-smartart` or
+  // `smartart: false` in the frontmatter. Opting out is worth keeping, because
+  // the two modes do not draw the same picture — PowerPoint re-runs the layout
+  // algorithm on a native object, where drawn shapes come out exactly as the
+  // HTML preview showed them.
+  //
+  // `animateFlag` rather than `=== false` because the frontmatter reader hands
+  // every value over as a STRING — `smartart: false` arrives as `"false"`, so
+  // an identity test against a boolean could never fire and the VS Code route,
+  // which passes `meta` and no options, would be dead code.
+  const smartart = opts.smartart ?? (meta.smartart != null ? animateFlag(meta.smartart) : true);
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE'; // 13.33 × 7.5 in = 1280 × 720 px
   pptx.author = meta.author ?? '';
@@ -1803,8 +1809,12 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   );
 
   const diagnostics = [];
-  const rasterBlocks =
-    chartEls.length + ofType('math').length + iconBlocks.length + smartEls.length;
+  // Diagrams are deliberately NOT counted here. The others degrade to their
+  // specification in text, which is what this message says; a diagram with no
+  // PNG falls through to `drawSmartArtShapes` and is drawn correctly, losing
+  // only the editability. Counting it would inflate a number the message then
+  // attributes to charts, equations and icons.
+  const rasterBlocks = chartEls.length + ofType('math').length + iconBlocks.length;
   if (rasterBlocks && !(await rasterAvailable())) {
     diagnostics.push({
       severity: 'error',
