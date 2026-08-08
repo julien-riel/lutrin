@@ -2,8 +2,8 @@
  * Diagram geometry: a `smartart` block → pure numbers, and the SVG twin.
  *
  * This module is the SINGLE source of coordinates for the five diagram
- * layouts (`cycle`, `hierarchy`, `venn`, `radial`, `pyramid`). Three consumers
- * read it and none of them computes geometry of its own:
+ * layouts (`cycle`, `hierarchy`, `venn`, `radial`, `pyramid-diagram`). Three
+ * consumers read it and none of them computes geometry of its own:
  *
  *   - the HTML renderer inlines `smartArtSvg()` at the region's exact size;
  *   - the .pptx renderer draws `smartArtGeometry()` as native editable shapes;
@@ -554,7 +554,7 @@ function pyramidGeometry(nodes, w, h) {
     };
   });
 
-  return { family: 'pyramid', shapes, links: [], labels };
+  return { family: 'pyramid-diagram', shapes, links: [], labels };
 }
 
 // ---------------------------------------------------------------------------
@@ -585,7 +585,7 @@ export function smartArtGeometry(block, w, h) {
     case 'radial':
       g = radialGeometry(block.hub ?? '', nodes, w, h);
       break;
-    case 'pyramid':
+    case 'pyramid-diagram':
       g = pyramidGeometry(nodes, w, h);
       break;
     default:

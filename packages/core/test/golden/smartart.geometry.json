@@ -433,8 +433,8 @@
       }
     ]
   },
-  "pyramid": {
-    "family": "pyramid",
+  "pyramid-diagram": {
+    "family": "pyramid-diagram",
     "shapes": [
       {
         "role": "level",
