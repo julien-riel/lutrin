@@ -11,6 +11,24 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **An Agent Plugin, and an MCP server.** Lutrin is now packaged as a portable
+  Agent Plugin ([agent-plugins.org](https://agent-plugins.org) v1.0.0) under the
+  top-level `plugin/` directory: a closed `plugin.json` manifest (name
+  `lutrin`), an `mcp.json` launching the server via `npx -y @lutrin/mcp@<version>`
+  (pinned), and the `deck` skill. The skill is authored once in
+  `packages/core/skills/deck/SKILL.md` and synced byte-identical to
+  `.claude/skills/deck` and `plugin/skills/deck` by `scripts/sync-skill.mjs`.
+
+  The new **`@lutrin/mcp`** package is a publishable MCP server — a thin adapter
+  over `@lutrin/core` — exposing the compiler loop as tools: `validate_deck`
+  (the `--json` deck doctor), `build_deck` (`.pptx`/`.html`, refusing to write a
+  deck in error unless forced), and `suggest_layout` (per-slide inferred layouts
+  and structured-intent suggestions). Errors are structured results, never a
+  transport crash; Mermaid and equations degrade to text when no browser is
+  present. Conformance, skill-sync and version-pin tests guard it in CI, and its
+  behavioural suite drives the server over the MCP protocol against the hermetic
+  fixture. See [docs/plans/agent-plugin.md](docs/plans/agent-plugin.md).
+
 - **A PDF writer, and image export.** `lutrin build deck.md --pdf` writes the
   deck as a PDF: one page per slide at 1280 × 720, no margin, every animation
   step open, the notes left out — and an **outline** of the slide titles, so a

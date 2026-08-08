@@ -253,3 +253,41 @@ export function buildDeckTool(input = {}) {
     };
   });
 }
+
+// --- suggest_layout ---------------------------------------------------------
+
+/**
+ * The layout the engine settles on for each rendered slide, plus the structured
+ * intents the content betrays. Read-only: it writes nothing, it explains the
+ * inference so an agent can decide whether to force a different layout.
+ *
+ * `slides` is the same per-slide layout listing the CLI prints under
+ * `build --verbose` (ground truth: the layout each scene actually rendered
+ * with, one entry per page after pagination). `suggestions` are the
+ * `LAYOUT_SUGGESTION` diagnostics — a slide whose content reads as a SWOT, a
+ * before/after, dated milestones… with the `<!-- layout: … -->` to apply.
+ */
+export function suggestLayoutTool(input = {}) {
+  return runExclusive(() => {
+    const { source, baseDir, origin } = resolveSource(input);
+    const themePath = themePathOf(input.kit, baseDir);
+    const deck = parseDeck(source);
+    prepareDeckContext(deck.meta, { baseDir, themePath });
+    const scenes = buildScenes(deck);
+    const diagnostics = validateDeck(source, { baseDir, themePath, deck, scenes });
+
+    const slides = scenes.map((s, k) => ({
+      slide: k + 1,
+      title: s.title ?? null,
+      layout: s.layout,
+      ...(s.animSteps ? { animSteps: s.animSteps } : {}),
+    }));
+    // The suggestion's target layout travels in `suggestion` (not a typo hint
+    // here — LAYOUT_SUGGESTION uses it for the recommended layout name).
+    const suggestions = diagnostics
+      .filter((d) => d.code === 'LAYOUT_SUGGESTION')
+      .map((d) => ({ line: d.line, layout: d.suggestion ?? null, message: d.message }));
+
+    return { slides, suggestions, ...(origin ? { path: origin } : {}) };
+  });
+}

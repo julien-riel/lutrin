@@ -15,7 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { UsageError, buildDeckTool, validateDeckTool } from './adapter.mjs';
+import { UsageError, buildDeckTool, suggestLayoutTool, validateDeckTool } from './adapter.mjs';
 
 /** The server version tracks the package: the same version the plugin's
  *  mcp.json pins, so `npx @lutrin/mcp@<v>` and the reported version agree. */
@@ -109,6 +109,18 @@ export function createServer() {
       annotations: { readOnlyHint: false, openWorldHint: false },
     },
     (args) => runTool(() => buildDeckTool(args)),
+  );
+
+  server.registerTool(
+    'suggest_layout',
+    {
+      title: 'Explain and suggest deck layouts',
+      description:
+        'Return the layout the engine infers for each slide (one entry per rendered page) plus structured-intent suggestions — a slide whose content reads as a SWOT, a before/after or dated milestones, with the `<!-- layout: … -->` to apply. Read-only: it writes nothing.',
+      inputSchema: deckSourceShape,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    (args) => runTool(() => suggestLayoutTool(args)),
   );
 
   return server;

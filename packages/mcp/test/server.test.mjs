@@ -49,10 +49,10 @@ after(() => {
   if (outDir) fs.rmSync(outDir, { recursive: true, force: true });
 });
 
-test('the server advertises validate_deck and build_deck', async () => {
+test('the server advertises the three deck tools', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['build_deck', 'validate_deck']);
+  assert.deepEqual(names, ['build_deck', 'suggest_layout', 'validate_deck']);
   // the input schema is exposed so a client can form calls
   const build = tools.find((t) => t.name === 'build_deck');
   assert.ok(build.inputSchema, 'build_deck must publish an input schema');
@@ -133,6 +133,44 @@ test('build_deck with force writes despite errors', async () => {
   assert.equal(data.written, out);
   assert.equal(data.forced, true);
   assert.ok(fs.existsSync(out), 'force must write the file');
+});
+
+test('suggest_layout returns per-slide layouts and structured suggestions', async () => {
+  const { isError, data } = await call('suggest_layout', { path: FIXTURE });
+  assert.equal(isError, false);
+  assert.ok(Array.isArray(data.slides) && data.slides.length > 0, 'expected per-slide layouts');
+  for (const s of data.slides) {
+    assert.equal(typeof s.slide, 'number');
+    assert.equal(typeof s.layout, 'string');
+  }
+  assert.ok(Array.isArray(data.suggestions), 'suggestions must be an array (possibly empty)');
+});
+
+test('suggest_layout surfaces a structured intent (SWOT → swot)', async () => {
+  // Four ## sections named as a SWOT: the content betrays the intent, and the
+  // engine suggests the `swot` layout rather than inferring it.
+  const deck = [
+    '# Analysis',
+    '',
+    '## Strengths',
+    'a',
+    '',
+    '## Weaknesses',
+    'b',
+    '',
+    '## Opportunities',
+    'c',
+    '',
+    '## Threats',
+    'd',
+    '',
+  ].join('\n');
+  const { isError, data } = await call('suggest_layout', { deck });
+  assert.equal(isError, false);
+  assert.ok(
+    data.suggestions.some((s) => s.layout === 'swot'),
+    `expected a swot suggestion, got ${JSON.stringify(data.suggestions)}`,
+  );
 });
 
 test('missing both deck and path is a usage error, not a crash', async () => {
