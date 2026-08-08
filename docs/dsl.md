@@ -26,7 +26,7 @@ Contents:
 [text](#text-lists-tables-quotes) ·
 [callouts, metrics, progress, status](#callouts-metrics-progress-and-status) ·
 [images and icons](#images-icons-diagrams) ·
-[diagrams](#diagrams-cycle-hierarchy-venn-radial-pyramid-diagram) ·
+[diagrams](#diagrams-cycle-hierarchy-venn-radial-apex) ·
 [charts](#charts) ·
 [equations](#equations-latex) ·
 [animations](#animations) ·
@@ -64,7 +64,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
-| `smartart` | `true` exports the diagram layouts as real OOXML SmartArt (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial-pyramid-diagram)) — ignored on the HTML path |
+| `smartart` | `true` exports the diagram layouts as real OOXML SmartArt (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial-apex)) — ignored on the HTML path |
 | `marp` | `true` reads the deck as **Marp Markdown** instead of this DSL — see [docs/marp.md](marp.md) |
 
 Surrounding quotes are stripped (`title: "My title"` = `title: My title`).
@@ -169,15 +169,16 @@ quadrant, a step or a node.
 | `hierarchy` | — | a tree with elbow connectors, fed by a **nested bullet list** (or `##` sections, each heading a branch) |
 | `venn` | 2 to 4 | overlapping translucent discs; the intersection is the argument |
 | `radial` | 2 to 8 | a hub and its satellites — the **lead paragraph** is the hub, each `##` a spoke |
-| `pyramid-diagram` | 2 to 6 | levels stacked into a triangle, the apex first — proportions, priorities |
+| `apex` | 2 to 6 | levels stacked into a triangle, the apex first — proportions, priorities |
 
 The last five are the **diagram layouts**; they have a section of their own
-[below](#diagrams-cycle-hierarchy-venn-radial-pyramid-diagram).
+[below](#diagrams-cycle-hierarchy-venn-radial-apex).
 
-`pyramid-diagram` carries the suffix because `pyramid` already names the
-official layout below — bands that hold a heading *and* its paragraph. The
-diagram holds labels alone, so the two are not interchangeable and do not
-share a name.
+`apex` is a pyramid, and is deliberately not called one: `pyramid` already
+names the official layout below — bands that hold a heading *and* its
+paragraph. `apex` holds labels alone, so the two are not interchangeable, and
+sharing a name would only hide that. Reach for `pyramid` when each level has
+something to say, `apex` when the levels *are* what you are saying.
 
 Their content is **not paginated**: keep it short. A section count outside the
 bounds produces `LAYOUT_SECTIONS` (the surplus will be ignored, a shortfall
@@ -605,7 +606,7 @@ either way. Text, tables and shapes were never images and still are not.
 
 ---
 
-## Diagrams (`cycle`, `hierarchy`, `venn`, `radial`, `pyramid-diagram`)
+## Diagrams (`cycle`, `hierarchy`, `venn`, `radial`, `apex`)
 
 Five shapes an outline cannot make. They are layouts, not blocks: the slide IS
 the diagram, and its `##` sections (or its bullet list) are its nodes.

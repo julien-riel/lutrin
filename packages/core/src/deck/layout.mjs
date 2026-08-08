@@ -853,7 +853,7 @@ export function registerLayout(def) {
     // `pyramid` shadowed the official definition — built-ins register first,
     // so the catalog entry threw, was swallowed as a diagnostic, and every
     // shipped deck saying `layout: pyramid` silently changed meaning.
-    name: 'pyramid-diagram',
+    name: 'apex',
     description: 'levels stacked into a triangle — proportions, priorities',
     sections: { min: 2, max: 6 },
   },
@@ -1991,9 +1991,9 @@ export function buildScenes(deck) {
       case 'cycle':
       case 'venn':
       case 'radial':
-      case 'pyramid-diagram': {
+      case 'apex': {
         // Four diagram families fed the same way: one `##` section per node.
-        // `pyramid-diagram` reads them TOP-DOWN — the first section is the
+        // `apex` reads them TOP-DOWN — the first section is the
         // apex, in document order, like everything else in this DSL.
         // `radial` alone reads a LEAD paragraph — what stands before the first
         // `##` is the hub, not a spoke — falling back to the slide's title,

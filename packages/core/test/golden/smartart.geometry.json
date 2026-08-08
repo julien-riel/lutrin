@@ -433,8 +433,8 @@
       }
     ]
   },
-  "pyramid-diagram": {
-    "family": "pyramid-diagram",
+  "apex": {
+    "family": "apex",
     "shapes": [
       {
         "role": "level",

@@ -95,8 +95,8 @@ export const FAMILIES = {
     loCatId: 'relationship',
     smartart: true,
   },
-  'pyramid-diagram': {
-    loTypeId: 'urn:lutrin.dev/2026/layout/pyramid-diagram',
+  apex: {
+    loTypeId: 'urn:lutrin.dev/2026/layout/apex',
     // the SmartArt CATEGORY vocabulary, which is Microsoft's and does have a
     // `pyramid` — unlike the layout name, which is ours and was already taken
     loCatId: 'pyramid',
@@ -168,7 +168,7 @@ function modelOf(family, block) {
  *  A venn's discs and a pyramid's bands touch: there is nothing to draw
  *  between them, and a transition point PowerPoint cannot place is a shape it
  *  drops on the floor. */
-const hasTransitions = (family) => family !== 'venn' && family !== 'pyramid-diagram';
+const hasTransitions = (family) => family !== 'venn' && family !== 'apex';
 
 /**
  * presName → styleLbl, per family — the ONE table.
@@ -186,7 +186,7 @@ const PRES_STYLE = {
   hierarchy: { rootText: 'node0', rootTextSub: 'node1', rootConnector: 'parChTrans1D2' },
   venn: { vennNode: 'vennNode1' },
   radial: { hubNode: 'node0', spokeNode: 'node1', spokeConn: 'fgAcc1' },
-  'pyramid-diagram': { pyraLevel: 'node1' },
+  apex: { pyraLevel: 'node1' },
 };
 
 /** The pres node a data point is presented by. */
@@ -194,7 +194,7 @@ function presNodeName(family, node, i) {
   if (family === 'hierarchy') return node.depth === 0 ? 'rootText' : 'rootTextSub';
   if (family === 'radial') return i === 0 ? 'hubNode' : 'spokeNode';
   if (family === 'venn') return 'vennNode';
-  if (family === 'pyramid-diagram') return 'pyraLevel';
+  if (family === 'apex') return 'pyraLevel';
   return 'node';
 }
 
@@ -259,9 +259,10 @@ function buildData(family, block, index, drawingRelId) {
     hierarchy: 'hierRoot',
     venn: 'venn',
     radial: 'radial',
-    // family name → presName: the two differ here alone, because the layout
-    // name had to grow a suffix while the pres node it drives did not
-    'pyramid-diagram': 'pyramid',
+    // family name → presName: the two differ here alone. `pyramid` was taken
+    // in OUR layout namespace, not in the DrawingML one, so the pres node it
+    // drives keeps the shape's own word.
+    apex: 'pyramid',
   }[family];
   pts.push(
     [
@@ -548,7 +549,7 @@ const LAYOUT_BODY = {
   // diagram that silently reversed its sections would be the one place it did
   // not. The drawing cache and the SVG twin put the first node at the apex;
   // this makes PowerPoint's own engine agree.
-  'pyramid-diagram': () =>
+  apex: () =>
     [
       '<dgm:layoutNode name="pyramid">',
       '<dgm:varLst><dgm:dir/><dgm:animLvl val="lvl"/><dgm:resizeHandles val="exact"/></dgm:varLst>',
@@ -572,7 +573,7 @@ const LAYOUT_TITLE = {
   hierarchy: ['Lutrin hierarchy', 'A tree of boxes joined by elbows.'],
   venn: ['Lutrin venn', 'Overlapping discs; the intersection is the argument.'],
   radial: ['Lutrin radial', 'A hub surrounded by what depends on it.'],
-  'pyramid-diagram': ['Lutrin pyramid', 'Levels stacked into a triangle, the apex first.'],
+  apex: ['Lutrin pyramid', 'Levels stacked into a triangle, the apex first.'],
 };
 
 function buildLayout(family) {
