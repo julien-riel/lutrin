@@ -26,7 +26,7 @@ Contents:
 [text](#text-lists-tables-quotes) ·
 [callouts, metrics, progress, status](#callouts-metrics-progress-and-status) ·
 [images and icons](#images-icons-diagrams) ·
-[diagrams](#diagrams-cycle-hierarchy-venn-radial) ·
+[diagrams](#diagrams-cycle-hierarchy-venn-radial-pyramid-diagram) ·
 [charts](#charts) ·
 [equations](#equations-latex) ·
 [animations](#animations) ·
@@ -64,7 +64,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
-| `smartart` | `true` exports the diagram layouts as real OOXML SmartArt (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial)) — ignored on the HTML path |
+| `smartart` | `true` exports the diagram layouts as real OOXML SmartArt (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial-pyramid-diagram)) — ignored on the HTML path |
 | `marp` | `true` reads the deck as **Marp Markdown** instead of this DSL — see [docs/marp.md](marp.md) |
 
 Surrounding quotes are stripped (`title: "My title"` = `title: My title`).
@@ -150,7 +150,7 @@ validation does accept them.
 
 ## Structured layouts (on request)
 
-Twelve layouts express an **intent** that content alone does not reveal. They
+Thirteen layouts express an **intent** that content alone does not reveal. They
 are **never inferred**: they must be asked for with `<!-- layout: … -->`. In
 all of them, each `## H2` section becomes a panel, a milestone, a layer, a
 quadrant, a step or a node.
@@ -169,9 +169,15 @@ quadrant, a step or a node.
 | `hierarchy` | — | a tree with elbow connectors, fed by a **nested bullet list** (or `##` sections, each heading a branch) |
 | `venn` | 2 to 4 | overlapping translucent discs; the intersection is the argument |
 | `radial` | 2 to 8 | a hub and its satellites — the **lead paragraph** is the hub, each `##` a spoke |
+| `pyramid-diagram` | 2 to 6 | levels stacked into a triangle, the apex first — proportions, priorities |
 
-The last four are the **diagram layouts**; they have a section of their own
-[below](#diagrams-cycle-hierarchy-venn-radial).
+The last five are the **diagram layouts**; they have a section of their own
+[below](#diagrams-cycle-hierarchy-venn-radial-pyramid-diagram).
+
+`pyramid-diagram` carries the suffix because `pyramid` already names the
+official layout below — bands that hold a heading *and* its paragraph. The
+diagram holds labels alone, so the two are not interchangeable and do not
+share a name.
 
 Their content is **not paginated**: keep it short. A section count outside the
 bounds produces `LAYOUT_SECTIONS` (the surplus will be ignored, a shortfall
@@ -599,9 +605,9 @@ either way. Text, tables and shapes were never images and still are not.
 
 ---
 
-## Diagrams (`cycle`, `hierarchy`, `venn`, `radial`)
+## Diagrams (`cycle`, `hierarchy`, `venn`, `radial`, `pyramid-diagram`)
 
-Four shapes an outline cannot make. They are layouts, not blocks: the slide IS
+Five shapes an outline cannot make. They are layouts, not blocks: the slide IS
 the diagram, and its `##` sections (or its bullet list) are its nodes.
 
 ```markdown

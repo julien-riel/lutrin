@@ -72,6 +72,33 @@ test('the official catalog loads with no diagnostic and survives the per-deck re
   assert.ok(pc.description, 'every official layout is documented');
 });
 
+/**
+ * A built-in must never take the name of a catalog file.
+ *
+ * Built-ins register FIRST, so the catalog entry then throws "already exists",
+ * and `loadOfficialLayouts` swallows the throw into a diagnostic nobody reads:
+ * the official layout silently disappears and every deck asking for it by name
+ * gets the built-in instead — a shipped slide changing meaning with nothing in
+ * the output to say why. Reading the DIRECTORY rather than `OFFICIALS` is the
+ * point: a hand-kept list can be edited to match the breakage, a file on disk
+ * cannot.
+ */
+test('no built-in layout may shadow a file of the official catalog', () => {
+  resetUserLayouts();
+  const dir = new URL('../design/layouts/', import.meta.url);
+  const onDisk = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => f.slice(0, -'.json'.length));
+  assert.ok(onDisk.length, 'the catalog directory is not empty');
+  const loaded = new Set(officialLayouts().map((d) => d.name));
+  for (const name of onDisk)
+    assert.ok(
+      loaded.has(name),
+      `design/layouts/${name}.json never reached the registry — a built-in of the same name shadowed it`,
+    );
+});
+
 test('every official layout compiles a demo deck (named scene, never a crash)', () => {
   resetUserLayouts();
   const TWO = '## Before\n\n- slow\n\n## After\n\n- fast\n';

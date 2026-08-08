@@ -31,6 +31,17 @@ stated otherwise, an entry describes the compiler.
   `node scripts/reference-pptx.mjs` checks the encoding against a deck
   PowerPoint itself wrote.
 
+- **`pyramid-diagram`, a fifth diagram layout.** Levels stacked into a
+  triangle, apex first, read top-down in document order like every other layout
+  in this DSL — drawn everywhere, and editable as real OOXML SmartArt under
+  `--smartart`, alongside `cycle`, `hierarchy`, `venn` and `radial`.
+
+  It carries the suffix because **`pyramid` was already taken** by the official
+  catalog layout (`layers` with `shape: pyramid`), whose bands hold a heading
+  *and* its paragraph where the diagram holds labels alone. The two are not
+  interchangeable, so they do not share a name: decks written against
+  `layout: pyramid` are untouched.
+
 - **An Agent Plugin, and an MCP server.** Lutrin is now packaged as a portable
   Agent Plugin ([agent-plugins.org](https://agent-plugins.org) v1.0.0) under the
   top-level `plugin/` directory: a closed `plugin.json` manifest (name
@@ -410,6 +421,16 @@ stated otherwise, an entry describes the compiler.
   hand-edited `expiresAt` is refused for the same reason.
 
 ### Fixed
+
+- **A built-in layout could silently shadow the official catalog.** Built-ins
+  register before `design/layouts/*.json`, so a built-in taking a catalog
+  name made the catalog entry throw `already exists` — a throw
+  `loadOfficialLayouts` swallows into a diagnostic. The official layout simply
+  vanished, and every deck naming it got the built-in instead, with nothing in
+  the output to say why. A regression test now reads the catalog **directory**
+  and fails if any file never reaches the registry; reading the directory
+  rather than a hand-kept list is the point, since a list can be edited to
+  match the breakage.
 
 - **A mistyped callout in a Marp deck was silent.** Validation used to abandon
   its `:::` scan entirely for a `marp: true` deck, on the sound ground that three
