@@ -95,6 +95,11 @@ export const FAMILIES = {
     loCatId: 'relationship',
     smartart: true,
   },
+  pyramid: {
+    loTypeId: 'urn:lutrin.dev/2026/layout/pyramid',
+    loCatId: 'pyramid',
+    smartart: true,
+  },
 };
 
 const QS_TYPE_ID = 'urn:lutrin.dev/2026/quickstyle/flat1';
@@ -157,8 +162,11 @@ function modelOf(family, block) {
   return nodes;
 }
 
-/** Does this family draw a connector between consecutive/parent-child nodes? */
-const hasTransitions = (family) => family !== 'venn';
+/** Does this family draw a connector between consecutive/parent-child nodes?
+ *  A venn's discs and a pyramid's bands touch: there is nothing to draw
+ *  between them, and a transition point PowerPoint cannot place is a shape it
+ *  drops on the floor. */
+const hasTransitions = (family) => family !== 'venn' && family !== 'pyramid';
 
 /**
  * presName → styleLbl, per family — the ONE table.
@@ -176,19 +184,22 @@ const PRES_STYLE = {
   hierarchy: { rootText: 'node0', rootTextSub: 'node1', rootConnector: 'parChTrans1D2' },
   venn: { vennNode: 'vennNode1' },
   radial: { hubNode: 'node0', spokeNode: 'node1', spokeConn: 'fgAcc1' },
+  pyramid: { pyraLevel: 'node1' },
 };
 
 /** The pres node a data point is presented by. */
 function presNodeName(family, node, i) {
   if (family === 'hierarchy') return node.depth === 0 ? 'rootText' : 'rootTextSub';
   if (family === 'radial') return i === 0 ? 'hubNode' : 'spokeNode';
-  return family === 'venn' ? 'vennNode' : 'node';
+  if (family === 'venn') return 'vennNode';
+  if (family === 'pyramid') return 'pyraLevel';
+  return 'node';
 }
 
 /** The connector that introduces it, if the family draws one. A root has
  *  nothing above it, and a hub is not a spoke. */
 function presTransName(family, node, i) {
-  if (family === 'venn') return null;
+  if (!hasTransitions(family)) return null;
   if (family === 'hierarchy') return node.parent === -1 ? null : 'rootConnector';
   if (family === 'radial') return i === 0 ? null : 'spokeConn';
   return 'sibTrans';
@@ -241,9 +252,13 @@ function buildData(family, block, index, drawingRelId) {
   // `dgm:dir` and `dgm:resizeHandles` are children of
   // CT_LayoutVariablePropertySet, NOT of `dgm:prSet` — emitting them bare
   // under prSet is schema-invalid and is a repair prompt.
-  const rootName = { cycle: 'cycle', hierarchy: 'hierRoot', venn: 'venn', radial: 'radial' }[
-    family
-  ];
+  const rootName = {
+    cycle: 'cycle',
+    hierarchy: 'hierRoot',
+    venn: 'venn',
+    radial: 'radial',
+    pyramid: 'pyramid',
+  }[family];
   pts.push(
     [
       `<dgm:pt modelId="${id.presRoot}" type="pres">`,
@@ -518,6 +533,34 @@ const LAYOUT_BODY = {
       '<dgm:ruleLst/></dgm:layoutNode></dgm:forEach>',
       '</dgm:forEach></dgm:layoutNode>',
     ].join(''),
+
+  // The stock `pyra` algorithm, which knows how to stack trapezoids into one
+  // triangle — the thing the preset `trapezoid` alone cannot do, since its
+  // slope comes from the BAND's height rather than the figure's.
+  //
+  // `linDir fromT` is not the Office default and is deliberate: Basic Pyramid
+  // fills from the bottom, so the first item typed lands at the base. Every
+  // other layout in this DSL reads in document order down the slide, and a
+  // diagram that silently reversed its sections would be the one place it did
+  // not. The drawing cache and the SVG twin put the first node at the apex;
+  // this makes PowerPoint's own engine agree.
+  pyramid: () =>
+    [
+      '<dgm:layoutNode name="pyramid">',
+      '<dgm:varLst><dgm:dir/><dgm:animLvl val="lvl"/><dgm:resizeHandles val="exact"/></dgm:varLst>',
+      '<dgm:alg type="pyra">',
+      '<dgm:param type="linDir" val="fromT"/>',
+      '<dgm:param type="txDir" val="fromT"/>',
+      '<dgm:param type="pyraLvlNode" val="pyraLevel"/>',
+      '</dgm:alg>',
+      '<dgm:shape><dgm:adjLst/></dgm:shape><dgm:presOf/>',
+      '<dgm:constrLst>',
+      '<dgm:constr type="primFontSz" for="des" ptType="node" op="equ" val="14"/>',
+      '</dgm:constrLst><dgm:ruleLst/>',
+      '<dgm:forEach name="levels" axis="ch" ptType="node">',
+      textNode('pyraLevel', 'node1', 'trapezoid'),
+      '</dgm:forEach></dgm:layoutNode>',
+    ].join(''),
 };
 
 const LAYOUT_TITLE = {
@@ -525,6 +568,7 @@ const LAYOUT_TITLE = {
   hierarchy: ['Lutrin hierarchy', 'A tree of boxes joined by elbows.'],
   venn: ['Lutrin venn', 'Overlapping discs; the intersection is the argument.'],
   radial: ['Lutrin radial', 'A hub surrounded by what depends on it.'],
+  pyramid: ['Lutrin pyramid', 'Levels stacked into a triangle, the apex first.'],
 };
 
 function buildLayout(family) {
@@ -547,15 +591,96 @@ function buildLayout(family) {
 // colorsN.xml and quickStyleN.xml
 // ---------------------------------------------------------------------------
 
-/** Every style label a family's pres tree can name, derived from the one
- *  table so neither part can name a label the other has never heard of. */
-const LABELS_OF = Object.fromEntries(
-  Object.entries(PRES_STYLE).map(([family, map]) => [family, [...new Set(Object.values(map))]]),
-);
+/**
+ * THE FULL STYLE-LABEL VOCABULARY, in the order PowerPoint writes it, with the
+ * role each label plays in our palette.
+ *
+ * We used to declare only the two to four labels our own layouts name. That is
+ * enough right up to the moment it is not, and the failure is the expensive
+ * one described at the top of this file: PowerPoint REGENERATES the pres tree
+ * from `layoutN.xml` on load, a regenerated `presStyleLbl` we never declared
+ * finds nothing in `colorsN.xml`, and the shape renders with no fill, no line
+ * and no font — invisible, with nothing in the file to say why. Declaring the
+ * whole vocabulary costs 49 elements per part and removes the failure mode.
+ *
+ * The roles, and why they are not one:
+ *   lead   the shape a family singles out — a root, a hub, an apex. First
+ *          shade alone.
+ *   node   everything else that holds content. The shade cycle.
+ *   line   connectors, callouts and accents: the link colour.
+ *   revTx  text drawn OVER a filled shape rather than inside one. Its "fill"
+ *          is the ink, and its text colour the shade — inverted on purpose.
+ *
+ * `IS_*` guesswork from the name is what this table replaces:
+ * `fgAccFollowNode1` matches /Acc/ and is a node, not a connector.
+ */
+const STYLE_VOCABULARY = {
+  node0: 'lead',
+  alignNode1: 'node',
+  node1: 'node',
+  lnNode1: 'node',
+  vennNode1: 'node',
+  node2: 'node',
+  node3: 'node',
+  node4: 'node',
+  fgImgPlace1: 'node',
+  alignImgPlace1: 'node',
+  bgImgPlace1: 'node',
+  sibTrans2D1: 'line',
+  fgSibTrans2D1: 'line',
+  bgSibTrans2D1: 'line',
+  sibTrans1D1: 'line',
+  callout: 'line',
+  asst0: 'lead',
+  asst1: 'node',
+  asst2: 'node',
+  asst3: 'node',
+  asst4: 'node',
+  parChTrans2D1: 'line',
+  parChTrans2D2: 'line',
+  parChTrans2D3: 'line',
+  parChTrans2D4: 'line',
+  parChTrans1D1: 'line',
+  parChTrans1D2: 'line',
+  parChTrans1D3: 'line',
+  parChTrans1D4: 'line',
+  fgAcc1: 'line',
+  conFgAcc1: 'line',
+  alignAcc1: 'line',
+  trAlignAcc1: 'line',
+  bgAcc1: 'line',
+  solidFgAcc1: 'line',
+  solidAlignAcc1: 'line',
+  solidBgAcc1: 'line',
+  fgAccFollowNode1: 'node',
+  alignAccFollowNode1: 'node',
+  bgAccFollowNode1: 'node',
+  fgAcc0: 'lead',
+  fgAcc2: 'line',
+  fgAcc3: 'line',
+  fgAcc4: 'line',
+  bgShp: 'node',
+  dkBgShp: 'lead',
+  trBgShp: 'node',
+  fgShp: 'node',
+  revTx: 'revTx',
+};
 
-/** Is this label a connector's rather than a node's? Connectors take the link
- *  colour; nodes take the shade cycle. */
-const IS_CONNECTOR = (name) => /Trans|Acc/.test(name);
+/** Every style label the two parts declare. One list for every family: a label
+ *  is either in the vocabulary or it does not exist, and a family that grows a
+ *  new pres node tomorrow is already covered. */
+const STYLE_LABELS = Object.keys(STYLE_VOCABULARY);
+
+/**
+ * The invariant PRES_STYLE exists to protect, asserted where it can still be
+ * acted on: a label the layout names but the vocabulary does not declare would
+ * ship a diagram of invisible shapes. Thrown at module load rather than
+ * checked in a test alone — this one is not worth discovering in a deck.
+ */
+for (const [family, map] of Object.entries(PRES_STYLE))
+  for (const lbl of Object.values(map))
+    if (!STYLE_VOCABULARY[lbl])
+      throw new Error(`SmartArt ${family}: styleLbl "${lbl}" is not in the style vocabulary`);
 
 const clrLst = (tag, colors, meth) =>
   `<dgm:${tag} meth="${meth}">${colors.map((c) => `<a:srgbClr val="${c}"/>`).join('')}</dgm:${tag}>`;
@@ -577,22 +702,27 @@ function buildColors(family, geometry) {
   const fills = nodeShapes.map((s) => s.fill);
   const inks = nodeShapes.map((s) => s.ink);
   const linkColor = geometry.links[0]?.color ?? fills[0] ?? '888888';
-  const lbls = LABELS_OF[family]
-    .map((name) => {
-      if (IS_CONNECTOR(name)) return styleLbl(name, [linkColor], [inks[0] ?? '000000']);
-      // `node0` is the one shape a family singles out — the root of a tree,
-      // the hub of a wheel — so it takes the first shade alone and the rest
-      // cycle over what is left.
-      if (name === 'node0') return styleLbl(name, [fills[0]], [inks[0]]);
-      if (name === 'node1' && LABELS_OF[family].includes('node0'))
-        return styleLbl(
-          name,
-          fills.slice(1).length ? fills.slice(1) : fills,
-          inks.slice(1).length ? inks.slice(1) : inks,
-        );
-      return styleLbl(name, fills, inks);
-    })
-    .join('');
+  // `lead` takes the first shade alone, so the rest cycle over what is left —
+  // but only where there IS something left: a two-node diagram would otherwise
+  // hand `node` an empty list and every shape would come out unpainted.
+  const rest = fills.slice(1).length ? fills.slice(1) : fills;
+  const restInk = inks.slice(1).length ? inks.slice(1) : inks;
+  const hasLead = Object.values(PRES_STYLE[family]).includes('node0');
+  const lbls = STYLE_LABELS.map((name) => {
+    switch (STYLE_VOCABULARY[name]) {
+      case 'line':
+        return styleLbl(name, [linkColor], [inks[0] ?? '000000']);
+      case 'lead':
+        return styleLbl(name, [fills[0]], [inks[0]]);
+      case 'revTx':
+        // text over a filled shape: the ink is the surface and the shade is
+        // the letterform, which is what "reversed" means
+        return styleLbl(name, [inks[0]], [fills[0]]);
+      default:
+        // a family with no singled-out shape has no reason to skip a shade
+        return hasLead ? styleLbl(name, rest, restInk) : styleLbl(name, fills, inks);
+    }
+  }).join('');
   return [
     `${HEAD}<dgm:colorsDef xmlns:dgm="${NS_DGM}" xmlns:a="${NS_A}" uniqueId="${CS_TYPE_ID}">`,
     '<dgm:title val="Lutrin brand"/><dgm:desc val=""/>',
@@ -619,13 +749,11 @@ const SHAPE_STYLE = [
 const SCENE =
   '<dgm:scene3d><a:camera prst="orthographicFront"/><a:lightRig rig="threePt" dir="t"/></dgm:scene3d>';
 
-function buildQuickStyle(family) {
-  const lbls = LABELS_OF[family]
-    .map(
-      (name) =>
-        `<dgm:styleLbl name="${name}">${SCENE}<dgm:sp3d/><dgm:txPr/>${SHAPE_STYLE}</dgm:styleLbl>`,
-    )
-    .join('');
+function buildQuickStyle() {
+  const lbls = STYLE_LABELS.map(
+    (name) =>
+      `<dgm:styleLbl name="${name}">${SCENE}<dgm:sp3d/><dgm:txPr/>${SHAPE_STYLE}</dgm:styleLbl>`,
+  ).join('');
   return [
     `${HEAD}<dgm:styleDef xmlns:dgm="${NS_DGM}" xmlns:a="${NS_A}" uniqueId="${QS_TYPE_ID}">`,
     '<dgm:title val="Lutrin flat"/><dgm:desc val=""/>',
@@ -641,8 +769,25 @@ function buildQuickStyle(family) {
 function dspSp(modelId, sh, label) {
   const alpha = sh.alpha < 1 ? `<a:alpha val="${Math.round(sh.alpha * 100000)}"/>` : '';
   const fill = `<a:solidFill><a:srgbClr val="${sh.fill}">${alpha}</a:srgbClr></a:solidFill>`;
-  const geom =
-    sh.prst === 'ellipse'
+  // A shape carrying its own point list states its outline rather than naming
+  // a preset: the pyramid's bands are the bands of ONE triangle, and no preset
+  // adjustment expresses that (see `pyramidGeometry`). The path is written at
+  // the shape's own size, so `a:path w/h` is the extent and the points are the
+  // same box-relative numbers the SVG twin and the native shapes draw.
+  const geom = sh.points
+    ? [
+        '<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/>',
+        '<a:rect l="l" t="t" r="r" b="b"/><a:pathLst>',
+        `<a:path w="${emu(sh.w)}" h="${emu(sh.h)}">`,
+        sh.points
+          .map(
+            ([x, y], k) =>
+              `<a:${k ? 'lnTo' : 'moveTo'}><a:pt x="${emu(x)}" y="${emu(y)}"/></a:${k ? 'lnTo' : 'moveTo'}>`,
+          )
+          .join(''),
+        '<a:close/></a:path></a:pathLst></a:custGeom>',
+      ].join('')
+    : sh.prst === 'ellipse'
       ? '<a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom>'
       : sh.prst === 'roundRect'
         ? '<a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom>'
@@ -724,7 +869,7 @@ export function buildDiagramParts({ family, block, geometry, index, drawingRelId
     data: buildData(family, block, index, drawingRelId),
     layout: buildLayout(family),
     colors: buildColors(family, geometry),
-    quickStyle: buildQuickStyle(family),
+    quickStyle: buildQuickStyle(),
     drawing: buildDrawing(family, block, geometry, index),
   };
 }

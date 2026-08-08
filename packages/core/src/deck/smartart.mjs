@@ -1,9 +1,9 @@
 /**
  * Diagram geometry: a `smartart` block → pure numbers, and the SVG twin.
  *
- * This module is the SINGLE source of coordinates for the four diagram
- * layouts (`cycle`, `hierarchy`, `venn`, `radial`). Three consumers read it
- * and none of them computes geometry of its own:
+ * This module is the SINGLE source of coordinates for the five diagram
+ * layouts (`cycle`, `hierarchy`, `venn`, `radial`, `pyramid`). Three consumers
+ * read it and none of them computes geometry of its own:
  *
  *   - the HTML renderer inlines `smartArtSvg()` at the region's exact size;
  *   - the .pptx renderer draws `smartArtGeometry()` as native editable shapes;
@@ -466,6 +466,97 @@ function radialGeometry(hub, nodes, w, h) {
   return { family: 'radial', shapes, links, labels };
 }
 
+/**
+ * Stacked bands of a triangle, apex first — a hierarchy of magnitude rather
+ * than of reporting: proportions, priorities, a Maslow.
+ *
+ * WHY THE BANDS ARE CUSTOM GEOMETRY AND NOT THE `trapezoid` PRESET. The preset
+ * takes its slope from its own adjustment, which defaults to insetting the top
+ * edge by `min(w,h)·0.125` per side. Stack those and the silhouette that comes
+ * out is a spire — a base a quarter as wide as the figure is tall — because
+ * the band's height, not the pyramid's, is what sets the slope. A pyramid
+ * whose sides are the sides of ONE triangle has to state its own points, and
+ * `points` is honoured by all three consumers (SVG path, `custGeom` in the
+ * .pptx, `a:custGeom` in the drawing cache) from this one list.
+ *
+ * Reading order is TOP-DOWN: the first `##` is the apex. Office's own Basic
+ * Pyramid fills from the bottom; ours does not, because everything else in this
+ * DSL reads in document order down the slide and a diagram that silently
+ * reversed its sections would be the one place it did not.
+ */
+function pyramidGeometry(nodes, w, h) {
+  const { x: ox, y: oy, s } = square(w, h);
+  const n = nodes.length;
+  const cx = ox + s / 2;
+  const band = s / n;
+  // A band is separated from the next by a hairline so the levels read as
+  // levels. The widths are still measured on the UNBROKEN triangle, so the two
+  // sloping sides stay straight across the gaps.
+  const gap = Math.min(SPACE.xs / 2, band * 0.12);
+  const halfAt = (y) => (y - oy) / 2; // base = height: apex at the top, full width at the bottom
+
+  const shapes = nodes.map((_, i) => {
+    const yTop = oy + i * band;
+    const yBot = oy + (i + 1) * band - gap;
+    const topHalf = halfAt(yTop);
+    const botHalf = halfAt(yBot);
+    const bh = yBot - yTop;
+    // points are RELATIVE to the shape's own box, which is the box of its
+    // widest edge — the same convention `rotate` uses for the rest of the file
+    const pts =
+      topHalf <= 0.01
+        ? [
+            [botHalf, 0],
+            [2 * botHalf, bh],
+            [0, bh],
+          ]
+        : [
+            [botHalf - topHalf, 0],
+            [botHalf + topHalf, 0],
+            [2 * botHalf, bh],
+            [0, bh],
+          ];
+    return {
+      role: 'level',
+      i,
+      x: round(cx - botHalf),
+      y: round(yTop),
+      w: round(2 * botHalf),
+      h: round(bh),
+      prst: 'custGeom',
+      points: pts.map(([px_, py_]) => [round(px_), round(py_)]),
+      fill: shade(i).fill,
+      ink: shade(i).ink,
+      line: null,
+      alpha: 1,
+    };
+  });
+
+  const pt = Math.max(9, Math.min(TYPE.body, Math.round(band / 2.6)));
+  const labels = shapes.map((sh, i) => {
+    // the label sits inside the band's NARROWEST usable width, so a word never
+    // runs out over the sloping side; the apex gets a floor rather than a
+    // zero-width box
+    const yTop = oy + i * band;
+    const inner = Math.max(2 * halfAt(yTop) - SPACE.xs, sh.w * 0.42);
+    return {
+      of: i,
+      x: round(cx - inner / 2),
+      y: round(sh.y + 2),
+      w: round(inner),
+      h: round(sh.h - 4),
+      text: nodes[i].text,
+      sub: null,
+      pt,
+      ink: sh.ink,
+      align: 'center',
+      valign: 'middle',
+    };
+  });
+
+  return { family: 'pyramid', shapes, links: [], labels };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -493,6 +584,9 @@ export function smartArtGeometry(block, w, h) {
       break;
     case 'radial':
       g = radialGeometry(block.hub ?? '', nodes, w, h);
+      break;
+    case 'pyramid':
+      g = pyramidGeometry(nodes, w, h);
       break;
     default:
       return { family: block.family, shapes: [], links: [], labels: [] };
@@ -599,7 +693,14 @@ export function smartArtSvg(block, w, h) {
 
   for (const s of g.shapes) {
     const op = s.alpha < 1 ? ` fill-opacity="${s.alpha}"` : '';
-    if (s.prst === 'ellipse') {
+    if (s.points) {
+      // the same point list the .pptx writes as `custGeom`, translated out of
+      // the shape's own box into region coordinates
+      const d = s.points
+        .map(([px_, py_], k) => `${k ? 'L' : 'M'}${round(s.x + px_)},${round(s.y + py_)}`)
+        .join('');
+      parts.push(`<path d="${d}Z" fill="#${s.fill}"${op}/>`);
+    } else if (s.prst === 'ellipse') {
       parts.push(
         `<ellipse cx="${round(s.x + s.w / 2)}" cy="${round(s.y + s.h / 2)}" rx="${round(s.w / 2)}" ry="${round(s.h / 2)}" fill="#${s.fill}"${op}/>`,
       );
