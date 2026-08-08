@@ -33,7 +33,7 @@ point: they are not synthesised by another writer.
 | `smartart-org-chart.pptx` | a hierarchy — the family with the most `pres` nodes (34) |
 | `smartart-cycle-matrix.pptx` | a cycle, against ours |
 | `tdf149551_SmartArt_Venn.pptx` | a venn, against ours |
-| `tdf149551_SmartArt_Pyramid.pptx` | a family we do not ship |
+| `tdf149551_SmartArt_Pyramid.pptx` | a pyramid, against our `apex` |
 | `smartart-picture-strip.pptx` | a diagram that owns pictures — the one case with `ppt/diagrams/_rels` |
 | `tdf129372.pptx` | **PowerPoint's own equation encoding**, fallback included |
 | `linear_perm_slides.pptx` | a generator's equation encoding — bare `a14:m`, no fallback |
@@ -65,23 +65,52 @@ Every invariant holds — our package is shaped like PowerPoint's:
 — a namespace URI, not a version number like `12.0`. Ours is byte-identical
 across all six SmartArt references. It is no longer provisional.
 
-### The three divergences, and what they cost
+### The two divergences, and what they cost
 
 | | ours | PowerPoint |
 |---|---|---|
 | `layoutN.xml` `uniqueId` | `urn:lutrin.dev/2026/layout/<family>` | `urn:microsoft.com/office/officeart/2005/8/layout/<preset>` |
-| `colorsN` / `quickStyleN` `styleLbl` entries | the 2–4 our layouts use | 49, the full vocabulary |
 | colour references | literal `srgbClr` | `schemeClr` |
 
-None is a defect, and all three follow from decisions `plans/smartart.md`
-argues: the layout definition is authored here rather than vendored, and the
-colours are the deck's rather than the theme's. The cost is worth naming:
+Neither is a defect, and both follow from decisions `plans/smartart.md` argues:
+the layout definition is authored here rather than vendored, and the colours
+are the deck's rather than the theme's. The cost is worth naming: *Change
+Colors* in PowerPoint's gallery replaces the brand palette with an Office one,
+and there is no way back except rebuilding.
 
-- a `presStyleLbl` PowerPoint regenerates that our colour part never declared
-  falls back to a default we did not ship — which is exactly why `PRES_STYLE`
-  and the layout definition derive from one table;
-- *Change Colors* in PowerPoint's gallery replaces the brand palette with an
-  Office one, and there is no way back except rebuilding.
+#### The third one, and why it had to close
+
+`colorsN` / `quickStyleN` used to declare only the 2–4 `styleLbl` entries our
+layouts reference, against the 49 PowerPoint writes every time. That looked
+like the tidier file, and it was the expensive one of the three.
+
+These two parts are lookup tables keyed by a **role name** — they say "anything
+playing `node1` fills from this list", never "this shape is blue". The binding
+happens elsewhere, in `dataN.xml` (`presStyleLbl`) and `layoutN.xml`
+(`styleLbl`). And PowerPoint does not read our presentation tree: on load it
+**re-runs `layoutN.xml` and regenerates it**, which is what makes the object
+editable. The algorithm assigns the labels during that pass, so it can land on
+one we never anticipated — and an undeclared label does not fall back to
+something reasonable, it falls back to a default we never shipped. With
+`fillRef idx="1"` pointing at a theme fill, the shape comes out with no fill,
+no line and no font.
+
+A diagram of invisible shapes, with nothing in the file to say why — and
+visible **only in PowerPoint**. Every other reader displays `drawingN.xml`, our
+frozen cache, and shows perfect geometry. The failure was absent from the
+renderers we iterate against and present in the one consumer the whole feature
+exists for.
+
+So `STYLE_VOCABULARY` now declares all 49, each tagged with the category that
+says how to colour it — `node` (20), `line` (24), `lead` (4), `revTx` (1) —
+from the same `LAYER_SHADES` the geometry used, not filler. `PRES_STYLE` stays
+the ONE table both bindings derive from, and a mismatch between them throws at
+module load rather than in a deck.
+
+What this buys is exact: no regenerated label can be undeclared any more. It
+does **not** make our algorithm a Microsoft preset — a regenerated role lands
+on *a* brand colour, not necessarily the one we would have chosen for it.
+Visible and on-brand, which was the goal; not equivalence.
 
 One cosmetic difference used to be worth a line, and is now closed: our zip
 carried 20 **directory entries** — an artefact of JSZip, which materialises a
