@@ -232,14 +232,15 @@ number of sections does not fit).
 | `hierarchy` | — | a tree with elbow connectors, fed by a **nested bullet list** (or `##` sections, each heading a branch) — org chart, breakdown |
 | `venn` | 2 to 4 | overlapping translucent discs; the intersection is the argument |
 | `radial` | 2 to 8 | a hub and its satellites — the **lead paragraph** (before the first `##`) is the hub, each `##` a spoke |
+| `apex` | 2 to 6 | levels stacked into a triangle, the apex first — proportions, priorities. NOT `pyramid`, which is the official layout of bands carrying a heading *and* its paragraph |
 
-The last four are **diagrams**. Their labels are plain text: bold, italic,
+The last five are **diagrams**. Their labels are plain text: bold, italic,
 code, links and badges inside a node are dropped (`SMARTART_TEXT` says so).
 They take no `density` / `align` / `panels` / `radius`; `cycle` takes
 `numbered`, `venn` takes `overlap`.
 
 **Real SmartArt.** `lutrin build deck.md --smartart` (or `smartart: true` in
-the frontmatter) exports those four as genuine OOXML SmartArt: PowerPoint
+the frontmatter) exports those five as genuine OOXML SmartArt: PowerPoint
 opens its own *SmartArt Design* ribbon on the object. It is opt-in because it
 costs something — **Keynote and macOS Quick Look show nothing**, PowerPoint
 re-lays the diagram out with its own engine (so the frame, the node count, the
