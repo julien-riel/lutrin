@@ -1,7 +1,7 @@
 # Reference packages — what PowerPoint itself writes
 
 Two features in lutrin are judged against a file we cannot produce here:
-**SmartArt** (shipped, on by default) and **editable OMML equations** (shipped
+**SmartArt** (shipped, `--smartart`) and **editable OMML equations** (shipped
 — gap #4 in `plans/competitor-gaps.md`). For both, the question is the same:
 *does our zip look like one PowerPoint wrote?*
 
