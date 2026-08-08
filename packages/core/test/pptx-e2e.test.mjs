@@ -1817,3 +1817,47 @@ test('pptx: the package carries no zip directory entries, and loses no part to t
   );
   assert.ok(await zip.file('ppt/presentation.xml').async('string'));
 });
+
+/**
+ * With no rasterizer there is no stand-in picture, so `--smartart` asks for
+ * something that cannot happen. Two things have to be true at once, and the
+ * second is why the first is safe:
+ *
+ *   - RASTER_UNAVAILABLE must not count the diagram. That message says the
+ *     blocks were replaced by their specification in TEXT, which never happens
+ *     to a diagram — it falls through to `drawSmartArtShapes` and is drawn.
+ *   - the diagram's own case must still be said, or removing it from the count
+ *     would trade a wrong number for silence.
+ */
+test('smartart without a rasterizer: drawn, said, and not counted as a raster block', async (t) => {
+  const previous = process.env.LUTRIN_NO_RASTER;
+  process.env.LUTRIN_NO_RASTER = '1';
+  t.after(() => {
+    if (previous === undefined) delete process.env.LUTRIN_NO_RASTER;
+    else process.env.LUTRIN_NO_RASTER = previous;
+  });
+
+  const { zip, stats } = await compilePptx(t, SMART_SOURCE, { opts: { smartart: true } });
+  assert.equal(stats.smartArtDiagrams, 0, 'no picture to swap, so no diagram part');
+
+  const raster = stats.diagnostics.find((d) => d.code === 'RASTER_UNAVAILABLE');
+  assert.equal(
+    raster,
+    undefined,
+    'a deck of diagrams alone must not raise the text-fallback error',
+  );
+
+  const said = stats.diagnostics.find((d) => d.code === 'SMARTART_UNAVAILABLE');
+  assert.ok(
+    said,
+    `expected the diagram's own diagnostic, got: ${JSON.stringify(stats.diagnostics)}`,
+  );
+  assert.match(said.message, /2 diagram\(s\)/);
+  assert.ok(stats.warnings.includes(said.message), 'the diagnostic must reach the user');
+
+  // and the slide is complete: the diagram is DRAWN, which is what makes the
+  // warning a warning rather than an error
+  const xml = await slideXml(zip, 2);
+  assert.doesNotMatch(xml, /<p:graphicFrame>/);
+  assert.match(xml, /<a:prstGeom prst="ellipse">/, 'the discs are there all the same');
+});

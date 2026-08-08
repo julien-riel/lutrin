@@ -422,6 +422,19 @@ stated otherwise, an entry describes the compiler.
 
 ### Fixed
 
+- **`RASTER_UNAVAILABLE` counted diagrams it should not have.** The message
+  says the blocks were replaced by their specification **in text** — true of a
+  chart, an equation and an icon, and never of a diagram: with no rasterizer
+  there is no stand-in picture, so the diagram falls through to native drawn
+  shapes and comes out complete. Counting one inflated a number the sentence
+  then attributed to the other three.
+
+  Removing it does not make the case silent. A new `SMARTART_UNAVAILABLE`
+  warning says what actually happened — the diagrams are drawn as native shapes,
+  the slides are complete, and only the editable object `--smartart` asked for
+  is missing. A warning rather than an error, because nothing is absent from
+  the slide.
+
 - **A built-in layout could silently shadow the official catalog.** Built-ins
   register before `design/layouts/*.json`, so a built-in taking a catalog
   name made the catalog entry throw `already exists` — a throw
