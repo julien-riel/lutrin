@@ -827,6 +827,18 @@ Rendered by MathJax, centered, at its natural size. A readable fallback (the
 source with a note) if `mathjax-full` is not installed or if the LaTeX is
 invalid.
 
+In the `.pptx` an equation is written **twice**, exactly as PowerPoint writes
+its own: as native **OMML**, which PowerPoint's equation editor opens and
+edits, and as the rendered picture underneath it, which every reader without
+OMML draws — Keynote, LibreOffice, Google Slides, Quick Look. Nothing is lost
+to a reader who cannot take the first half.
+
+The conversion is **exact or it does not happen**: an expression the converter
+cannot map without guessing (`\cancel` and the rest of `menclose`, tensor
+scripts, a ragged matrix) keeps the picture alone, and the build says how many
+did. An equation edited into nonsense would be worse than one that cannot be
+edited at all.
+
 ---
 
 ## Animations

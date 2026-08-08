@@ -76,11 +76,6 @@
           nothing else — its own DSL, plus Marp Markdown when the frontmatter
           says <code>marp: true</code> — and can never open a
           <code>.pptx</code>. That is not a gap we intend to close.</li>
-        <li><strong>Math survives as math.</strong> Pandoc writes equations into
-          the <code>.pptx</code> as OMML: real PowerPoint equations the recipient
-          clicks into and edits. Lutrin renders LaTeX through MathJax and drops a
-          <strong>picture</strong> into the slide. For anything equation-heavy,
-          Pandoc's output is strictly more editable than ours.</li>
         <li><strong>The brand arrives as a file your designer already knows how
           to make.</strong> <code>--reference-doc</code> takes any recent
           PowerPoint template containing the seven layout names it needs, and the
@@ -182,7 +177,7 @@
           <tr>
             <th scope="row">Is the <code>.pptx</code> editable?</th>
             <td>Yes. Native text boxes, native tables, OMML equations, highlighted code. Not images.</td>
-            <td>Yes for text, tables and shapes. Charts, diagrams, equations and icons are pictures — each one carrying its vector as well as its raster, so PowerPoint 2019+ keeps them sharp at any zoom and every other reader draws the raster — pictures all the same, not editable objects.</td>
+            <td>Yes for text, tables, shapes and equations — the maths is native OMML with the picture kept underneath as a fallback. Charts, diagrams and icons are pictures, each one carrying its vector as well as its raster, so PowerPoint 2019+ keeps them sharp at any zoom and every other reader draws the raster — pictures all the same, not editable objects.</td>
           </tr>
           <tr>
             <th scope="row">Layout selection</th>
@@ -212,7 +207,7 @@
           <tr>
             <th scope="row">Math</th>
             <td>OMML — native, editable equations.</td>
-            <td>MathJax rendered to an image.</td>
+            <td>OMML too, wrapped the way PowerPoint wraps its own: the equation in <code>mc:Choice</code>, the MathJax picture in <code>mc:Fallback</code> for readers without OMML. An expression the converter cannot map exactly keeps the picture alone, and the build says how many did.</td>
           </tr>
           <tr>
             <th scope="row">Charts and diagrams</th>

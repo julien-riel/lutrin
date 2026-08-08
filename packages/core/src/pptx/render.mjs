@@ -61,6 +61,8 @@ import { embedFonts } from './fonts.mjs';
 import { embedAnimations } from './anim.mjs';
 import { embedMorph } from './morph.mjs';
 import { embedVectorImages } from './svg.mjs';
+import { embedEquations } from './equations.mjs';
+import { ommlFromMathML } from './omml.mjs';
 import { sanitizeSvg, svgPartSafe } from '../deck/svg.mjs';
 
 /**
@@ -995,6 +997,12 @@ function addIcon(slide, block, r, ctx) {
   });
 }
 
+/** Point size of the OMML runs, so the native equation comes out at the size of
+ *  the picture it replaces. MathJax measures in `ex`; `EX_TO_PX` fixes one ex at
+ *  9 px, and a maths face's ex-height is about 0.45 em, which puts the em at
+ *  20 px — 15 pt at 96 dpi. `scale` is the shrink `addMath` applied to fit. */
+const OMML_EM_PT = 15;
+
 function addMath(slide, block, r, ctx) {
   const asset = ctx.math.get(block);
   if (asset) {
@@ -1002,9 +1010,20 @@ function addMath(slide, block, r, ctx) {
     const scale = Math.min(1, r.w / asset.displayW, r.h / asset.displayH);
     const w = asset.displayW * scale;
     const h = asset.displayH * scale;
+    // The native half, when — and ONLY when — the conversion is exact.
+    // `ommlFromMathML` returns null for anything it cannot map, and null here
+    // means this equation ships as the picture it already is, which is the
+    // whole of "the fallback has to stay". Counted either way, so a deck that
+    // quietly lost half its equations to the picture path says so.
+    ctx.equations.total += 1;
+    const omml = asset.mathml
+      ? ommlFromMathML(asset.mathml, { sizePt: Math.max(6, Math.round(OMML_EM_PT * scale)) })
+      : null;
+    if (omml) ctx.equations.native += 1;
     slide.addImage({
       path: asset.path,
       _svg: ctx.vectorSvg?.get(block),
+      ...(omml ? { _omml: omml } : {}),
       // the LaTeX source is the best possible alt text for an equation
       // rendered as an image (and avoids leaking the path, see altOf)
       altText: `Equation: ${block.source}`,
@@ -1092,7 +1111,10 @@ const SHAPE_LABELS = {
  * The options are always the LAST argument of the four methods used
  * (`addImage` takes only one); that is where `objectName` is set.
  */
-function wrapSlide(slide, { label, rec = null, current = null, vectors = null, diagrams = null }) {
+function wrapSlide(
+  slide,
+  { label, rec = null, current = null, vectors = null, diagrams = null, equations = null },
+) {
   const ranks = new Map();
   const nextName = () => {
     const base = label();
@@ -1124,6 +1146,12 @@ function wrapSlide(slide, { label, rec = null, current = null, vectors = null, d
       if (opts && typeof opts === 'object' && !Array.isArray(opts) && opts._dgm) {
         if (diagrams) diagrams.push({ name: opts.objectName, payload: opts._dgm });
         opts._dgm = undefined;
+      }
+      // `_omml` likewise: the native equation the picture is about to be
+      // wrapped in, filed under the shape's name for `equations.mjs` to find.
+      if (opts && typeof opts === 'object' && !Array.isArray(opts) && opts._omml) {
+        if (equations) equations.push({ name: opts.objectName, omml: opts._omml });
+        opts._omml = undefined;
       }
       return slide[name](...args);
     };
@@ -1701,6 +1729,10 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
           path: writeTmpPng(tmp(), `math-${k}`, out.png),
           displayW: out.displayW,
           displayH: out.displayH,
+          // MathJax's own MathML for the same expression — the source of the
+          // native OMML half. Null when MathJax declined to serialise it, in
+          // which case the equation simply stays the picture it is here.
+          mathml: out.mathml ?? null,
         });
         // MathJax sizes its root in `ex`, a unit that resolves against nothing
         // in a standalone part: rewrite it in px, exactly as htmlMath does
@@ -1777,11 +1809,28 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   // trust roots of the local images: directory of the deck + project
   // roots declared by the host (containment — assets.mjs)
   const imageRoots = [baseDir, ...(opts.imageRoots ?? [])];
-  const ctx = { baseDir, imageRoots, mermaid, remote, icons, math, charts, vectorSvg, diagrams };
+  // equations: how many were drawn, and how many of those got an exact OMML.
+  // The gap is the number that degraded to a picture, and it is reported —
+  // "some of your equations are not editable" is a fact the author needs,
+  // exactly like the missing-rasterizer message.
+  const equationCount = { total: 0, native: 0 };
+  const ctx = {
+    baseDir,
+    imageRoots,
+    mermaid,
+    remote,
+    icons,
+    math,
+    charts,
+    vectorSvg,
+    diagrams,
+    equations: equationCount,
+  };
 
   const slideAnims = new Map(); // slide no. (1-based) → log of the shapes
   const slideVectors = new Map(); // slide no. (1-based) → [{ name, svg }]
   const slideDiagrams = new Map(); // slide no. (1-based) → [{ name, payload }]
+  const slideEquations = new Map(); // slide no. (1-based) → [{ name, omml }]
   scenes.forEach((scene, sceneIdx) => {
     let slide;
     if (scene.master === 'cover') slide = renderCover(pptx, scene);
@@ -1794,10 +1843,12 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       let shapeLabel = 'Content';
       const vectors = [];
       const diagramShapes = [];
+      const equationShapes = [];
       const target = wrapSlide(slide, {
         label: () => shapeLabel,
         rec,
         current: () => cur,
+        equations: equationShapes,
         vectors,
         diagrams: diagramShapes,
       });
@@ -1865,6 +1916,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
         slideAnims.set(sceneIdx + 1, { entries: rec, preset: scene.animPreset ?? null });
       if (vectors.length) slideVectors.set(sceneIdx + 1, vectors);
       if (diagramShapes.length) slideDiagrams.set(sceneIdx + 1, diagramShapes);
+      if (equationShapes.length) slideEquations.set(sceneIdx + 1, equationShapes);
     }
     if (scene.notes?.length) slide.addNotes(scene.notes.join('\n'));
   });
@@ -1909,9 +1961,12 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const morph = await embedMorph(outPath, chains);
   const anims = await embedAnimations(outPath, slideAnims);
   const vectors = await embedVectorImages(outPath, slideVectors);
-  // Last, because it REPLACES shapes: every pass above addresses the slide XML
-  // by shape name or by order, and the graphic frame is the one edit that
-  // changes what those passes would have found.
+  // The last two REPLACE shapes: every pass above addresses the slide XML by
+  // shape name or by order, and swapping a `<p:pic>` for something else is the
+  // one edit that changes what those passes would have found. Equations run
+  // after `embedVectorImages` on purpose — the blip fill they lift into the
+  // fallback then already carries its vector twin.
+  const equations = await embedEquations(outPath, slideEquations);
   const smartArt = await embedSmartArt(outPath, slideDiagrams);
   return {
     slideCount: scenes.length,
@@ -1921,6 +1976,12 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
     morphSlides: morph.count,
     vectorImages: vectors.count,
     smartArtDiagrams: smartArt.count,
+    nativeEquations: equations.count,
+    // drawn vs converted — the difference is what stayed a picture, and it is
+    // reported rather than inferred: `omml.mjs` refusing an expression is a
+    // normal outcome, and a silent one would be a lie about editability
+    equationsDrawn: equationCount.total,
+    equationsConverted: equationCount.native,
     // the structured diagnostics ALSO travel as warnings: that is the only
     // channel the CLI prints today, and a diagnostic we do not display is no
     // better than the silence it corrects
@@ -1934,6 +1995,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       ...morph.warnings,
       ...anims.warnings,
       ...vectors.warnings,
+      ...equations.warnings,
       ...smartArt.warnings,
     ],
     mermaidRendered: mermaid.size,

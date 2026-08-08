@@ -594,6 +594,19 @@ async function cmdBuild(argv) {
     console.log(
       `  ${stats.smartArtDiagrams} diagram${stats.smartArtDiagrams > 1 ? 's' : ''} as native SmartArt — editable in PowerPoint, which lays them out with its own engine; drawn exactly as previewed everywhere else`,
     );
+  if (stats.nativeEquations)
+    console.log(
+      `  ${stats.nativeEquations} equation${stats.nativeEquations > 1 ? 's' : ''} as native OMML — PowerPoint's own equation editor opens ${stats.nativeEquations > 1 ? 'them' : 'it'}; the picture stays underneath for everything else`,
+    );
+  // The gap is the point: an equation the converter would not vouch for ships
+  // as a picture, and an author who wanted to edit it needs to know which way
+  // it went rather than discover it in front of PowerPoint.
+  if (stats.equationsDrawn && stats.equationsConverted < stats.equationsDrawn) {
+    const kept = stats.equationsDrawn - stats.equationsConverted;
+    console.log(
+      `  ${kept} equation${kept > 1 ? 's' : ''} kept as a picture — the OMML conversion is exact or it does not happen`,
+    );
+  }
   if (stats.mermaidTotal && stats.mermaidRendered < stats.mermaidTotal) {
     const missing = stats.mermaidTotal - stats.mermaidRendered;
     console.log(

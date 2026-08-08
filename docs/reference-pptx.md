@@ -1,9 +1,9 @@
 # Reference packages — what PowerPoint itself writes
 
 Two features in lutrin are judged against a file we cannot produce here:
-**SmartArt** (shipped, `--smartart`) and **editable OMML equations** (not
-shipped — gap #4 in `plans/competitor-gaps.md`). For both, the question is the
-same: *does our zip look like one PowerPoint wrote?*
+**SmartArt** (shipped, `--smartart`) and **editable OMML equations** (shipped
+— gap #4 in `plans/competitor-gaps.md`). For both, the question is the same:
+*does our zip look like one PowerPoint wrote?*
 
 `scripts/smartart-probe.mjs` answers the visual half by handing files to a
 human. This page is the other half: a small corpus of **PowerPoint-authored**
@@ -89,8 +89,7 @@ has objected, and nothing in OPC forbids it.
 
 ## Equations: the two encodings, and why only one is the target
 
-Neither reference is what lutrin does today — an equation is still a picture.
-When gap #4 is picked up, `tdf129372.pptx` is the file to match:
+`tdf129372.pptx` was the file to match, and it is now the file we match:
 
 ```xml
 <mc:AlternateContent>
@@ -114,4 +113,24 @@ than us promising it.
 `linear_perm_slides.pptx` is the other shape — `a14:m` dropped straight into
 `<a:p>`, no `mc:AlternateContent`, no fallback. It is editable in PowerPoint
 and **invisible** in renderers that do not implement OMML, LibreOffice
-included. It is a useful negative example, and it is not the target.
+included. It is a useful negative example, and it is not the target — which is
+why `bare a14:m` is a column in the report and why ours has to read zero.
+
+### What the comparison says now
+
+`node scripts/reference-pptx.mjs` builds a deck carrying an equation and checks
+seven invariants against `tdf129372.pptx`, all of them holding today:
+
+- at least one native equation, and **every** `a14:m` wrapped in
+  `mc:AlternateContent` — the negative example fails this one on all fourteen
+  of its equations;
+- one `mc:Choice` / `mc:Fallback` pair per equation, the Choice carrying
+  `m:oMath`, its runs set in **Cambria Math**;
+- the Fallback shape locked with `noTextEdit`, and its `r:embed` resolving to a
+  media part that is really in the zip.
+
+An equation whose conversion is **not exact** never reaches the file: it stays
+the picture it already was (`pptx/omml.mjs` returns null rather than guess),
+and the CLI reports how many did. That refusal is the feature, not a shortfall
+of it — `plans/competitor-gaps.md` §4 makes the point that an equation
+converted almost right is worse than a picture.

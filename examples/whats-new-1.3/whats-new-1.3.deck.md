@@ -241,7 +241,8 @@ to scaffold, on purpose.
 
 - No PDF **writer** — a browser printing the HTML is not the same thing: no
   notes annotations, no bookmarks, no image export
-- No editable OMML equations: an equation is still a picture
+- No **inline** maths: an equation is a block of its own, never a symbol set
+  inside a sentence
 - SmartArt is **not** the default, and will not become it: the object is
   invisible to Apple's importer, so making it automatic would silently empty a
   slide for Mac readers
