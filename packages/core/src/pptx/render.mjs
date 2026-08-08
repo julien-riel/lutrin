@@ -62,6 +62,7 @@ import { embedAnimations } from './anim.mjs';
 import { embedMorph } from './morph.mjs';
 import { embedVectorImages } from './svg.mjs';
 import { embedEquations } from './equations.mjs';
+import { dropDirectoryEntries } from './zip-tidy.mjs';
 import { ommlFromMathML } from './omml.mjs';
 import { sanitizeSvg, svgPartSafe } from '../deck/svg.mjs';
 
@@ -1974,6 +1975,10 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   // fallback then already carries its vector twin.
   const equations = await embedEquations(outPath, slideEquations);
   const smartArt = await embedSmartArt(outPath, slideDiagrams);
+  // dead last, and unconditional: every pass above may rewrite the zip, and
+  // each round-trip carries JSZip's directory entries forward. Tidying before
+  // one of them ran would simply put them back.
+  await dropDirectoryEntries(outPath);
   return {
     slideCount: scenes.length,
     titledSlides: titles.count,

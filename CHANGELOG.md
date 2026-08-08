@@ -513,6 +513,14 @@ stated otherwise, an entry describes the compiler.
 
 ### Changed
 
+- **The `.pptx` no longer carries zip directory entries.** A package Office
+  writes has none; ours had one per folder, an artefact of JSZip materialising
+  a parent for every path handed to `file()`. Nothing in OPC forbids them and
+  no reader ever objected — this was never a defect, just the last line of
+  `docs/reference-pptx.md` that read differently from PowerPoint for a reason
+  nobody had chosen. Dropped by a final post-write pass, which also makes the
+  file marginally smaller.
+
 - **Morph is no longer the privilege of paginated slides.** The transition
   existed, and only the engine could ask for it: a slide too long to fit was
   split into "(cont.)" pages, and those pages morphed. An author who wrote two
