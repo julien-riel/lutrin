@@ -19,10 +19,17 @@
  *
  * THE PNG STAYS THE FILL. `r:embed` on the blip itself keeps pointing at the
  * raster, and only the extension names the vector: PowerPoint 2019+ draws the
- * SVG and scales it without softening, while Keynote, QuickLook, LibreOffice
- * and every older Office ignore an extension they do not know and draw exactly
- * the image they drew yesterday. Shipping both is the whole point — this is an
- * upgrade for readers that can take it, never a demand made of the others.
+ * SVG and scales it without softening, while Keynote, QuickLook and every older
+ * Office ignore an extension they do not know and draw exactly the image they
+ * drew yesterday. Shipping both is the whole point — this is an upgrade for
+ * readers that can take it, never a demand made of the others.
+ *
+ * LibreOffice used to be listed among those that ignore it. It does not:
+ * Impress READS the extension and PREFERS the SVG, so a vector that renders
+ * differently from its raster is not a harmless upgrade there — it replaces a
+ * correct picture with a wrong one. That is why `svgPartSafe` refuses an SVG
+ * whose appearance depends on an internal stylesheet: the twin is only ever
+ * offered when both representations say the same thing.
  *
  * DO NOT REPLACE THIS WITH PptxGenJS'S OWN SVG SUPPORT. Handing `addImage` an
  * `.svg` path writes the right extLst, but on the Node path the library fills
