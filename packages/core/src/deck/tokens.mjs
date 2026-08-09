@@ -51,11 +51,24 @@ export const COLORS = {
  * Default font: Arial — installed everywhere, identical rendering in
  * PowerPoint and in browsers without embedding anything. A theme supplies
  * its family through `fonts.body` and its files through `fonts.files`.
+ *
+ * `display` is the OPTIONAL second family, worn by the large titles (cover,
+ * section, slide title) and the pull-quote — the "brand voice" a serif
+ * display over a sans body gives a deck. Absent (`null`), the titles keep the
+ * body family, so a theme that says nothing composes exactly as before. Read
+ * it through `displayFace()`, never `FONTS.display` directly: the fallback to
+ * body lives there, in one place.
  */
 export const FONTS = {
   body: 'Arial',
   mono: 'Courier New',
+  display: null,
 };
+
+/** The family the titles are set in: the theme's display family, or the body
+ *  family when it declares none. Read at call time (FONTS is mutated in place
+ *  by applyTheme) — never copied at module load. */
+export const displayFace = () => FONTS.display || FONTS.body;
 
 /**
  * Files of the embedded font, themable: `regular`/`bold`/`italic` are
@@ -66,6 +79,19 @@ export const FONTS = {
  * already on the machine).
  */
 export const FONT_FILES = {
+  regular: null,
+  bold: null,
+  italic: null,
+};
+
+/**
+ * Files of the embedded DISPLAY font, themable exactly like FONT_FILES but for
+ * the `fonts.display` family: the .ttf goes into the .pptx (a second
+ * `<p:embeddedFont>` group, under the display typeface), its .woff2 twin into
+ * the HTML `@font-face`. Empty by default (no display font, or a display family
+ * that names an installed font without shipping its glyphs).
+ */
+export const DISPLAY_FONT_FILES = {
   regular: null,
   bold: null,
   italic: null,

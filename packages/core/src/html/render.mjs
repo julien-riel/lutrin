@@ -35,6 +35,7 @@ import {
   COLORS,
   FONTS,
   FONT_FILES,
+  DISPLAY_FONT_FILES,
   LOGOS,
   ROUNDED,
   TYPE,
@@ -605,26 +606,42 @@ function contentHtml(scene, num, footerText, ctx, brand) {
 let _fontFaces = null;
 let _fontFacesKey = null;
 function fontFacesCss() {
+  // one memo key over BOTH families: the body files and the display files, plus
+  // the two family names — a theme that swaps either within the same warm
+  // process must not be served stale faces (the same staleness FONT_FILES was
+  // keyed against).
+  const cacheOf = (files) =>
+    FONT_FACE_VARIANTS.map((f) => {
+      const ttf = files[f.key];
+      return typeof ttf === 'string' ? fileCacheKey(ttf.replace(/\.ttf$/i, '.woff2')) : '';
+    });
   const key = [
     FONTS.body,
-    ...FONT_FACE_VARIANTS.map((f) => {
-      const ttf = FONT_FILES[f.key];
-      return typeof ttf === 'string' ? fileCacheKey(ttf.replace(/\.ttf$/i, '.woff2')) : '';
-    }),
+    FONTS.display ?? '',
+    ...cacheOf(FONT_FILES),
+    ...cacheOf(DISPLAY_FONT_FILES),
   ].join('|');
   if (_fontFaces && _fontFacesKey === key) return _fontFaces;
   const faces = [];
-  for (const f of FONT_FACE_VARIANTS) {
-    const ttf = FONT_FILES[f.key];
-    if (typeof ttf !== 'string') continue;
-    const file = ttf.replace(/\.ttf$/i, '.woff2');
-    if (!fs.existsSync(file)) continue;
-    const b64 = fs.readFileSync(file).toString('base64');
-    faces.push(
-      `@font-face{font-family:"${FONTS.body}";font-weight:${f.weight};font-style:${f.style};` +
-        `src:url(data:font/woff2;base64,${b64}) format('woff2');font-display:swap}`,
-    );
-  }
+  // one @font-face per (family, variant): the body family from FONT_FILES, then
+  // the display family from DISPLAY_FONT_FILES. DISPLAY_FONT_FILES is empty
+  // unless the theme declared a display family with its files, so a deck with no
+  // display font emits exactly the body faces — byte-identical to before.
+  const emit = (family, files) => {
+    for (const f of FONT_FACE_VARIANTS) {
+      const ttf = files[f.key];
+      if (typeof ttf !== 'string') continue;
+      const file = ttf.replace(/\.ttf$/i, '.woff2');
+      if (!fs.existsSync(file)) continue;
+      const b64 = fs.readFileSync(file).toString('base64');
+      faces.push(
+        `@font-face{font-family:"${family}";font-weight:${f.weight};font-style:${f.style};` +
+          `src:url(data:font/woff2;base64,${b64}) format('woff2');font-display:swap}`,
+      );
+    }
+  };
+  emit(FONTS.body, FONT_FILES);
+  if (FONTS.display) emit(FONTS.display, DISPLAY_FONT_FILES);
   _fontFacesKey = key;
   return (_fontFaces = { css: faces.join('\n'), count: faces.length });
 }
@@ -632,6 +649,13 @@ function fontFacesCss() {
 function baseCss() {
   const C = COLORS;
   const CH = CHROME;
+  // Display family declaration for the titles — EMPTY when the theme names no
+  // display font, so a deck without one produces byte-identical CSS (the titles
+  // inherit the body family from `body`, exactly as before). The .pptx twin
+  // sets the same family through displayFace() on the same four surfaces.
+  const DTF = FONTS.display
+    ? `font-family:"${FONTS.display}",-apple-system,'Segoe UI',Arial,sans-serif;`
+    : '';
   return `
 *{box-sizing:border-box}
 body{margin:0;background:#${C.underground2};font-family:"${FONTS.body}",-apple-system,'Segoe UI',Arial,sans-serif;color:#${C.neutralPrimary}}
@@ -651,7 +675,7 @@ a:hover{text-decoration:underline}
 code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:transparent;padding:0;border-radius:0}
 
 /* chrome of content slides */
-.slide-title{position:absolute;left:${PAGE.margin}px;top:${SPACE.lg}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${PAGE.titleHeight - SPACE.lg - 8}px;display:flex;align-items:center;font-size:${TYPE.slideTitle}pt;font-weight:700;line-height:1.15}
+.slide-title{position:absolute;left:${PAGE.margin}px;top:${SPACE.lg}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${PAGE.titleHeight - SPACE.lg - 8}px;display:flex;align-items:center;font-size:${TYPE.slideTitle}pt;font-weight:700;line-height:1.15;${DTF}}
 .title-accent{position:absolute;left:${PAGE.margin}px;top:${PAGE.titleHeight}px;width:${CH.title.accentW}px;height:${CH.title.accentH}px;background:#${C.primary}}
 .title-rule{position:absolute;left:${PAGE.margin + CH.title.accentW}px;top:${PAGE.titleHeight + 1}px;width:${PAGE.width - 2 * PAGE.margin - CH.title.accentW}px;height:1px;background:#${C.neutralStroke}}
 .footer-text{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.footer.textW}px;height:${CH.footer.h}px;display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
@@ -672,13 +696,13 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .logo svg,.logo img{height:100%;width:auto;display:block}
 .logo-section{top:auto;bottom:${PAGE.margin}px}
 .cover-bar{position:absolute;left:${PAGE.margin}px;top:${CH.cover.barY}px;width:${CH.cover.barW}px;height:${CH.cover.barH}px;background:#${C.primary}}
-.cover-title{position:absolute;left:${PAGE.margin}px;top:${CH.cover.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverTitle}pt;font-weight:700;line-height:1.15}
+.cover-title{position:absolute;left:${PAGE.margin}px;top:${CH.cover.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverTitle}pt;font-weight:700;line-height:1.15;${DTF}}
 .cover-subtitle{position:absolute;left:${PAGE.margin}px;top:${CH.cover.subtitleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverSubtitle}pt;color:#${C.neutralSecondary};line-height:1.3}
 .cover-byline{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - CH.cover.bylineBottom}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.cover.bylineH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.small}pt;color:#${C.neutralSecondary}}
 
 /* section (green background) */
 .slide.master-section{background:#${C.primary}}
-.section-title{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.section.titleH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.sectionTitle}pt;font-weight:700;color:#${C.ground};line-height:1.2}
+.section-title{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.section.titleH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.sectionTitle}pt;font-weight:700;color:#${C.ground};line-height:1.2;${DTF}}
 
 /* blocks */
 .para{font-size:${TYPE.body}pt;line-height:1.4}
@@ -748,7 +772,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 /* same host-default hazard as "code" above: the webview paints blockquote
    with --vscode-textBlockQuote-background and a left border — neutralized
    explicitly */
-.quote blockquote{position:absolute;left:96px;right:32px;top:0;bottom:64px;display:flex;align-items:center;margin:0;padding:0;background:transparent;border:0;font-size:${TYPE.quote}pt;font-style:italic;line-height:1.4}
+.quote blockquote{position:absolute;left:96px;right:32px;top:0;bottom:64px;display:flex;align-items:center;margin:0;padding:0;background:transparent;border:0;font-size:${TYPE.quote}pt;font-style:italic;line-height:1.4;${DTF}}
 .quote-mark{position:absolute;left:0;top:-10px;font-size:72pt;font-weight:700;color:#${C.primary};line-height:1}
 .quote figcaption{position:absolute;right:32px;bottom:12px;font-size:${TYPE.body}pt;color:#${C.neutralSecondary}}
 .img-contain{object-fit:contain}

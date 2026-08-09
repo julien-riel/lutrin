@@ -24,10 +24,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import JSZip from 'jszip';
-import { FONTS, FONT_FILES } from '../deck/tokens.mjs';
+import { FONTS, FONT_FILES, DISPLAY_FONT_FILES, displayFace } from '../deck/tokens.mjs';
 
-/** Variants of the FONTS.body family; the label is the OOXML element targeted.
- *  The TTF paths come from FONT_FILES (themable) — read at call time. */
+/** Variants of an embedded family; the element is the OOXML slot targeted.
+ *  The TTF paths come from a FONT_FILES-shaped object (themable) — read at
+ *  call time. */
 const VARIANTS = [
   { element: 'p:regular', key: 'regular' },
   { element: 'p:bold', key: 'bold' },
@@ -215,9 +216,21 @@ const sameFamily = (a, b) => a.normalize('NFC').toLowerCase() === b.normalize('N
  *          (count 0 if the TTFs are absent — documented Arial fallback); any
  *          bail-out on an unexpected structure is reported as a warning.
  */
-export async function embedFonts(pptxPath) {
-  const warnings = [];
-  const present = VARIANTS.map((v) => ({ ...v, file: FONT_FILES[v.key] })).filter(
+/** Style bits each variant slot requires, for the GDI coherence check. */
+const STYLE_OF = {
+  regular: { bold: false, italic: false },
+  bold: { bold: true, italic: false },
+  italic: { bold: false, italic: true },
+};
+
+/**
+ * The embeddable variants of ONE family — the license and GDI-coherence
+ * filters applied to `files` (a FONT_FILES-shaped object) declared under
+ * `family`. Warnings are pushed onto `warnings`; the returned array carries
+ * only the variants that may actually be embedded.
+ */
+function embeddableVariants(family, files, warnings) {
+  const present = VARIANTS.map((v) => ({ ...v, file: files[v.key] })).filter(
     (v) => typeof v.file === 'string' && fs.existsSync(v.file),
   );
 
@@ -250,19 +263,14 @@ export async function embedFonts(pptxPath) {
   // embedded — the deck keeps the documented installed-font fallback — and
   // the author learns which table to rebuild, here rather than from a user's
   // screenshot.
-  const STYLE_OF = {
-    regular: { bold: false, italic: false },
-    bold: { bold: true, italic: false },
-    italic: { bold: false, italic: true },
-  };
-  const variants = licensed.filter((v) => {
+  return licensed.filter((v) => {
     const id = readFontIdentity(v.file);
     // unreadable or nameless: nothing to check against — the benefit of the
     // doubt, same side as the unreadable fsType above
     if (!id?.family) return true;
-    if (!sameFamily(id.family, FONTS.body)) {
+    if (!sameFamily(id.family, family)) {
       warnings.push(
-        `Font "${path.basename(v.file)}" (${v.key}): its Windows family name is "${id.family}" while the theme declares "${FONTS.body}" — PowerPoint on Windows matches by that name and would fail to install the font at every recipient ("unable to install embedded fonts"). Not embedded; rebuild the font's name table (nameID 1) as "${FONTS.body}", or point fonts.files at a desktop cut of the family.`,
+        `Font "${path.basename(v.file)}" (${v.key}): its Windows family name is "${id.family}" while the theme declares "${family}" — PowerPoint on Windows matches by that name and would fail to install the font at every recipient ("unable to install embedded fonts"). Not embedded; rebuild the font's name table (nameID 1) as "${family}", or point the theme at a desktop cut of the family.`,
       );
       return false;
     }
@@ -277,8 +285,25 @@ export async function embedFonts(pptxPath) {
     }
     return true;
   });
+}
 
-  if (!variants.length) return { count: 0, warnings };
+export async function embedFonts(pptxPath) {
+  const warnings = [];
+  // Two families may be embedded: the body family (FONT_FILES) and, when the
+  // theme declares one, the display family (DISPLAY_FONT_FILES) worn by the
+  // titles. Each is a distinct <p:embeddedFont> group under its own typeface. A
+  // deck with no display font leaves the display group empty, so the parts,
+  // rels and embeddedFontLst it emits are identical to the body-only case.
+  const groups = [{ family: FONTS.body, files: FONT_FILES }];
+  if (FONTS.display) groups.push({ family: displayFace(), files: DISPLAY_FONT_FILES });
+
+  // flat list of every variant to embed, tagged with its family, in group order
+  const embedded = [];
+  for (const g of groups)
+    for (const v of embeddableVariants(g.family, g.files, warnings))
+      embedded.push({ ...v, family: g.family });
+
+  if (!embedded.length) return { count: 0, warnings };
 
   const zip = await JSZip.loadAsync(fs.readFileSync(pptxPath));
   const presFile = zip.file('ppt/presentation.xml');
@@ -290,10 +315,11 @@ export async function embedFonts(pptxPath) {
   }
 
   let pres = await presFile.async('string');
-  if (pres.includes('<p:embeddedFontLst>')) return { count: variants.length, warnings }; // already done
+  if (pres.includes('<p:embeddedFontLst>')) return { count: embedded.length, warnings }; // already done
 
-  // Binary parts: ppt/fonts/fontN.fntdata (raw TTF)
-  variants.forEach((v, k) => {
+  // Binary parts: ppt/fonts/fontN.fntdata (raw TTF), one per variant across
+  // both families
+  embedded.forEach((v, k) => {
     zip.file(`ppt/fonts/font${k + 1}.fntdata`, fs.readFileSync(v.file));
   });
 
@@ -310,7 +336,7 @@ export async function embedFonts(pptxPath) {
   // Relationships: a fresh rId per variant
   const rels = await relsFile.async('string');
   const maxId = Math.max(0, ...[...rels.matchAll(/Id="rId(\d+)"/g)].map((m) => Number(m[1])));
-  const relXml = variants
+  const relXml = embedded
     .map(
       (v, k) =>
         `<Relationship Id="rId${maxId + 1 + k}" Type="${REL_TYPE}" Target="fonts/font${k + 1}.fntdata"/>`,
@@ -321,13 +347,23 @@ export async function embedFonts(pptxPath) {
     rels.replace('</Relationships>', `${relXml}</Relationships>`),
   );
 
-  // presentation.xml: embedTrueTypeFonts attribute + list of the embedded
-  // fonts (position per the CT_Presentation schema: after <p:notesSz>).
+  // presentation.xml: embedTrueTypeFonts attribute + one <p:embeddedFont> per
+  // family (position per the CT_Presentation schema: after <p:notesSz>). rIds
+  // are handed out in the same order the parts were written — body first, then
+  // display — so a body-only deck emits exactly the XML it always did.
   if (!/embedTrueTypeFonts=/.test(pres)) {
     pres = pres.replace('<p:presentation ', '<p:presentation embedTrueTypeFonts="1" ');
   }
-  const fontRefs = variants.map((v, k) => `<${v.element} r:id="rId${maxId + 1 + k}"/>`).join('');
-  const fontLst = `<p:embeddedFontLst><p:embeddedFont><p:font typeface="${esc(FONTS.body)}"/>${fontRefs}</p:embeddedFont></p:embeddedFontLst>`;
+  let idx = 0;
+  const fontEntries = groups
+    .map((g) => {
+      const mine = embedded.filter((v) => v.family === g.family);
+      if (!mine.length) return '';
+      const refs = mine.map((v) => `<${v.element} r:id="rId${maxId + 1 + idx++}"/>`).join('');
+      return `<p:embeddedFont><p:font typeface="${esc(g.family)}"/>${refs}</p:embeddedFont>`;
+    })
+    .join('');
+  const fontLst = `<p:embeddedFontLst>${fontEntries}</p:embeddedFontLst>`;
   const patched = pres.replace(/(<p:notesSz[^>]*\/>|<\/p:notesSz>)/, `$1${fontLst}`);
   if (patched === pres) {
     // unexpected structure: break nothing, but say so
@@ -338,5 +374,5 @@ export async function embedFonts(pptxPath) {
 
   const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
   fs.writeFileSync(pptxPath, buf);
-  return { count: variants.length, warnings };
+  return { count: embedded.length, warnings };
 }
