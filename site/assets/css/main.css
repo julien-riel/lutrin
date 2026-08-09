@@ -947,11 +947,27 @@ h3 {
   }
 }
 
+/* --------------------------------------------------------------- privacy */
+/* A washed band between "three doors" and "the price". It carries a background
+   of its own on purpose: the promise about where a deck goes is the last thing
+   read before the price, and a reader has to see it is a statement and not a
+   footnote to the section above. Same band as .cost and .refuse — the page has
+   two grounds, not five. */
+.privacy {
+  background: var(--wash);
+  border-top: 1px solid var(--line);
+  padding: clamp(3.5rem, 8vw, 6.5rem) 0;
+}
+.privacy .lead:last-of-type {
+  margin-bottom: 0;
+}
+
 /* --------------------------------------------------------------- pricing */
-/* Sits between two sections that carry no background of their own: the rule is
-   what keeps "three doors" and "the price" from reading as one long block. The
-   tier cards reuse .grid3/.panel, and the buttons .refuse-ctas — a price list
-   is not a reason to invent a third card shape. */
+/* The washed privacy band above and the plain "what it will refuse" below: the
+   rule on top is what keeps "your words" and "the price" from running into each
+   other where the two grounds meet. The tier cards reuse .grid3/.panel, and the
+   buttons .refuse-ctas — a price list is not a reason to invent a third card
+   shape. */
 .pricing {
   border-top: 1px solid var(--line);
   padding: clamp(3.5rem, 8vw, 6.5rem) 0;
