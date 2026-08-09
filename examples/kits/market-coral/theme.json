@@ -11,7 +11,11 @@
   },
   "fonts": {
     "body": "Trebuchet MS",
-    "display": "Arial Black"
+    "display": "Fraunces",
+    "displayFiles": {
+      "regular": "./fonts/Fraunces-Regular.ttf",
+      "bold": "./fonts/Fraunces-Bold.ttf"
+    }
   },
   "type": {
     "coverTitle": 46,

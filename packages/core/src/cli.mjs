@@ -556,12 +556,19 @@ async function cmdBuild(argv) {
         ? `⚠ ${output} — ${stats.slideCount} slides, INCOMPLETE rendering (see below)`
         : `✓ ${output} — ${stats.slideCount} slides`,
   );
-  if (stats.fontsEmbedded)
+  if (stats.fontsEmbedded) {
+    // The families the renderer actually carried, NOT the body family: a kit
+    // may ship the glyphs of its display face alone, and this line used to
+    // credit them to `fonts.body` — naming the one typeface that was not in the
+    // deliverable. Falls back on the body family for a caller that reports no
+    // breakdown.
+    const families = stats.embeddedFontFamilies?.length ? stats.embeddedFontFamilies : [FONTS.body];
+    const named = families.map((f) => `"${f}"`).join(' + ');
+    const variants = `${stats.fontsEmbedded} ${html ? 'woff2 ' : ''}variant${stats.fontsEmbedded > 1 ? 's' : ''}`;
     console.log(
-      html
-        ? `  font "${FONTS.body}" inlined (${stats.fontsEmbedded} woff2 variant${stats.fontsEmbedded > 1 ? 's' : ''})`
-        : `  font "${FONTS.body}" embedded (${stats.fontsEmbedded} variant${stats.fontsEmbedded > 1 ? 's' : ''})`,
+      `  ${families.length > 1 ? 'fonts' : 'font'} ${named} ${html ? 'inlined' : 'embedded'} (${variants})`,
     );
+  }
   if (stats.animatedSlides)
     console.log(
       html
