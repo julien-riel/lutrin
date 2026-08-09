@@ -42,6 +42,7 @@ import {
   SPACE,
   PAGE,
   SEMANTIC,
+  SURFACE,
   TREND_INK,
   badgeLayout,
   blockFontSize,
@@ -656,12 +657,22 @@ function baseCss() {
   const DTF = FONTS.display
     ? `font-family:"${FONTS.display}",-apple-system,'Segoe UI',Arial,sans-serif;`
     : '';
+  const S = SURFACE;
+  // Cover ink is inherited from the body (neutralPrimary) unless the kit gives
+  // the cover its own — emitted only then, so a default cover's CSS is
+  // unchanged. The cover BACKGROUND rule is emitted only when the cover differs
+  // from the content page (otherwise the shared .slide rule already paints it).
+  const coverInkCss = S.coverInk !== C.neutralPrimary ? `color:#${S.coverInk};` : '';
+  const coverBgCss =
+    S.coverBg !== S.pageBg
+      ? `\n.slide.master-cover{background:#${S.coverBg}}`
+      : '';
   return `
 *{box-sizing:border-box}
 body{margin:0;background:#${C.underground2};font-family:"${FONTS.body}",-apple-system,'Segoe UI',Arial,sans-serif;color:#${C.neutralPrimary}}
 .deck{max-width:1328px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:24px}
 .slide-frame{position:relative;width:100%;height:720px;overflow:hidden;background:#${C.ground};border:1px solid #${C.neutralStroke};border-radius:4px}
-.slide{position:absolute;left:0;top:0;width:${PAGE.width}px;height:${PAGE.height}px;overflow:hidden;transform-origin:0 0;background:#${C.ground}}
+.slide{position:absolute;left:0;top:0;width:${PAGE.width}px;height:${PAGE.height}px;overflow:hidden;transform-origin:0 0;background:#${S.pageBg}}
 .el{position:absolute;margin:0}
 a{color:#${C.primary};text-decoration:none}
 a:hover{text-decoration:underline}
@@ -689,20 +700,20 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
    template literal.) */
 .footer-brand{position:absolute;left:${PAGE.width - PAGE.margin - CH.footer.numW - CH.brand.w}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.brand.w}px;height:${CH.brand.h}px;display:flex;align-items:center;justify-content:flex-end;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 .brand-cover{left:${PAGE.width - PAGE.margin - CH.brand.w}px;top:${PAGE.height - CH.cover.bylineBottom}px;height:${CH.cover.bylineH}px}
-.brand-section{left:${PAGE.width - PAGE.margin - CH.brand.w}px;top:${PAGE.height - PAGE.margin - CH.brand.h}px;color:#${C.ground}}
+.brand-section{left:${PAGE.width - PAGE.margin - CH.brand.w}px;top:${PAGE.height - PAGE.margin - CH.brand.h}px;color:#${S.sectionInk}}
 
 /* cover */
 .logo{position:absolute;left:${PAGE.margin}px;top:${PAGE.margin}px}
 .logo svg,.logo img{height:100%;width:auto;display:block}
 .logo-section{top:auto;bottom:${PAGE.margin}px}
 .cover-bar{position:absolute;left:${PAGE.margin}px;top:${CH.cover.barY}px;width:${CH.cover.barW}px;height:${CH.cover.barH}px;background:#${C.primary}}
-.cover-title{position:absolute;left:${PAGE.margin}px;top:${CH.cover.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverTitle}pt;font-weight:700;line-height:1.15;${DTF}}
-.cover-subtitle{position:absolute;left:${PAGE.margin}px;top:${CH.cover.subtitleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverSubtitle}pt;color:#${C.neutralSecondary};line-height:1.3}
-.cover-byline{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - CH.cover.bylineBottom}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.cover.bylineH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.small}pt;color:#${C.neutralSecondary}}
+.cover-title{position:absolute;left:${PAGE.margin}px;top:${CH.cover.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverTitle}pt;font-weight:700;line-height:1.15;${coverInkCss}${DTF}}
+.cover-subtitle{position:absolute;left:${PAGE.margin}px;top:${CH.cover.subtitleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverSubtitle}pt;color:#${S.coverMutedInk};line-height:1.3}
+.cover-byline{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - CH.cover.bylineBottom}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.cover.bylineH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.small}pt;color:#${S.coverMutedInk}}
 
-/* section (green background) */
-.slide.master-section{background:#${C.primary}}
-.section-title{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.section.titleH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.sectionTitle}pt;font-weight:700;color:#${C.ground};line-height:1.2;${DTF}}
+/* section (accent background) */
+.slide.master-section{background:#${S.sectionBg}}${coverBgCss}
+.section-title{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.section.titleH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.sectionTitle}pt;font-weight:700;color:#${S.sectionInk};line-height:1.2;${DTF}}
 
 /* blocks */
 .para{font-size:${TYPE.body}pt;line-height:1.4}
