@@ -20,6 +20,7 @@ import {
   CHROME,
   COLORS,
   FONTS,
+  displayFace,
   LOGOS,
   TYPE,
   SPACE,
@@ -862,7 +863,7 @@ function addQuote(slide, block, r) {
     color: block.color ?? COLORS.primary,
     fontFace: FONTS.body,
   });
-  slide.addText(toRuns(block.runs, { italic: true, color: block.color }), {
+  slide.addText(toRuns(block.runs, { italic: true, color: block.color, fontFace: displayFace() }), {
     x: px(r.x + 96),
     y: px(r.y),
     w: px(r.w - 128),
@@ -870,7 +871,7 @@ function addQuote(slide, block, r) {
     fontSize: blockFontSize(block),
     italic: true,
     color: block.color ?? COLORS.neutralPrimary,
-    fontFace: FONTS.body,
+    fontFace: displayFace(),
     valign: 'middle',
     // exact pitch of the HTML (.quote blockquote line-height 1.4); see addPara
     lineSpacing: blockFontSize(block) * LINE_HEIGHT,
@@ -1382,7 +1383,7 @@ function renderCover(pptx, scene) {
     fontSize: TYPE.coverTitle,
     bold: true,
     color: COLORS.neutralPrimary,
-    fontFace: FONTS.body,
+    fontFace: displayFace(),
     // explicit: a paragraph without `algn` inherits the master's titleStyle,
     // which PptxGenJS hard-codes centered — the HTML output is left-aligned
     align: 'left',
@@ -1438,7 +1439,7 @@ function renderSection(pptx, scene) {
     fontSize: TYPE.sectionTitle,
     bold: true,
     color: COLORS.ground,
-    fontFace: FONTS.body,
+    fontFace: displayFace(),
     align: 'left', // same inheritance trap as the cover title
     valign: 'middle',
   });
@@ -1907,14 +1908,16 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       // title. The remedy is in the Markdown source, not in the export.
       shapeLabel = 'Title';
       target.addText(
-        scene.titleRuns ? toRuns(scene.titleRuns, { bold: true }) : (scene.title ?? ''),
+        scene.titleRuns
+          ? toRuns(scene.titleRuns, { bold: true, fontFace: displayFace() })
+          : (scene.title ?? ''),
         {
           placeholder: 'title',
           ...contentTitleBox(),
           fontSize: TYPE.slideTitle,
           bold: true,
           color: COLORS.neutralPrimary,
-          fontFace: FONTS.body,
+          fontFace: displayFace(),
           align: 'left', // same inheritance trap as the cover title
           valign: 'middle',
         },

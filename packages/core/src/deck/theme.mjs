@@ -85,6 +85,7 @@ import {
   COLORS,
   FONTS,
   FONT_FILES,
+  DISPLAY_FONT_FILES,
   KIT_IMAGES,
   LOGOS,
   TYPE,
@@ -132,6 +133,7 @@ const ALL_LIVE = {
   logos: LOGOS,
   kitImages: KIT_IMAGES,
   fontFiles: FONT_FILES,
+  displayFontFiles: DISPLAY_FONT_FILES,
 };
 
 const BASE = clone(ALL_LIVE); // taken at load time, after the initial deriveTokens()
@@ -236,6 +238,16 @@ export function applyTheme(theme = null) {
     // PowerPoint renders the real one) — no embedding at all, both outputs
     // fall back together on the installed font
     FONT_FILES.regular = FONT_FILES.bold = FONT_FILES.italic = null;
+  }
+  // Display family files — the exact same contract as the body files above, on
+  // the second family. `restore()` already emptied DISPLAY_FONT_FILES, so a
+  // theme that ships none embeds none; a display family named without files
+  // (an installed serif) simply is not embedded, and both outputs fall back on
+  // the installed font together.
+  if (theme.fonts?.displayFiles) {
+    DISPLAY_FONT_FILES.regular = theme.fonts.displayFiles.regular ?? null;
+    DISPLAY_FONT_FILES.bold = theme.fonts.displayFiles.bold ?? null;
+    DISPLAY_FONT_FILES.italic = theme.fonts.displayFiles.italic ?? null;
   }
 }
 
@@ -1105,7 +1117,7 @@ export function resolveTheme(
   }
 
   if (json.fonts != null && isPlainObject(json.fonts)) {
-    const { files, ...families } = json.fonts;
+    const { files, displayFiles, ...families } = json.fonts;
     theme.fonts = sanitize(families, BASE.fonts, 'fonts');
     // the families are interpolated as they are into the CSS of the generated
     // HTML document: letters/digits/spaces/.,'- only — a font name never needs
@@ -1120,55 +1132,69 @@ export function resolveTheme(
         delete theme.fonts[k];
       }
     }
-    if (files != null) {
+    // Resolves an embedded-font-files object ({ regular, bold, italic } of .ttf
+    // paths). Shared by the body files (`fonts.files`) and the display files
+    // (`fonts.displayFiles`): the same .ttf-in-the-pptx / .woff2-twin-in-the-
+    // HTML contract holds on both families, so it is validated once here rather
+    // than transcribed twice. `key` is the JSON key, for the diagnostics.
+    const resolveFontFiles = (files, key) => {
       if (!isPlainObject(files)) {
         push(
           'warning',
           'THEME_BAD_VALUE',
-          'Theme: fonts.files must be an object { regular, bold, italic } — ignored.',
+          `Theme: ${key} must be an object { regular, bold, italic } — ignored.`,
         );
-      } else {
-        const resolved = {};
-        for (const variant of Object.keys(files)) {
-          if (!FONT_VARIANTS.includes(variant)) {
-            unknownKey(variant, FONT_VARIANTS, 'fonts.files');
-            continue;
-          }
-          const rawPath = String(files[variant]);
-          const p = path.resolve(themeDir, rawPath);
-          if (path.extname(p).toLowerCase() !== '.ttf')
-            push(
-              'warning',
-              'THEME_BAD_VALUE',
-              `Theme: fonts.files.${variant} must be a .ttf (embedded in the .pptx; its .woff2 twin of the same name is inlined in the HTML) — ignored.`,
-            );
-          // confinement BEFORE any read: TWO files leave in the deliverables
-          // (the .ttf in the .pptx, its .woff2 twin in the HTML). The twin
-          // carries the same path but for the extension, yet it is a distinct
-          // file: it may be a link that leaves where the .ttf stays
-          // well-behaved. Each is therefore judged on its own.
-          else if (!confined(p, `fonts.files.${variant}`, rawPath)) {
-            /* reported */
-          } else if (
-            !confined(twin(p), `the .woff2 twin of fonts.files.${variant}`, path.basename(twin(p)))
-          ) {
-            /* reported */
-          } else if (!isFile(p))
-            push(
-              'warning',
-              'THEME_BAD_VALUE',
-              `Theme: font fonts.files.${variant} not found (${files[variant]}) — ignored.`,
-            );
-          else if (!isFile(twin(p)))
-            push(
-              'warning',
-              'THEME_BAD_VALUE',
-              `Theme: the .woff2 twin of fonts.files.${variant} is missing (${path.basename(p).replace(/\.ttf$/i, '.woff2')} expected next to the .ttf) — variant ignored, to keep the HTML and the .pptx identical.`,
-            );
-          else resolved[variant] = p;
-        }
-        if (Object.keys(resolved).length) theme.fonts.files = resolved;
+        return null;
       }
+      const resolved = {};
+      for (const variant of Object.keys(files)) {
+        if (!FONT_VARIANTS.includes(variant)) {
+          unknownKey(variant, FONT_VARIANTS, key);
+          continue;
+        }
+        const rawPath = String(files[variant]);
+        const p = path.resolve(themeDir, rawPath);
+        if (path.extname(p).toLowerCase() !== '.ttf')
+          push(
+            'warning',
+            'THEME_BAD_VALUE',
+            `Theme: ${key}.${variant} must be a .ttf (embedded in the .pptx; its .woff2 twin of the same name is inlined in the HTML) — ignored.`,
+          );
+        // confinement BEFORE any read: TWO files leave in the deliverables
+        // (the .ttf in the .pptx, its .woff2 twin in the HTML). The twin
+        // carries the same path but for the extension, yet it is a distinct
+        // file: it may be a link that leaves where the .ttf stays
+        // well-behaved. Each is therefore judged on its own.
+        else if (!confined(p, `${key}.${variant}`, rawPath)) {
+          /* reported */
+        } else if (
+          !confined(twin(p), `the .woff2 twin of ${key}.${variant}`, path.basename(twin(p)))
+        ) {
+          /* reported */
+        } else if (!isFile(p))
+          push(
+            'warning',
+            'THEME_BAD_VALUE',
+            `Theme: font ${key}.${variant} not found (${files[variant]}) — ignored.`,
+          );
+        else if (!isFile(twin(p)))
+          push(
+            'warning',
+            'THEME_BAD_VALUE',
+            `Theme: the .woff2 twin of ${key}.${variant} is missing (${path.basename(p).replace(/\.ttf$/i, '.woff2')} expected next to the .ttf) — variant ignored, to keep the HTML and the .pptx identical.`,
+          );
+        else resolved[variant] = p;
+      }
+      return Object.keys(resolved).length ? resolved : null;
+    };
+
+    if (files != null) {
+      const resolved = resolveFontFiles(files, 'fonts.files');
+      if (resolved) theme.fonts.files = resolved;
+    }
+    if (displayFiles != null) {
+      const resolved = resolveFontFiles(displayFiles, 'fonts.displayFiles');
+      if (resolved) theme.fonts.displayFiles = resolved;
     }
     // files WITHOUT a family name: the glyphs would be embedded/inlined under
     // the DEFAULT family — the HTML would render the theme's font disguised as
@@ -1182,11 +1208,21 @@ export function resolveTheme(
       );
       delete theme.fonts.files;
     }
+    // the display files carry the SAME hazard against the display family: with
+    // no fonts.display they would embed under the body family and diverge.
+    if (theme.fonts.displayFiles && !theme.fonts.display) {
+      push(
+        'warning',
+        'THEME_BAD_VALUE',
+        'Theme: fonts.displayFiles supplies fonts without fonts.display (the display family name) — without it, the glyphs would be embedded under the body font and the HTML would diverge from the .pptx; fonts.displayFiles ignored.',
+      );
+      delete theme.fonts.displayFiles;
+    }
   } else if (json.fonts != null) {
     push(
       'warning',
       'THEME_BAD_VALUE',
-      'Theme: fonts must be an object { body, mono, files } — ignored.',
+      'Theme: fonts must be an object { body, mono, display, files, displayFiles } — ignored.',
     );
   }
 
