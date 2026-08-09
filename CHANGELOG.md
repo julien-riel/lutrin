@@ -50,6 +50,19 @@ stated otherwise, an entry describes the compiler.
   published gallery, every kit's titles used to come back in the fallback face.
   The specimens on info.lutrin.app now show the typeface the kit means.
 
+- **The kit editor uploads the display font too.** `fonts.displayFiles` had to
+  be written by hand: the Fonts panel offered three variant cards, and they all
+  belonged to the body face. It now carries a set per embeddable family — an
+  upload under the display face declares `fonts.displayFiles`, previews under
+  its own name, and proposes a **display** family rather than renaming the body
+  one. A `.ttf` dropped on a face with no family yet adopts the family the font
+  reports, which is what makes the display upload do anything at all (the
+  engine drops display files that no `fonts.display` names) — and the panel says
+  so under the cards when that is the state. The shared `fonts/` directory
+  lists which face and variant uses each file, deleting a file cleans the
+  declarations of both, and a `fonts.displayFiles.*` diagnostic now opens the
+  Fonts panel on the right card instead of landing in Tokens.
+
 - **`accent.coverBar`** — the cover's flourish, on its own token. The cover is
   the one surface a kit paints in its own brand colour, and a bar left on
   `accent.bar` then drew itself in the colour it lies on: the flourish simply
