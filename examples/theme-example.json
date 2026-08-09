@@ -7,5 +7,12 @@
     "highlightLight": "EAF1FA",
     "highlightStrong": "CFE2F3"
   },
+  "fonts": { "body": "Georgia", "display": "Trebuchet MS" },
+  "surface": {
+    "coverBg": "073763",
+    "coverInk": "FFFFFF",
+    "coverMutedInk": "AEC6E0"
+  },
+  "accent": { "bar": "0B5394", "rule": "CED4DA" },
   "chartColors": ["0B5394", "B87F00", "0A8A76", "D3310A", "005E99", "8A5C00"]
 }

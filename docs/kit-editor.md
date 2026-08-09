@@ -133,14 +133,20 @@ compiled once.
 ## Tokens
 
 The theme's colors, grouped by their real domains — Brand, Neutrals, Surfaces,
-Highlights, Semantic — plus the chart palette (ordered, reorderable), the
-layer shades (fill + ink pairs) and the trend inks. Each row pairs a native
-color picker with a hex field; each group has a "Reset to default".
+Highlights, Semantic — plus the **Surfaces** group (the three slide
+backgrounds and the inks on them: the content page, a cover with its title and
+subtitle inks, the section band), the **Accent** group (the signature bar and
+the title rule), the chart palette (ordered, reorderable), the layer shades
+(fill + ink pairs) and the trend inks. Each row pairs a native color picker
+with a hex field; each group has a "Reset to default". The Surfaces and Accent
+groups default to values derived from the palette, so editing one saves it
+explicitly while the rest keep following the brand.
 
 The engine checks the WCAG thresholds on every recompile, so a color that
 breaks legibility answers **while you are picking it**: the `THEME_CONTRAST`
 diagnostics of the last compile are anchored directly under the rows they
-involve — main text against the page, chart colors, layer inks, callout and
+involve — main text against the content page, the cover title and subtitle on
+the cover, the section title on the band, chart colors, layer inks, callout and
 trend inks.
 
 A kit without a `theme.json` starts from an empty state; "Create theme from
@@ -148,11 +154,15 @@ defaults" seeds it with the engine's own tokens.
 
 ## Fonts
 
-Two family choices — body and mono — and three embedded variants: regular,
-bold, italic. **Each embedded variant is a `.ttf` plus a `.woff2` twin of the
-same name**, both in `fonts/`: the `.ttf` is what gets embedded in the
-`.pptx`, the `.woff2` is what the HTML output uses. The panel shows the pair
-status of every declared variant, and a missing twin is named for what it is.
+Three family choices — body, **display** and mono — and three embedded variants
+of the body face: regular, bold, italic. The **display** family is the
+optional second face the cover, section and slide titles and the pull-quote
+wear; left empty, the titles keep the body family. **Each embedded variant is a
+`.ttf` plus a `.woff2` twin of the same name**, both in `fonts/`: the `.ttf` is
+what gets embedded in the `.pptx`, the `.woff2` is what the HTML output uses.
+The panel shows the pair status of every declared variant, and a missing twin
+is named for what it is. (Embedded files for the display face are declared by
+hand as `fonts.displayFiles`, validated by the same twin/licence rules.)
 
 The pitfall the panel warns about: **a family name without embedded files is a
 promise the `.pptx` cannot keep** — the file will use whatever font is
