@@ -790,31 +790,111 @@ export async function renderIcon(name, { color = 'primary', rasterPx = ICON_RAST
 // LaTeX → SVG → PNG (MathJax, optional like Mermaid)
 // ---------------------------------------------------------------------------
 
+/**
+ * MathJax, as the two halves this compiler needs — and NEVER as one.
+ *
+ * `svg` is the picture; `mathml` is the same expression one state earlier, and
+ * it is what `pptx/omml.mjs` turns into a NATIVE PowerPoint equation. A backend
+ * that produced only the picture would still render everywhere, which is
+ * exactly why the contract is written down: the loss would be silent, and every
+ * equation in every .pptx would quietly stop being editable.
+ *
+ * @typedef {{svg:(tex:string)=>string, mathml:(tex:string)=>string}} MathEngine
+ */
+
+/**
+ * MathJax the way Node gets it: the CommonJS package, module by module.
+ * @returns {Promise<MathEngine>}
+ */
+async function nodeMathEngine() {
+  const { mathjax } = await import('mathjax-full/js/mathjax.js');
+  const { TeX } = await import('mathjax-full/js/input/tex.js');
+  const { SVG } = await import('mathjax-full/js/output/svg.js');
+  const { liteAdaptor } = await import('mathjax-full/js/adaptors/liteAdaptor.js');
+  const { RegisterHTMLHandler } = await import('mathjax-full/js/handlers/html.js');
+  const { AllPackages } = await import('mathjax-full/js/input/tex/AllPackages.js');
+  // The MathML half: the same TeX input jax, stopped one state earlier.
+  // `end: STATE.CONVERT` returns the internal MathML tree instead of the
+  // SVG one, and SerializedMmlVisitor writes it out — no second engine and
+  // no second parse of the LaTeX.
+  const { SerializedMmlVisitor } = await import(
+    'mathjax-full/js/core/MmlTree/SerializedMmlVisitor.js'
+  );
+  const { STATE } = await import('mathjax-full/js/core/MathItem.js');
+  const adaptor = liteAdaptor();
+  RegisterHTMLHandler(adaptor);
+  const doc = mathjax.document('', {
+    InputJax: new TeX({ packages: AllPackages }),
+    OutputJax: new SVG({ fontCache: 'local' }),
+  });
+  const visitor = new SerializedMmlVisitor();
+  return {
+    svg: (tex) => adaptor.innerHTML(doc.convert(tex, { display: true })),
+    mathml: (tex) =>
+      visitor.visitTree(doc.convert(tex, { display: true, end: STATE.CONVERT }), doc),
+  };
+}
+
+/**
+ * MathJax the way a page gets it.
+ *
+ * The seven imports above are bare CommonJS specifiers: an import map cannot
+ * resolve them, and mathjax-full publishes no ESM to point one at. What it does
+ * publish is `es5/tex-svg-full.js`, a webpack UMD bundle that a browser loads
+ * perfectly well as a classic script — so the browser asks `mathjax` for it,
+ * which the playground's import map answers with a shim that injects that
+ * script and hands back `window.MathJax` (site/assets/js/shims/mathjax.mjs, and
+ * shims/jszip.mjs before it).
+ *
+ * That bundle exposes a HIGHER-LEVEL API than the modules do, which is the
+ * whole reason this file has an engine interface rather than four exported
+ * objects: `tex2svg` returns a live DOM container instead of a lite node, and
+ * `tex2mml` is `SerializedMmlVisitor` over a conversion stopped at
+ * `STATE.CONVERT` — the same two halves, reached by different names. THE
+ * MATHML HALF SURVIVES: an equation exported from the page is a native OMML
+ * equation in PowerPoint, not a picture with a caption.
+ *
+ * THE CONTAINER IS NOT THE PICTURE, and that is not a detail. `tex2svg` hands
+ * back an `<mjx-container>` holding the `<svg>` AND, next to it, an
+ * `<mjx-assistive-mml>` — the screen-reader copy, added by a component the
+ * bundle carries and the Node modules do not, and which survives
+ * `enableAssistiveMml: false` because the menu component reinstates it. Taking
+ * the container's `innerHTML`, as the Node engine does with its lite node,
+ * therefore yields TWO top-level elements. That string still looks like an SVG,
+ * still passes the width/height check, and is refused by every strict XML
+ * parser — including the `<img>` decoder `raster-browser.mjs` rasterizes
+ * through, which fails by returning null, which reads exactly like "this
+ * browser has no rasterizer". Cost of the mistake: every equation silently back
+ * to a code-block fallback. So the ELEMENT is what we serialize.
+ *
+ * Nothing outside a browser can reach this, and nothing inside one is charged
+ * for it until a deck actually contains an equation: `mathDocument()` is called
+ * from `mathSvg()` and from nowhere else.
+ *
+ * @returns {Promise<MathEngine>}
+ */
+async function browserMathEngine() {
+  const MathJax = (await import('mathjax')).default;
+  return {
+    svg: (tex) => MathJax.tex2svg(tex, { display: true }).querySelector('svg')?.outerHTML ?? '',
+    mathml: (tex) => MathJax.tex2mml(tex, { display: true }),
+  };
+}
+
+/** @type {MathEngine|false|null} */
 let _mathjax = null;
+/** The engine, or null where MathJax cannot be reached at all — resolved once
+ *  and remembered, including the failure (a page with no import-map entry must
+ *  not re-fetch nothing on every keystroke). */
 async function mathDocument() {
   if (_mathjax === null) {
     try {
-      const { mathjax } = await import('mathjax-full/js/mathjax.js');
-      const { TeX } = await import('mathjax-full/js/input/tex.js');
-      const { SVG } = await import('mathjax-full/js/output/svg.js');
-      const { liteAdaptor } = await import('mathjax-full/js/adaptors/liteAdaptor.js');
-      const { RegisterHTMLHandler } = await import('mathjax-full/js/handlers/html.js');
-      const { AllPackages } = await import('mathjax-full/js/input/tex/AllPackages.js');
-      // The MathML half: the same TeX input jax, stopped one state earlier.
-      // `end: STATE.CONVERT` returns the internal MathML tree instead of the
-      // SVG one, and SerializedMmlVisitor writes it out — no second engine and
-      // no second parse of the LaTeX.
-      const { SerializedMmlVisitor } = await import(
-        'mathjax-full/js/core/MmlTree/SerializedMmlVisitor.js'
-      );
-      const { STATE } = await import('mathjax-full/js/core/MathItem.js');
-      const adaptor = liteAdaptor();
-      RegisterHTMLHandler(adaptor);
-      const doc = mathjax.document('', {
-        InputJax: new TeX({ packages: AllPackages }),
-        OutputJax: new SVG({ fontCache: 'local' }),
-      });
-      _mathjax = { doc, adaptor, visitor: new SerializedMmlVisitor(), STATE };
+      // Read at call time, like `raster-browser.mjs` does: the compiler is one
+      // module graph and it runs in both places.
+      _mathjax =
+        typeof globalThis.document === 'undefined'
+          ? await nodeMathEngine()
+          : await browserMathEngine();
     } catch {
       _mathjax = false;
     }
@@ -839,18 +919,14 @@ export async function mathSvg(tex) {
   const mj = await mathDocument();
   if (!mj) return null;
   try {
-    const node = mj.doc.convert(tex, { display: true });
-    let svg = mj.adaptor.innerHTML(node);
+    let svg = mj.svg(tex);
     const wEx = Number.parseFloat(svg.match(/width="([\d.]+)ex"/)?.[1] ?? '0');
     const hEx = Number.parseFloat(svg.match(/height="([\d.]+)ex"/)?.[1] ?? '0');
     if (!wEx || !hEx || /data-mjx-error/.test(svg)) return null;
     svg = svg.replace(/currentColor/g, `#${COLORS.neutralPrimary}`);
     let mathml = null;
     try {
-      mathml = mj.visitor.visitTree(
-        mj.doc.convert(tex, { display: true, end: mj.STATE.CONVERT }),
-        mj.doc,
-      );
+      mathml = mj.mathml(tex);
     } catch {
       mathml = null; // the picture is unaffected — only the native half is lost
     }

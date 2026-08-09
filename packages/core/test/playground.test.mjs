@@ -187,6 +187,57 @@ test('the jszip shim reaches its bundle through the import map', () => {
   assert.doesNotMatch(shim, /\.\.\/\.\.\/\.\.\/vendor\//, 'the shim spells out a second path');
 });
 
+/**
+ * MathJax is the same story as JSZip and is loaded the same way, so it gets the
+ * same guard. What is specific to it: the map must name the `-full` bundle.
+ * `tex-svg.js` carries only the default TeX packages and `autoload` then
+ * fetches the rest FROM A CDN at conversion time — a network call on a page
+ * that promises your text never leaves your machine, and a silent divergence
+ * from the CLI, which builds its TeX input jax with `AllPackages`.
+ */
+test('the mathjax shim reaches its bundle through the import map', () => {
+  const shimFile = path.join(SITE, 'assets', 'js', 'shims', 'mathjax.mjs');
+  const shim = fs.readFileSync(shimFile, 'utf8');
+  const map = importMap();
+
+  assert.equal(map.mathjax, './assets/js/shims/mathjax.mjs', 'mathjax must resolve to the shim');
+  const spec = shim.match(/import\.meta\.resolve\(['"]([^'"]+)['"]\)/)?.[1];
+  assert.ok(spec, 'the shim no longer resolves its bundle through the import map');
+  assert.ok(map[spec], `the import map has no ${spec} entry for the shim to resolve`);
+  assert.match(map[spec], /^\.\/vendor\//, `${spec} must point into the vendored packages`);
+  assert.match(
+    map[spec],
+    /tex-svg-full\.js$/,
+    'the map must name the -full bundle: the smaller one autoloads TeX packages from a CDN',
+  );
+  assert.doesNotMatch(shim, /\.\.\/\.\.\/\.\.\/vendor\//, 'the shim spells out a second path');
+});
+
+/**
+ * The bundle the map points at has to be the one that exists on disk AND the
+ * one whose two entry points `deck/assets.mjs` calls. A rename upstream would
+ * otherwise show up as a 404 in production and as nothing at all here — and
+ * `tex2mml` is the half whose absence is invisible: every equation would still
+ * render, as a picture, and the .pptx would quietly stop being editable.
+ */
+test('the vendored MathJax bundle publishes both halves the compiler needs', () => {
+  const target = importMap()['mathjax/umd'];
+  const pkg = target.slice('./vendor/'.length).split('/')[0];
+  const file = path.join(REPO, 'node_modules', target.slice('./vendor/'.length));
+  assert.equal(pkg, 'mathjax-full', 'the bundle must come from the package already depended on');
+  assert.ok(fs.existsSync(file), `${target} does not exist under node_modules`);
+
+  // The two methods are BUILT, not written: components/startup.js composes them
+  // as `<input>2<output>` and `<input>2mml`, so neither name appears in the
+  // minified bundle and a grep for `tex2svg` would pass on any file at all.
+  // What is checked is the composition itself — the shape that disappears if
+  // the bundle ever ships without its startup component.
+  const bundle = fs.readFileSync(file, 'utf8');
+  assert.match(bundle, /\+"2mml"/, 'the bundle carries no tex2mml — the native OMML half is gone');
+  assert.match(bundle, /\+"2"\+/, 'the bundle carries no tex2svg — it has no startup component');
+  assert.match(bundle, /startup:/, 'the bundle exposes no startup object to await');
+});
+
 test('process is stubbed by a classic script before the module runs', () => {
   const html = fs.readFileSync(PLAYGROUND, 'utf8');
   const stub = html.indexOf('window.process');

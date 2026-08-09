@@ -128,10 +128,19 @@ holds `design/layouts`.
    `loadOfficialLayouts()` reports `LAYOUT_CATALOG_MISSING` where it used to
    hold a bare `catch {}` that pushed no diagnostic at all — but the page keeps
    its own count: it is the one that knows how many the manifest promised.
-2. **Name what a browser cannot draw.** Mermaid needs a subprocess, LaTeX needs
-   a CommonJS package no import map can load, icons and images need a disk —
-   and all four vanish *silently*. `describeGaps()` inspects the scene graph
-   itself and says which are missing, naming the CLI.
+2. **Name what a browser cannot draw.** Mermaid needs a subprocess, icons and
+   images need a disk — and all three vanish *silently*. `describeGaps()`
+   inspects the scene graph itself and says which are missing, naming the CLI.
+
+   LaTeX was on that list until `site/assets/js/shims/mathjax.mjs`. MathJax is
+   CommonJS and no import map can load it, but the package also publishes
+   `es5/tex-svg-full.js`, a UMD bundle a classic `<script>` runs — the JSZip
+   trick again, and `deck/assets.mjs` picks the browser engine over its seven
+   Node imports when it sees a `document`. Both halves survive the change of
+   API: `tex2svg` for the picture, `tex2mml` for the MathML that becomes a
+   native OMML equation in the `.pptx`. What `describeGaps()` still reports
+   about equations is the *leftover* — `stats.mathTotal - stats.mathRendered`,
+   which is invalid LaTeX, or a browser that could not fetch the 2.3 MB.
 
 ### The two downloads
 

@@ -26,9 +26,15 @@
  *     preview the same way, for the same reason.
  *
  * `describeGaps()` exists for the same honesty reason as (2): Mermaid needs a
- * subprocess, math needs a CommonJS package no import map can load, icons and
- * images need a disk. All four vanish in silence here, so the page works out
- * what went missing and names the command that would have rendered it.
+ * subprocess, icons and images need a disk. Both vanish in silence here, so the
+ * page works out what went missing and names the command that would have
+ * rendered it. Equations used to be on that list and are not any more —
+ * shims/mathjax.mjs loads MathJax's UMD bundle as a classic script, and they
+ * reach the preview, the .html and the .pptx (natively, as an OMML equation
+ * PowerPoint lets you click into) like anything else. `describeMath()` reports
+ * what is left over — the ones the compiler could not draw — separately, and
+ * without the "it works on the command line" line, because for invalid LaTeX
+ * it does not.
  *
  * THE TWO DOWNLOADS are the same compiler again, not an export of the preview.
  * `.html` is `compileHtml` without `fragment`, so it is the standalone page
@@ -36,7 +42,8 @@
  * `renderDeckBytes` — the real PowerPoint renderer, its eight post-processing
  * passes included, running against the `node:fs` shim. It is imported ON THE
  * FIRST CLICK and never before: `jszip` and `pptxgenjs` are half a megabyte
- * that a reader who only types must not pay for.
+ * that a reader who only types must not pay for. MathJax is the same bargain
+ * paid on the first equation rather than on the first click.
  */
 
 import * as vfs from './shims/fs.mjs';
@@ -105,6 +112,20 @@ categories: Q1, Q2, Q3, Q4
 Planned: 120, 150, 180, 210
 Actual: 110, 155, 175, 190
 target: 165
+\`\`\`
+`,
+  // Deliberately the LAST example: clicking it is what fetches MathJax's 2.3 MB
+  // bundle, and nobody should pay for that by arriving on the page.
+  math: `# The model
+
+The engine typesets LaTeX with MathJax, here and in the file you download.
+
+\`\`\`math
+\\frac{1}{2}\\sum_{i=1}^{n} (y_i - \\hat{y}_i)^2
+\`\`\`
+
+\`\`\`math
+e^{i\\pi} + 1 = 0
 \`\`\`
 `,
 };
@@ -234,10 +255,14 @@ function describeGaps(result) {
     gaps.push(
       `${plural(n('mermaid'), 'Mermaid diagram', 'Mermaid diagrams')} — rendering one needs a headless browser, which a page cannot start.`,
     );
-  if (n('math'))
-    gaps.push(
-      `${plural(n('math'), 'equation', 'equations')} — MathJax ships as CommonJS, which no import map can load here.`,
-    );
+  // Equations are deliberately NOT in this list any more. shims/mathjax.mjs
+  // loads MathJax's UMD bundle as a classic script, so the page draws them and
+  // the .pptx carries them natively — and every line above ends in the same
+  // sentence, "it works on the command line", which for a failed equation is
+  // usually FALSE: what fails now is the LaTeX itself, and invalid LaTeX fails
+  // just as hard under `npx lutrin`. A true finding under an untrue remedy is
+  // the kind of half-honesty this page exists not to practise, so equations get
+  // their own note (`describeMath`) with their own sentence.
   if (n('icon'))
     gaps.push(
       `${plural(n('icon'), 'icon', 'icons')} — the icon set is read from disk, not fetched.`,
@@ -250,9 +275,33 @@ function describeGaps(result) {
   return gaps;
 }
 
+/**
+ * The equations the compiler could not draw — read off its own stats
+ * (`mathTotal - mathRendered`) rather than counted off the scene graph, because
+ * the number that matters is what actually failed, not what was asked for.
+ *
+ * Two causes, and the visitor cannot tell them apart from here, so both are
+ * named: LaTeX MathJax refuses (the usual one, and it refuses it on the command
+ * line too), and a bundle that did not arrive — offline, blocked, a browser too
+ * old for the shim. Neither is fixed by installing anything, which is why this
+ * is a warning rather than a gap and why it does not end in the CLI command.
+ *
+ * @returns {string|null}
+ */
+function describeMath(result) {
+  const lost = (result.stats?.mathTotal ?? 0) - (result.stats?.mathRendered ?? 0);
+  if (!lost) return null;
+  return lost > 1
+    ? `${lost} equations are shown as their LaTeX source: MathJax refused them — invalid LaTeX fails on the command line too — or its 2.3 MB could not be fetched into this page.`
+    : 'One equation is shown as its LaTeX source: MathJax refused it — invalid LaTeX fails on the command line too — or its 2.3 MB could not be fetched into this page.';
+}
+
 function paintNotes(result) {
   notes.innerHTML = '';
   for (const w of result.stats?.warnings ?? []) note('pg-note pg-note-warn', w);
+
+  const math = describeMath(result);
+  if (math) note('pg-note pg-note-warn', math);
 
   const gaps = describeGaps(result);
   if (!gaps.length) return;

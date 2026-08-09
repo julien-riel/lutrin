@@ -22,6 +22,12 @@
  * downloaded and assert that every media part is a PNG by its magic bytes and
  * its dimensions — not merely present, and not merely non-empty.
  *
+ * It then asks the same file a second question, about the block type that
+ * arrived last: does any slide carry an `<m:oMath>`? An equation has TWO halves
+ * in a .pptx — the picture and the native OMML PowerPoint lets you click into —
+ * and in a browser they come from two different entry points of a UMD bundle.
+ * Losing the second one costs nothing visible, which is why it is asserted.
+ *
  * NOT wired into CI, for the reason `reference-pptx.mjs` and
  * `pptx-fidelity.mjs` are not: it needs a browser on the machine, and the
  * canvas paints with the fonts that machine happens to resolve.
@@ -37,8 +43,19 @@ import { findBrowser } from '../packages/core/src/deck/browser.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const KEEP = process.argv.includes('--keep');
 
-/** A deck that asks for exactly the two things this path had to unlock: a
- *  diagram (native SmartArt asks for the raster fallback) and a chart. */
+/** A deck that asks for exactly the three things this path had to unlock: a
+ *  diagram (native SmartArt asks for the raster fallback), a chart, and an
+ *  equation.
+ *
+ *  The equation is the newest of the three and the one with TWO outcomes to
+ *  check rather than one. MathJax is CommonJS, so the page reaches it through a
+ *  UMD bundle loaded as a classic script (site/assets/js/shims/mathjax.mjs),
+ *  and that bundle exposes a different API from the modules the CLI imports.
+ *  A shim that produced only `tex2svg` would look completely correct here: the
+ *  slide has its picture, every assertion about PNGs passes, and the only thing
+ *  lost is the `<m:oMath>` — the native PowerPoint equation, which is exactly
+ *  what makes the .pptx worth downloading rather than a screenshot. Hence the
+ *  second assertion below. */
 const DECK = `---
 title: Raster check
 smartart: true
@@ -63,6 +80,12 @@ We choose.
 type: bar
 categories: Q1, Q2, Q3
 Planned: 120, 150, 180
+\`\`\`
+
+# An equation
+
+\`\`\`math
+\\frac{1}{2}\\sum_{i=1}^{n} (y_i - \\hat{y}_i)^2
 \`\`\`
 `;
 
@@ -170,6 +193,29 @@ async function main() {
       await new Promise((r) => setTimeout(r, 250));
     }
 
+    // The preview, before the export. The page must SHOW what it hands over —
+    // an equation that only appeared in the downloaded file would be a
+    // playground lying by omission, and one that appeared only in the preview
+    // would be the older lie the other way round. MathJax stamps its own output
+    // with `data-mml-node`, which nothing else in a slide carries.
+    const previewMath = async () => {
+      for (const frame of page.frames()) {
+        try {
+          if (/data-mml-node/.test(await frame.content())) return true;
+        } catch {
+          // a frame that navigated mid-read
+        }
+      }
+      return false;
+    };
+    console.log('\nthe preview\n');
+    if (await previewMath()) {
+      console.log('  ✓ the equation is there, as MathJax SVG');
+    } else {
+      console.log('  ✗ nothing MathJax-shaped in it: the page drew no equation');
+      failures++;
+    }
+
     const cdp = await page.target().createCDPSession();
     await cdp.send('Browser.setDownloadBehavior', {
       behavior: 'allow',
@@ -211,6 +257,33 @@ async function main() {
         console.log(`  ✓ ${name} — ${info.w}×${info.h}, ${Math.round(bytes.length / 1024)} kB`);
       }
     }
+    // The equation's other half. `omml.mjs` writes `<m:oMath>` from the MathML
+    // `deck/assets.mjs` hands over beside the picture, and in the page that
+    // MathML can only come from the UMD bundle's `tex2mml`. No `m:oMath` here
+    // means the browser produced a picture and nothing else — the silent
+    // downgrade this deck's equation exists to catch.
+    const slides = Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n));
+    let native = 0;
+    let fellBack = 0;
+    for (const name of slides) {
+      const xml = await zip.file(name).async('string');
+      if (xml.includes('<m:oMath')) native++;
+      // The renderer's own words when `renderMath` came back null — the deck
+      // still opens, with the LaTeX printed as code. That is the failure that
+      // reads as success everywhere else, so it is named here.
+      if (xml.includes('install mathjax-full for graphical rendering')) fellBack++;
+    }
+    if (fellBack) {
+      console.log(`  ✗ ${fellBack} equation(s) fell back to their LaTeX source as text`);
+      failures++;
+    }
+    if (native) {
+      console.log(`  ✓ ${native} native OMML equation(s) — editable in PowerPoint, not a picture`);
+    } else {
+      console.log('  ✗ no <m:oMath> on any slide: the equation shipped as a picture only');
+      failures++;
+    }
+
     if (problems.length) {
       console.log(`\n  page errors: ${problems.slice(0, 3).join(' | ')}`);
     }
@@ -221,7 +294,11 @@ async function main() {
     else fs.rmSync(outDir, { recursive: true, force: true });
   }
 
-  console.log(failures ? `\n${failures} problem(s).` : '\nEvery picture in the deck is a picture.');
+  console.log(
+    failures
+      ? `\n${failures} problem(s).`
+      : '\nEvery picture in the deck is a picture, and the equation is an equation.',
+  );
   process.exit(failures ? 1 : 0);
 }
 

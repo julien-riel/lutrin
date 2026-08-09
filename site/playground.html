@@ -31,9 +31,12 @@
 
      `jszip` and `pptxgenjs` are the .pptx renderer's two, and they are reached
      only when a visitor asks for the export: nothing on the HTML path imports
-     them, so a reader who only types downloads neither. `jszip/umd` is not a
-     package the compiler names — it is how shims/jszip.mjs asks the map where
-     the UMD bundle lives, so this stays the only list of vendored packages. -->
+     them, so a reader who only types downloads neither. `mathjax` is the same
+     bargain on the other axis — 2.3 MB fetched the first time a deck holds an
+     equation, and never for anyone else. `jszip/umd` and `mathjax/umd` are not
+     packages the compiler names — they are how the two shims ask the map where
+     their UMD bundle lives, so this stays the only list of vendored
+     packages. -->
 <script type="importmap">
 {
   "imports": {
@@ -54,7 +57,9 @@
     "uc.micro": "./vendor/uc.micro/index.mjs",
     "jszip": "./assets/js/shims/jszip.mjs",
     "jszip/umd": "./vendor/jszip/dist/jszip.min.js",
-    "pptxgenjs": "./vendor/pptxgenjs/dist/pptxgen.es.js"
+    "pptxgenjs": "./vendor/pptxgenjs/dist/pptxgen.es.js",
+    "mathjax": "./assets/js/shims/mathjax.mjs",
+    "mathjax/umd": "./vendor/mathjax-full/es5/tex-svg-full.js"
   }
 }
 </script>
@@ -111,6 +116,9 @@
         <button type="button" data-example="funnel" aria-pressed="true">A funnel</button>
         <button type="button" data-example="metrics" aria-pressed="false">Three numbers</button>
         <button type="button" data-example="chart" aria-pressed="false">A chart</button>
+        <!-- Last, because it is the one that fetches MathJax: 2.3 MB nobody
+             pays for until they ask for an equation. -->
+        <button type="button" data-example="math" aria-pressed="false">An equation</button>
       </div>
       <!-- The two real outputs, built by the same engine the CLI runs and
            handed over as files. Disabled until the first compile succeeds:
@@ -141,8 +149,11 @@
       <code>lutrin build --html</code> writes, presenter mode and all, and the
       <code>.pptx</code> is a PowerPoint you can open and retouch. What neither
       can carry, this page names rather than drops. Mermaid diagrams need a
-      headless browser, LaTeX needs a package no import map can load, and icons
-      and local images are read from disk. Charts and diagrams do arrive as
+      headless browser, and icons and local images are read from disk. LaTeX
+      does work here: the first equation you type fetches MathJax (2.3 MB, once
+      per visit), and it arrives in the <code>.pptx</code> as a native
+      PowerPoint equation you can click into and edit, exactly as from the
+      command line. Charts and diagrams do arrive as
       pictures: a <code>.pptx</code> wants them rasterized, and your browser is
       a rasterizer — it draws them onto a canvas here, where the command line
       uses its own. What that costs is determinism rather than fidelity, since a

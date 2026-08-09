@@ -11,6 +11,49 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Equations reach the page, both halves of them.** LaTeX was the last block
+  type the playground could not carry, and the reason it gave was true as far as
+  it went: `deck/assets.mjs` builds MathJax out of seven bare specifiers,
+  `mathjax-full` is CommonJS, and no import map can resolve any of them. What
+  the page never said is that the same package also publishes
+  `es5/tex-svg-full.js` — a UMD bundle a classic `<script>` runs perfectly well.
+  `site/assets/js/shims/mathjax.mjs` loads it exactly as `shims/jszip.mjs` loads
+  JSZip, and `mathDocument()` now picks between two engines rather than owning
+  one: the seven imports on Node, the bundle where there is a `document`.
+
+  **The MathML half survives**, which is the whole point of doing it this way.
+  An equation carries two things into a `.pptx` — the picture and the MathML
+  `pptx/omml.mjs` turns into a native `<m:oMath>` PowerPoint lets you click
+  into — and the bundle reaches them through different names (`tex2svg`,
+  `tex2mml`) than the modules do. That is why `mathDocument()` returns an
+  interface with those two methods instead of the four MathJax objects it used
+  to hand out: a backend that produced only the picture would look completely
+  correct, and every equation exported from the page would quietly stop being
+  editable. `scripts/playground-raster-check.mjs` now drives an equation through
+  the real page and asserts both — the PNG *and* the `<m:oMath>`.
+
+  Two things that were nearly missed, and both fail silently:
+
+  - `tex2svg` returns an `<mjx-container>` holding the `<svg>` **and** an
+    `<mjx-assistive-mml>` beside it. Serializing the container, the way the Node
+    engine serializes its lite node, yields two top-level elements — a string
+    that still looks like an SVG, still passes every width check, and is refused
+    by the strict XML parser behind `<img>`. Every equation went back to a code
+    block, and the failure read as "this browser has no rasterizer". The `<svg>`
+    element is what gets serialized. (`enableAssistiveMml: false` does not
+    prevent this; the menu component reinstates it.)
+  - The bundle must be `tex-svg-**full**`. The smaller one carries only the
+    default TeX packages and `autoload` fetches the rest **from a CDN** —
+    a network call on a page whose promise is that your text never leaves your
+    machine, and a divergence from the CLI, which builds its input jax with
+    `AllPackages`.
+
+  2.3 MB, fetched on the first equation of a session and never for a visitor who
+  only types — `mathDocument()` is called from `mathSvg()` and nowhere else. The
+  playground's gap list no longer names equations; what it reports now is
+  `mathTotal - mathRendered`, which is invalid LaTeX or a bundle that could not
+  be fetched.
+
 - **The browser is a rasterizer, and the compiler now uses it.** `svgToPng()`
   had exactly one backend — `@resvg/resvg-js`, a native module — so everywhere
   it could not load, the engine concluded nothing could be rasterized at all.

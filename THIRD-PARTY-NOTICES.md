@@ -44,6 +44,12 @@ and redistributed with the package in `node_modules`. `mj-context-menu`, pulled
 in transitively by `mathjax-full`, falls under the same Apache-2.0 licence but
 carries no `LICENSE` file of its own: it points at the same text.
 
+The site *serves* one file of that package — `es5/tex-svg-full.js`, unmodified,
+which is how the playground renders LaTeX in a browser that cannot load
+CommonJS. The Pages deploy prunes the 43 MB package down to that bundle and
+keeps `LICENSE` beside it (`.github/workflows/pages.yml`), so the attribution
+travels with the code it covers.
+
 ## Development dependencies
 
 | Component | Licence | Note |
