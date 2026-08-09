@@ -43,6 +43,38 @@
   border-color: var(--ink);
   color: #fff;
 }
+/* The payoff, so it reads as one: filled rather than outlined, next to the
+   examples that produce something to export. Both are `disabled` until a
+   compile succeeds, and `.is-busy` covers the seconds a .pptx takes — the
+   button says what it is doing, because a second click would build the same
+   deck twice. */
+.pg-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.pg-downloads button {
+  font: inherit;
+  font-size: 0.85rem;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+}
+.pg-downloads button:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+.pg-downloads button:disabled {
+  background: none;
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: default;
+}
+.pg-downloads button.is-busy {
+  cursor: progress;
+}
+
 /* The one place the page reports on itself. Colour is never the only signal —
    the word changes too, because "compiling…", "3 slides" and "error" have to
    be legible to someone who cannot tell the states apart by hue. */

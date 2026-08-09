@@ -24,6 +24,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import JSZip from 'jszip';
+import { ZIP_BYTES } from './bytes.mjs';
 import { FONTS, FONT_FILES, DISPLAY_FONT_FILES, displayFace } from '../deck/tokens.mjs';
 
 /** Variants of an embedded family; the element is the OOXML slot targeted.
@@ -380,7 +381,7 @@ export async function embedFonts(pptxPath) {
   }
   zip.file('ppt/presentation.xml', patched);
 
-  const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+  const buf = await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' });
   fs.writeFileSync(pptxPath, buf);
   return { count: embedded.length, families, warnings };
 }

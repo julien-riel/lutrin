@@ -30,6 +30,7 @@
 
 import fs from 'node:fs';
 import JSZip from 'jszip';
+import { ZIP_BYTES } from './bytes.mjs';
 import { FAMILIES, buildDiagramParts, escAttr } from './diagram-parts.mjs';
 
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -267,9 +268,6 @@ export async function embedSmartArt(pptxPath, slideDiagrams) {
   contentTypes = contentTypes.replace('</Types>', `${overrides}</Types>`);
   zip.file('[Content_Types].xml', contentTypes);
 
-  fs.writeFileSync(
-    pptxPath,
-    await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
-  );
+  fs.writeFileSync(pptxPath, await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }));
   return { count: done, warnings };
 }

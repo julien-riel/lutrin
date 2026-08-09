@@ -96,18 +96,22 @@ There is still **no build step**. What makes that possible:
 
 - **An import map** in `playground.html` resolves the eight `node:*` specifiers
   the compiler statically imports, plus `markdown-it` and its five transitive
-  dependencies. Import maps resolve `node:fs` like any other specifier.
+  dependencies, plus `jszip` and `pptxgenjs` for the `.pptx` export. Import maps
+  resolve `node:fs` like any other specifier.
 - **`assets/js/shims/`** — `path`, `os`, `url` and `crypto` compute for real
   (`path` and `crypto` are pinned against Node's own by
-  `packages/core/test/playground.test.mjs`); `fs` is a read-only map filled
-  before the compiler is imported; `unavailable.mjs` throws for
-  `child_process`, `dns` and `module`, which every call site already handles.
+  `packages/core/test/playground.test.mjs`); `fs` is a map filled before the
+  compiler is imported, and it is no longer read-only in practice — the `.pptx`
+  export writes the package into it and reopens it once per post-processing
+  pass, which is why it keeps bytes as bytes; `unavailable.mjs` throws for
+  `child_process`, `dns` and `module`, which every call site already handles;
+  `jszip.mjs` publishes JSZip's UMD bundle as a module (see below).
 - **A classic `<script>` stubbing `window.process` before the module.**
   `deck/assets.mjs` reads `process.env` at module scope, on its first
   statement. Out of order, the page dies before anything runs.
 - **Three copies in `pages.yml`**: `packages/core/src` → `_site/core/src`,
   `design/layouts` → `_site/core/design/layouts` (plus a manifest written
-  *beside* it), and seven npm packages → `_site/vendor/`.
+  *beside* it), and nine npm packages → `_site/vendor/`.
 
 `_site/core/` is not a stylistic choice. `deck/layout.mjs` and
 `deck/assets.mjs` derive the package root from
@@ -129,6 +133,64 @@ holds `design/layouts`.
    and all four vanish *silently*. `describeGaps()` inspects the scene graph
    itself and says which are missing, naming the CLI.
 
+### The two downloads
+
+The page hands out both real outputs, built in the tab and uploaded nowhere.
+Neither is an export of the preview:
+
+- **`.html`** is `compileHtml` called again *without* `fragment` — the complete
+  standalone document `lutrin build --html` writes, presenter mode and fit
+  script included, rather than the slide fragments the preview frame stacks.
+- **`.pptx`** is `renderDeckBytes` (`packages/core/src/pptx/render.mjs`), the
+  PowerPoint renderer itself, its eight post-processing passes included. It is
+  `import()`ed **on the first click** and never before: `jszip` and `pptxgenjs`
+  are half a megabyte, and a reader who only types must not pay for them.
+
+Three things made the .pptx renderer runnable here, and they are worth knowing
+before touching any of them:
+
+1. **`ZIP_BYTES`** (`src/pptx/bytes.mjs`). Every pass round-trips the zip, and
+   every one of them used to ask JSZip for a `nodebuffer` — a type that exists
+   only on Node and **throws** in a browser, on whichever pass reaches it first,
+   with the package already half written. They now ask `bytes.mjs`, which picks
+   `nodebuffer` or `uint8array` per runtime. `playground.test.mjs` greps for the
+   literal, because a new pass that copied its neighbour would break the page
+   and nothing else.
+2. **`pptx.write()` rather than `pptx.writeFile()`.** PptxGenJS's `writeFile`
+   branches on the runtime and, off Node, pushes a **download** — the visitor
+   would get a half-finished package before a single post-pass had run. Asking
+   for the bytes and writing them through `fs` is the same zip and behaves the
+   same wherever `fs` does.
+3. **The `fs` shim keeps bytes as bytes.** The package is written into it and
+   reopened between passes; a `String(data)` on the way in would hand the next
+   `JSZip.loadAsync` a mangled zip, and it would fail as a *corrupt archive*
+   rather than as a lost write.
+
+`jszip` is the one dependency with no ESM build at all — `main` is CommonJS and
+the browser field points at a browserify UMD bundle. `shims/jszip.mjs` loads
+that bundle as a **classic script**, in sloppy mode, the way it expects to be
+loaded, and re-exports `window.JSZip`; its top-level `await` is what makes
+everything importing `jszip` link only once the bundle has run. The bundle's URL
+is asked of the import map (`jszip/umd`) rather than written into the shim, so
+the vendored-package list stays in one place — the same reason `site-serve.mjs`
+reads it out of the map.
+
+**Measured, not assumed:** on the funnel example the browser and
+`node packages/core/src/cli.mjs build` produce a `.pptx` whose every part is
+byte-identical, `docProps/core.xml` excepted — PptxGenJS stamps the clock into
+it. `renderDeckBytes` is held to the same standard against `renderDeck` by
+`packages/core/test/pptx-e2e.test.mjs`.
+
+**The gaps are not the same on both sides**, and the page says so from the
+export's own stats rather than from the preview's. A chart is live SVG in the
+frame and a *raster* in PowerPoint, so charts, equations and icons — which need
+`@resvg/resvg-js`, a native binary — arrive in the `.pptx` as their
+specification in text. The engine already reports that as `RASTER_UNAVAILABLE`;
+what the page rewrites is the remedy, because *"run `npm install` in the lutrin
+package"* is not something a visitor can act on. The diagnostic carries a
+`count` field for exactly that: the page states the number without parsing it
+back out of a sentence that is free to change.
+
 ### `?embed=1` — the same page, in the landing page's card
 
 The landing page's **Try it right here** section, one scroll under the
@@ -143,8 +205,8 @@ block):
 
 - **Strips what the card already says** — the site header and footer, the
   headline, the install line, the closing links. The compiler, the three
-  examples, the status line and the honesty notes stay, because those are the
-  page.
+  examples, the two downloads, the status line and the honesty notes stay,
+  because those are the page.
 - **Makes the app fill the frame.** An `<iframe>` never grows to its document,
   so the frame's height is set on the landing page (`.try-frame`) and the embed
   lays itself out as a flex column to whatever it is given. The two numbers are
@@ -307,15 +369,24 @@ where a "public enough" link stops being a considered choice:
 { "provider": "umami", "websiteId": "…", "shareId": "…", "region": "us" }
 ```
 
-### The five custom events
+### The six custom events
 
 | Event | Fires when | Props | Why it is worth a name |
 | --- | --- | --- | --- |
 | `command copied` | any `copy` button is clicked, on either page | `command` | the reader intends to run Lutrin — the closest thing to an install this page can see |
 | `playground edited` | the first keystroke in the playground, embedded or on its own page | `mode` | the only event that reports somebody **compiling their own deck**; every other one reports an intention |
+| `playground exported` | either download button in the playground | `format`, `mode` | one step past editing: a visitor **leaving with a file they made** |
 | `pptx downloaded` | any link ending in `.pptx` | — | proof that the "real PowerPoint, not an image" claim landed |
 | `deck opened` | `demo.html`, from the buttons or a gallery card | `slide` | which slide pulled them in, which is what the gallery is for |
 | `checkout clicked` | any `https://buy.polar.sh/` link, anywhere on the site | `placement`, `tier` | the last thing this site can see a buyer do — past it, only Polar knows |
+
+`playground exported` is deliberately **not** folded into `pptx downloaded`.
+That one counts the demo deck coming off a link and answers *did the "real
+PowerPoint" claim land*; this one counts a reader exporting **their own** deck.
+Merged, neither question has an answer. Its `format` is `html` or `pptx` —
+which of the two outputs people actually want is the thing nobody currently
+knows — and its `mode` separates the landing page's card from the page, exactly
+as `playground edited` does.
 
 `playground edited` fires **once** per page, on the first `input` — the question
 is how many readers cross from looking to using, not how fast they type. Its

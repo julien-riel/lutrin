@@ -14,10 +14,13 @@
  * therefore checks the catalog itself after loading, rather than trusting
  * `stats.warnings` to tell it.
  *
- * Writes are accepted and kept in the same map. Nothing needs them to persist —
- * they are the Lucide and Mermaid caches, which will never be read back in a
- * session — but a throwing `writeFileSync` would turn a cache miss into a
- * crash.
+ * Writes are accepted and kept in the same map, and SOME OF THEM ARE READ BACK:
+ * exporting a .pptx writes the package here and reopens it once per
+ * post-processing pass. That is why bytes stay bytes — a `String(data)` on the
+ * way in would hand the next `JSZip.loadAsync` a mangled zip, and it would fail
+ * as a corrupt archive rather than as a lost write. The rest (the Lucide and
+ * Mermaid caches) is never read back at all, but a throwing `writeFileSync`
+ * would turn a cache miss into a crash.
  */
 
 const FILES = new Map();
@@ -59,12 +62,18 @@ const bufferLike = (s) => ({
   },
 });
 
+const isBytes = (v) => v instanceof Uint8Array;
+
 export const existsSync = (p) => FILES.has(String(p)) || DIRS.has(String(p));
 
 export function readFileSync(p, options) {
   const key = String(p);
   const v = FILES.get(key);
   if (v === undefined) throw enoent(key, 'open');
+  // A binary file goes back out as it came in — `JSZip.loadAsync` takes a
+  // Uint8Array, and there is nothing to decode it into that would survive the
+  // trip back through writeFileSync.
+  if (isBytes(v)) return v;
   const enc = typeof options === 'string' ? options : options?.encoding;
   return enc ? v : bufferLike(v);
 }
@@ -93,13 +102,26 @@ export function statSync(p) {
 }
 
 export const realpathSync = (p) => String(p);
-export const writeFileSync = (p, data) => preload(p, String(data));
+export const writeFileSync = (p, data) =>
+  preload(
+    p,
+    isBytes(data) ? data : data instanceof ArrayBuffer ? new Uint8Array(data) : String(data),
+  );
 export const mkdirSync = (p) => {
   noteDirs(`${String(p)}/.`);
   return undefined;
 };
-export const mkdtempSync = (prefix) => `${String(prefix)}playground`;
-export const rmSync = (p) => FILES.delete(String(p));
+// Unique per call, as the real one is: two exports in the same session would
+// otherwise share a directory, and the second would read the first's leftovers.
+let tmpSeq = 0;
+export const mkdtempSync = (prefix) => `${String(prefix)}playground${tmpSeq++}`;
+export const rmSync = (p, options) => {
+  const key = String(p);
+  FILES.delete(key);
+  if (!options?.recursive) return;
+  for (const f of [...FILES.keys()]) if (f.startsWith(`${key}/`)) FILES.delete(f);
+  for (const d of [...DIRS]) if (d === key || d.startsWith(`${key}/`)) DIRS.delete(d);
+};
 export const renameSync = (from, to) => {
   const v = FILES.get(String(from));
   if (v !== undefined) {

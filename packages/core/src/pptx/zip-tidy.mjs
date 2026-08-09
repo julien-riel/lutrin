@@ -27,6 +27,7 @@
 
 import fs from 'node:fs';
 import JSZip from 'jszip';
+import { ZIP_BYTES } from './bytes.mjs';
 
 export async function dropDirectoryEntries(pptxPath) {
   const zip = await JSZip.loadAsync(fs.readFileSync(pptxPath));
@@ -49,9 +50,6 @@ export async function dropDirectoryEntries(pptxPath) {
     };
   }
 
-  fs.writeFileSync(
-    pptxPath,
-    await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
-  );
+  fs.writeFileSync(pptxPath, await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }));
   return { count: dirs.length, warnings: [] };
 }

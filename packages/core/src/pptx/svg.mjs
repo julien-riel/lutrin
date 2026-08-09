@@ -48,6 +48,7 @@
 
 import fs from 'node:fs';
 import JSZip from 'jszip';
+import { ZIP_BYTES } from './bytes.mjs';
 
 /** The extension URI Office reserves for the vector twin of a picture, and the
  *  namespace of the element inside it. Fixed by the format, not by us. */
@@ -151,7 +152,7 @@ export async function embedVectorImages(pptxPath, slideVectors) {
   if (done)
     fs.writeFileSync(
       pptxPath,
-      await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
+      await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }),
     );
   return { count: done, warnings };
 }

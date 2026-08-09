@@ -29,6 +29,14 @@
  * subprocess, math needs a CommonJS package no import map can load, icons and
  * images need a disk. All four vanish in silence here, so the page works out
  * what went missing and names the command that would have rendered it.
+ *
+ * THE TWO DOWNLOADS are the same compiler again, not an export of the preview.
+ * `.html` is `compileHtml` without `fragment`, so it is the standalone page
+ * `lutrin build --html` writes, presenter mode and all. `.pptx` is
+ * `renderDeckBytes` — the real PowerPoint renderer, its eight post-processing
+ * passes included, running against the `node:fs` shim. It is imported ON THE
+ * FIRST CLICK and never before: `jszip` and `pptxgenjs` are half a megabyte
+ * that a reader who only types must not pay for.
  */
 
 import * as vfs from './shims/fs.mjs';
@@ -47,6 +55,8 @@ const source = $('pg-source');
 const frame = $('pg-frame');
 const notes = $('pg-notes');
 const status = $('pg-status');
+const dlHtml = $('pg-dl-html');
+const dlPptx = $('pg-dl-pptx');
 
 /** The three examples from the landing page: a reader arrives at something
  *  already recognised, and edits rather than invents. */
@@ -109,6 +119,7 @@ const note = (className, text) => {
   p.className = className;
   p.textContent = text;
   notes.appendChild(p);
+  return p;
 };
 
 /** Fatal enough to stop. The page must never offer a compiler that would
@@ -124,6 +135,7 @@ function giveUp(message, detail) {
     notes.appendChild(pre);
   }
   source.disabled = true;
+  for (const b of [dlHtml, dlPptx]) b.disabled = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +294,13 @@ function fit() {
 
 let lastCss = '';
 let lastFonts = '';
+/** The last compile that succeeded — the .pptx export renders THESE scenes
+ *  rather than parsing the source a second time, so the file a visitor gets is
+ *  the deck they are looking at and not a near-identical one. */
+let last = null;
+/** The pending recompile-as-you-type. Held here rather than beside its listener
+ *  so an export can cash it in first — see `settle()`. */
+let timer = null;
 
 async function compile() {
   say('compiling…');
@@ -295,8 +314,12 @@ async function compile() {
     pre.className = 'pg-error';
     pre.textContent = String(e?.message ?? e);
     notes.appendChild(pre);
+    last = null;
+    setDownloads();
     return;
   }
+  last = result;
+  setDownloads();
 
   // Equality guards: the font stylesheet can be hundreds of kilobytes, and
   // reassigning it on every keystroke is the one thing that makes a
@@ -318,10 +341,178 @@ async function compile() {
   paintNotes(result);
 }
 
-let timer = null;
+// ---------------------------------------------------------------------------
+// the two downloads
+// ---------------------------------------------------------------------------
+
+/** Neither button offers a file for a deck that did not compile, and neither
+ *  offers one while the other is building: a second export would run the same
+ *  renderer over the same scenes for nothing. */
+let busy = false;
+function setDownloads() {
+  const ready = !!last?.slides?.length && !busy;
+  for (const b of [dlHtml, dlPptx]) b.disabled = !ready;
+}
+
+/** `Ma présentation` → `ma-presentation`. The deck's own title, so the file
+ *  arrives named after what is in it; `deck` when it has no title to take. */
+function fileStem() {
+  const raw = last?.meta?.title ?? last?.scenes?.[0]?.title ?? '';
+  const slug = String(raw)
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+  return slug || 'deck';
+}
+
+function offer(data, filename, mime) {
+  const url = URL.createObjectURL(new Blob([data], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Not revoked synchronously: Firefox has been known to cancel the download
+  // when the object URL disappears in the same task as the click.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Diagnostics whose REMEDY is a command, and therefore nonsense in a browser.
+ *  The finding stands — it is the sentence after it that does not apply here,
+ *  and a page telling a visitor to run `npm install` in a package they have not
+ *  got would be exactly the kind of untrue line this playground refuses.
+ *  Keyed by code and given the diagnostic itself, so nothing is parsed back out
+ *  of prose that is free to change. */
+const REPHRASED = {
+  RASTER_UNAVAILABLE: (d) => {
+    const s = d.count > 1 ? 's' : '';
+    return `${d.count} chart${s}, equation${s} or icon${s} — a .pptx carries those as pictures, and turning one into a picture needs a native rasterizer no page can load. They travel as their specification in text instead.`;
+  },
+};
+
+/** An export's notes belong to that export. `paintNotes` clears the whole area
+ *  on the next compile; between two compiles, a second export replaces the
+ *  first's report rather than stacking a duplicate under it. */
+const fromExport = (el) => {
+  el.dataset.export = '1';
+  return el;
+};
+const clearExportNotes = () => {
+  for (const el of notes.querySelectorAll('[data-export]')) el.remove();
+};
+
+/** What the EXPORT had to leave out — not the preview's list. The .pptx has
+ *  gaps this page does not: a chart is live SVG in the frame and a raster in
+ *  PowerPoint. So it is reported after the fact, from the export's own stats. */
+function reportExport(stats) {
+  const swap = new Map();
+  for (const d of stats.diagnostics ?? [])
+    if (REPHRASED[d.code]) swap.set(d.message, REPHRASED[d.code](d));
+
+  const lines = (stats.warnings ?? []).map((w) => swap.get(w) ?? w);
+  if (!lines.length) return;
+
+  fromExport(note('pg-note pg-note-gap', 'What the .pptx could not carry out of this page:'));
+  const ul = document.createElement('ul');
+  ul.className = 'pg-gaps';
+  ul.dataset.export = '1';
+  for (const line of lines) {
+    const li = document.createElement('li');
+    li.textContent = line;
+    ul.appendChild(li);
+  }
+  notes.appendChild(ul);
+  fromExport(note('pg-note pg-note-cmd', 'All of it lands: npx lutrin build deck.md -o deck.pptx'));
+}
+
+/** Cashes in a recompile the debounce has not fired yet, so an export always
+ *  works from the source as it stands now. */
+async function settle() {
+  if (timer === null) return;
+  clearTimeout(timer);
+  timer = null;
+  await compile();
+}
+
+/** Wraps an export: the button says what it is doing, both are held shut while
+ *  it runs, and a failure lands in the notes rather than in the console. The
+ *  page has to be as honest about an export it could not produce as it is about
+ *  a diagram it could not draw. */
+async function exporting(button, label, run) {
+  const original = button.textContent;
+  busy = true;
+  setDownloads();
+  clearExportNotes();
+  button.textContent = label;
+  button.classList.add('is-busy');
+  try {
+    // A click 200 ms after the last keystroke would otherwise export the deck
+    // as it was BEFORE that keystroke — the file and the preview would disagree
+    // and nothing would say which one was right.
+    await settle();
+    if (!last) throw new Error('the deck no longer compiles — nothing to export');
+    await run();
+  } catch (e) {
+    say('export failed', 'bad');
+    fromExport(
+      note('pg-note pg-note-bad', `The export did not finish: ${String(e?.message ?? e)}`),
+    );
+    fromExport(
+      note(
+        'pg-note pg-note-cmd',
+        'On the command line it does: npx lutrin build deck.md -o deck.pptx',
+      ),
+    );
+  } finally {
+    button.textContent = original;
+    button.classList.remove('is-busy');
+    busy = false;
+    setDownloads();
+  }
+}
+
+dlHtml.addEventListener('click', () =>
+  exporting(dlHtml, 'building…', async () => {
+    // Recompiled WITHOUT `fragment`, which is the whole difference: this is the
+    // complete document — the stylesheet, the fit script, the presenter mode —
+    // rather than the slide fragments the preview frame stacks.
+    const full = await compileHtml(source.value, { baseDir: '/deck' });
+    offer(full.html, `${fileStem()}.html`, 'text/html;charset=utf-8');
+    say('.html downloaded', 'ok');
+  }),
+);
+
+/** Imported once, on the first .pptx asked for. */
+let renderDeckBytes = null;
+
+dlPptx.addEventListener('click', () =>
+  exporting(dlPptx, 'building…', async () => {
+    if (!renderDeckBytes) {
+      say('loading the PowerPoint renderer…');
+      renderDeckBytes = (await import('../../core/src/pptx/render.mjs')).renderDeckBytes;
+    }
+    say('building the .pptx…');
+    const { bytes, stats } = await renderDeckBytes(last.scenes, last.meta, '/deck');
+    offer(
+      bytes,
+      `${fileStem()}.pptx`,
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    );
+    say(`.pptx downloaded — ${stats.slideCount} slide${stats.slideCount > 1 ? 's' : ''}`, 'ok');
+    reportExport(stats);
+  }),
+);
+
 source.addEventListener('input', () => {
   clearTimeout(timer);
-  timer = setTimeout(compile, 250);
+  timer = setTimeout(() => {
+    timer = null;
+    compile();
+  }, 250);
 });
 
 addEventListener('resize', fit);

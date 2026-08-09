@@ -27,6 +27,7 @@
 
 import fs from 'node:fs';
 import JSZip from 'jszip';
+import { ZIP_BYTES } from './bytes.mjs';
 import { PRESET_BY_KIND, presetFor } from '../deck/anim.mjs';
 
 // The choice of effect is shared with the HTML renderer and lives in
@@ -184,7 +185,7 @@ export async function embedAnimations(pptxPath, slideAnims) {
   if (done)
     fs.writeFileSync(
       pptxPath,
-      await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
+      await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }),
     );
   return { count: done, warnings };
 }

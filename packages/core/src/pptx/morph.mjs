@@ -22,6 +22,7 @@
 
 import fs from 'node:fs';
 import JSZip from 'jszip';
+import { ZIP_BYTES } from './bytes.mjs';
 
 const NS_MC = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
 const NS_P159 = 'http://schemas.microsoft.com/office/powerpoint/2015/09/main';
@@ -123,7 +124,7 @@ export async function embedMorph(pptxPath, chains) {
   if (done)
     fs.writeFileSync(
       pptxPath,
-      await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
+      await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }),
     );
   return { count: done, warnings };
 }
