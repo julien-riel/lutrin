@@ -519,6 +519,27 @@ stated otherwise, an entry describes the compiler.
   `.woff2` twin, a restricted `fsType`, a family name or style bits Windows
   would refuse.
 
+- **A Mermaid diagram drew as black boxes in LibreOffice.** The `.pptx` carries
+  a correct PNG and, beside it, a vector twin for readers that prefer it.
+  Mermaid's SVG is the only one we do not author: it sets its fills from an
+  internal `<style>` (`#lutrin-diagram .node rect{…}`, no `fill` on the rect at
+  all) and sizes itself with `width="100%"`. A reader that skips those rules
+  paints every node with the SVG default — black — and pushes the labels out of
+  their boxes.
+
+  Two beliefs fell with it. It is not "any renderer that is not a browser":
+  resvg is not a browser and renders it correctly, so the failure is
+  LibreOffice's SVG import specifically. And LibreOffice was listed among the
+  readers that *ignore* the `asvg:svgBlip` extension — it does not, it reads it
+  and prefers the SVG, which is how a correct raster ended up replaced by a
+  wrong vector.
+
+  `svgPartSafe` now refuses any SVG carrying an internal stylesheet, so that
+  picture keeps the raster it always had and every renderer agrees. The cost is
+  sharpness at zoom on Mermaid diagrams alone; the other ten SVGs of the demo
+  keep their twin. Earning it back means inlining the computed CSS as
+  presentation attributes — [docs/plans/svg-css-inline.md](docs/plans/svg-css-inline.md).
+
 - **`RASTER_UNAVAILABLE` counted diagrams it should not have.** The message
   says the blocks were replaced by their specification **in text** — true of a
   chart, an equation and an icon, and never of a diagram: with no rasterizer

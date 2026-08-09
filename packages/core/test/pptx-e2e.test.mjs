@@ -1861,3 +1861,33 @@ test('smartart without a rasterizer: drawn, said, and not counted as a raster bl
   assert.doesNotMatch(xml, /<p:graphicFrame>/);
   assert.match(xml, /<a:prstGeom prst="ellipse">/, 'the discs are there all the same');
 });
+
+/**
+ * The fourth check, and the only one that is not about well-formedness: an SVG
+ * whose appearance depends on an internal stylesheet is refused, because the
+ * reader that skips those rules does not degrade — it draws something else.
+ *
+ * Mermaid is the whole reason. It puts no `fill` on the rect and sets it from
+ * `#lutrin-diagram .node rect{…}`, so a reader that ignores the rules paints
+ * every node with the SVG default, BLACK. Measured in LibreOffice Impress on
+ * our own demo, where the PNG beside it is correct — and NOT reproducible in
+ * resvg or a browser, both of which apply the rules. That is exactly why this
+ * cannot be judged from our own preview, and why it is a test.
+ */
+test('svgPartSafe: an internal stylesheet is refused — the twin must agree with its raster', () => {
+  const styled = `<svg xmlns="http://www.w3.org/2000/svg" id="d" width="100%" viewBox="0 0 100 50">
+<style>#d .node rect{fill:#eaf2fd;stroke:#2563eb;}</style>
+<g class="node"><rect class="background" width="80" height="30"/></g>
+</svg>`;
+  assert.equal(svgPartSafe(styled), false, 'CSS-driven fills never become a vector twin');
+
+  // the same picture with the fill ON the element is fine: it is the dependency
+  // on a CSS engine that is refused, not the shape
+  const inlined = `<svg xmlns="http://www.w3.org/2000/svg" width="100" viewBox="0 0 100 50">
+<g class="node"><rect width="80" height="30" fill="#eaf2fd" stroke="#2563eb"/></g>
+</svg>`;
+  assert.equal(svgPartSafe(inlined), true, 'presentation attributes are what ours already use');
+
+  // and the SVGs we author must not be caught by it
+  assert.equal(svgPartSafe(LUCIDE_COFFEE), true, 'a Lucide icon carries no stylesheet');
+});

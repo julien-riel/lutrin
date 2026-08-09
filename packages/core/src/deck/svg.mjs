@@ -469,6 +469,21 @@ export function svgPartSafe(svg) {
   if (!root || !/\sxmlns\s*=\s*"http:\/\/www\.w3\.org\/2000\/svg"/i.test(root[0])) return false;
   // a bare "&" is the classic way a generator produces XML no parser accepts
   if (/&(?!(#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);)/.test(svg)) return false;
+  // An internal stylesheet makes the picture depend on a CSS engine the
+  // consumer may not have, and the failure is silent and total rather than
+  // ugly: mermaid emits `#lutrin-diagram .node rect{fill:…}` and puts no `fill`
+  // on the rect, so a reader that skips the rules paints every node with the
+  // SVG default — BLACK — and sizes from `width="100%"` with no basis, which
+  // pushes the labels out of their boxes. Measured, not presumed: LibreOffice
+  // Impress does exactly that with our own demo, where the PNG beside it is
+  // correct. resvg and every browser apply the rules and render it properly,
+  // which is precisely why this cannot be judged from our own preview.
+  //
+  // These are the only SVGs we do not author — ours carry presentation
+  // attributes. Declining the twin costs sharpness at zoom and hands the
+  // reader the raster, which is right in every renderer. Inlining the computed
+  // CSS onto the elements would keep both; see docs/plans/svg-css-inline.md.
+  if (/<style[\s>]/i.test(svg)) return false;
   // Balanced tags: a truncated SVG — a rasterizer killed mid-write, a cache
   // entry cut short — must never enter the zip. Same walk as sanitizeSvg,
   // counting instead of re-emitting, so the two agree on what a tag is.
