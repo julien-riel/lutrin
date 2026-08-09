@@ -104,13 +104,14 @@ jobs:
           node -e "const fs=require('node:fs');fs.writeFileSync('_site/core/design/layouts.json',JSON.stringify(fs.readdirSync('packages/core/design/layouts').filter(f=>f.endsWith('.json')).sort()))"
           # markdown-it and its five transitive dependencies — all genuine
           # browser ESM, resolved by the import map in playground.html — plus
-          # the .pptx renderer's two, which the page fetches only when a visitor
-          # asks for that export. `pptxgenjs` ships real ESM; `jszip` ships none
-          # at all, so its UMD bundle is loaded as a classic script by
-          # site/assets/js/shims/jszip.mjs. Keep this list in step with that map:
-          # packages/core/test/playground.test.mjs fails the build if they drift
-          # apart.
-          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro jszip pptxgenjs; do
+          # the .pptx renderer's two and the LaTeX engine, which the page
+          # fetches only when a visitor asks for that export or types an
+          # equation. `pptxgenjs` ships real ESM; `jszip` and `mathjax-full`
+          # ship none at all, so their UMD bundles are loaded as classic scripts
+          # by site/assets/js/shims/{jszip,mathjax}.mjs. Keep this list in step
+          # with that map: packages/core/test/playground.test.mjs fails the
+          # build if they drift apart.
+          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro jszip pptxgenjs mathjax-full; do
             cp -R "node_modules/$p" "_site/vendor/$p"
           done
           # Source maps and typings are a third of the bytes and are never
@@ -123,6 +124,18 @@ jobs:
                 _site/vendor/pptxgenjs/dist/pptxgen.bundle.js \
                 _site/vendor/pptxgenjs/dist/pptxgen.min.js \
                 _site/vendor/jszip/dist/jszip.js
+          # mathjax-full is 43 MB: TypeScript sources, the CommonJS build Node
+          # imports, and a dozen alternative bundles (chtml, mml, a11y, speech).
+          # The import map names ONE file of it. Pruned to that file rather than
+          # left whole, because 43 MB in the Pages artifact is 43 MB nobody
+          # fetches. `LICENSE` stays because serving the bundle redistributes
+          # it and Apache-2.0 asks for the notice to travel with the code
+          # (THIRD-PARTY-NOTICES.md); `package.json` stays so the tree is still
+          # a package rather than a loose file.
+          find _site/vendor/mathjax-full -mindepth 1 -maxdepth 1 \
+               ! -name es5 ! -name package.json ! -name LICENSE -exec rm -rf {} +
+          find _site/vendor/mathjax-full/es5 -mindepth 1 \
+               ! -name tex-svg-full.js -exec rm -rf {} +
           du -sh _site/core _site/vendor
 
       # A stale absolute URL must never ship again. demo.html is compiled
