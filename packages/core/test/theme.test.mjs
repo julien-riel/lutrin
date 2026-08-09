@@ -1708,3 +1708,104 @@ test('an icon sized `line` follows the step a densified region was re-flowed at'
     iconSize({ ...icon, size: 'large' }, region),
   );
 });
+
+// ---------------------------------------------------------------------------
+// Display font, surfaces, accent — the customization tokens added so a kit
+// can differ by more than its palette. Each defaults to what the renderers
+// used to hard-code (asserted no-op elsewhere); here we prove the OVERRIDE
+// reaches the deliverable, and that the guards hold.
+// ---------------------------------------------------------------------------
+
+/** Compiles the smallest deck that exercises a cover, a content title and a
+ *  quote, under `themeJson`, and returns its HTML. */
+async function htmlUnder(t, themeJson) {
+  const { dir, cleanup } = tmpTheme(themeJson);
+  t.after(cleanup);
+  t.after(() => applyTheme(null));
+  const source = [
+    '---',
+    'title: T',
+    'subtitle: S',
+    'kit: ./theme.json',
+    '---',
+    '# A title',
+    '',
+    '> A quote',
+    '',
+  ].join('\n');
+  const { html } = await compileHtml(source, { baseDir: dir });
+  return { html };
+}
+
+test('fonts.display: the titles get the display family, the body keeps its own', async (t) => {
+  const { html } = await htmlUnder(t, {
+    name: 'x',
+    fonts: { body: 'Verdana', display: 'Georgia' },
+  });
+  // the four title surfaces carry the display family…
+  for (const rule of ['.cover-title', '.section-title', '.slide-title', '.quote blockquote'])
+    assert.match(html, new RegExp(`${rule.replace('.', '\\.')}\\{[^}]*font-family:"Georgia"`));
+  // …and the body stays Verdana
+  assert.match(html, /body\{[^}]*font-family:"Verdana"/);
+});
+
+test('no fonts.display: not one font-family lands on a title (byte-identical path)', async (t) => {
+  const { html } = await htmlUnder(t, { name: 'x', fonts: { body: 'Verdana' } });
+  assert.doesNotMatch(html, /\.cover-title\{[^}]*font-family/);
+  assert.doesNotMatch(html, /\.quote blockquote\{[^}]*font-family/);
+});
+
+test('fonts.displayFiles without fonts.display is refused (would embed under the body face)', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-theme-df-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, 'D.ttf'), 'ttf');
+  fs.writeFileSync(path.join(dir, 'D.woff2'), 'woff2');
+  fs.writeFileSync(
+    path.join(dir, 'theme.json'),
+    JSON.stringify({ name: 'x', fonts: { displayFiles: { regular: './D.ttf' } } }),
+  );
+  const { theme, diagnostics } = resolveTheme({ kit: './theme.json' }, { baseDir: dir });
+  assert.equal(theme.fonts?.displayFiles, undefined, 'displayFiles must be dropped');
+  assert.ok(
+    diagnostics.some((d) => d.code === 'THEME_BAD_VALUE' && /fonts\.display/.test(d.message)),
+    'a diagnostic must name the missing fonts.display',
+  );
+});
+
+test('surface: a dark cover paints its background and takes its inks', async (t) => {
+  const { html } = await htmlUnder(t, {
+    name: 'x',
+    surface: { coverBg: '111827', coverInk: 'FFFFFF', coverMutedInk: 'C7CDD2' },
+  });
+  assert.match(html, /\.slide\.master-cover\{background:#111827\}/);
+  assert.match(html, /\.cover-title\{[^}]*color:#FFFFFF/);
+  assert.match(html, /\.cover-subtitle\{[^}]*color:#C7CDD2/);
+});
+
+test('surface: an ink that fails on its background is reported by the contrast harness', (t) => {
+  t.after(() => applyTheme(null));
+  const { file, cleanup } = tmpTheme({
+    name: 'x',
+    surface: { coverBg: '111827', coverInk: '222222' },
+  });
+  t.after(cleanup);
+  const { theme } = resolveTheme({ kit: file }, { baseDir: '/' });
+  applyTheme(theme);
+  assert.ok(
+    themeContrastDiagnostics().some((d) => /cover title/.test(d.message)),
+    'a dark ink on a dark cover must warn',
+  );
+});
+
+test('accent: the flourishes take accent.bar and the title rule accent.rule', async (t) => {
+  const { html } = await htmlUnder(t, { name: 'x', accent: { bar: 'E0115F', rule: 'E5E0D8' } });
+  assert.match(html, /\.title-accent\{[^}]*background:#E0115F\}/);
+  assert.match(html, /\.cover-bar\{[^}]*background:#E0115F\}/);
+  assert.match(html, /\.quote-mark\{[^}]*color:#E0115F/);
+  assert.match(html, /\.title-rule\{[^}]*background:#E5E0D8\}/);
+});
+
+test('surface and accent are accepted top-level theme keys', () => {
+  assert.ok(THEME_KEYS.includes('surface'));
+  assert.ok(THEME_KEYS.includes('accent'));
+});
