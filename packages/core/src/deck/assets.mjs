@@ -45,6 +45,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { COLORS, FONTS, FONT_FILES, KIT_IMAGES } from './tokens.mjs';
 import { findBrowser } from './browser.mjs';
+import { canvasRasterAvailable, svgToPngCanvas } from './raster-browser.mjs';
 import { closest } from './suggest.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -151,7 +152,7 @@ async function resvg() {
  * room (RASTER_UNAVAILABLE diagnostic, pptx/render.mjs).
  */
 export async function rasterAvailable() {
-  return (await resvg()) !== null;
+  return (await resvg()) !== null || canvasRasterAvailable();
 }
 
 /**
@@ -350,16 +351,32 @@ export function imageDims(file) {
   return null;
 }
 
-/** Rasterizes an SVG to PNG. @returns {{png:Buffer,w:number,h:number}|null}
+/** Rasterizes an SVG to PNG. @returns {{png:Buffer|Uint8Array,w:number,h:number}|null}
+ *
+ *  TWO backends, tried in that order, behind one call site — every rasterizing
+ *  path in the compiler goes through here, so this is the only place that has
+ *  to know there is more than one.
+ *
+ *  resvg first, wherever it loads: it is deterministic across machines, which
+ *  is what the goldens and the fidelity check are measured against.
+ *
+ *  The browser's own decoder second (raster-browser.mjs), which is what makes
+ *  charts, equations, icons and native SmartArt reachable from a page — the
+ *  playground included. It is a fallback rather than a peer because a canvas
+ *  renders with the fonts THAT browser resolves, so two machines can disagree;
+ *  inside a page there is no other option, and a picture drawn slightly
+ *  differently beats a block replaced by its specification in text.
+ *
  *  The active theme's .ttf files (FONT_FILES) are registered with resvg:
  *  without them, a chart whose SVG carries `font-family: <theme font>`
  *  (chart.mjs) would be rasterized with a fallback font while the same SVG,
  *  inlined in the HTML, displays in the theme font — HTML/.pptx parity
  *  broken. loadSystemFonts stays active for the families the theme does not
- *  supply. */
+ *  supply. The canvas path inlines the same glyphs as `@font-face` rules, for
+ *  the same reason. */
 export async function svgToPng(svg, widthPx) {
   const Resvg = await resvg();
-  if (!Resvg) return null;
+  if (!Resvg) return svgToPngCanvas(svg, widthPx);
   try {
     const fontFiles = [FONT_FILES.regular, FONT_FILES.bold, FONT_FILES.italic].filter(Boolean);
     const r = new Resvg(svg, {

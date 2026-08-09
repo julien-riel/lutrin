@@ -11,6 +11,27 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The browser is a rasterizer, and the compiler now uses it.** `svgToPng()`
+  had exactly one backend — `@resvg/resvg-js`, a native module — so everywhere
+  it could not load, the engine concluded nothing could be rasterized at all.
+  The playground said so in as many words: charts "travel as their
+  specification in text" because "turning one into a picture needs a native
+  rasterizer no page can load". That was never true. `<img>` decodes an SVG,
+  `canvas.drawImage` paints it and `toBlob` hands back PNG bytes.
+
+  `deck/raster-browser.mjs` is that second backend, tried when resvg is out of
+  reach — resvg still comes first where it loads, because it is the
+  deterministic one the goldens and the fidelity check are measured against.
+  Charts, equations, icons and **native SmartArt** are therefore reachable from
+  a page: the SmartArt path only ever needed the raster fallback it could not
+  get. A kit's font travels with the picture — an SVG inside an `<img>` cannot
+  see the page's `@font-face` rules, so the glyphs are inlined into the SVG as
+  `data:` URIs, the same information resvg receives through `fontFiles`.
+
+  Measured rather than presumed, on the compiler's own output: the text renders
+  accents included, an internal `<style>` block is honoured (the very thing that
+  defeats LibreOffice's SVG import), and the canvas is not tainted.
+
 - **The playground hands over the file.** It compiled a deck in the visitor's
   browser and then had nowhere to put it: the preview was the whole output, and
   the `.pptx` was withheld on purpose — *"that one is the reason to install"*.
@@ -551,6 +572,17 @@ stated otherwise, an entry describes the compiler.
   hand-edited `expiresAt` is refused for the same reason.
 
 ### Fixed
+
+- **A picture exported from the playground was the words `404 /tmp/…`.**
+  pptxgenjs takes a different branch in a page: given a `path` it fetches the
+  string instead of reading a file, and a compiler temp path answers 404 — so
+  it embedded THE BODY OF THE 404 as the image. The `.pptx` opened without a
+  complaint, with a picture frame on the slide and 42 bytes of error text
+  inside it. Local images now travel as bytes wherever this is not Node
+  (`localImage`, pptx/render.mjs), which also makes `data` skip that fetch
+  entirely. `node scripts/playground-raster-check.mjs` drives the real page and
+  asserts every media part is a PNG by its magic bytes — it fails, loudly, when
+  the bridge is removed.
 
 - **The font line of `build` named the wrong family.** A kit that ships glyphs
   for its display family alone was reported as `font "<body family>" embedded
