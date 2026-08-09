@@ -142,11 +142,12 @@
       <code>.pptx</code> is a PowerPoint you can open and retouch. What neither
       can carry, this page names rather than drops. Mermaid diagrams need a
       headless browser, LaTeX needs a package no import map can load, and icons
-      and images are read from disk. Charts are drawn here and in the
-      <code>.html</code>; a <code>.pptx</code> wants them as pictures, and
-      making a picture needs a native rasterizer no page can load, so there they
-      arrive as their specification in text. All of it lands from the command
-      line — which is what the command below is for.</p>
+      and local images are read from disk. Charts and diagrams do arrive as
+      pictures: a <code>.pptx</code> wants them rasterized, and your browser is
+      a rasterizer — it draws them onto a canvas here, where the command line
+      uses its own. What that costs is determinism rather than fidelity, since a
+      canvas paints with the fonts this machine resolves. The rest lands from
+      the command line, which is what the command below is for.</p>
 
     <div class="cmd" role="group" aria-label="Install command">
       <code>npx lutrin build deck.md -o deck.pptx</code>

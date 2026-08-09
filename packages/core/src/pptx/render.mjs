@@ -54,6 +54,7 @@ import {
   vendorRemoteAssets,
   writeTmpPng,
 } from '../deck/assets.mjs';
+import { bytesToBase64 } from '../deck/raster-browser.mjs';
 import { chartSvg } from '../deck/chart.mjs';
 import { smartArtGeometry, smartArtSvg } from '../deck/smartart.mjs';
 import { FAMILIES } from './diagram-parts.mjs';
@@ -84,6 +85,48 @@ import { sanitizeSvg, svgPartSafe } from '../deck/svg.mjs';
  */
 const TEXT_INSET = 0;
 
+/**
+ * Is this Node? Decided EXACTLY as pptxgenjs decides it, because the two must
+ * agree: on its "yes" branch it reads an image `path` off the disk itself, and
+ * on its "no" branch it XHRs that string instead.
+ *
+ * The playground publishes a `window.process` (for `cwd()`), so a looser test
+ * would answer yes in a page and hand pptxgenjs a path it cannot read.
+ */
+const isNodeRuntime = () =>
+  typeof process !== 'undefined' &&
+  Boolean(process.versions?.node) &&
+  process.release?.name === 'node';
+
+/**
+ * How pptxgenjs should be handed a LOCAL image.
+ *
+ * In Node, the path: it reads the file itself, and nothing needs copying.
+ * In a page it cannot read a file, so it fetches the string — and a compiler
+ * temp path (`/tmp/lutrin-…/chart-0.png`) answers 404. That is not theoretical:
+ * a deck exported from the playground embedded the nine bytes `404 /tmp/…`
+ * WHERE ITS CHART BELONGED, in a .pptx that opened without complaining. So
+ * outside Node the bytes travel inline, and `data` makes pptxgenjs skip the
+ * fetch entirely (it filters its candidates on `!rel.data`).
+ *
+ * `path` is kept alongside `data` because that is where pptxgenjs reads the
+ * extension it writes into the media part's name.
+ */
+function localImage(file) {
+  if (isNodeRuntime() || /^https?:/i.test(String(file))) return { path: file };
+  try {
+    const ext = path.extname(String(file)).slice(1).toLowerCase() || 'png';
+    return {
+      path: file,
+      data: `image/${ext === 'jpg' ? 'jpeg' : ext};base64,${bytesToBase64(fs.readFileSync(file))}`,
+    };
+  } catch {
+    // unreadable here: leave pptxgenjs its own path, and let its own
+    // broken-image placeholder be what says so
+    return { path: file };
+  }
+}
+
 /** addImage options for a logo at an imposed height, width at its native ratio
  *  (the paths come from LOGOS — themable, so the ratio is never presumed).
  *  Dimensions that could not be read → null: better to omit the logo than to
@@ -94,7 +137,7 @@ function logoImage(file, h, x, y) {
   // altText is mandatory: without it, the path of the kit's logo — absolute
   // after resolveTheme() — lands in the `descr` of the .pptx (see altOf)
   return {
-    path: file,
+    ...localImage(file),
     altText: 'Logo',
     objectName: 'Logo',
     x: px(x),
@@ -838,7 +881,7 @@ function addSmartArt(slide, block, r, ctx) {
   // lost but the editability.
   if (d?.png && FAMILIES[block.family]?.smartart) {
     slide.addImage({
-      path: d.png,
+      ...localImage(d.png),
       altText: smartArtAltText(block),
       x: px(r.x),
       y: px(r.y),
@@ -902,7 +945,7 @@ function addImage(slide, block, r, ctx) {
     const fit =
       block.role === 'background' || block.role === 'cover' ? r : containRect(imageDims(src), r);
     slide.addImage({
-      path: src,
+      ...localImage(src),
       altText: alt,
       x: px(fit.x),
       y: px(fit.y),
@@ -942,7 +985,7 @@ function addMermaid(slide, block, r, ctx) {
     const fit = containRect(imageDims(png), r);
     // the PNG comes from the user cache (~/…): altText mandatory (altOf)
     slide.addImage({
-      path: png,
+      ...localImage(png),
       _svg: ctx.vectorSvg?.get(block),
       altText: 'Mermaid diagram',
       x: px(fit.x),
@@ -998,7 +1041,7 @@ function addIcon(slide, block, r, ctx) {
   // aligned on the left edge, like the text (the brand is a left-aligned
   // system — a centered icon breaks the grid of the column)
   slide.addImage({
-    path: asset,
+    ...localImage(asset),
     _svg: ctx.vectorSvg?.get(block),
     altText: `Icon ${iconLabel(block.name)}`,
     x: px(r.x),
@@ -1032,7 +1075,7 @@ function addMath(slide, block, r, ctx) {
       : null;
     if (omml) ctx.equations.native += 1;
     slide.addImage({
-      path: asset.path,
+      ...localImage(asset.path),
       _svg: ctx.vectorSvg?.get(block),
       ...(omml ? { _omml: omml } : {}),
       // the LaTeX source is the best possible alt text for an equation
@@ -1068,7 +1111,7 @@ function addChartBlock(slide, block, r, ctx) {
     // a chart rendered as an image is mute for a screen reader: the `descr`
     // carries what the figure shows (and never the path, see altOf)
     slide.addImage({
-      path: png,
+      ...localImage(png),
       _svg: ctx.vectorSvg?.get(block),
       altText: `Chart ${block.chartType}: ${block.categories.join(', ')}`,
       x: px(r.x),
@@ -1764,7 +1807,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       const out = await renderMath(b.source);
       if (out) {
         math.set(b, {
-          path: writeTmpPng(tmp(), `math-${k}`, out.png),
+          ...localImage(writeTmpPng(tmp(), `math-${k}`, out.png)),
           displayW: out.displayW,
           displayH: out.displayH,
           // MathJax's own MathML for the same expression — the source of the

@@ -388,10 +388,16 @@ function offer(data, filename, mime) {
  *  Keyed by code and given the diagnostic itself, so nothing is parsed back out
  *  of prose that is free to change. */
 const REPHRASED = {
-  RASTER_UNAVAILABLE: (d) => {
-    const s = d.count > 1 ? 's' : '';
-    return `${d.count} chart${s}, equation${s} or icon${s} — a .pptx carries those as pictures, and turning one into a picture needs a native rasterizer no page can load. They travel as their specification in text instead.`;
-  },
+  // RASTER_UNAVAILABLE is deliberately NOT rephrased any more, because it can
+  // no longer be raised here: the compiler rasterizes through the browser's own
+  // canvas when the native module is out of reach (deck/raster-browser.mjs), so
+  // charts, equations, icons and native SmartArt arrive as pictures like
+  // anywhere else. The entry that used to sit here explained that "a native
+  // rasterizer no page can load" was the obstacle. That was never true — a
+  // browser IS a rasterizer — and a page that keeps explaining a limitation it
+  // no longer has teaches the visitor something false about the product.
+  // Should the diagnostic ever reach this page again, it means the canvas
+  // itself refused, and the plain finding is then the honest thing to show.
 };
 
 /** An export's notes belong to that export. `paintNotes` clears the whole area
