@@ -70,7 +70,23 @@ requires attribution and share-alike for any work derived from the photograph.
 
 ## Fonts
 
-Lutrin embeds no font. The generic "Slate" theme relies on the fonts present on
-the machine. A kit may supply its own font files: **it is up to the kit author
-to make sure their licence allows incorporation into a document** (`.pptx`) and
-its distribution.
+The compiler embeds no font of its own. The generic "Slate" theme relies on the
+fonts present on the machine. A kit may supply its own font files: **it is up to
+the kit author to make sure their licence allows incorporation into a document**
+(`.pptx`) and its distribution.
+
+Two of the example kits are such kits, and their font files are redistributed
+here. Both are under the SIL Open Font License 1.1, neither carries a Reserved
+Font Name, and both declare `fsType 0` (installable embedding) — the licence is
+copied verbatim next to the glyphs it covers, in each kit's `fonts/OFL.txt`:
+
+| Font | Kit | Copyright | Licence |
+|---|---|---|---|
+| [Oswald](https://github.com/googlefonts/OswaldFont) | `examples/kits/press-noir` | © 2016 The Oswald Project Authors | OFL-1.1 |
+| [Fraunces](https://github.com/undercasetype/Fraunces) | `examples/kits/market-coral` | © 2018 The Fraunces Project Authors | OFL-1.1 |
+
+The `.ttf` files are the upstream static cuts, byte for byte. Their `.woff2`
+twins — which the HTML output inlines, and which the compiler requires beside
+every `.ttf` so that the two deliverables read alike — are the same fonts in the
+WOFF2 container, produced by lossless re-compression: no glyph, metric or table
+of the design was altered, which is why they keep the family name.

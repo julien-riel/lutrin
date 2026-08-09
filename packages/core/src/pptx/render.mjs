@@ -2005,6 +2005,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
     slideCount: scenes.length,
     titledSlides: titles.count,
     fontsEmbedded: fonts.count,
+    embeddedFontFamilies: fonts.families,
     animatedSlides: anims.count,
     morphSlides: morph.count,
     vectorImages: vectors.count,

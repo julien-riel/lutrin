@@ -625,6 +625,12 @@ function fontFacesCss() {
   ].join('|');
   if (_fontFaces && _fontFacesKey === key) return _fontFaces;
   const faces = [];
+  // WHICH families were inlined, and not only how many faces: a kit may carry
+  // the display glyphs alone, and a count reported under the body family would
+  // name the one typeface the document does NOT ship. A family lands here only
+  // once a face of it was really emitted — a family whose .woff2 twins are all
+  // missing inlines nothing and is not claimed.
+  const families = [];
   // one @font-face per (family, variant): the body family from FONT_FILES, then
   // the display family from DISPLAY_FONT_FILES. DISPLAY_FONT_FILES is empty
   // unless the theme declared a display family with its files, so a deck with no
@@ -640,12 +646,13 @@ function fontFacesCss() {
         `@font-face{font-family:"${family}";font-weight:${f.weight};font-style:${f.style};` +
           `src:url(data:font/woff2;base64,${b64}) format('woff2');font-display:swap}`,
       );
+      if (!families.includes(family)) families.push(family);
     }
   };
   emit(FONTS.body, FONT_FILES);
   if (FONTS.display) emit(FONTS.display, DISPLAY_FONT_FILES);
   _fontFacesKey = key;
-  return (_fontFaces = { css: faces.join('\n'), count: faces.length });
+  return (_fontFaces = { css: faces.join('\n'), count: faces.length, families });
 }
 
 function baseCss() {
@@ -1498,6 +1505,7 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
       // the caller appends its own (theme fallbacks, etc.)
       warnings: kitImageWarnings(allBlocks),
       fontsEmbedded: fontFacesCss().count,
+      embeddedFontFamilies: fontFacesCss().families,
       animatedSlides: scenes.filter((s) => s.animSteps).length,
       mermaidRendered: mermaid.size,
       mermaidTotal: mermaidBlocks.length,

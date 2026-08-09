@@ -18,11 +18,14 @@
  *      themeContrastDiagnostics() has to be empty for every one of them —
  *      and the whole specimen is compiled in each kit, which is the only way
  *      to catch a kit whose type scale overflows a slot.
- *   3. A kit names a font nobody has. No kit here ships `fonts.files`, and a
- *      theme that changes the family without them embeds NOTHING (deliberately
- *      — see applyTheme): both outputs then fall back on whatever is installed.
- *      That is safe only for the few families that always are, so the family
- *      is checked against that list.
+ *   3. A kit names a font nobody has. A theme that changes a family without
+ *      shipping its glyphs embeds NOTHING (deliberately — see applyTheme):
+ *      both outputs then fall back on whatever is installed. That is safe only
+ *      for the few families that always are, so every family a kit names is
+ *      checked against that list UNLESS the kit ships the files for that
+ *      family — and the two families carry their own files (`fonts.files` for
+ *      the body, `fonts.displayFiles` for the display), which is why the
+ *      exemption is granted per slot rather than per kit.
  *
  * The tiles are also required to point at the SAME slide, and at one that
  * exists: "the same slide in eight kits" is the entire argument of the page,
@@ -35,6 +38,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { readKit } from '../src/deck/kit.mjs';
+import { readFontIdentity, readFsType } from '../src/pptx/fonts.mjs';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
 import { applyTheme, resolveTheme, themeContrastDiagnostics } from '../src/deck/theme.mjs';
@@ -48,10 +52,12 @@ const PAGE = path.join(REPO, 'site', 'gallery.html');
 
 /**
  * Families installed on essentially every machine that opens a deck. Not a
- * style guide: a kit here ships no font file, so this list is the set of
- * names whose glyphs are already on the reader's system — the browser and
- * PowerPoint both fall back on the same thing, which is the only reason the
- * two outputs stay comparable at all.
+ * style guide: it is the list a family is held to when the kit ships no glyphs
+ * FOR THAT FAMILY, and it is the set of names already on the reader's system —
+ * the browser and PowerPoint then fall back on the same thing, which is the
+ * only reason the two outputs stay comparable at all. A family whose files
+ * travel with the kit is not held to it: the reader is not falling back on
+ * anything.
  */
 const UNIVERSAL_FONTS = new Set([
   'Arial',
@@ -109,18 +115,90 @@ test('every kit is a valid kit, named after its own directory', () => {
   }
 });
 
+/** The font files that carry each family's glyphs into the deliverables. A
+ *  slot absent from this map (`mono`) is never embedded by anything, so it is
+ *  always held to the universal list. */
+const FILES_OF = { body: 'files', display: 'displayFiles' };
+
 test('no kit names a font it does not ship and the reader may not have', () => {
   for (const name of kitNames) {
     const { theme } = resolveTheme({}, { baseDir: REPO, themePath: path.join(KITS_DIR, name) });
-    const fonts = theme?.fonts ?? {};
-    if (fonts.files) continue; // ships its own glyphs — any family is fair game
-    for (const [slot, family] of Object.entries(fonts)) {
+    const { files, displayFiles, ...families } = theme?.fonts ?? {};
+    const shipped = { files, displayFiles };
+    for (const [slot, family] of Object.entries(families)) {
+      // Per slot, not per kit: `fonts.files` carries the BODY glyphs and says
+      // nothing about the display family, so a kit shipping one and naming the
+      // other would otherwise walk through unchecked — and the reverse, a kit
+      // shipping only `displayFiles`, would be told to rename the very family
+      // whose glyphs travel with it.
+      if (shipped[FILES_OF[slot]]) continue; // ships its own glyphs — any family is fair game
       assert.ok(
         UNIVERSAL_FONTS.has(family),
-        `${name}: fonts.${slot} = "${family}" — the kit ships no fonts.files, so nothing is embedded and the reader falls back on what they have. Use one of: ${[...UNIVERSAL_FONTS].join(', ')}.`,
+        `${name}: fonts.${slot} = "${family}" — the kit ships no fonts.${FILES_OF[slot] ?? 'files'} for that family, so nothing is embedded and the reader falls back on what they have. Use one of: ${[...UNIVERSAL_FONTS].join(', ')}.`,
       );
     }
   }
+});
+
+/**
+ * The glyphs a kit ships have to SURVIVE the two embedders, and every reason
+ * they would not is silent: a variant refused for its licence, for a family
+ * name Windows cannot match or for style bits that do not fit its slot is
+ * dropped with a warning nobody reads, and the deck comes out in the fallback
+ * font — which, for a gallery whose whole claim is "this is what the kit looks
+ * like", is the failure that matters. The .woff2 twin is checked with the same
+ * eye: without it the .pptx would carry the typeface and the HTML would not,
+ * and the two specimens on the page would stop being the same slide.
+ */
+const STYLE_OF = { regular: [false, false], bold: [true, false], italic: [false, true] };
+
+test('a kit that ships its own glyphs ships ones both outputs can actually carry', () => {
+  const shipping = [];
+  for (const name of kitNames) {
+    const { theme } = resolveTheme({}, { baseDir: REPO, themePath: path.join(KITS_DIR, name) });
+    for (const [key, family] of [
+      ['files', theme?.fonts?.body],
+      ['displayFiles', theme?.fonts?.display],
+    ]) {
+      const files = theme?.fonts?.[key];
+      if (!files) continue;
+      shipping.push(`${name}/${key}`);
+      for (const [variant, ttf] of Object.entries(files)) {
+        const twin = ttf.replace(/\.ttf$/i, '.woff2');
+        assert.ok(
+          fs.existsSync(twin),
+          `${name}: ${path.basename(twin)} is missing — the .pptx would carry ${family} and the HTML would not`,
+        );
+
+        const fsType = readFsType(ttf);
+        assert.ok(
+          fsType != null && !(fsType & 0x0002),
+          `${name}: ${path.basename(ttf)} declares fsType ${fsType} — its foundry forbids embedding, so the deck would fall back`,
+        );
+
+        const id = readFontIdentity(ttf);
+        assert.equal(
+          id?.family,
+          family,
+          `${name}: ${path.basename(ttf)} calls itself "${id?.family}" while the theme names "${family}" — Windows matches by that name and would refuse to install the font`,
+        );
+        const [bold, italic] = STYLE_OF[variant];
+        assert.deepEqual(
+          [id?.bold, id?.italic],
+          [bold, italic],
+          `${name}: the style bits of ${path.basename(ttf)} do not fit the ${variant} slot`,
+        );
+      }
+    }
+  }
+  // The gallery is the argument for the font tokens as much as for the colour
+  // ones: on the Linux box that renders info.lutrin.app, a kit naming a family
+  // without shipping it reads in the fallback, and a page where no kit ships
+  // any would show the display font as a feature nobody can see.
+  assert.ok(
+    shipping.length > 0,
+    'no kit in the gallery ships a font file — the specimens would show every kit in the fonts of the rendering machine',
+  );
 });
 
 test('every kit clears the contrast thresholds the engine holds itself to', (t) => {

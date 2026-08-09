@@ -42,6 +42,14 @@ stated otherwise, an entry describes the compiler.
   SVG signatures and opinionated layouts — so the same specimen is now
   unmistakable from one kit to the next, greyscale included.
 
+- **Two gallery kits now bring their headline font with them.** `press-noir`
+  ships Oswald and `market-coral` ships Fraunces (SIL OFL 1.1, no Reserved Font
+  Name, `fsType 0`), as `.ttf` + `.woff2` twins under the kit's `fonts/`, with
+  the licence beside them. A display family named but not shipped is only
+  visible to a reader who happens to own it: on the Linux box that renders the
+  published gallery, every kit's titles used to come back in the fallback face.
+  The specimens on info.lutrin.app now show the typeface the kit means.
+
 - **Native OMML equations.** An equation now lands in the `.pptx` as a real
   PowerPoint equation — the one its own editor opens and edits — instead of a
   picture of one. It is written the way PowerPoint writes its own, both halves
@@ -452,6 +460,21 @@ stated otherwise, an entry describes the compiler.
   hand-edited `expiresAt` is refused for the same reason.
 
 ### Fixed
+
+- **The font line of `build` named the wrong family.** A kit that ships glyphs
+  for its display family alone was reported as `font "<body family>" embedded
+  (2 variants)` — crediting the embedded variants to the one typeface that was
+  *not* in the deliverable. Both renderers now report which families they
+  actually carried (`embeddedFontFamilies`), and the CLI names them.
+
+- **The gallery's font guard was granted per kit, not per family.** A kit
+  shipping `fonts.files` had *every* slot exempted from the
+  installed-everywhere check, display family included, while a kit shipping only
+  `fonts.displayFiles` was held to it for the very family whose glyphs travel
+  with it. The exemption now follows the files that carry each family, and the
+  kits that ship glyphs are checked for what silently drops a variant: a missing
+  `.woff2` twin, a restricted `fsType`, a family name or style bits Windows
+  would refuse.
 
 - **`RASTER_UNAVAILABLE` counted diagrams it should not have.** The message
   says the blocks were replaced by their specification **in text** — true of a

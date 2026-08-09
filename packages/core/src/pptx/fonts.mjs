@@ -303,7 +303,15 @@ export async function embedFonts(pptxPath) {
     for (const v of embeddableVariants(g.family, g.files, warnings))
       embedded.push({ ...v, family: g.family });
 
-  if (!embedded.length) return { count: 0, warnings };
+  // WHICH families travel, not just how many variants: a kit may ship the
+  // glyphs of the display family alone (the body staying a font every reader
+  // has), and a count reported under the body family would name the one
+  // typeface that is NOT in the file. In group order, deduplicated — the two
+  // groups carry the same name when a theme sets `fonts.display` to the body
+  // family.
+  const families = [...new Set(embedded.map((v) => v.family))];
+
+  if (!embedded.length) return { count: 0, families, warnings };
 
   const zip = await JSZip.loadAsync(fs.readFileSync(pptxPath));
   const presFile = zip.file('ppt/presentation.xml');
@@ -311,11 +319,11 @@ export async function embedFonts(pptxPath) {
   const typesFile = zip.file('[Content_Types].xml');
   if (!presFile || !relsFile || !typesFile) {
     warnings.push('.pptx without the expected presentation.xml/rels — fonts not embedded');
-    return { count: 0, warnings };
+    return { count: 0, families: [], warnings };
   }
 
   let pres = await presFile.async('string');
-  if (pres.includes('<p:embeddedFontLst>')) return { count: embedded.length, warnings }; // already done
+  if (pres.includes('<p:embeddedFontLst>')) return { count: embedded.length, families, warnings }; // already done
 
   // Binary parts: ppt/fonts/fontN.fntdata (raw TTF), one per variant across
   // both families
@@ -368,11 +376,11 @@ export async function embedFonts(pptxPath) {
   if (patched === pres) {
     // unexpected structure: break nothing, but say so
     warnings.push('presentation.xml without the expected <p:notesSz> — fonts not embedded');
-    return { count: 0, warnings };
+    return { count: 0, families: [], warnings };
   }
   zip.file('ppt/presentation.xml', patched);
 
   const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
   fs.writeFileSync(pptxPath, buf);
-  return { count: embedded.length, warnings };
+  return { count: embedded.length, families, warnings };
 }

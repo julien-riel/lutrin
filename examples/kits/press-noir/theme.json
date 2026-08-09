@@ -12,7 +12,11 @@
   },
   "fonts": {
     "body": "Times New Roman",
-    "display": "Impact"
+    "display": "Oswald",
+    "displayFiles": {
+      "regular": "./fonts/Oswald-Regular.ttf",
+      "bold": "./fonts/Oswald-Bold.ttf"
+    }
   },
   "type": {
     "coverTitle": 52,
