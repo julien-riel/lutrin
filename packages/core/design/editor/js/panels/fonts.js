@@ -331,6 +331,12 @@ function familiesCard() {
     );
   }
   children.push(
+    familyField(
+      'display',
+      'Display family',
+      'Optional second face for the cover, section and slide titles and the pull-quote — left empty, the titles use the body family. Embed its files by hand with fonts.displayFiles.',
+      'same as body',
+    ),
     familyField('mono', 'Mono family', 'Code blocks and figures.', 'Courier New'),
   );
   return el('section', { class: 'card p-fonts-families' }, children);

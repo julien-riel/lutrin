@@ -11,6 +11,37 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Kits that customize more than colour.** A kit could set the palette, the
+  body face, the type scale and the corner radii, but every deck still opened
+  on a white cover, set its titles in the body face and signed each slide with
+  the same primary bar — so kits read as "the colours that changed". Three
+  token groups close that gap, each backward-compatible (its default is exactly
+  what the renderers used to hard-code, so a theme that names none compiles
+  byte-for-byte as before, the goldens included):
+
+  - **`fonts.display`** — an optional second family worn by the cover, section
+    and slide titles and the pull-quote (a serif headline over a sans body, the
+    way a brand actually reads). Embeddable through `fonts.displayFiles` under
+    the same twin/licence/GDI rules as the body files, as a second
+    `<p:embeddedFont>` group in the `.pptx` and its own `@font-face` in the
+    HTML. Absent, the titles keep the body family.
+  - **`surface`** — the three slide backgrounds and the inks on them
+    (`pageBg`, `coverBg`/`coverInk`/`coverMutedInk`, `sectionBg`/`sectionInk`):
+    a dark cover, a darker section band, a tinted content page. Derived from the
+    palette and overridable; the WCAG harness gained the matching pairs, so a
+    darkened surface with an ink that fails is reported on every build.
+  - **`accent`** — the signature flourishes (`bar` for the cover bar, the
+    content title's accent segment, the focus bar and the quotation mark;
+    `rule` for the title hairline), decoupled from the brand/link `primary`.
+
+  All three are first-class in the kit editor (a Display family field, a
+  Surfaces card and an Accent card, with contrast diagnostics anchored to the
+  row they involve), listed in `capabilities().theme`, and seeded in
+  `design/themes/default.json`. The eight gallery kits were rebuilt to exercise
+  the whole schema — display faces, surfaces, accents, brand chart palettes,
+  SVG signatures and opinionated layouts — so the same specimen is now
+  unmistakable from one kit to the next, greyscale included.
+
 - **Native OMML equations.** An equation now lands in the `.pptx` as a real
   PowerPoint equation — the one its own editor opens and edits — instead of a
   picture of one. It is written the way PowerPoint writes its own, both halves

@@ -111,6 +111,8 @@ function eff() {
       : (d.layerShades ?? [])
     ).map((s) => ({ ...s })),
     trendInk: { ...(d.trendInk ?? {}), ...(theme?.trendInk ?? {}) },
+    surface: (key) => theme?.surface?.[key] ?? d.surface?.[key] ?? '',
+    accent: (key) => theme?.accent?.[key] ?? d.accent?.[key] ?? '',
   };
 }
 
@@ -425,6 +427,81 @@ function trendCard() {
   ]);
 }
 
+const SURFACE_KEYS = [
+  ['pageBg', 'Content page background'],
+  ['coverBg', 'Cover background'],
+  ['coverInk', 'Cover title ink'],
+  ['coverMutedInk', 'Cover subtitle / byline ink'],
+  ['sectionBg', 'Section band background'],
+  ['sectionInk', 'Section title ink'],
+];
+
+function surfaceCard() {
+  const { el } = ctx.ui;
+  const { theme } = ctx.store.get();
+  return el('section', { class: 'card' }, [
+    groupHead('Surfaces', () =>
+      ctx.store.update('theme.surface', { ...(defaults().surface ?? {}) }),
+    ),
+    el('p', {
+      class: 'p-tokens-desc',
+      text:
+        'The three slide backgrounds and the inks on them — a coloured cover, a darker ' +
+        'section band, a tinted content page. Contrast is checked against each background.',
+    }),
+    theme?.surface
+      ? null
+      : el('p', {
+          class: 'p-tokens-hint',
+          text: 'Currently derived from the palette — editing saves explicit surfaces.',
+        }),
+    ...SURFACE_KEYS.map(([key, label], i) =>
+      tokenRow({
+        name: label,
+        aria: `Surface ${label}`,
+        anchor: `surface.${key}`,
+        get: () => eff().surface(key),
+        set: (hex) => ctx.store.update(['theme', 'surface', key], hex),
+        breakBefore: key === 'sectionBg',
+      }),
+    ),
+  ]);
+}
+
+const ACCENT_KEYS = [
+  ['bar', 'Accent bar'],
+  ['rule', 'Title rule'],
+];
+
+function accentCard() {
+  const { el } = ctx.ui;
+  const { theme } = ctx.store.get();
+  return el('section', { class: 'card' }, [
+    groupHead('Accent', () => ctx.store.update('theme.accent', { ...(defaults().accent ?? {}) })),
+    el('p', {
+      class: 'p-tokens-desc',
+      text:
+        'The signature flourishes — the bar over a cover title, the accent segment of a ' +
+        'content title rule, the focus bar and the quotation mark — and the hairline rule.',
+    }),
+    theme?.accent
+      ? null
+      : el('p', {
+          class: 'p-tokens-hint',
+          text: 'Currently derived from the palette — editing saves explicit accents.',
+        }),
+    ...ACCENT_KEYS.map(([key, label]) =>
+      tokenRow({
+        name: label,
+        aria: `Accent ${label}`,
+        anchor: `accent.${key}`,
+        get: () => eff().accent(key),
+        set: (hex) => ctx.store.update(['theme', 'accent', key], hex),
+      }),
+    ),
+  ]);
+}
+
 function emptyState() {
   const { el } = ctx.ui;
   return el('div', { class: 'empty' }, [
@@ -459,7 +536,9 @@ function emptyState() {
 function anchorFor(message, e) {
   if (message.includes('main text')) return 'colors.neutralPrimary';
   if (message.includes('secondary text')) return 'colors.neutralSecondary';
-  if (message.includes('section slide title')) return 'colors.primary';
+  if (message.includes('cover title')) return 'surface.coverInk';
+  if (message.includes('cover subtitle')) return 'surface.coverMutedInk';
+  if (message.includes('section slide title')) return 'surface.sectionInk';
   let m = message.match(/chart color #([0-9A-Fa-f]{6})/);
   if (m) {
     const hex = m[1].toUpperCase();
@@ -516,7 +595,14 @@ function render() {
     host.replaceChildren(emptyState());
     return;
   }
-  host.replaceChildren(...COLOR_GROUPS.map(groupCard), chartCard(), shadesCard(), trendCard());
+  host.replaceChildren(
+    ...COLOR_GROUPS.map(groupCard),
+    surfaceCard(),
+    accentCard(),
+    chartCard(),
+    shadesCard(),
+    trendCard(),
+  );
   paintDiags();
   if (pendingFocus) {
     anchors.get(pendingFocus)?.focusEl?.focus();

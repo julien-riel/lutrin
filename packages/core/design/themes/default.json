@@ -167,5 +167,17 @@
       "solidText": "FFFFFF",
       "label": "Important"
     }
+  },
+  "surface": {
+    "pageBg": "FFFFFF",
+    "coverBg": "FFFFFF",
+    "coverInk": "212529",
+    "coverMutedInk": "637381",
+    "sectionBg": "1D4ED8",
+    "sectionInk": "FFFFFF"
+  },
+  "accent": {
+    "bar": "1D4ED8",
+    "rule": "CED4DA"
   }
 }
