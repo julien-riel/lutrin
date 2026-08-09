@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/playground.css">
 <!-- Analytics — Umami, cookie-free, so no consent banner. `data-domains`
-     keeps `npm run site:serve` out of the numbers. The four custom events
+     keeps `npm run site:serve` out of the numbers. The five custom events
      and where to read them: site/README.md. -->
 <script defer src="https://cloud.umami.is/script.js"
         data-website-id="40e68dbe-f445-4ae8-a1e7-505d2824cd02"
@@ -55,6 +55,16 @@
      compiler logic runs. -->
 <script>
   window.process = { env: {}, cwd: function () { return '/deck'; }, platform: 'browser', argv: [] };
+
+  // `?embed=1` — this page inside the landing page's "Try it right here" card.
+  // The flag only strips the chrome (header, footer, headline, the closing
+  // links) and makes the two panes fill the frame; the compiler, the examples,
+  // the status line and the honesty notes are the SAME ones served here,
+  // because the alternative is a second playground that drifts from this one.
+  // Set on <html> from the head, before first paint, so the chrome never
+  // flashes into the card and then vanishes.
+  if (new URLSearchParams(location.search).has('embed'))
+    document.documentElement.classList.add('is-embed');
 </script>
 </head>
 <body>

@@ -11,6 +11,26 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The landing page now compiles.** The playground was the fifth link in the
+  navigation bar and a paragraph three sections down, so the fastest thing a
+  visitor can do on `info.lutrin.app` — put their own words through the engine —
+  was also the least visible. A **Try it right here** section sits one scroll
+  under the headline, the hero's primary button leads to it, and the bar carries
+  a single coloured *Try it live* that survives the mobile collapse.
+
+  The section frames `playground.html?embed=1` rather than loading the compiler
+  a second time: the import map, the shims and the load order are the hard part
+  of that page, and a copy of them on `index.html` would be a copy that drifts.
+  The flag strips only what the card already says around it — header, footer,
+  headline, install line, closing links — and makes the two panes fill the
+  frame. The frame is lazy, through the loader the gallery already used, so a
+  reader who never scrolls that far downloads none of it.
+
+  Instrumented, because otherwise nothing would say whether it worked:
+  `playground edited` fires on the first keystroke, once, with `mode=embed` or
+  `mode=page`. It is the only event on the site that reports somebody compiling
+  their own deck rather than intending to.
+
 - **Kits that customize more than colour.** A kit could set the palette, the
   body face, the type scale and the corner radii, but every deck still opened
   on a white cover, set its titles in the body face and signed each slide with

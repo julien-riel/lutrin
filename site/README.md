@@ -9,7 +9,7 @@ by the engine at `HEAD`, and deploys the result to GitHub Pages.
 | File | What it is |
 | --- | --- |
 | `index.html` | the landing page, including the tiers and the FAQ |
-| `playground.html` | the compiler, running in the visitor's browser — see below |
+| `playground.html` | the compiler, running in the visitor's browser — see below; `?embed=1` is the same page stripped for the landing page's card |
 | `pricing.html` | all five purchase options, in USD and CAD |
 | `gallery.html` | eight kits, one deck — see below |
 | `kit-editor.html` | a tour of `lutrin kit edit`, from committed screenshots |
@@ -129,6 +129,35 @@ holds `design/layouts`.
    and all four vanish *silently*. `describeGaps()` inspects the scene graph
    itself and says which are missing, naming the CLI.
 
+### `?embed=1` — the same page, in the landing page's card
+
+The landing page's **Try it right here** section, one scroll under the
+headline, is an `<iframe>` onto `playground.html?embed=1`. It is deliberately
+**not** a second in-page playground: the import map, the shims, the
+`window.process` stub and the load order are the hard part of this page, and a
+copy of them on `index.html` would be a copy that drifts the first time one of
+them changes.
+
+The flag does exactly two things, both in CSS (`playground.css`, the `embed`
+block):
+
+- **Strips what the card already says** — the site header and footer, the
+  headline, the install line, the closing links. The compiler, the three
+  examples, the status line and the honesty notes stay, because those are the
+  page.
+- **Makes the app fill the frame.** An `<iframe>` never grows to its document,
+  so the frame's height is set on the landing page (`.try-frame`) and the embed
+  lays itself out as a flex column to whatever it is given. The two numbers are
+  therefore independent: resizing the card does not need a matching change
+  here.
+
+`index.html` gives the frame a `data-src`, not a `src`, so **main.js's existing
+lazy loader** is what fetches it — the compiler and its layout catalogue start
+downloading when the section comes within 500 px of the viewport, and a reader
+who never scrolls that far pays nothing. With JavaScript off the frame would
+stay an empty box, so a `<noscript>` in the head removes it and the paragraph
+beside it says why.
+
 **If you add a `node:` import anywhere reachable from `html/render.mjs`,
 `packages/core/test/playground.test.mjs` fails.** That test walks the real
 static import graph rather than a maintained list, because a browser refuses
@@ -197,6 +226,16 @@ the tag, the ids, and the UTM on the checkout links.
   127.0.0.1 loads the script and sends nothing — verified in a real browser,
   not assumed. The consequence to remember: served from any other hostname,
   the page records nothing at all.
+- **The landing page's playground card records a second pageview**, and that is
+  the deliberate price of framing the real page rather than copying it: the
+  `<iframe>` loads `playground.html?embed=1`, which carries the tag like every
+  other page. So `path` for `/playground.html` counts *card loads plus page
+  visits*, and the two are separated by the **`query`** metric — `embed=1` for
+  the card, no query string for the page. (Suppressing the tag inside the frame
+  would also suppress `playground edited`, which is the event worth having.)
+  This is the first thing on this site to arrive with a query string at all, so
+  it is also the measurement the *UTM coming in* section below is waiting on:
+  read `query` back and write down what it actually returns.
 
 ### Reading the numbers
 
@@ -268,14 +307,22 @@ where a "public enough" link stops being a considered choice:
 { "provider": "umami", "websiteId": "…", "shareId": "…", "region": "us" }
 ```
 
-### The four custom events
+### The five custom events
 
 | Event | Fires when | Props | Why it is worth a name |
 | --- | --- | --- | --- |
 | `command copied` | any `copy` button is clicked, on either page | `command` | the reader intends to run Lutrin — the closest thing to an install this page can see |
+| `playground edited` | the first keystroke in the playground, embedded or on its own page | `mode` | the only event that reports somebody **compiling their own deck**; every other one reports an intention |
 | `pptx downloaded` | any link ending in `.pptx` | — | proof that the "real PowerPoint, not an image" claim landed |
 | `deck opened` | `demo.html`, from the buttons or a gallery card | `slide` | which slide pulled them in, which is what the gallery is for |
 | `checkout clicked` | any `https://buy.polar.sh/` link, anywhere on the site | `placement`, `tier` | the last thing this site can see a buyer do — past it, only Polar knows |
+
+`playground edited` fires **once** per page, on the first `input` — the question
+is how many readers cross from looking to using, not how fast they type. Its
+`mode` is `embed` on the landing page's card and `page` on `playground.html`,
+and it is the prop that answers whether framing the playground on the landing
+page did anything: both arrive under the same path, so nothing else separates
+them.
 
 `command copied` fires on the click, not on the clipboard promise: a browser
 that denies clipboard access still tells us the reader wanted the command.

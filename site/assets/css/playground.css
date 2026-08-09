@@ -174,3 +174,91 @@
 .pg-app .cmd {
   margin-top: 1.75rem;
 }
+
+/* ------------------------------------------------------------------ embed */
+/* `playground.html?embed=1`, framed by the "Try it right here" card on the
+   landing page. One page, two dresses: the embed drops everything the card
+   already says around it — the site header and footer, the headline, the
+   install line, the closing links — and keeps the compiler, the examples, the
+   status line and the notes. Nothing here is a second implementation, which is
+   the whole reason the landing page frames this page instead of loading the
+   compiler a second time.
+
+   The frame has a fixed height, so the app is laid out to FILL it rather than
+   to guess at it: a flex column from <body> down, with the two panes taking
+   what is left. A card resized by its container then never cuts the editor in
+   half or leaves a band of dead space under it. */
+.is-embed .nav,
+.is-embed .footer,
+.is-embed .pg-head,
+.is-embed .pg-app .aside,
+.is-embed .pg-app .cmd,
+.is-embed .pg-app .refuse-ctas {
+  display: none;
+}
+
+.is-embed,
+.is-embed body {
+  height: 100%;
+}
+.is-embed body {
+  display: flex;
+  flex-direction: column;
+  background: transparent; /* the card behind it supplies the ground */
+}
+.is-embed main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.is-embed .pg-app {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: 0.9rem 0 1rem;
+}
+.is-embed .pg-app > .wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding-inline: 1rem;
+}
+.is-embed .pg-bar {
+  flex: none;
+  margin-bottom: 0.7rem;
+}
+.is-embed .pg-grid {
+  flex: 1;
+  min-height: 0;
+  gap: 0.9rem;
+}
+.is-embed .pg-editor,
+.is-embed .pg-out {
+  height: 100%;
+  min-height: 0;
+}
+/* The notes are the page's honesty, never the reason the editor shrinks: they
+   keep their own scroll rather than pushing the panes out of the frame. */
+.is-embed .pg-notes {
+  flex: none;
+  max-height: 7rem;
+  overflow-y: auto;
+  margin-top: 0.75rem;
+}
+
+/* Stacked, the two panes cannot both fill a frame that no longer has room for
+   them — so below the breakpoint the frame scrolls, with fixed heights that
+   keep the editor and the first slide visible together. */
+@media (max-width: 900px) {
+  .is-embed .pg-grid {
+    flex: none;
+  }
+  .is-embed .pg-editor {
+    height: 15rem;
+  }
+  .is-embed .pg-out {
+    height: 17rem;
+  }
+}
