@@ -194,11 +194,28 @@ test('mermaid: an SVG refused in one deck does not condemn that diagram in anoth
   );
 });
 
-// End-to-end observation, when mmdc is present: the diagram inlined in the
-// document really does carry its labels.
-test('mermaid: labels survive the sanitizer (requires mmdc)', async (t) => {
-  const { findMmdc } = await import('../src/deck/assets.mjs');
-  if (!findMmdc()) return t.skip('@mermaid-js/mermaid-cli absent (optional dependency)');
+// End-to-end observation, when mermaid can be rendered at all: the diagram
+// inlined in the document really does carry its labels.
+//
+// The guard asks whether mermaid RENDERS, not whether a binary exists, and the
+// difference is not academic. `mmdc` is a dependency of this repository, so
+// `findMmdc()` is truthy on every checkout — but it drives Chromium through
+// puppeteer, and on a container running as root Chromium refuses to start
+// without `--no-sandbox`. The binary was found, the render failed, the block
+// degraded to its code fallback, and this test went red on a machine with
+// nothing wrong with it. A check that is red by default is one people learn to
+// ignore.
+//
+// Probing through `renderMermaidCached` is what makes the guard honest: it is
+// the very function the renderer calls, mmdc first and a browser second, and
+// its whole contract is "a path, or null". Nothing is swept under the rug —
+// that mermaid renders AT ALL is asserted by mermaid.test.mjs, which guards on
+// the browser it actually needs. What belongs here is narrower: given a
+// rendered diagram, do its labels survive the sanitizer.
+test('mermaid: labels survive the sanitizer (requires a working mermaid renderer)', async (t) => {
+  const { renderMermaidCached } = await import('../src/deck/assets.mjs');
+  if (!renderMermaidCached('graph TD\n  Probe[Probe] --> Ok[Ok]\n', { format: 'svg' }))
+    return t.skip('no mermaid renderer that runs here (mmdc or a browser that launches)');
   const source = '# Architecture\n\n```mermaid\ngraph TD\n  Parse[Parse] --> Render[Render]\n```\n';
   const deck = parseDeck(source);
   const { html } = await renderDeckHtml(buildScenes(deck), deck.meta, process.cwd());
