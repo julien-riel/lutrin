@@ -13,6 +13,6 @@
     "coverInk": "FFFFFF",
     "coverMutedInk": "AEC6E0"
   },
-  "accent": { "bar": "0B5394", "rule": "CED4DA" },
+  "accent": { "bar": "0B5394", "coverBar": "6FA8DC", "rule": "CED4DA" },
   "chartColors": ["0B5394", "B87F00", "0A8A76", "D3310A", "005E99", "8A5C00"]
 }

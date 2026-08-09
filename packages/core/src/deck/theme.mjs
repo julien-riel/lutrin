@@ -215,6 +215,12 @@ export function applyTheme(theme = null) {
   for (const [key, live] of Object.entries(BASE_GROUPS)) mergeInto(live, theme[key]);
   deriveTokens();
   for (const [key, live] of Object.entries(DERIVED_GROUPS)) mergeInto(live, theme[key]);
+  // The cover bar follows the accent bar unless the kit gives it one of its
+  // own. It cannot be derived with the others: deriveTokens() runs BEFORE the
+  // theme is merged and would only ever see the palette's primary, so a kit
+  // repainting `accent.bar` would keep a cover bar in the old colour. Same
+  // shape as the logos below, where the SVG slot falls back on the bitmap.
+  if (!theme.accent?.coverBar) ACCENT.coverBar = ACCENT.bar;
   if (Array.isArray(theme.chartColors) && theme.chartColors.length)
     CHART_COLORS.splice(0, CHART_COLORS.length, ...theme.chartColors);
   if (Array.isArray(theme.layerShades) && theme.layerShades.length)
@@ -311,6 +317,16 @@ export function themeContrastDiagnostics() {
     contrastRatio(SURFACE.coverMutedInk, SURFACE.coverBg),
     4.5,
     `cover subtitle and byline (#${SURFACE.coverMutedInk} on the cover #${SURFACE.coverBg})`,
+  );
+  // The cover flourish is a graphic object, not text: WCAG 1.4.11 asks 3:1 of
+  // it. It is checked because it is the pair a coloured cover breaks silently —
+  // `coverBg` painted in the brand colour and a bar left on the accent that
+  // gave it its name draws the bar in the colour it lies on, and the kit ships
+  // a cover that simply has no bar.
+  check(
+    contrastRatio(ACCENT.coverBar, SURFACE.coverBg),
+    3,
+    `cover accent bar (#${ACCENT.coverBar} on the cover #${SURFACE.coverBg})`,
   );
   check(
     contrastRatio(SURFACE.sectionInk, SURFACE.sectionBg),

@@ -33,6 +33,8 @@ import {
   LAYER_SHADES,
   TREND_INK,
   SEMANTIC,
+  SURFACE,
+  ACCENT,
   LINE_HEIGHT,
   blockFontSize,
   iconSize,
@@ -136,6 +138,11 @@ test('structural anti-drift: default.json covers ALL the token keys (a token add
     chrome: CHROME,
     trendInk: TREND_INK,
     semantic: SEMANTIC,
+    // the two groups a kit reaches for to stop looking like a repaint: they
+    // were absent from this list, so `accent.coverBar` could have been added to
+    // the tokens and left out of the mirror without a single test noticing
+    surface: SURFACE,
+    accent: ACCENT,
   };
   for (const [key, live] of Object.entries(MIRRORED)) {
     assert.deepEqual(
@@ -1803,6 +1810,48 @@ test('accent: the flourishes take accent.bar and the title rule accent.rule', as
   assert.match(html, /\.cover-bar\{[^}]*background:#E0115F\}/);
   assert.match(html, /\.quote-mark\{[^}]*color:#E0115F/);
   assert.match(html, /\.title-rule\{[^}]*background:#E5E0D8\}/);
+});
+
+test('accent.coverBar repaints the cover bar ALONE — the other flourishes keep accent.bar', async (t) => {
+  const { html } = await htmlUnder(t, {
+    name: 'x',
+    accent: { bar: 'E0115F', coverBar: 'FFD166', rule: 'E5E0D8' },
+  });
+  assert.match(html, /\.cover-bar\{[^}]*background:#FFD166\}/);
+  // the point of a separate token: the title segment, the focus bar and the
+  // quotation mark are NOT the cover, and must not follow it
+  assert.match(html, /\.title-accent\{[^}]*background:#E0115F\}/);
+  assert.match(html, /\.quote-mark\{[^}]*color:#E0115F/);
+});
+
+test('accent.coverBar follows accent.bar when the theme repaints only the bar', (t) => {
+  t.after(() => applyTheme(null));
+  const { file, cleanup } = tmpTheme({ name: 'x', accent: { bar: 'E0115F' } });
+  t.after(cleanup);
+  const { theme } = resolveTheme({ kit: file }, { baseDir: '/' });
+  applyTheme(theme);
+  // the fallback is applied AFTER the merge on purpose: derived before it, the
+  // cover bar would have kept the palette's primary and a kit repainting its
+  // flourishes would have got a cover bar in the colour it just replaced
+  assert.equal(ACCENT.coverBar, 'E0115F');
+});
+
+test('a cover bar that vanishes on its own cover is reported by the contrast harness', (t) => {
+  t.after(() => applyTheme(null));
+  const { file, cleanup } = tmpTheme({
+    name: 'x',
+    colors: { primary: 'B5254A' },
+    // the exact shape the token exists for: the cover painted in the brand
+    // colour, and the bar left on the accent that gave it its name
+    surface: { coverBg: 'B5254A', coverInk: 'FFFFFF', coverMutedInk: 'FBDCE2' },
+  });
+  t.after(cleanup);
+  const { theme } = resolveTheme({ kit: file }, { baseDir: '/' });
+  applyTheme(theme);
+  assert.ok(
+    themeContrastDiagnostics().some((d) => /cover accent bar/.test(d.message)),
+    'a bar drawn in the colour of the cover it lies on must warn',
+  );
 });
 
 test('surface and accent are accepted top-level theme keys', () => {

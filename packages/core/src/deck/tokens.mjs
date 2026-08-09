@@ -365,6 +365,14 @@ export const SURFACE = {};
  *
  * `bar` defaults to the primary and `rule` to the neutral stroke — exactly what
  * the renderers hard-coded — so a theme that names no `accent` is unchanged.
+ *
+ * `coverBar` is the cover's bar alone, and it exists because the cover is the
+ * one surface a kit paints in its own brand colour: `surface.coverBg` set to
+ * the primary leaves the bar drawing itself in the colour it sits on, and the
+ * flourish disappears. It defaults to `bar` — not to the primary — so that a
+ * kit which merely repaints `accent.bar` still gets the cover bar it asked
+ * for; the fallback is applied after the theme is merged (applyTheme), the
+ * derivation here having no way to know what `bar` will end up being.
  */
 export const ACCENT = {};
 
@@ -480,8 +488,12 @@ export function deriveTokens() {
     sectionInk: COLORS.ground,
   });
 
+  // coverBar starts equal to bar, which is what "defaults to accent.bar" means
+  // for a theme that overrides neither; applyTheme re-applies the fallback
+  // after merging, for the theme that overrides only one of the two.
   Object.assign(ACCENT, {
     bar: COLORS.primary,
+    coverBar: COLORS.primary,
     rule: COLORS.neutralStroke,
   });
 

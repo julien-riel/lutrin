@@ -1400,7 +1400,9 @@ function renderCover(pptx, scene) {
     y: px(c.barY),
     w: px(c.barW),
     h: px(c.barH),
-    fill: { color: ACCENT.bar },
+    // the cover's own bar: `coverBar` falls back on `bar` (applyTheme), so a
+    // theme that names neither draws exactly what it drew before
+    fill: { color: ACCENT.coverBar },
     objectName: 'Accent rule',
   });
   if (scene.subtitle) {

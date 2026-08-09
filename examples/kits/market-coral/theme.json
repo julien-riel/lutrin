@@ -28,14 +28,15 @@
     "pill": 64
   },
   "surface": {
-    "coverBg": "FFF3F5",
-    "coverInk": "7A1330",
-    "coverMutedInk": "7A1330",
-    "sectionBg": "B5254A",
+    "coverBg": "B5254A",
+    "coverInk": "FFFFFF",
+    "coverMutedInk": "FBDCE2",
+    "sectionBg": "7A1330",
     "sectionInk": "FFFFFF"
   },
   "accent": {
     "bar": "B5254A",
+    "coverBar": "FBDCE2",
     "rule": "F5CDD5"
   },
   "chrome": {
