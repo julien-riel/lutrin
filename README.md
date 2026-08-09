@@ -6,7 +6,8 @@
 **[info.lutrin.app](https://info.lutrin.app/)** — the
 landing page, with a live demo deck recompiled on every push and the compiler
 itself running in the page: [try it](https://info.lutrin.app/#try) without
-installing anything.
+installing anything, and download the `.pptx` or the standalone `.html` it
+builds in your own tab.
 
 **Lutrin compiles enriched Markdown into an editable PowerPoint or a
 standalone HTML page, and it is the engine — not the author — that decides

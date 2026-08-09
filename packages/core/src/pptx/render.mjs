@@ -66,6 +66,7 @@ import { embedMorph } from './morph.mjs';
 import { embedVectorImages } from './svg.mjs';
 import { embedEquations } from './equations.mjs';
 import { dropDirectoryEntries } from './zip-tidy.mjs';
+import { ZIP_BYTES } from './bytes.mjs';
 import { ommlFromMathML } from './omml.mjs';
 import { sanitizeSvg, svgPartSafe } from '../deck/svg.mjs';
 
@@ -1530,7 +1531,7 @@ async function canonicalizeTitlePlaceholders(pptxPath) {
   if (count)
     fs.writeFileSync(
       pptxPath,
-      await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
+      await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }),
     );
   return { count, warnings };
 }
@@ -1588,10 +1589,7 @@ async function embedSlideTitles(pptxPath, titles) {
   const fresh = `<TitlesOfParts><vt:vector size="${entries.length}" baseType="lpstr">${[...head, ...tail].join('')}</vt:vector></TitlesOfParts>`;
 
   zip.file(part, xml.replace(block[0], fresh));
-  fs.writeFileSync(
-    pptxPath,
-    await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
-  );
+  fs.writeFileSync(pptxPath, await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }));
   return { count: named, warnings };
 }
 
@@ -1617,6 +1615,34 @@ export async function renderDeck(scenes, meta, baseDir, outPath, opts = {}) {
     // .pptx is written: we only clean up afterwards — but we always clean up,
     // even on error (otherwise every export leaks a directory)
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * The same export, handed back as bytes rather than left on disk — for a host
+ * that has no disk to leave it on.
+ *
+ * The playground is that host: it runs this renderer in the browser, behind the
+ * `node:fs` shim, and needs the finished package to hand to a download. It goes
+ * through a file anyway, and deliberately: the eight post-passes above address
+ * the .pptx by PATH and reopen it between each other, so a variant that skipped
+ * the file would be a second pipeline — the one that silently stops getting the
+ * fixes this one gets.
+ *
+ * @param {Array} scenes  scenes produced by buildScenes()
+ * @param {object} meta   frontmatter of the deck
+ * @param {string} baseDir directory of the source file (image resolution)
+ * @param {object} [opts] as renderDeck()
+ * @returns {Promise<{bytes:Uint8Array, stats:object}>}
+ */
+export async function renderDeckBytes(scenes, meta, baseDir, opts = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-out-'));
+  const outPath = path.join(dir, 'deck.pptx');
+  try {
+    const stats = await renderDeck(scenes, meta, baseDir, outPath, opts);
+    return { bytes: fs.readFileSync(outPath), stats };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -1819,6 +1845,12 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
     diagnostics.push({
       severity: 'error',
       code: 'RASTER_UNAVAILABLE',
+      // `count` so that a host which cannot follow the remedy can still say how
+      // much was lost without parsing the sentence back apart. The playground is
+      // that host: `npm install` is not advice a browser can act on, so it
+      // rewrites this one line — and a page that had to regex a count out of
+      // prose would go quietly wrong the day the wording changed.
+      count: rasterBlocks,
       message: `Rasterizer @resvg/resvg-js unavailable — ${rasterBlocks} chart(s), equation(s) or icon(s) are replaced by their specification in text in the .pptx. Reinstall the dependencies on this platform (\`npm install\` in the lutrin package) to restore graphical rendering.`,
     });
   }
@@ -1982,7 +2014,14 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
     if (run?.nums.length === 2) chains.push(run.nums);
   });
 
-  await pptx.writeFile({ fileName: outPath });
+  // `pptx.write()` and not `pptx.writeFile()`: the latter branches on the
+  // runtime and, off Node, pushes a DOWNLOAD instead of writing a file — the
+  // playground would get a half-finished package before a single post-pass had
+  // run. Asking for the bytes and writing them ourselves is the same zip
+  // (`writeFile` defers to the same `generateAsync({ type })`, uncompressed
+  // either way, and the passes below re-deflate it) and behaves identically
+  // wherever `fs` does.
+  fs.writeFileSync(outPath, await pptx.write({ outputType: ZIP_BYTES }));
   const phTitles = await canonicalizeTitlePlaceholders(outPath);
   const titles = await embedSlideTitles(
     outPath,

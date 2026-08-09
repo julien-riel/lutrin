@@ -25,7 +25,7 @@ import path from 'node:path';
 import JSZip from 'jszip';
 import { parseDeck } from '../src/deck/parse.mjs';
 import { buildScenes } from '../src/deck/layout.mjs';
-import { renderDeck } from '../src/pptx/render.mjs';
+import { renderDeck, renderDeckBytes } from '../src/pptx/render.mjs';
 import { embedFonts, readFsType } from '../src/pptx/fonts.mjs';
 import { embedVectorImages } from '../src/pptx/svg.mjs';
 import { svgPartSafe } from '../src/deck/svg.mjs';
@@ -1890,4 +1890,62 @@ test('svgPartSafe: an internal stylesheet is refused — the twin must agree wit
 
   // and the SVGs we author must not be caught by it
   assert.equal(svgPartSafe(LUCIDE_COFFEE), true, 'a Lucide icon carries no stylesheet');
+});
+
+// ---------------------------------------------------------------------------
+// renderDeckBytes — the same export, for a host with no disk
+// ---------------------------------------------------------------------------
+
+/**
+ * The playground exports a .pptx from the browser, and it does it with THIS
+ * renderer: `renderDeckBytes` is the entry point that hands the finished
+ * package back instead of leaving it on disk (site/assets/js/playground.js).
+ *
+ * What the test pins is that it is the same package. A second code path that
+ * merely looked similar is the one that would quietly stop getting the
+ * post-processing passes this one gets — so the bytes are compared part by
+ * part against `renderDeck`'s file, everything but the timestamp PptxGenJS
+ * stamps into docProps/core.xml.
+ */
+test('renderDeckBytes returns exactly the package renderDeck writes', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-bytes-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const deck = parseDeck(SOURCE);
+  const scenes = buildScenes(deck);
+
+  const out = path.join(dir, 'file.pptx');
+  const fileStats = await renderDeck(scenes, deck.meta, dir, out);
+  const { bytes, stats } = await renderDeckBytes(scenes, deck.meta, dir);
+
+  assert.ok(bytes?.length > 0, 'bytes came back empty');
+  assert.equal(stats.slideCount, fileStats.slideCount);
+
+  const [a, b] = await Promise.all([JSZip.loadAsync(fs.readFileSync(out)), JSZip.loadAsync(bytes)]);
+  assert.deepEqual(
+    Object.keys(b.files).sort(),
+    Object.keys(a.files).sort(),
+    'the two packages do not hold the same parts',
+  );
+  for (const name of Object.keys(a.files)) {
+    if (a.files[name].dir) continue;
+    // the only part that legitimately differs: dcterms:created/modified, which
+    // PptxGenJS stamps with the clock
+    if (name === 'docProps/core.xml') continue;
+    const [x, y] = await Promise.all([
+      a.file(name).async('nodebuffer'),
+      b.file(name).async('nodebuffer'),
+    ]);
+    assert.ok(x.equals(y), `${name} differs between the file and the bytes`);
+  }
+});
+
+/** And it leaves nothing behind: a host that exports twice must not accumulate
+ *  a temporary directory per export. */
+test('renderDeckBytes leaves no temporary directory behind', async () => {
+  const before = fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('lutrin-out-')).length;
+  const deck = parseDeck('# One slide\n\nSome text.\n');
+  await renderDeckBytes(buildScenes(deck), deck.meta, os.tmpdir());
+  const after = fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('lutrin-out-')).length;
+  assert.equal(after, before);
 });

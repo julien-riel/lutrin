@@ -39,6 +39,7 @@
 
 import fs from 'node:fs';
 import JSZip from 'jszip';
+import { ZIP_BYTES } from './bytes.mjs';
 
 const NS_MC = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
 const NS_A14 = 'http://schemas.microsoft.com/office/drawing/2010/main';
@@ -217,7 +218,7 @@ export async function embedEquations(pptxPath, slideEquations) {
   if (done)
     fs.writeFileSync(
       pptxPath,
-      await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
+      await zip.generateAsync({ type: ZIP_BYTES, compression: 'DEFLATE' }),
     );
   return { count: done, warnings };
 }

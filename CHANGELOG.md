@@ -11,6 +11,54 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The playground hands over the file.** It compiled a deck in the visitor's
+  browser and then had nowhere to put it: the preview was the whole output, and
+  the `.pptx` was withheld on purpose — *"that one is the reason to install"*.
+  Two buttons now download both real outputs, built in the tab and uploaded
+  nowhere.
+
+  Neither is an export of the preview. The `.html` is `compileHtml` called
+  again *without* `fragment`, so it is the standalone document
+  `lutrin build --html` writes, presenter mode and fit script included. The
+  `.pptx` is the PowerPoint renderer itself — `renderDeckBytes`, the new entry
+  point that hands the finished package back instead of leaving it on disk,
+  with all eight post-processing passes on the way. Measured rather than
+  assumed: browser and CLI produce a package whose every part is byte-identical
+  but `docProps/core.xml`, where PptxGenJS stamps the clock.
+
+  Three things made the renderer runnable in a page, and each was a silent
+  failure until it was not:
+
+  - **`ZIP_BYTES`** (`src/pptx/bytes.mjs`). Every pass round-trips the zip and
+    every one asked JSZip for a `nodebuffer` — a type that exists only on Node
+    and *throws* in a browser, on whichever pass reaches it first, with the
+    package already half written. They ask per runtime now, and a test greps for
+    the literal: a pass added later would copy its neighbour and break the page
+    and nothing else.
+  - **`pptx.write()` rather than `pptx.writeFile()`.** PptxGenJS's `writeFile`
+    branches on the runtime and, off Node, pushes a *download* — the visitor
+    would have got a half-finished package before a single post-pass ran.
+  - **The `fs` shim keeps bytes as bytes.** The package is written into it and
+    reopened between passes; stringifying on the way in would have failed as a
+    corrupt archive rather than as a lost write.
+
+  `jszip` and `pptxgenjs` are `import()`ed on the first click and never before —
+  half a megabyte a reader who only types does not pay for. JSZip ships no ESM
+  at all, so a shim loads its UMD bundle as a classic script and re-exports the
+  global.
+
+  **The gaps are not the same on both sides, and the page says which.** A chart
+  is live SVG in the preview and a *raster* in PowerPoint, so charts, equations
+  and icons travel into the `.pptx` as their specification in text. The engine
+  already reported that as `RASTER_UNAVAILABLE`; the diagnostic now carries a
+  `count`, so the page can state the number and replace the one part that is
+  untrue in a browser — *"run `npm install`"* is not advice a visitor can take.
+
+  Instrumented as `playground exported`, with `format` and `mode`. Deliberately
+  not folded into `pptx downloaded`, which counts the demo deck coming off a
+  link: merged, neither *"did the real-PowerPoint claim land"* nor *"did a
+  reader leave with their own deck"* would have an answer.
+
 - **The landing page now compiles.** The playground was the fifth link in the
   navigation bar and a paragraph three sections down, so the fastest thing a
   visitor can do on `info.lutrin.app` — put their own words through the engine —

@@ -174,6 +174,27 @@
     );
   }
 
+  // -------------------------------------------------- playground exported
+  // The act one step past `playground edited`: a visitor leaving with a file
+  // they made. Deliberately NOT folded into `pptx downloaded`, which counts the
+  // demo deck coming off a link — that number answers "did the real-PowerPoint
+  // claim land", and mixing a reader's own export into it would leave neither
+  // question answerable.
+  //
+  // Fired on the click rather than on the download, and by design: it reports
+  // that the export was ASKED FOR, which is the decision being measured. What
+  // the engine could not carry into the file is the page's business to say, in
+  // the notes, and it says so.
+  const pgDownloads = [].slice.call(document.querySelectorAll('[data-download]'));
+  pgDownloads.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      track('playground exported', {
+        format: btn.getAttribute('data-download'),
+        mode: document.documentElement.classList.contains('is-embed') ? 'embed' : 'page',
+      });
+    });
+  });
+
   // ----------------------------------------------------------------- copy
   [].slice.call(document.querySelectorAll('.copy')).forEach((btn) => {
     btn.addEventListener('click', () => {

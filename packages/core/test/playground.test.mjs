@@ -32,7 +32,15 @@ const CORE = path.resolve(import.meta.dirname, '..');
 const REPO = path.resolve(CORE, '..', '..');
 const SITE = path.join(REPO, 'site');
 const PLAYGROUND = path.join(SITE, 'playground.html');
-const ENTRY = path.join(CORE, 'src', 'html', 'render.mjs');
+/** Both graphs the page links: the compiler it loads up front, and the .pptx
+ *  renderer it `import()`s the first time a visitor asks for that export. The
+ *  second is dynamic, so it fails at CLICK time rather than at load time — a
+ *  visitor who typed a deck and then found the download broken, which is worse
+ *  than a page that never offered it. */
+const ENTRIES = [
+  path.join(CORE, 'src', 'html', 'render.mjs'),
+  path.join(CORE, 'src', 'pptx', 'render.mjs'),
+];
 
 // ---------------------------------------------------------------------------
 // the import graph, and the map that has to cover it
@@ -53,11 +61,11 @@ function staticSpecifiers(source) {
   return out;
 }
 
-/** Everything the browser would have to resolve to load `entry`. */
-function walk(entry) {
+/** Everything the browser would have to resolve to load `entries`. */
+function walk(...entries) {
   const seen = new Set();
   const external = new Set();
-  const queue = [entry];
+  const queue = [...entries];
   while (queue.length) {
     const file = queue.pop();
     if (seen.has(file)) continue;
@@ -82,7 +90,7 @@ function importMap() {
 }
 
 test('the import map covers every specifier the compiler statically imports', () => {
-  const { external } = walk(ENTRY);
+  const { external } = walk(...ENTRIES);
   const map = importMap();
 
   const missing = [...external].filter((s) => !(s in map));
@@ -125,6 +133,58 @@ test('the vendored packages CI copies are exactly the ones the map names', () =>
     'the import map and the CI vendoring loop disagree: one lists a package the ' +
       'other does not, so the playground 404s on it in production and nowhere else',
   );
+});
+
+/**
+ * The .pptx renderer is a chain of zip round-trips, and `nodebuffer` is the one
+ * JSZip output type that does not exist off Node — it throws, in a browser, on
+ * whichever pass reaches for it first, leaving a half-written package. Every
+ * one of them therefore asks `bytes.mjs`, which picks per runtime.
+ *
+ * A pass added later would spell the literal out again by copying its
+ * neighbour, and the playground would break for that deck alone. Hence a grep
+ * rather than a behaviour test: the mistake is invisible on Node, where it
+ * works perfectly.
+ */
+test('no .pptx pass asks JSZip for a nodebuffer by name', () => {
+  const dir = path.join(CORE, 'src', 'pptx');
+  const offenders = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.mjs'))
+    .filter((f) =>
+      /generateAsync\([^)]*'nodebuffer'/.test(fs.readFileSync(path.join(dir, f), 'utf8')),
+    );
+  assert.deepEqual(
+    offenders,
+    [],
+    `${offenders.join(', ')}: use ZIP_BYTES from ./bytes.mjs — a hard-coded 'nodebuffer' throws in the browser the playground exports from, and nowhere else`,
+  );
+});
+
+test('ZIP_BYTES is the Node type when running on Node', async () => {
+  const { ZIP_BYTES } = await import('../src/pptx/bytes.mjs');
+  assert.equal(ZIP_BYTES, 'nodebuffer');
+});
+
+/**
+ * JSZip ships no ESM at all, so `jszip` resolves to a shim that loads the UMD
+ * bundle as a classic script. The bundle's URL is asked of the import map
+ * (`jszip/umd`) rather than written into the shim, which is what keeps the list
+ * of vendored packages in ONE place — the map, which site-serve.mjs reads and
+ * which the test above holds the CI vendoring loop to. A relative path in the
+ * shim would be a second list, invisible to both.
+ */
+test('the jszip shim reaches its bundle through the import map', () => {
+  const shimFile = path.join(SITE, 'assets', 'js', 'shims', 'jszip.mjs');
+  const shim = fs.readFileSync(shimFile, 'utf8');
+  const map = importMap();
+
+  assert.equal(map.jszip, './assets/js/shims/jszip.mjs', 'jszip must resolve to the shim');
+  const spec = shim.match(/import\.meta\.resolve\(['"]([^'"]+)['"]\)/)?.[1];
+  assert.ok(spec, 'the shim no longer resolves its bundle through the import map');
+  assert.ok(map[spec], `the import map has no ${spec} entry for the shim to resolve`);
+  assert.match(map[spec], /^\.\/vendor\//, `${spec} must point into the vendored packages`);
+  assert.doesNotMatch(shim, /\.\.\/\.\.\/\.\.\/vendor\//, 'the shim spells out a second path');
 });
 
 test('process is stubbed by a classic script before the module runs', () => {
@@ -219,6 +279,35 @@ test('the fs shim serves what was preloaded, and refuses what was not', async ()
     () => vfs.readFileSync('/nope.json', 'utf8'),
     (e) => e.code === 'ENOENT',
   );
+});
+
+/**
+ * The .pptx export is the reason this matters. Exporting writes the package
+ * into the shim and reopens it once per post-processing pass, so a write that
+ * stringified its input would hand `JSZip.loadAsync` a mangled zip — and the
+ * failure would read as a corrupt archive rather than as a lost write, which is
+ * a long way from the cause.
+ */
+test('the fs shim round-trips bytes as bytes', async () => {
+  const vfs = await shim('fs');
+  const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff, 0x7f, 0x80]);
+  vfs.writeFileSync('/tmp/deck.pptx', bytes);
+
+  const back = vfs.readFileSync('/tmp/deck.pptx');
+  assert.ok(back instanceof Uint8Array, 'a binary file came back as something else');
+  assert.deepEqual([...back], [...bytes]);
+  assert.equal(vfs.statSync('/tmp/deck.pptx').size, bytes.length);
+
+  // and an export leaves nothing for the next one to read back
+  vfs.rmSync('/tmp', { recursive: true, force: true });
+  assert.equal(vfs.existsSync('/tmp/deck.pptx'), false);
+});
+
+/** Two exports in one session must not share a directory: the second would
+ *  otherwise open what the first left there. */
+test('the fs shim hands out a fresh mkdtemp every call', async () => {
+  const vfs = await shim('fs');
+  assert.notEqual(vfs.mkdtempSync('/tmp/lutrin-'), vfs.mkdtempSync('/tmp/lutrin-'));
 });
 
 test('the layout catalog the playground preloads is the one the engine expects', () => {

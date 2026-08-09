@@ -103,15 +103,26 @@ jobs:
           # registered as a broken one and reported as a diagnostic.
           node -e "const fs=require('node:fs');fs.writeFileSync('_site/core/design/layouts.json',JSON.stringify(fs.readdirSync('packages/core/design/layouts').filter(f=>f.endsWith('.json')).sort()))"
           # markdown-it and its five transitive dependencies — all genuine
-          # browser ESM, resolved by the import map in playground.html. Keep
-          # this list in step with that map: packages/core/test/playground.test.mjs
-          # fails the build if they drift apart.
-          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro; do
+          # browser ESM, resolved by the import map in playground.html — plus
+          # the .pptx renderer's two, which the page fetches only when a visitor
+          # asks for that export. `pptxgenjs` ships real ESM; `jszip` ships none
+          # at all, so its UMD bundle is loaded as a classic script by
+          # site/assets/js/shims/jszip.mjs. Keep this list in step with that map:
+          # packages/core/test/playground.test.mjs fails the build if they drift
+          # apart.
+          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro jszip pptxgenjs; do
             cp -R "node_modules/$p" "_site/vendor/$p"
           done
           # Source maps and typings are a third of the bytes and are never
-          # fetched by a browser that only imports the ESM entry points.
+          # fetched by a browser that only imports the ESM entry points. The
+          # alternative builds of the two newest packages are another 1.6 MB of
+          # the same dead weight: the import map names `pptxgen.es.js` and
+          # `jszip.min.js`, and nothing reaches the rest.
           find _site/vendor \( -name '*.map' -o -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' \) -delete
+          rm -f _site/vendor/pptxgenjs/dist/pptxgen.cjs.js \
+                _site/vendor/pptxgenjs/dist/pptxgen.bundle.js \
+                _site/vendor/pptxgenjs/dist/pptxgen.min.js \
+                _site/vendor/jszip/dist/jszip.js
           du -sh _site/core _site/vendor
 
       # A stale absolute URL must never ship again. demo.html is compiled
