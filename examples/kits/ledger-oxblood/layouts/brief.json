@@ -1,0 +1,1 @@
+{ "name": "brief", "base": "two-columns", "description": "Two columns of counsel, side by side.", "sections": { "min": 2, "max": 2 } }

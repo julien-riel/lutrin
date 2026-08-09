@@ -1,0 +1,1 @@
+{ "name": "phases", "base": "timeline", "description": "Consultation phases along a vertical axis.", "orientation": "vertical", "sections": { "min": 2, "max": 6 } }

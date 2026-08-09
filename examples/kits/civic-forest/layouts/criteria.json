@@ -1,0 +1,1 @@
+{ "name": "criteria", "base": "grid", "description": "A headed grid of criteria, read cell by cell.", "cols": 2, "headed": true, "sections": { "min": 2, "max": 6 } }

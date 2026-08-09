@@ -10,19 +10,40 @@
     "underground1": "F5F8F6"
   },
   "fonts": {
-    "body": "Georgia"
+    "body": "Georgia",
+    "display": "Times New Roman"
   },
   "rounded": {
     "sm": 0,
     "md": 2,
     "lg": 3
   },
+  "surface": {
+    "pageBg": "F8F9F6",
+    "coverBg": "F8F9F6",
+    "sectionBg": "0E3D24",
+    "sectionInk": "FFFFFF"
+  },
+  "accent": {
+    "bar": "1B5E3A",
+    "rule": "C9D6CD"
+  },
+  "chrome": {
+    "cover": {
+      "barW": 80,
+      "barH": 4
+    }
+  },
+  "logos": {
+    "coverSvg": "./logo-cover.svg",
+    "sectionSvg": "./logo-section.svg"
+  },
   "chartColors": [
     "1B5E3A",
-    "1D4E89",
     "8A5A00",
-    "7A2E2E",
+    "0F766E",
+    "B45309",
     "3F6212",
-    "4B5563"
+    "1D4ED8"
   ]
 }

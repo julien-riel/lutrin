@@ -1,0 +1,1 @@
+{ "name": "spec-sheet", "base": "grid", "description": "A dense spec sheet — square cells, three across.", "cols": 3, "density": "dense", "sections": { "min": 3, "max": 6 } }

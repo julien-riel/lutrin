@@ -1,0 +1,1 @@
+{ "name": "process", "base": "steps", "description": "A production line, step to step, right angles.", "connector": "arrow", "sections": { "min": 2, "max": 6 } }

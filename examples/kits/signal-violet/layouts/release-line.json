@@ -1,0 +1,1 @@
+{ "name": "release-line", "base": "timeline", "description": "Release milestones on a horizontal axis, numbered.", "numbered": true, "sections": { "min": 2, "max": 6 } }
