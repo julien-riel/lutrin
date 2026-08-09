@@ -27,6 +27,7 @@ import {
   PAGE,
   SEMANTIC,
   SURFACE,
+  ACCENT,
   TREND_INK,
   badgeLayout,
   blockFontSize,
@@ -861,7 +862,7 @@ function addQuote(slide, block, r) {
     h: px(96),
     fontSize: 72,
     bold: true,
-    color: block.color ?? COLORS.primary,
+    color: block.color ?? ACCENT.bar,
     fontFace: FONTS.body,
   });
   slide.addText(toRuns(block.runs, { italic: true, color: block.color, fontFace: displayFace() }), {
@@ -1310,14 +1311,14 @@ function defineMasters(pptx, meta, brand) {
     background: { color: SURFACE.pageBg },
     objects: [
       titlePlaceholder(contentTitleBox()),
-      // title rule: green segment (the single accent) then a neutral rule
+      // title rule: accent segment (the single flourish) then a neutral rule
       {
         rect: {
           x: px(PAGE.margin),
           y: px(PAGE.titleHeight),
           w: px(CHROME.title.accentW),
           h: px(CHROME.title.accentH),
-          fill: { color: COLORS.primary },
+          fill: { color: ACCENT.bar },
         },
       },
       {
@@ -1326,7 +1327,7 @@ function defineMasters(pptx, meta, brand) {
           y: px(PAGE.titleHeight + 1.5),
           w: px(PAGE.width - 2 * PAGE.margin - CHROME.title.accentW),
           h: px(1),
-          fill: { color: COLORS.neutralStroke },
+          fill: { color: ACCENT.rule },
         },
       },
       {
@@ -1399,7 +1400,7 @@ function renderCover(pptx, scene) {
     y: px(c.barY),
     w: px(c.barW),
     h: px(c.barH),
-    fill: { color: COLORS.primary },
+    fill: { color: ACCENT.bar },
     objectName: 'Accent rule',
   });
   if (scene.subtitle) {

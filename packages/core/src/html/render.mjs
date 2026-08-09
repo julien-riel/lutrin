@@ -43,6 +43,7 @@ import {
   PAGE,
   SEMANTIC,
   SURFACE,
+  ACCENT,
   TREND_INK,
   badgeLayout,
   blockFontSize,
@@ -658,6 +659,7 @@ function baseCss() {
     ? `font-family:"${FONTS.display}",-apple-system,'Segoe UI',Arial,sans-serif;`
     : '';
   const S = SURFACE;
+  const A = ACCENT;
   // Cover ink is inherited from the body (neutralPrimary) unless the kit gives
   // the cover its own — emitted only then, so a default cover's CSS is
   // unchanged. The cover BACKGROUND rule is emitted only when the cover differs
@@ -685,8 +687,8 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 
 /* chrome of content slides */
 .slide-title{position:absolute;left:${PAGE.margin}px;top:${SPACE.lg}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${PAGE.titleHeight - SPACE.lg - 8}px;display:flex;align-items:center;font-size:${TYPE.slideTitle}pt;font-weight:700;line-height:1.15;${DTF}}
-.title-accent{position:absolute;left:${PAGE.margin}px;top:${PAGE.titleHeight}px;width:${CH.title.accentW}px;height:${CH.title.accentH}px;background:#${C.primary}}
-.title-rule{position:absolute;left:${PAGE.margin + CH.title.accentW}px;top:${PAGE.titleHeight + 1}px;width:${PAGE.width - 2 * PAGE.margin - CH.title.accentW}px;height:1px;background:#${C.neutralStroke}}
+.title-accent{position:absolute;left:${PAGE.margin}px;top:${PAGE.titleHeight}px;width:${CH.title.accentW}px;height:${CH.title.accentH}px;background:#${A.bar}}
+.title-rule{position:absolute;left:${PAGE.margin + CH.title.accentW}px;top:${PAGE.titleHeight + 1}px;width:${PAGE.width - 2 * PAGE.margin - CH.title.accentW}px;height:1px;background:#${A.rule}}
 .footer-text{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.footer.textW}px;height:${CH.footer.h}px;display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 .footer-num{position:absolute;left:${PAGE.width - PAGE.margin - CH.footer.numW}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.footer.numW}px;height:${CH.footer.h}px;display:flex;align-items:center;justify-content:flex-end;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 
@@ -704,7 +706,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .logo{position:absolute;left:${PAGE.margin}px;top:${PAGE.margin}px}
 .logo svg,.logo img{height:100%;width:auto;display:block}
 .logo-section{top:auto;bottom:${PAGE.margin}px}
-.cover-bar{position:absolute;left:${PAGE.margin}px;top:${CH.cover.barY}px;width:${CH.cover.barW}px;height:${CH.cover.barH}px;background:#${C.primary}}
+.cover-bar{position:absolute;left:${PAGE.margin}px;top:${CH.cover.barY}px;width:${CH.cover.barW}px;height:${CH.cover.barH}px;background:#${A.bar}}
 .cover-title{position:absolute;left:${PAGE.margin}px;top:${CH.cover.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverTitle}pt;font-weight:700;line-height:1.15;${coverInkCss}${DTF}}
 .cover-subtitle{position:absolute;left:${PAGE.margin}px;top:${CH.cover.subtitleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverSubtitle}pt;color:#${S.coverMutedInk};line-height:1.3}
 .cover-byline{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - CH.cover.bylineBottom}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.cover.bylineH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.small}pt;color:#${S.coverMutedInk}}
@@ -782,7 +784,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
    with --vscode-textBlockQuote-background and a left border — neutralized
    explicitly */
 .quote blockquote{position:absolute;left:96px;right:32px;top:0;bottom:64px;display:flex;align-items:center;margin:0;padding:0;background:transparent;border:0;font-size:${TYPE.quote}pt;font-style:italic;line-height:1.4;${DTF}}
-.quote-mark{position:absolute;left:0;top:-10px;font-size:72pt;font-weight:700;color:#${C.primary};line-height:1}
+.quote-mark{position:absolute;left:0;top:-10px;font-size:72pt;font-weight:700;color:#${A.bar};line-height:1}
 .quote figcaption{position:absolute;right:32px;bottom:12px;font-size:${TYPE.body}pt;color:#${C.neutralSecondary}}
 .img-contain{object-fit:contain}
 .img-cover{object-fit:cover}

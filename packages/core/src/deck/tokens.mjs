@@ -355,6 +355,19 @@ export const TREND_INK = {};
  */
 export const SURFACE = {};
 
+/**
+ * The accent flourishes — the small marks that sign a slide: the bar over a
+ * cover title, the coloured segment of a content title's rule, the focus
+ * layout's bar, the quotation mark, and the hairline `rule` under a content
+ * title. Derived from the palette and overridable as a theme's `accent` group,
+ * so a kit can give its flourishes a colour distinct from the brand/link
+ * `primary`, or restyle the title rule (a bolder, quieter or invisible line).
+ *
+ * `bar` defaults to the primary and `rule` to the neutral stroke — exactly what
+ * the renderers hard-coded — so a theme that names no `accent` is unchanged.
+ */
+export const ACCENT = {};
+
 /** Tints of the :::info/success/warning/danger callouts.
  *  fill/text derived from COLORS (deriveTokens); label localizable. */
 export const SEMANTIC = {};
@@ -467,6 +480,11 @@ export function deriveTokens() {
     sectionInk: COLORS.ground,
   });
 
+  Object.assign(ACCENT, {
+    bar: COLORS.primary,
+    rule: COLORS.neutralStroke,
+  });
+
   // Two tones per tint: `fill`/`text` is the pale callout surface, and
   // `solid`/`solidText` the saturated chip — a status pill, a state bar, a
   // full-bleed band. The four saturated tokens are nowhere near equally dark
@@ -522,8 +540,8 @@ deriveTokens();
 export function panelStyle(block) {
   switch (block.variant) {
     case 'accent':
-      // solid accent bar (focus layout) — same ink as the title rule
-      return { fill: COLORS.primary, line: null, ink: COLORS.ground };
+      // solid accent bar (focus layout) — the kit's accent flourish colour
+      return { fill: ACCENT.bar, line: null, ink: COLORS.ground };
     case 'highlight':
       return {
         fill: COLORS.highlightLight,

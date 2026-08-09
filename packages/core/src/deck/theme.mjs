@@ -98,6 +98,7 @@ import {
   TREND_INK,
   SEMANTIC,
   SURFACE,
+  ACCENT,
   deriveTokens,
   luminance,
   contrastRatio,
@@ -125,7 +126,13 @@ const BASE_GROUPS = {
  *  SPACE, so an explicit theme override must be merged AFTER in order to take
  *  precedence over the recomputation (otherwise it would be silently
  *  overwritten). */
-const DERIVED_GROUPS = { page: PAGE, trendInk: TREND_INK, semantic: SEMANTIC, surface: SURFACE };
+const DERIVED_GROUPS = {
+  page: PAGE,
+  trendInk: TREND_INK,
+  semantic: SEMANTIC,
+  surface: SURFACE,
+  accent: ACCENT,
+};
 const ALL_LIVE = {
   ...BASE_GROUPS,
   ...DERIVED_GROUPS,
@@ -154,6 +161,7 @@ export const THEME_KEYS = [
   'trendInk',
   'semantic',
   'surface',
+  'accent',
   'logos',
   'images',
 ];
@@ -1071,6 +1079,7 @@ export function resolveTheme(
     ['trendInk', { colorsOnly: true }],
     ['semantic', {}],
     ['surface', { colorsOnly: true }],
+    ['accent', { colorsOnly: true }],
   ];
   for (const [key, opts] of OBJECT_GROUPS) {
     if (json[key] == null) continue;
