@@ -178,6 +178,7 @@
   },
   "accent": {
     "bar": "1D4ED8",
+    "coverBar": "1D4ED8",
     "rule": "CED4DA"
   }
 }

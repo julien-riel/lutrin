@@ -46,6 +46,7 @@
   },
   "accent": {
     "bar": "B91C1C",
+    "coverBar": "DC2626",
     "rule": "D6D3D1"
   },
   "chrome": {

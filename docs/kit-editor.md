@@ -135,8 +135,9 @@ compiled once.
 The theme's colors, grouped by their real domains — Brand, Neutrals, Surfaces,
 Highlights, Semantic — plus the **Surfaces** group (the three slide
 backgrounds and the inks on them: the content page, a cover with its title and
-subtitle inks, the section band), the **Accent** group (the signature bar and
-the title rule), the chart palette (ordered, reorderable), the layer shades
+subtitle inks, the section band), the **Accent** group (the signature bar, the
+cover bar and the title rule), the chart palette (ordered, reorderable), the
+layer shades
 (fill + ink pairs) and the trend inks. Each row pairs a native color picker
 with a hex field; each group has a "Reset to default". The Surfaces and Accent
 groups default to values derived from the palette, so editing one saves it
@@ -146,8 +147,12 @@ The engine checks the WCAG thresholds on every recompile, so a color that
 breaks legibility answers **while you are picking it**: the `THEME_CONTRAST`
 diagnostics of the last compile are anchored directly under the rows they
 involve — main text against the content page, the cover title and subtitle on
-the cover, the section title on the band, chart colors, layer inks, callout and
-trend inks.
+the cover, the cover bar against the cover it sits on, the section title on the
+band, chart colors, layer inks, callout and trend inks.
+
+The **Cover bar** row is the one to reach for when the cover carries the brand
+colour: it follows the accent bar until you set it, and an accent bar on a
+cover painted the same colour is a flourish nobody sees.
 
 A kit without a `theme.json` starts from an empty state; "Create theme from
 defaults" seeds it with the engine's own tokens.

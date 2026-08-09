@@ -50,6 +50,16 @@ stated otherwise, an entry describes the compiler.
   published gallery, every kit's titles used to come back in the fallback face.
   The specimens on info.lutrin.app now show the typeface the kit means.
 
+- **`accent.coverBar`** — the cover's flourish, on its own token. The cover is
+  the one surface a kit paints in its own brand colour, and a bar left on
+  `accent.bar` then drew itself in the colour it lies on: the flourish simply
+  disappeared. `coverBar` follows `bar` unless set (so a theme that names
+  neither renders exactly as before, goldens included), and the WCAG harness
+  now measures it against `surface.coverBg` at the 3:1 asked of a graphic
+  object. That check found three covers whose bar was already invisible — the
+  example theme, `press-noir` and `signal-violet` — and let `market-coral` drop
+  the pale-cover workaround for the full-colour cover it wanted.
+
 - **Native OMML equations.** An equation now lands in the `.pptx` as a real
   PowerPoint equation — the one its own editor opens and edits — instead of a
   picture of one. It is written the way PowerPoint writes its own, both halves

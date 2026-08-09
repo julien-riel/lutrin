@@ -470,6 +470,7 @@ function surfaceCard() {
 
 const ACCENT_KEYS = [
   ['bar', 'Accent bar'],
+  ['coverBar', 'Cover bar'],
   ['rule', 'Title rule'],
 ];
 
@@ -482,7 +483,9 @@ function accentCard() {
       class: 'p-tokens-desc',
       text:
         'The signature flourishes — the bar over a cover title, the accent segment of a ' +
-        'content title rule, the focus bar and the quotation mark — and the hairline rule.',
+        'content title rule, the focus bar and the quotation mark — and the hairline rule. ' +
+        'The cover bar has its own colour so a cover painted in the brand colour keeps a ' +
+        'visible flourish; left empty, it follows the accent bar.',
     }),
     theme?.accent
       ? null
@@ -538,6 +541,7 @@ function anchorFor(message, e) {
   if (message.includes('secondary text')) return 'colors.neutralSecondary';
   if (message.includes('cover title')) return 'surface.coverInk';
   if (message.includes('cover subtitle')) return 'surface.coverMutedInk';
+  if (message.includes('cover accent bar')) return 'accent.coverBar';
   if (message.includes('section slide title')) return 'surface.sectionInk';
   let m = message.match(/chart color #([0-9A-Fa-f]{6})/);
   if (m) {

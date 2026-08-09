@@ -315,7 +315,7 @@ mirror of the default — applying it is a no-op); minimal example:
   "colors": { "primary": "0B5394", "primaryDarker": "073763" },
   "fonts": { "body": "My Font", "display": "My Display", "files": { "regular": "./fonts/MyFont.ttf" } },
   "surface": { "coverBg": "0B1F3A", "coverInk": "FFFFFF", "coverMutedInk": "AEBED6" },
-  "accent": { "bar": "0B5394", "rule": "CED4DA" },
+  "accent": { "bar": "0B5394", "coverBar": "6FA8DC", "rule": "CED4DA" },
   "logos": { "cover": "./logo.png", "section": "./logo-white.png" },
   "chartColors": ["0B5394", "B87F00", "0A8A76", "D3310A", "005E99", "8A5C00"]
 }
@@ -328,7 +328,10 @@ mirror of the default — applying it is a no-op); minimal example:
   the physical frame), `rounded`, `chrome` (cover/section/footer geometry),
   `surface` (`pageBg`, `coverBg`/`coverInk`/`coverMutedInk`,
   `sectionBg`/`sectionInk` — the slide backgrounds and the inks on them),
-  `accent` (`bar`/`rule` — the signature flourishes and the title rule),
+  `accent` (`bar`/`rule` — the signature flourishes and the title rule; plus
+  `coverBar`, the cover bar alone, which follows `bar` unless set — set it when
+  `surface.coverBg` is the brand colour, or the bar draws itself in the colour
+  it lies on),
   `chartColors`, `layerShades`, `trendInk`, `semantic`, `logos`
   (`cover`/`section` as PNG/JPEG; `coverSvg`/`sectionSvg` slots for an SVG
   served in the HTML rendering). Exact list: `capabilities().theme`.

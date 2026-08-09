@@ -713,7 +713,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .logo{position:absolute;left:${PAGE.margin}px;top:${PAGE.margin}px}
 .logo svg,.logo img{height:100%;width:auto;display:block}
 .logo-section{top:auto;bottom:${PAGE.margin}px}
-.cover-bar{position:absolute;left:${PAGE.margin}px;top:${CH.cover.barY}px;width:${CH.cover.barW}px;height:${CH.cover.barH}px;background:#${A.bar}}
+.cover-bar{position:absolute;left:${PAGE.margin}px;top:${CH.cover.barY}px;width:${CH.cover.barW}px;height:${CH.cover.barH}px;background:#${A.coverBar}}
 .cover-title{position:absolute;left:${PAGE.margin}px;top:${CH.cover.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverTitle}pt;font-weight:700;line-height:1.15;${coverInkCss}${DTF}}
 .cover-subtitle{position:absolute;left:${PAGE.margin}px;top:${CH.cover.subtitleY}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;font-size:${TYPE.coverSubtitle}pt;color:#${S.coverMutedInk};line-height:1.3}
 .cover-byline{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - CH.cover.bylineBottom}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.cover.bylineH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.small}pt;color:#${S.coverMutedInk}}
