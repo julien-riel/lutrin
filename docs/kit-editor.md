@@ -159,15 +159,24 @@ defaults" seeds it with the engine's own tokens.
 
 ## Fonts
 
-Three family choices — body, **display** and mono — and three embedded variants
-of the body face: regular, bold, italic. The **display** family is the
-optional second face the cover, section and slide titles and the pull-quote
-wear; left empty, the titles keep the body family. **Each embedded variant is a
-`.ttf` plus a `.woff2` twin of the same name**, both in `fonts/`: the `.ttf` is
-what gets embedded in the `.pptx`, the `.woff2` is what the HTML output uses.
-The panel shows the pair status of every declared variant, and a missing twin
-is named for what it is. (Embedded files for the display face are declared by
-hand as `fonts.displayFiles`, validated by the same twin/licence rules.)
+Three family choices — body, **display** and mono — and the three embedded
+variants (regular, bold, italic) of each face that can carry its own glyphs.
+The **display** family is the optional second face the cover, section and slide
+titles and the pull-quote wear; left empty, the titles keep the body family.
+**Each embedded variant is a `.ttf` plus a `.woff2` twin of the same name**,
+both in `fonts/`: the `.ttf` is what gets embedded in the `.pptx`, the `.woff2`
+is what the HTML output uses. The panel shows the pair status of every declared
+variant, and a missing twin is named for what it is.
+
+The two faces have their own sets of cards, and their own everything else: an
+upload under the display face writes `fonts.displayFiles`, previews under its
+own name and proposes a **display** family — it never renames the body one. A
+`.ttf` uploaded to a face that has no family name yet adopts the family the
+font reports, which is what makes a display upload do anything at all: the
+engine drops `fonts.displayFiles` when no `fonts.display` names it, and the
+panel says so under the cards rather than leaving it to the build log. The
+single `fonts/` directory serves both, so the file list marks which face and
+which variant uses each file.
 
 The pitfall the panel warns about: **a family name without embedded files is a
 promise the `.pptx` cannot keep** — the file will use whatever font is

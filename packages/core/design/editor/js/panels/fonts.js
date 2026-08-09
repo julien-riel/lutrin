@@ -1,9 +1,18 @@
 /**
- * panels/fonts.js — the Fonts panel: the two family choices (fonts.body /
- * fonts.mono), the three embedded variants (regular / bold / italic) as
- * .ttf + .woff2 pairs living in fonts/, and the inventory of what sits on
- * disk. Uploads and deletes hit the API immediately; the theme's
- * fonts.files declaration is a working-copy edit that Save kit persists.
+ * panels/fonts.js — the Fonts panel: the three family choices (fonts.body /
+ * fonts.display / fonts.mono), the embedded variants (regular / bold / italic)
+ * of each embeddable family as .ttf + .woff2 pairs living in fonts/, and the
+ * inventory of what sits on disk. Uploads and deletes hit the API immediately;
+ * the theme's fonts.files / fonts.displayFiles declarations are working-copy
+ * edits that Save kit persists.
+ *
+ * TWO families can be embedded, and they are the same panel: the body face
+ * (`fonts.files`) and the display face the titles and the pull-quote wear
+ * (`fonts.displayFiles`). Everything below is written once and driven by SLOTS
+ * — the upload path, the pair status, the previews, the theme cleanup on
+ * delete — because the two differ in exactly three places (which theme key
+ * holds the files, which one holds the family name, and what the section is
+ * called), and a transcribed copy would drift the day one of them is fixed.
  *
  * The server suppresses kit-changed for its own writes, so after an upload
  * or a delete this panel refreshes its view of fonts/ itself (one GET
@@ -19,10 +28,57 @@ const FAMILY_RE = /^[\p{L}\p{N} .,'-]{1,64}$/u;
 const FILENAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const VARIANTS = ['regular', 'bold', 'italic'];
 const VARIANT_LABELS = { regular: 'Regular', bold: 'Bold', italic: 'Italic' };
+
+/**
+ * The embeddable families. `files` is the theme key holding the variants,
+ * `family` the one holding the name they must be embedded under — the engine
+ * refuses files without their family (they would be embedded under the other
+ * face and the HTML would diverge from the .pptx), which is why every slot
+ * carries both.
+ *
+ * `route` prefixes the anchor a diagnostic links to: the body variants keep the
+ * bare '#fonts/regular' they always had, so links already written elsewhere
+ * still land.
+ */
+const SLOTS = [
+  {
+    key: 'body',
+    files: 'files',
+    family: 'body',
+    title: 'Embedded variants — body',
+    route: '',
+    intro:
+      'Each variant is a .ttf embedded in the .pptx plus a .woff2 twin of the same ' +
+      'name for the HTML.',
+  },
+  {
+    key: 'display',
+    files: 'displayFiles',
+    family: 'display',
+    title: 'Embedded variants — display',
+    route: 'display-',
+    intro:
+      'The face the cover, section and slide titles and the pull-quote wear. Same ' +
+      'contract as the body variants: a .ttf and its .woff2 twin.',
+  },
+];
+
 const PANGRAM = 'Grumpy wizards make toxic brew for the evil queen and jack.';
-const NOTE_TEXT =
-  "Without embedded font files, the .pptx will use a font installed on the viewer's " +
-  'machine. Stick to a universal family (Arial, Georgia…) or upload the files.';
+const NOTE_TEXT = {
+  body:
+    "Without embedded font files, the .pptx will use a font installed on the viewer's " +
+    'machine. Stick to a universal family (Arial, Georgia…) or upload the files.',
+  display:
+    'The display family names a font the viewer may not have, and nothing is embedded ' +
+    'under it: the titles will be set in whatever that machine falls back on. Upload ' +
+    'its files, or name a universal family.',
+};
+/** The display files are dropped by the engine when no display family names
+ *  them — said here rather than discovered in the build diagnostics. */
+const ORPHAN_TEXT =
+  'These files are declared but no display family is set, so the engine ignores them: ' +
+  'the glyphs would be embedded under the body family and the HTML would diverge from ' +
+  'the .pptx. Fill in the display family above.';
 
 let ctx = null;
 let host = null;
@@ -36,13 +92,20 @@ let selfEdit = false;
 /** Panel-local view of fonts/ on disk, refreshed after our own uploads and
  *  deletes; null → read snap.state.fonts.files. */
 let diskFiles = null;
-const uploading = new Map(); // variant → file name in flight
-const previews = new Map(); // variant → {face, family, fileName} (FontFace API)
+const uploading = new Map(); // "slot/variant" → file name in flight
+const previews = new Map(); // "slot/variant" → {face, family, fileName} (FontFace API)
 /** woff2 kit-relative path → {face, family} — previews of pairs already on
  *  disk, loaded through api.fileUrl (inert route, correct font MIME). */
 const diskFaces = new Map();
-let proposal = null; // {family} read from the last .ttf, differing from fonts.body
-let noteEl = null;
+/** slot key → {family} read from the last .ttf, differing from that slot's
+ *  declared family. Per slot: an upload under the display face must not offer
+ *  to rename the body one. */
+const proposals = new Map();
+const noteEls = new Map(); // slot key → {note, orphan}
+
+/** Map key for the per-variant state, so the display Bold and the body Bold
+ *  never share a preview or an in-flight upload. */
+const slotVariant = (slot, variant) => `${slot.key}/${variant}`;
 
 // ------ path helpers (theme paths are relative to theme.json's directory) ----
 
@@ -98,27 +161,35 @@ async function refreshDisk() {
 
 // ------ theme edits -------------------------------------------------------------
 
-function declareVariant(variant, kitRel) {
-  ctx.store.update(`theme.fonts.files.${variant}`, fromKitRel(kitRel));
+const declaredFiles = (slot) => storeRef.get().theme?.fonts?.[slot.files] ?? {};
+
+function declareVariant(slot, variant, kitRel) {
+  ctx.store.update(`theme.fonts.${slot.files}.${variant}`, fromKitRel(kitRel));
 }
 
-function clearVariant(variant) {
-  const files = storeRef.get().theme?.fonts?.files;
+function clearVariant(slot, variant) {
+  const files = storeRef.get().theme?.fonts?.[slot.files];
   if (!files || typeof files[variant] !== 'string') return;
   const remaining = Object.keys(files).filter((k) => k !== variant && VARIANTS.includes(k));
-  if (remaining.length) storeRef.update(`theme.fonts.files.${variant}`, undefined);
-  else storeRef.update('theme.fonts.files', undefined); // never leave files: {}
+  if (remaining.length) storeRef.update(`theme.fonts.${slot.files}.${variant}`, undefined);
+  else storeRef.update(`theme.fonts.${slot.files}`, undefined); // never leave files: {}
 }
 
-/** Variants whose declared pair uses this kit-relative file (.ttf or twin). */
+/** Variants whose declared pair uses this kit-relative file (.ttf or twin),
+ *  across BOTH families — one fonts/ directory serves them, and a file the body
+ *  Bold uses must not read as unreferenced because the display face ignores
+ *  it. */
 function usageOf(kitRel) {
-  const files = storeRef.get().theme?.fonts?.files ?? {};
   const used = [];
-  for (const v of VARIANTS) {
-    if (typeof files[v] !== 'string') continue;
-    const ttfRel = toKitRel(files[v]);
-    if (!ttfRel) continue; // escapes the kit — matches no kit file
-    if (ttfRel === kitRel || ttfRel.replace(/\.ttf$/i, '.woff2') === kitRel) used.push(v);
+  for (const slot of SLOTS) {
+    const files = declaredFiles(slot);
+    for (const v of VARIANTS) {
+      if (typeof files[v] !== 'string') continue;
+      const ttfRel = toKitRel(files[v]);
+      if (!ttfRel) continue; // escapes the kit — matches no kit file
+      if (ttfRel === kitRel || ttfRel.replace(/\.ttf$/i, '.woff2') === kitRel)
+        used.push(slot.key === 'body' ? v : `${slot.key} ${v}`);
+    }
   }
   return used;
 }
@@ -154,38 +225,44 @@ function pruneDiskFaces() {
   }
 }
 
-function setPreview(variant, fileName, buf) {
-  const old = previews.get(variant);
+function setPreview(slot, variant, fileName, buf) {
+  const id = slotVariant(slot, variant);
+  const old = previews.get(id);
   if (old) document.fonts.delete(old.face);
-  previews.delete(variant);
+  previews.delete(id);
   try {
-    const family = `p-fonts-preview-${variant}`;
+    const family = `p-fonts-preview-${slot.key}-${variant}`;
     const face = new FontFace(family, buf);
     if (face.status === 'error') return;
     document.fonts.add(face);
-    previews.set(variant, { face, family, fileName });
+    previews.set(id, { face, family, fileName });
   } catch {
     /* unreadable woff2 — no preview; the compile diagnostics say more */
   }
 }
 
-function afterUpload(variant, name, ext, buf) {
+function afterUpload(slot, variant, name, ext, buf) {
   const snap = ctx.store.get();
   if (ext === '.ttf') {
-    declareVariant(variant, `fonts/${name}`);
+    declareVariant(slot, variant, `fonts/${name}`);
     const family = ttfFamilyName(buf);
     if (family && FAMILY_RE.test(family)) {
-      const body = snap.theme?.fonts?.body;
-      if (!body) {
-        proposal = null;
-        ctx.store.update('theme.fonts.body', family);
-      } else proposal = family === body ? null : { family };
+      const declared = snap.theme?.fonts?.[slot.family];
+      // No family yet: adopt the font's own. This matters more on the display
+      // slot than on the body one — files without `fonts.display` are dropped
+      // outright by the engine, so adopting the name is what makes the upload
+      // do anything at all.
+      if (!declared) {
+        proposals.delete(slot.key);
+        ctx.store.update(`theme.fonts.${slot.family}`, family);
+      } else if (family === declared) proposals.delete(slot.key);
+      else proposals.set(slot.key, { family });
     }
   } else {
-    setPreview(variant, name, buf);
-    const declared = snap.theme?.fonts?.files?.[variant];
+    setPreview(slot, variant, name, buf);
+    const declared = snap.theme?.fonts?.[slot.files]?.[variant];
     const twin = `fonts/${name.replace(/\.woff2$/i, '.ttf')}`;
-    if (!declared && hasFile(twin)) declareVariant(variant, twin);
+    if (!declared && hasFile(twin)) declareVariant(slot, variant, twin);
     else if (declared) {
       // The variant is already declared, so nothing edited the store — yet the
       // .woff2 the main HTML preview inlines just changed on disk, and the
@@ -197,10 +274,13 @@ function afterUpload(variant, name, ext, buf) {
   }
 }
 
-async function handleFiles(variant, fileList) {
+async function handleFiles(slot, variant, fileList) {
   const list = [...fileList].sort(
-    (a, b) => (a.name.toLowerCase().endsWith('.ttf') ? 0 : 1) - (b.name.toLowerCase().endsWith('.ttf') ? 0 : 1),
+    (a, b) =>
+      (a.name.toLowerCase().endsWith('.ttf') ? 0 : 1) -
+      (b.name.toLowerCase().endsWith('.ttf') ? 0 : 1),
   );
+  const id = slotVariant(slot, variant);
   for (const file of list) {
     if (!ctx) return; // unmounted mid-flight
     const name = file.name;
@@ -211,7 +291,10 @@ async function handleFiles(variant, fileList) {
       continue;
     }
     if (!FILENAME_RE.test(name)) {
-      ctx.ui.toast(`"${name}": use letters, digits, dots, hyphens and underscores only (no spaces).`, 'error');
+      ctx.ui.toast(
+        `"${name}": use letters, digits, dots, hyphens and underscores only (no spaces).`,
+        'error',
+      );
       continue;
     }
     if (hasFile(`fonts/${name}`)) {
@@ -221,20 +304,20 @@ async function handleFiles(variant, fileList) {
       });
       if (!ok || !ctx) continue;
     }
-    uploading.set(variant, name);
+    uploading.set(id, name);
     render();
     try {
       const buf = await file.arrayBuffer();
       await ctx.api.putFont(name, buf);
       await refreshDisk();
       if (!ctx) return;
-      afterUpload(variant, name, ext, buf);
+      afterUpload(slot, variant, name, ext, buf);
       ctx.ui.toast(`Uploaded fonts/${name}`);
     } catch (e) {
       if (!ctx) return;
       ctx.ui.toast(e?.message ?? `Upload of ${name} failed`, 'error');
     }
-    uploading.delete(variant);
+    uploading.delete(id);
     render();
   }
 }
@@ -255,11 +338,14 @@ async function deleteDiskFile(entry) {
     ui.toast(e?.message ?? 'Delete failed', 'error');
     return;
   }
-  // clean the theme entries whose .ttf just went away (twin loss shows as a
-  // missing-file status instead — the variant is still declared)
-  const files = storeRef.get().theme?.fonts?.files ?? {};
-  for (const v of VARIANTS) {
-    if (typeof files[v] === 'string' && toKitRel(files[v]) === entry.file) clearVariant(v);
+  // clean the theme entries whose .ttf just went away, under BOTH families
+  // (twin loss shows as a missing-file status instead — the variant is still
+  // declared)
+  for (const slot of SLOTS) {
+    const files = declaredFiles(slot);
+    for (const v of VARIANTS) {
+      if (typeof files[v] === 'string' && toKitRel(files[v]) === entry.file) clearVariant(slot, v);
+    }
   }
   ui.toast(`Deleted ${entry.file}`);
   await refreshDisk();
@@ -268,13 +354,23 @@ async function deleteDiskFile(entry) {
 
 // ------ rendering ----------------------------------------------------------------
 
-function updateNote() {
-  if (!noteEl || !ctx) return;
+/** The two hazards a slot can be in, recomputed without a re-render so that
+ *  typing a family name answers immediately: a family promised but not
+ *  embedded, and — display only — files nothing names. */
+function updateNote(slot) {
+  const els = noteEls.get(slot.key);
+  if (!els || !ctx) return;
   const fonts = ctx.store.get().theme?.fonts ?? {};
-  const files = fonts.files;
+  const files = fonts[slot.files];
   const hasFiles = files !== null && typeof files === 'object' && Object.keys(files).length > 0;
-  noteEl.hidden = !(typeof fonts.body === 'string' && fonts.body && !hasFiles);
+  const family = typeof fonts[slot.family] === 'string' ? fonts[slot.family] : '';
+  els.note.hidden = !(family && !hasFiles);
+  if (els.orphan) els.orphan.hidden = !(hasFiles && !family);
 }
+
+const updateNotes = () => {
+  for (const slot of SLOTS) updateNote(slot);
+};
 
 function familyField(key, label, hint, placeholder) {
   const { el, field } = ctx.ui;
@@ -288,14 +384,15 @@ function familyField(key, label, hint, placeholder) {
     oninput: () => {
       const v = input.value;
       if (v !== '' && !FAMILY_RE.test(v)) {
-        err.textContent = "Letters, digits, spaces and . , ' - only (64 characters max) — not applied.";
+        err.textContent =
+          "Letters, digits, spaces and . , ' - only (64 characters max) — not applied.";
         err.hidden = false;
         return;
       }
       err.hidden = true;
       selfEdit = true;
       ctx.store.update(`theme.fonts.${key}`, v === '' ? undefined : v);
-      updateNote();
+      updateNotes();
     },
   });
   const row = field({ label, control: input, hint, id: `p-fonts-${key}` });
@@ -303,42 +400,51 @@ function familyField(key, label, hint, placeholder) {
   return row;
 }
 
+/** "The uploaded font reports its family as X" — offered per slot, so the
+ *  display upload proposes a display family and never touches the body one. */
+function proposalRow(slot) {
+  const { el } = ctx.ui;
+  const proposal = proposals.get(slot.key);
+  if (!proposal) return null;
+  return el('div', { class: 'p-fonts-proposal' }, [
+    el('span', {}, [
+      `The uploaded ${slot.key} font reports its family as `,
+      el('span', { class: 'mono', text: proposal.family }),
+      '.',
+    ]),
+    el('button', {
+      class: 'btn btn-sm',
+      type: 'button',
+      text: `Use ${proposal.family}`,
+      onclick: () => {
+        const family = proposal.family;
+        proposals.delete(slot.key);
+        ctx.store.update(`theme.fonts.${slot.family}`, family);
+      },
+    }),
+  ]);
+}
+
 function familiesCard() {
   const { el } = ctx.ui;
   const children = [
     el('h3', { class: 'card-title', text: 'Families' }),
-    familyField('body', 'Body family', 'Headings and running text — the name written into the .pptx.', 'Arial'),
-  ];
-  if (proposal) {
-    children.push(
-      el('div', { class: 'p-fonts-proposal' }, [
-        el('span', {}, [
-          'The uploaded font reports its family as ',
-          el('span', { class: 'mono', text: proposal.family }),
-          '.',
-        ]),
-        el('button', {
-          class: 'btn btn-sm',
-          type: 'button',
-          text: `Use ${proposal.family}`,
-          onclick: () => {
-            const family = proposal.family;
-            proposal = null;
-            ctx.store.update('theme.fonts.body', family);
-          },
-        }),
-      ]),
-    );
-  }
-  children.push(
+    familyField(
+      'body',
+      'Body family',
+      'Headings and running text — the name written into the .pptx.',
+      'Arial',
+    ),
+    proposalRow(SLOTS[0]),
     familyField(
       'display',
       'Display family',
-      'Optional second face for the cover, section and slide titles and the pull-quote — left empty, the titles use the body family. Embed its files by hand with fonts.displayFiles.',
+      'Optional second face for the cover, section and slide titles and the pull-quote — left empty, the titles use the body family.',
       'same as body',
     ),
+    proposalRow(SLOTS[1]),
     familyField('mono', 'Mono family', 'Code blocks and figures.', 'Courier New'),
-  );
+  ];
   return el('section', { class: 'card p-fonts-families' }, children);
 }
 
@@ -350,22 +456,27 @@ function statusRow(kind, file, note) {
   ]);
 }
 
-function dropzone(variant) {
+function dropzone(slot, variant) {
   const { el } = ctx.ui;
   const input = el('input', {
     type: 'file',
     accept: '.ttf,.woff2',
     multiple: true,
     class: 'p-fonts-input',
-    'aria-label': `Upload ${VARIANT_LABELS[variant]} font files`,
+    'aria-label': `Upload ${slot.key} ${VARIANT_LABELS[variant]} font files`,
   });
   input.addEventListener('change', () => {
-    if (input.files?.length) handleFiles(variant, input.files);
+    if (input.files?.length) handleFiles(slot, variant, input.files);
     input.value = '';
   });
   const zone = el('div', { class: 'p-fonts-drop' }, [
     el('span', { text: 'Drop the .ttf and its .woff2 twin here, or' }),
-    el('button', { class: 'btn btn-sm', type: 'button', text: 'Browse files', onclick: () => input.click() }),
+    el('button', {
+      class: 'btn btn-sm',
+      type: 'button',
+      text: 'Browse files',
+      onclick: () => input.click(),
+    }),
     input,
   ]);
   for (const evName of ['dragenter', 'dragover']) {
@@ -378,14 +489,15 @@ function dropzone(variant) {
   zone.addEventListener('drop', (e) => {
     e.preventDefault();
     zone.classList.remove('is-drag');
-    if (e.dataTransfer?.files?.length) handleFiles(variant, e.dataTransfer.files);
+    if (e.dataTransfer?.files?.length) handleFiles(slot, variant, e.dataTransfer.files);
   });
   return zone;
 }
 
-function variantCard(variant) {
+function variantCard(slot, variant) {
   const { el } = ctx.ui;
-  const declared = ctx.store.get().theme?.fonts?.files?.[variant];
+  const declared = ctx.store.get().theme?.fonts?.[slot.files]?.[variant];
+  const id = slotVariant(slot, variant);
   const rows = [];
   let woffOnDisk = null; // kit-relative .woff2 of a declared pair, when present
   if (typeof declared === 'string') {
@@ -398,7 +510,7 @@ function variantCard(variant) {
           type: 'button',
           text: 'Remove from theme',
           title: 'The files stay on disk',
-          onclick: () => clearVariant(variant),
+          onclick: () => clearVariant(slot, variant),
         }),
       ]),
     );
@@ -413,7 +525,9 @@ function variantCard(variant) {
       const ttfOk = hasFile(kitRel);
       const woffOk = hasFile(woffRel);
       if (woffOk) woffOnDisk = woffRel;
-      rows.push(statusRow(ttfOk ? 'ok' : 'missing', basename(kitRel), ttfOk ? 'On disk' : 'Missing'));
+      rows.push(
+        statusRow(ttfOk ? 'ok' : 'missing', basename(kitRel), ttfOk ? 'On disk' : 'Missing'),
+      );
       rows.push(
         statusRow(
           woffOk ? 'ok' : 'missing',
@@ -425,11 +539,14 @@ function variantCard(variant) {
   } else {
     rows.push(el('p', { class: 'p-fonts-none', text: 'No file for this variant yet.' }));
   }
-  const pv = previews.get(variant);
+  const pv = previews.get(id);
   if (pv) {
     const line = el('p', { class: 'p-fonts-preview', text: PANGRAM });
     line.style.fontFamily = `"${pv.family}"`;
-    rows.push(line, el('span', { class: 'p-fonts-preview-src', text: `Preview from ${pv.fileName}` }));
+    rows.push(
+      line,
+      el('span', { class: 'p-fonts-preview-src', text: `Preview from ${pv.fileName}` }),
+    );
   } else if (woffOnDisk) {
     const family = diskPreviewFamily(woffOnDisk);
     if (family) {
@@ -441,7 +558,7 @@ function variantCard(variant) {
       );
     }
   }
-  const inFlight = uploading.get(variant);
+  const inFlight = uploading.get(id);
   if (inFlight) {
     rows.push(
       el('div', { class: 'p-fonts-upload' }, [
@@ -449,10 +566,38 @@ function variantCard(variant) {
         el('progress', { class: 'p-fonts-progress' }),
       ]),
     );
-  } else rows.push(dropzone(variant));
-  return el('section', { class: 'card p-fonts-variant', dataset: { variant } }, [
-    el('h3', { class: 'card-title', text: VARIANT_LABELS[variant] }),
-    ...rows,
+  } else rows.push(dropzone(slot, variant));
+  return el(
+    'section',
+    { class: 'card p-fonts-variant', dataset: { variant: `${slot.route}${variant}` } },
+    [el('h3', { class: 'card-title', text: VARIANT_LABELS[variant] }), ...rows],
+  );
+}
+
+/** One family's whole block: its heading, the two warnings it can raise, and
+ *  its three variant cards. */
+function slotSection(slot) {
+  const { el } = ctx.ui;
+  const note = el('div', { class: 'p-fonts-note', role: 'note' }, [
+    el('strong', { text: 'No embedded font files' }),
+    el('p', { text: NOTE_TEXT[slot.key] }),
+  ]);
+  const orphan =
+    slot.key === 'display'
+      ? el('div', { class: 'p-fonts-note', role: 'note' }, [
+          el('strong', { text: 'Files without a display family' }),
+          el('p', { text: ORPHAN_TEXT }),
+        ])
+      : null;
+  noteEls.set(slot.key, { note, orphan });
+  return el('div', { class: 'p-fonts-slot', dataset: { slot: slot.key } }, [
+    el('div', { class: 'p-fonts-sect' }, [
+      el('h3', { class: 'label', text: slot.title }),
+      el('p', { text: slot.intro }),
+    ]),
+    note,
+    orphan,
+    ...VARIANTS.map((v) => variantCard(slot, v)),
   ]);
 }
 
@@ -495,8 +640,8 @@ function render() {
   if (!host || !ctx) return;
   pruneDiskFaces();
   const { el } = ctx.ui;
+  noteEls.clear();
   if (!ctx.store.get().theme) {
-    noteEl = null;
     host.replaceChildren(
       el('div', { class: 'empty' }, [
         el('h2', { class: 'empty-title', text: 'No theme yet' }),
@@ -509,25 +654,9 @@ function render() {
     );
     return;
   }
-  noteEl = el('div', { class: 'p-fonts-note', role: 'note' }, [
-    el('strong', { text: 'No embedded font files' }),
-    el('p', { text: NOTE_TEXT }),
-  ]);
-  updateNote();
-  host.replaceChildren(
-    familiesCard(),
-    noteEl,
-    el('div', { class: 'p-fonts-sect' }, [
-      el('h3', { class: 'label', text: 'Embedded variants' }),
-      el('p', {
-        text:
-          'Each variant is a .ttf embedded in the .pptx plus a .woff2 twin of the same ' +
-          'name for the HTML.',
-      }),
-    ]),
-    ...VARIANTS.map(variantCard),
-    diskCard(),
-  );
+  const sections = SLOTS.map(slotSection);
+  updateNotes();
+  host.replaceChildren(familiesCard(), ...sections, diskCard());
 }
 
 export default {
@@ -559,10 +688,14 @@ export default {
     });
   },
 
-  /** '#fonts/regular' → scroll the matching variant card into view. */
+  /** '#fonts/regular' → the body Regular card; '#fonts/display-bold' → the
+   *  display Bold one. The bare variant keeps pointing at the body face, which
+   *  is where every link written before the second family pointed. */
   onRoute(sub) {
-    if (!host || !VARIANTS.includes(sub)) return;
-    host.querySelector(`[data-variant="${sub}"]`)?.scrollIntoView({ block: 'start' });
+    if (!host) return;
+    host.querySelector(`[data-variant="${CSS.escape(String(sub))}"]`)?.scrollIntoView({
+      block: 'start',
+    });
   },
 
   unmount() {
@@ -574,9 +707,8 @@ export default {
     diskFaces.clear();
     uploading.clear();
     diskFiles = null;
-    proposal = null;
-    noteEl = null;
-    selfEdit = false;
+    proposals.clear();
+    noteEls.clear();
     host = null;
     ctx = null;
   },

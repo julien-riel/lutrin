@@ -126,17 +126,20 @@
 
   <article class="ke-panel wrap">
     <h3>Fonts</h3>
-    <p>Two family choices — body and mono — and three embedded variants.
-      <strong>Each variant is a <code>.ttf</code> plus a <code>.woff2</code>
-      twin of the same name</strong>: the <code>.ttf</code> is what gets
-      embedded in the <code>.pptx</code>, the <code>.woff2</code> is what the
-      HTML output inlines. The panel shows the pair status of every declared
-      variant and names a missing twin for what it is. Uploads are checked
-      against their actual bytes, and the family name read from the
-      <code>.ttf</code> itself is proposed when it disagrees with the theme.</p>
+    <p>Three family choices — body, display and mono — and the embedded
+      variants of the two that can carry their own glyphs: the body face and
+      the display face the titles wear. <strong>Each variant is a
+      <code>.ttf</code> plus a <code>.woff2</code> twin of the same
+      name</strong>: the <code>.ttf</code> is what gets embedded in the
+      <code>.pptx</code>, the <code>.woff2</code> is what the HTML output
+      inlines. The panel shows the pair status of every declared variant and
+      names a missing twin for what it is. Uploads are checked against their
+      actual bytes, and the family name read from the <code>.ttf</code> itself
+      is proposed when it disagrees with the theme — per face, so a display
+      upload never renames the body family.</p>
     <figure class="shot">
       <img loading="lazy" src="assets/img/kit-editor/fonts.png" width="2880" height="1800"
-           alt="The Fonts panel: body and mono family fields, then three variant cards — regular, bold, italic — each with a drop zone for a .ttf and its .woff2 twin.">
+           alt="The Fonts panel: body, display and mono family fields, then the body face's variant cards — regular, bold, italic — each with a drop zone for a .ttf and its .woff2 twin, with the display face's own cards below.">
       <figcaption>A family name with no embedded files is a promise the
         <code>.pptx</code> cannot keep — the panel says so rather than letting
         you find out on someone else's machine.</figcaption>

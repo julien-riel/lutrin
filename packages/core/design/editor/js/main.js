@@ -120,7 +120,7 @@ function targetOf(code, message = '') {
   // THEME_BAD_VALUE carries fonts.files.*, images.* and token problems alike —
   // route the two that own a panel by their message domain, the rest to Tokens.
   if (c === 'THEME_BAD_VALUE') {
-    if (/\bfonts\.files\b/.test(m)) return 'fonts';
+    if (/\bfonts\.(files|displayFiles)\b/.test(m)) return 'fonts';
     if (/\bimages\b/.test(m)) return 'images';
     return 'tokens';
   }
@@ -130,10 +130,14 @@ function targetOf(code, message = '') {
 }
 
 /** Deep link inside the target panel, when the message names one
- *  ("fonts.files.bold" → #fonts/bold — the Fonts panel scrolls to the card). */
+ *  ("fonts.files.bold" → #fonts/bold — the Fonts panel scrolls to the card).
+ *  The display face has its own three cards, so its variants carry the
+ *  "display-" prefix the panel stamps on them; the bare variant stays the body
+ *  one, which is what every link written before the second family meant. */
 function subTargetOf(target, message) {
-  if (target !== 'fonts') return '';
-  return /fonts\.files\.(regular|bold|italic)/.exec(String(message ?? ''))?.[1] ?? '';
+  const m = /fonts\.(files|displayFiles)\.(regular|bold|italic)/.exec(String(message ?? ''));
+  if (target !== 'fonts' || !m) return '';
+  return m[1] === 'displayFiles' ? `display-${m[2]}` : m[2];
 }
 
 function paintDiagnostics() {
