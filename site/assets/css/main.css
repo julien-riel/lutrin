@@ -309,8 +309,17 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 3px;
 }
+/* The one coloured item in the bar, and it stays when the others collapse: on
+   a phone the choice is between reading about the compiler and running it. */
+.nav-try {
+  color: var(--accent);
+  font-weight: 500;
+}
+.nav-links a.nav-try:hover {
+  color: var(--accent-deep);
+}
 @media (max-width: 860px) {
-  .nav-links a:not(.nav-gh) {
+  .nav-links a:not(.nav-gh):not(.nav-try) {
     display: none;
   }
 }
@@ -572,11 +581,68 @@ h3 {
   }
 }
 
+/* ------------------------------------------------------------------ try */
+/* The playground, framed one scroll under the headline. It shares the wash
+   band with the section that follows — one grey ground, two arguments — and
+   the frame is the only white card on it, so the eye lands on the thing you
+   can type into rather than on the prose around it. */
+.try {
+  background: var(--wash);
+  border-top: 1px solid var(--line);
+  padding: clamp(3rem, 7vw, 5rem) 0 clamp(2.5rem, 6vw, 4rem);
+}
+.try .lead {
+  margin-bottom: 1.6rem;
+}
+.try-app {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 18px 44px -28px rgba(11, 19, 34, 0.45);
+}
+/* A fixed height, because the frame's contents cannot size it: an iframe never
+   grows to its document. The embed lays itself out to fill whatever it is
+   given (see the embed block in playground.css), so this number is a
+   composition choice rather than a measurement to keep in step. */
+.try-frame {
+  display: block;
+  width: 100%;
+  height: clamp(28rem, 62vh, 38rem);
+  border: 0;
+}
+.try-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.try-fallback {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.1rem 1.25rem;
+  margin: 0;
+  max-width: 60ch;
+}
+@media (max-width: 900px) {
+  /* Stacked, the two panes need more room than a desktop frame gives them,
+     and the frame scrolls the rest. */
+  .try-frame {
+    height: 40rem;
+  }
+}
+
 /* ----------------------------------------------------------------- cost */
 .cost {
   background: var(--wash);
   border-block: 1px solid var(--line);
   padding: clamp(3.5rem, 8vw, 6.5rem) 0;
+}
+/* One band, not two: the hairline between the playground and the chores would
+   otherwise be drawn twice, on top of itself. */
+.try + .cost {
+  border-top: 0;
 }
 .chores {
   list-style: none;

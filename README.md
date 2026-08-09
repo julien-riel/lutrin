@@ -4,7 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **[info.lutrin.app](https://info.lutrin.app/)** — the
-landing page, with a live demo deck recompiled on every push.
+landing page, with a live demo deck recompiled on every push and the compiler
+itself running in the page: [try it](https://info.lutrin.app/#try) without
+installing anything.
 
 **Lutrin compiles enriched Markdown into an editable PowerPoint or a
 standalone HTML page, and it is the engine — not the author — that decides

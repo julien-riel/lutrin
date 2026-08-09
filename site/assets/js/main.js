@@ -151,6 +151,29 @@
       track('deck opened', { slide: href.split('#')[1] || 'first' });
   });
 
+  // ----------------------------------------------------- playground edited
+  // The only event on this site that reports somebody COMPILING something of
+  // their own — every other one reports an intention. It fires on the first
+  // keystroke and never again (`once`), because the question is how many
+  // readers cross from looking to using, not how fast they type.
+  //
+  // `mode` separates the card on the landing page from the full page: the two
+  // arrive as the same path in the report, and without this prop there is no
+  // way to tell whether framing the playground on the landing page did
+  // anything at all.
+  const pgSource = document.getElementById('pg-source');
+  if (pgSource) {
+    pgSource.addEventListener(
+      'input',
+      () => {
+        track('playground edited', {
+          mode: document.documentElement.classList.contains('is-embed') ? 'embed' : 'page',
+        });
+      },
+      { once: true },
+    );
+  }
+
   // ----------------------------------------------------------------- copy
   [].slice.call(document.querySelectorAll('.copy')).forEach((btn) => {
     btn.addEventListener('click', () => {

@@ -14,9 +14,13 @@
 <meta property="og:image" content="https://info.lutrin.app/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="assets/css/main.css">
+<!-- The playground frame is given its src by main.js. With no JavaScript it
+     would stay an empty box that looks like a broken page, so it is removed
+     and the paragraph beside it says what happened. -->
+<noscript><style>.try-app{display:none}</style></noscript>
 <!-- Analytics — Umami Cloud, cookie-free, which is what keeps this page out
      of consent-banner territory: a banner is itself a conversion cost. The
-     four custom events in assets/js/main.js call `window.umami.track` through
+     five custom events in assets/js/main.js call `window.umami.track` through
      one provider-agnostic helper; three of them predated this line and needed
      no change when it landed. `data-domains` limits reporting to the served
      host, so `npm run site:serve` never counts as traffic. The site id is
@@ -31,8 +35,12 @@
 <header class="nav">
   <a class="wordmark" href="#top">Lutrin</a>
   <nav class="nav-links" aria-label="Site">
+    <!-- First, and the only coloured word in the bar: the fastest thing a
+         reader can do on this site is compile something of their own, and
+         until this link led there it was the fifth item and named after the
+         page rather than after the act. -->
+    <a class="nav-try" href="#try">Try it live</a>
     <a href="#file">The whole file</a>
-    <a href="playground.html">Playground</a>
     <a href="#slides">Slides</a>
     <a href="#where">Where it runs</a>
     <a href="#pricing">Pricing</a>
@@ -63,8 +71,11 @@
       </div>
       <p class="hero-meta">Node&nbsp;≥&nbsp;22 · nothing else to install · MIT</p>
 
+      <!-- The primary action is the one that costs the reader nothing and
+           proves the most: the compiler is one section below, running in their
+           own browser. Reading the file comes after having made one. -->
       <div class="hero-ctas">
-        <a class="btn btn-primary" href="#file">See the whole file</a>
+        <a class="btn btn-primary" href="#try">Try it in your browser</a>
         <a class="btn btn-ghost" href="demo.pptx" download>Download the .pptx</a>
       </div>
     </div>
@@ -91,6 +102,49 @@
         CI at <code>HEAD</code>. Nobody placed the quadrants.</figcaption>
     </figure>
 
+  </div>
+</section>
+
+<!-- ================================================================= try -->
+<!-- The compiler itself, one scroll below the headline. It is `playground.html`
+     framed with `?embed=1`, not a second copy of it: the page it frames serves
+     the same `packages/core` from the same commit, and the flag only strips the
+     chrome the card already provides. A second in-page playground would be a
+     second thing to keep true.
+
+     The frame carries `data-src` rather than `src`, so it is main.js's existing
+     lazy loader that fetches it — the compiler and its layout catalogue start
+     downloading as the section comes within 500 px of the viewport, and a
+     reader who never scrolls this far pays nothing for it. -->
+<section class="try" id="try">
+  <div class="wrap">
+    <p class="eyebrow">the compiler · running in this page</p>
+    <h2>Try it right here.</h2>
+    <p class="lead">No install, no account, no upload. This is
+      <code>packages/core</code> — the same code <code>npx lutrin</code> runs —
+      loaded into your own browser. Type on the left; the engine lays it out on
+      the right, and your text never leaves your machine.</p>
+
+    <div class="try-app">
+      <iframe class="try-frame" data-src="playground.html?embed=1"
+        title="The Lutrin playground: type Markdown, watch the engine lay it out"></iframe>
+    </div>
+    <noscript>
+      <p class="try-fallback">The playground <strong>is</strong> the compiler,
+        so it needs JavaScript to run at all.
+        <a href="playground.html">Open it on its own page</a>, or compile
+        locally with <code>npx lutrin build deck.md -o deck.pptx</code>.</p>
+    </noscript>
+
+    <div class="try-ctas">
+      <a class="btn btn-primary" href="playground.html">Open the full playground</a>
+      <a class="btn btn-ghost" href="#file">See a whole file first</a>
+    </div>
+    <p class="aside">Four things the page will refuse rather than fake: Mermaid
+      diagrams need a headless browser, LaTeX needs a package no import map can
+      load, and icons and images are read from disk. Ask for any of them and it
+      says so instead of quietly dropping them. The <code>.pptx</code> is not
+      here either — that one is the reason to install.</p>
   </div>
 </section>
 
@@ -198,10 +252,10 @@ target: 165
           HTML and in the <code>.pptx</code>.</p>
       </div>
     </div>
-    <p class="aside">These three are somebody else's content. Put in your own:
-      <a href="playground.html">the playground</a> loads this same compiler into
-      your browser and recompiles as you type — nothing installed, and nothing
-      sent anywhere.</p>
+    <p class="aside">These three are somebody else's content. Yours goes in
+      <a href="#try">the playground above</a> — the same compiler, recompiling as
+      you type — or in <a href="playground.html">its own page</a>, which gives it
+      the room this card cannot.</p>
   </div>
 </section>
 
