@@ -664,9 +664,7 @@ function baseCss() {
   // from the content page (otherwise the shared .slide rule already paints it).
   const coverInkCss = S.coverInk !== C.neutralPrimary ? `color:#${S.coverInk};` : '';
   const coverBgCss =
-    S.coverBg !== S.pageBg
-      ? `\n.slide.master-cover{background:#${S.coverBg}}`
-      : '';
+    S.coverBg !== S.pageBg ? `\n.slide.master-cover{background:#${S.coverBg}}` : '';
   return `
 *{box-sizing:border-box}
 body{margin:0;background:#${C.underground2};font-family:"${FONTS.body}",-apple-system,'Segoe UI',Arial,sans-serif;color:#${C.neutralPrimary}}
