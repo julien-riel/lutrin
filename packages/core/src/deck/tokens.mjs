@@ -340,6 +340,21 @@ export const LAYER_SHADES = [];
  *  Derived from COLORS — recipe in deriveTokens(). */
 export const TREND_INK = {};
 
+/**
+ * Surfaces of the three slide kinds — the backgrounds and the inks that ride
+ * on them. Derived from COLORS (recipe in deriveTokens) so a repainted palette
+ * carries them along, and OVERRIDABLE as a theme's `surface` group (a
+ * DERIVED_GROUP, merged after the derivation): this is what lets a kit give the
+ * cover a colour, darken the section band or tint the content page WITHOUT
+ * touching the semantics of the palette.
+ *
+ * Every default equals what the renderers used to hard-code — coverBg/pageBg
+ * the ground, the cover inks the neutral text, the section band the primary
+ * with white on it — so a theme that names no `surface` composes byte-for-byte
+ * as before.
+ */
+export const SURFACE = {};
+
 /** Tints of the :::info/success/warning/danger callouts.
  *  fill/text derived from COLORS (deriveTokens); label localizable. */
 export const SEMANTIC = {};
@@ -437,6 +452,19 @@ export function deriveTokens() {
     positive: COLORS.positiveDark,
     negative: COLORS.negativeDark,
     neutral: COLORS.neutralSecondary,
+  });
+
+  // Surfaces: the defaults reproduce exactly what the renderers hard-coded
+  // before the group existed. `coverMutedInk` is the subtitle/byline ink, the
+  // secondary text a coloured cover still needs; `sectionInk` is the ink on the
+  // full-bleed section band (white on the primary, by default).
+  Object.assign(SURFACE, {
+    pageBg: COLORS.ground,
+    coverBg: COLORS.ground,
+    coverInk: COLORS.neutralPrimary,
+    coverMutedInk: COLORS.neutralSecondary,
+    sectionBg: COLORS.primary,
+    sectionInk: COLORS.ground,
   });
 
   // Two tones per tint: `fill`/`text` is the pale callout surface, and

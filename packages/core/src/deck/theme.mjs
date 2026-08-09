@@ -97,6 +97,7 @@ import {
   LAYER_SHADES,
   TREND_INK,
   SEMANTIC,
+  SURFACE,
   deriveTokens,
   luminance,
   contrastRatio,
@@ -124,7 +125,7 @@ const BASE_GROUPS = {
  *  SPACE, so an explicit theme override must be merged AFTER in order to take
  *  precedence over the recomputation (otherwise it would be silently
  *  overwritten). */
-const DERIVED_GROUPS = { page: PAGE, trendInk: TREND_INK, semantic: SEMANTIC };
+const DERIVED_GROUPS = { page: PAGE, trendInk: TREND_INK, semantic: SEMANTIC, surface: SURFACE };
 const ALL_LIVE = {
   ...BASE_GROUPS,
   ...DERIVED_GROUPS,
@@ -152,6 +153,7 @@ export const THEME_KEYS = [
   'layerShades',
   'trendInk',
   'semantic',
+  'surface',
   'logos',
   'images',
 ];
@@ -277,21 +279,35 @@ export function themeContrastDiagnostics() {
         message: `Theme: ${what} — contrast ${ratio.toFixed(2)}:1 < ${min}:1 (the brand's WCAG threshold).`,
       });
   };
-  // pairs that are everywhere in the rendering (all the deck's text depends on them)
+  // pairs that are everywhere in the rendering (all the deck's text depends on
+  // them). Body text sits on the CONTENT page surface — `surface.pageBg`, the
+  // ground unless a kit tinted it — so that is the background it is measured on.
   check(
-    contrastRatio(COLORS.neutralPrimary, COLORS.ground),
+    contrastRatio(COLORS.neutralPrimary, SURFACE.pageBg),
     4.5,
-    `main text (#${COLORS.neutralPrimary}) on the background`,
+    `main text (#${COLORS.neutralPrimary}) on the content page (#${SURFACE.pageBg})`,
   );
   check(
-    contrastRatio(COLORS.neutralSecondary, COLORS.ground),
+    contrastRatio(COLORS.neutralSecondary, SURFACE.pageBg),
     4.5,
-    `secondary text — footers, captions (#${COLORS.neutralSecondary}) on the background`,
+    `secondary text — footers, captions (#${COLORS.neutralSecondary}) on the content page (#${SURFACE.pageBg})`,
   );
+  // cover surface: the title (large bold, 3:1) and the subtitle/byline (small,
+  // 4.5:1) on whatever the cover is painted — the ground by default.
   check(
-    contrastRatio(COLORS.ground, COLORS.primary),
+    contrastRatio(SURFACE.coverInk, SURFACE.coverBg),
     3,
-    `section slide title (#${COLORS.ground} on the primary background #${COLORS.primary}, large bold type)`,
+    `cover title (#${SURFACE.coverInk} on the cover #${SURFACE.coverBg}, large bold type)`,
+  );
+  check(
+    contrastRatio(SURFACE.coverMutedInk, SURFACE.coverBg),
+    4.5,
+    `cover subtitle and byline (#${SURFACE.coverMutedInk} on the cover #${SURFACE.coverBg})`,
+  );
+  check(
+    contrastRatio(SURFACE.sectionInk, SURFACE.sectionBg),
+    3,
+    `section slide title (#${SURFACE.sectionInk} on the section band #${SURFACE.sectionBg}, large bold type)`,
   );
   for (const c of CHART_COLORS)
     check(contrastRatio(c, COLORS.ground), 3, `chart color #${c} on the background`);
@@ -1054,6 +1070,7 @@ export function resolveTheme(
     ['chrome', {}],
     ['trendInk', { colorsOnly: true }],
     ['semantic', {}],
+    ['surface', { colorsOnly: true }],
   ];
   for (const [key, opts] of OBJECT_GROUPS) {
     if (json[key] == null) continue;

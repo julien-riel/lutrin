@@ -26,6 +26,7 @@ import {
   SPACE,
   PAGE,
   SEMANTIC,
+  SURFACE,
   TREND_INK,
   badgeLayout,
   blockFontSize,
@@ -1306,7 +1307,7 @@ function defineMasters(pptx, meta, brand) {
     brand ? [{ text: { text: brand, options: brandTextOptions(placement) } }] : [];
   pptx.defineSlideMaster({
     title: 'DECK_CONTENT',
-    background: { color: COLORS.ground },
+    background: { color: SURFACE.pageBg },
     objects: [
       titlePlaceholder(contentTitleBox()),
       // title rule: green segment (the single accent) then a neutral rule
@@ -1358,12 +1359,12 @@ function defineMasters(pptx, meta, brand) {
   });
   pptx.defineSlideMaster({
     title: 'DECK_COVER',
-    background: { color: COLORS.ground },
+    background: { color: SURFACE.coverBg },
     objects: [titlePlaceholder(coverTitleBox()), ...brandObject('cover')],
   });
   pptx.defineSlideMaster({
     title: 'DECK_SECTION',
-    background: { color: COLORS.primary },
+    background: { color: SURFACE.sectionBg },
     objects: [titlePlaceholder(sectionTitleBox()), ...brandObject('section')],
   });
 }
@@ -1382,7 +1383,7 @@ function renderCover(pptx, scene) {
     ...coverTitleBox(),
     fontSize: TYPE.coverTitle,
     bold: true,
-    color: COLORS.neutralPrimary,
+    color: SURFACE.coverInk,
     fontFace: displayFace(),
     // explicit: a paragraph without `algn` inherits the master's titleStyle,
     // which PptxGenJS hard-codes centered — the HTML output is left-aligned
@@ -1408,7 +1409,7 @@ function renderCover(pptx, scene) {
       w: px(PAGE.width - 2 * PAGE.margin),
       h: px(c.subtitleH),
       fontSize: TYPE.coverSubtitle,
-      color: COLORS.neutralSecondary,
+      color: SURFACE.coverMutedInk,
       fontFace: FONTS.body,
       valign: 'top',
       objectName: 'Subtitle',
@@ -1421,7 +1422,7 @@ function renderCover(pptx, scene) {
       w: px(PAGE.width - 2 * PAGE.margin),
       h: px(c.bylineH),
       fontSize: TYPE.small,
-      color: COLORS.neutralSecondary,
+      color: SURFACE.coverMutedInk,
       fontFace: FONTS.body,
       valign: 'middle',
       objectName: 'Byline',
@@ -1438,7 +1439,7 @@ function renderSection(pptx, scene) {
     ...sectionTitleBox(),
     fontSize: TYPE.sectionTitle,
     bold: true,
-    color: COLORS.ground,
+    color: SURFACE.sectionInk,
     fontFace: displayFace(),
     align: 'left', // same inheritance trap as the cover title
     valign: 'middle',
