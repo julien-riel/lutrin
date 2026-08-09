@@ -263,11 +263,15 @@ target: 165
 <section class="slides" id="slides">
   <div class="wrap">
     <p class="eyebrow eyebrow-dark">one file · thirty-seven slides</p>
-    <h2>You chose none of these&nbsp;layouts.</h2>
-    <p class="lead lead-dark">Delivery boards, scored options, charts,
-      diagrams, full-bleed photographs. Each one inferred from the structure of
-      the content, or named in one word. Click any slide to open the deck
-      there.</p>
+    <h2>A layout is an intention, not a&nbsp;template.</h2>
+    <p class="lead lead-dark">A funnel narrows. A timeline moves forward. A
+      comparison weighs one thing against another. So you never pick a shape —
+      you say what the slide is <em>for</em>, and one line says it:
+      <code>&lt;!-- layout: funnel --&gt;</code>. Most of the time you skip even
+      that: three figures already read as a metric row, two balanced sections
+      as a comparison, a table as a table. The intention is in the content, the
+      engine recognises it, and the slide is laid out without you saying a
+      word. Click any slide to open the deck there.</p>
   </div>
   <!-- Deliberately none of the six shown above: the hero already carries the
        quadrants, and the tabs carry the funnel, the metrics and the bar chart.
@@ -346,6 +350,41 @@ target: 165
       that everything that moves is the brand. Building your own is its own
       workbench: <a href="kit-editor.html">the kit editor</a> puts every colour,
       font and layout beside a deck the engine just compiled.</p>
+  </div>
+</section>
+
+<!-- ============================================================= privacy -->
+<!-- Placed immediately before the price, and deliberately: the deck somebody
+     is about to compile is the reorganisation, the quarterly numbers or the
+     client that is leaving, and "where does this text go?" is the objection
+     that stops an evaluation dead. It is answered here with what is verifiable
+     in this repository — the playground is the compiler running in the reader's
+     own browser (site/playground.html, an import map over packages/core), and
+     licence/index.mjs states the compilation path never touches the network.
+     The last paragraph names what IS counted, because a privacy promise that
+     admits nothing is the kind nobody believes. -->
+<section class="privacy" id="privacy">
+  <div class="wrap">
+    <p class="eyebrow">your words</p>
+    <h2>Your deck stays on your&nbsp;machine.</h2>
+    <p class="lead">The playground on this page is not a service you send a
+      deck to. The compiler itself is delivered to your browser and runs there,
+      so what you type is compiled a few centimetres from where you typed it.
+      No upload, no round-trip, no draft of your slides sitting in somebody
+      else's storage.</p>
+    <p class="lead">On your own machine it holds by rule rather than by luck:
+      <strong>nothing on the compilation path touches the network</strong>. Your
+      slides are never read, never stored, never used to train anything and
+      never turned into marketing. The reorganisation, the numbers before
+      they are announced, the client's name — they stay where you wrote
+      them.</p>
+    <p class="lead">What this site does count, so that you can weigh it: page
+      views without cookies, and the fact that somebody started typing in the
+      playground — a yes or a no, never a character of what was typed.
+      Activating a licence sends the key and a name for the machine, and
+      nothing else. All of it is in the open:
+      <a href="https://github.com/julien-riel/lutrin">read the code</a>, or
+      cut the network and watch the compiler carry on.</p>
   </div>
 </section>
 
@@ -583,6 +622,7 @@ target: 165
       <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Syntax reference</a>
       <a href="kit-editor.html">The kit editor</a>
       <a href="pricing.html">Prices, in full</a>
+      <a href="#privacy">Where your deck goes</a>
       <a href="https://github.com/julien-riel/lutrin#licence--the-attribution-and-how-to-remove-it">How licensing works</a>
       <a href="demo.html" target="_blank" rel="noopener">The demo deck</a>
       <a href="demo.pptx" download>The demo .pptx</a>
