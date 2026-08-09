@@ -1,0 +1,1 @@
+{ "name": "highlights", "base": "pillars", "description": "Headline highlights on tinted pillars.", "panels": ["highlight", "pillar", "highlight"], "accent": true, "sections": { "min": 2, "max": 4 } }

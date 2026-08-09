@@ -1,0 +1,1 @@
+{ "name": "exposure", "base": "comparison", "description": "Position against exposure.", "panels": ["muted", "highlight"], "pad": 20, "sections": { "min": 2, "max": 2 } }

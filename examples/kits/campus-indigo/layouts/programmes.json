@@ -1,0 +1,1 @@
+{ "name": "programmes", "base": "pillars", "description": "Programmes as upright panels with an accent head.", "accent": true, "sections": { "min": 3, "max": 4 } }

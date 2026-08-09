@@ -11,17 +11,44 @@
     "underground1": "F6F6F5"
   },
   "fonts": {
-    "body": "Times New Roman"
+    "body": "Times New Roman",
+    "display": "Impact"
   },
   "type": {
-    "coverTitle": 46,
+    "coverTitle": 52,
+    "sectionTitle": 34,
     "slideTitle": 28
+  },
+  "space": {
+    "xs": 8,
+    "sm": 14,
+    "md": 22,
+    "lg": 30,
+    "xl": 38,
+    "xxl": 44
   },
   "rounded": {
     "sm": 0,
     "md": 0,
     "lg": 0,
     "pill": 0
+  },
+  "surface": {
+    "coverBg": "111111",
+    "coverInk": "FFFFFF",
+    "coverMutedInk": "C4C4C4",
+    "sectionBg": "111111",
+    "sectionInk": "FFFFFF"
+  },
+  "accent": {
+    "bar": "B91C1C",
+    "rule": "D6D3D1"
+  },
+  "chrome": {
+    "cover": {
+      "barW": 120,
+      "barH": 8
+    }
   },
   "chartColors": [
     "1A1A1A",
@@ -30,5 +57,9 @@
     "0F766E",
     "8A5A00",
     "1D4ED8"
-  ]
+  ],
+  "logos": {
+    "coverSvg": "./logo-cover.svg",
+    "sectionSvg": "./logo-section.svg"
+  }
 }

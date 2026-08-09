@@ -1,0 +1,1 @@
+{ "name": "pathway", "base": "steps", "description": "A care pathway, step to step, on rounded panels.", "connector": "arrow", "radius": "lg", "sections": { "min": 2, "max": 5 } }

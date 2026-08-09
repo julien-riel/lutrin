@@ -1,0 +1,1 @@
+{ "name": "conversion", "base": "layers", "description": "The funnel, narrowing to the outcome.", "shape": "funnel", "sections": { "min": 2, "max": 5 } }

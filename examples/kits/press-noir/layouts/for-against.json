@@ -1,0 +1,1 @@
+{ "name": "for-against", "base": "comparison", "description": "Two columns, the case and the counter-case.", "panels": ["muted", "highlight"], "pad": 20, "sections": { "min": 2, "max": 2 } }

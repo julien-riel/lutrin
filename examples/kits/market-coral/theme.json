@@ -10,19 +10,46 @@
     "underground1": "FFF7F8"
   },
   "fonts": {
-    "body": "Trebuchet MS"
+    "body": "Trebuchet MS",
+    "display": "Arial Black"
+  },
+  "type": {
+    "coverTitle": 46,
+    "sectionTitle": 34
   },
   "rounded": {
     "sm": 8,
     "md": 14,
-    "lg": 22
+    "lg": 22,
+    "pill": 64
+  },
+  "surface": {
+    "coverBg": "FFF3F5",
+    "coverInk": "7A1330",
+    "coverMutedInk": "7A1330",
+    "sectionBg": "B5254A",
+    "sectionInk": "FFFFFF"
+  },
+  "accent": {
+    "bar": "B5254A",
+    "rule": "F5CDD5"
+  },
+  "chrome": {
+    "cover": {
+      "barW": 104,
+      "barH": 8
+    }
+  },
+  "logos": {
+    "coverSvg": "./logo-cover.svg",
+    "sectionSvg": "./logo-section.svg"
   },
   "chartColors": [
     "B5254A",
-    "0E7490",
-    "B45309",
-    "4D7C0F",
+    "8A5A00",
+    "0F766E",
     "6D28D9",
-    "0F766E"
+    "C2410C",
+    "1D4ED8"
   ]
 }

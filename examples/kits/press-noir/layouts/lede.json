@@ -1,0 +1,1 @@
+{ "name": "lede", "base": "focus", "description": "The lede: one sentence set large, left-aligned like a standfirst.", "align": "left", "scale": 1.15 }

@@ -1,0 +1,1 @@
+{ "name": "kpis", "base": "metrics", "description": "Product KPIs in a row of cards.", "max": 4 }
