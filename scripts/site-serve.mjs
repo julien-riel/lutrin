@@ -84,8 +84,22 @@ const layoutManifest = () =>
       .sort(),
   );
 
+/** The Lucide icon names, for the editor's `lucide:` completion — generated
+ *  like the layout manifest, and BESIDE the icons directory for the same
+ *  reason layouts.json sits beside layouts/. pages.yml writes the same file;
+ *  playground.test.mjs pins the two generators to each other. */
+const iconManifest = () =>
+  JSON.stringify(
+    fs
+      .readdirSync(path.join(REPO, 'node_modules', 'lucide-static', 'icons'))
+      .filter((f) => f.endsWith('.svg'))
+      .map((f) => f.slice(0, -4))
+      .sort(),
+  );
+
 function resolve(urlPath) {
   if (urlPath === '/core/design/layouts.json') return { generated: layoutManifest() };
+  if (urlPath === '/vendor/lucide-static/icons.json') return { generated: iconManifest() };
 
   if (urlPath.startsWith('/core/src/'))
     return { file: within(path.join(CORE, 'src'), urlPath.slice('/core/src'.length)) };
