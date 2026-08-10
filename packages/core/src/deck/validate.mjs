@@ -458,6 +458,42 @@ export function validateDeck(
         );
       }
     }
+    // layout-declared kit image (`image:` parameter of the split and hero
+    // bases): the image never appears in the deck's own blocks, so the walk
+    // below cannot see it — the alias is checked here, anchored on the
+    // layout line. Same for the rule that resolves a conflict: the deck's
+    // own visual wins, and the author is told the layout's image stays away.
+    if (slide.layout) {
+      const layImage = layoutParams(slide.layout).image;
+      if (layImage != null) {
+        const d = kitImageDiagnostic(layImage);
+        if (d)
+          push(
+            d.severity,
+            d.code,
+            `Layout "${slide.layout}": ${d.message}`,
+            slide.layoutLine ?? slide.line,
+            d.suggestion,
+          );
+        const blocks = slide.sections.flatMap((s) => s.blocks);
+        const ownVisual =
+          layoutBase === 'hero'
+            ? blocks.some((b) => b.type === 'image')
+            : blocks.some(
+                (b) =>
+                  b.type === 'mermaid' ||
+                  b.type === 'chart' ||
+                  (b.type === 'image' && b.role !== 'background'),
+              );
+        if (ownVisual)
+          push(
+            'info',
+            'LAYOUT_IMAGE_UNUSED',
+            `The slide brings its own visual, which wins: the image the "${slide.layout}" layout declares (${layImage}) is not placed on this slide.`,
+            slide.layoutLine ?? slide.line,
+          );
+      }
+    }
     // metrics layout: past the cap (parameter `max`, 4 by default), the surplus
     // is dropped without a trace — compare the resolved BASE layout (user
     // aliases included), the effective cap of the alias
@@ -1026,7 +1062,10 @@ export function capabilities() {
         'named images of a kit: "images": { "<alias>": "./images/photo.jpg" } in theme.json (aliases ' +
         'lowercase [a-z][a-z0-9-]{1,31}, files inside the kit) — a deck places one with ![role](kit:<alias>), ' +
         'which then behaves exactly like a local image; an unknown alias produces KIT_IMAGE_UNKNOWN and a ' +
-        'placeholder. The aliases of the resolved kit are listed under kitImages.',
+        'placeholder. The aliases of the resolved kit are listed under kitImages. A layout can also place ' +
+        'one ITSELF: "image": "kit:<alias>" in a layouts/*.json on the split base (visual beside the text) ' +
+        'or the hero base (full-page background) shows the kit image on every slide using the layout, with ' +
+        'nothing written in the deck — a slide that brings its own visual keeps it (LAYOUT_IMAGE_UNUSED).',
       keys: THEME_KEYS,
     },
     layoutsDir:
@@ -1070,6 +1109,7 @@ export function capabilities() {
       'CHART_DATA_IGNORED',
       'QUOTE_EMPTY',
       'LAYERS_SHADE_MISSING',
+      'LAYOUT_IMAGE_UNUSED',
       'THEME_NOT_FOUND',
       'THEME_INVALID',
       'THEME_UNKNOWN_KEY',

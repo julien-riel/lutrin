@@ -333,3 +333,100 @@ test('capabilities: the resolved kit publishes its image aliases, and the diagno
   prepareDeckContext({}, { baseDir: os.tmpdir() });
   assert.deepEqual(capabilities().kitImages, [], 'no kit, no aliases — never a leak');
 });
+
+// ---------------------------------------------------------------------------
+// Layout-declared kit image — the `image` parameter of the split/hero bases:
+// the kit ships a layout that places one of its own images, and the deck
+// shows it without one line of Markdown naming it.
+// ---------------------------------------------------------------------------
+
+/** The kit of tmpKit, plus a layouts/ directory carrying `defs`. */
+function tmpKitWithLayouts(t, theme, defs) {
+  const kit = tmpKit(t, theme);
+  fs.mkdirSync(path.join(kit, 'layouts'));
+  for (const def of defs)
+    fs.writeFileSync(path.join(kit, 'layouts', `${def.name}.json`), JSON.stringify(def));
+  return kit;
+}
+
+const BRAND_SPLIT = {
+  name: 'brand-split',
+  base: 'split',
+  image: 'kit:hero-photo',
+  description: 'Text beside the kit hero photo — the deck never names the image.',
+};
+
+test('HTML: a layout-declared kit image is embedded like one the deck wrote', async (t) => {
+  freshStateAfter(t);
+  const kit = tmpKitWithLayouts(t, HERO_THEME, [BRAND_SPLIT]);
+  const source = `---\nkit: ${kit}\ntitle: T\n---\n\n# Slide\n\n<!-- layout: brand-split -->\n\nSome text beside the kit visual.\n`;
+  const { html, stats } = await compileHtml(source, { baseDir: tmpDeckDir(t) });
+
+  assert.ok(
+    html.includes(`data:image/png;base64,${PNG_1PX.toString('base64')}`),
+    'the asset prepass fetches and inlines the synthesized image block',
+  );
+  assert.ok(!stats.warnings.some((w) => w.includes('Kit image')));
+});
+
+test('validate: a layout image with an unknown alias lands on the layout line, with the did-you-mean', (t) => {
+  freshStateAfter(t);
+  const kit = tmpKitWithLayouts(t, HERO_THEME, [
+    { name: 'brand-typo', base: 'split', image: 'kit:hero-phot' },
+  ]);
+  const source = `---\nkit: ${kit}\ntitle: T\n---\n\n# Slide\n\n<!-- layout: brand-typo -->\n\nText only.\n`;
+  const diags = validateDeck(source, { baseDir: tmpDeckDir(t) });
+
+  const d = diags.find((x) => x.code === 'KIT_IMAGE_UNKNOWN');
+  assert.ok(d, `KIT_IMAGE_UNKNOWN expected — seen: ${JSON.stringify(diags)}`);
+  assert.match(
+    d.message,
+    /Layout "brand-typo"/,
+    'the message names the layout, not a phantom image',
+  );
+  assert.equal(d.line, 8, 'anchored on the <!-- layout: … --> line');
+  assert.equal(d.suggestion, 'hero-photo');
+});
+
+test('validate: a slide bringing its own visual is told the layout image stays away (info)', (t) => {
+  freshStateAfter(t);
+  const kit = tmpKitWithLayouts(t, HERO_THEME, [BRAND_SPLIT]);
+  const source = `---\nkit: ${kit}\ntitle: T\n---\n\n# Slide\n\n<!-- layout: brand-split -->\n\nText.\n\n![right](kit:hero-photo)\n`;
+  const diags = validateDeck(source, { baseDir: tmpDeckDir(t) });
+
+  const d = diags.find((x) => x.code === 'LAYOUT_IMAGE_UNUSED');
+  assert.ok(d, `LAYOUT_IMAGE_UNUSED expected — seen: ${JSON.stringify(diags)}`);
+  assert.equal(d.severity, 'info', 'an automatic decision, reported, never a fault');
+  assert.match(d.message, /brand-split/);
+
+  // text-only slide: the layout image applies, nothing to report
+  const clean = validateDeck(
+    `---\nkit: ${kit}\ntitle: T\n---\n\n# Slide\n\n<!-- layout: brand-split -->\n\nText only.\n`,
+    { baseDir: tmpDeckDir(t) },
+  );
+  assert.ok(!clean.some((x) => x.code === 'LAYOUT_IMAGE_UNUSED' || x.code === 'KIT_IMAGE_UNKNOWN'));
+});
+
+test('PPTX: a hero layout background from the kit is embedded as a media part', async (t) => {
+  freshStateAfter(t);
+  const kit = tmpKitWithLayouts(t, HERO_THEME, [
+    { name: 'brand-hero', base: 'hero', image: 'kit:hero-photo' },
+  ]);
+  const dir = tmpDeckDir(t);
+  const source = `---\nkit: ${kit}\ntitle: T\n---\n\n# Opener\n\n<!-- layout: brand-hero -->\n\nA line over the brand photo.\n`;
+
+  const deck = parseDeck(source);
+  prepareDeckContext(deck.meta, { baseDir: dir });
+  const scenes = buildScenes(deck);
+  assert.equal(scenes[1].master, 'hero');
+  assert.equal(scenes[1].image.src, 'kit:hero-photo');
+  const out = path.join(dir, 'layout-image.pptx');
+  const stats = await renderDeck(scenes, deck.meta, dir, out);
+
+  const zip = await JSZip.loadAsync(fs.readFileSync(out));
+  assert.ok(
+    Object.keys(zip.files).some((n) => /^ppt\/media\/.*\.png$/.test(n)),
+    'the background the layout declared is embedded',
+  );
+  assert.ok(!stats.warnings.some((w) => w.includes('Kit image')));
+});
