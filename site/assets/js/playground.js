@@ -174,39 +174,123 @@ const editorHighlight = HighlightStyle.define([
   { tag: tags.labelName, color: '#9ecbff' },
 ]);
 
-/** `deck/layout.mjs`, once the compiler has loaded — the completion source
- *  reads it at call time, so completions simply do not exist until then.
- *  `LAYOUTS` is the exact live list the validator checks `<!-- layout: … -->`
- *  against: completion can never suggest a name validation would then flag. */
+/** The compiler modules the completion sources read — set once the compiler
+ *  has loaded, so completions simply do not exist until then. Each list is
+ *  the LIVE view the validator checks the same syntax against (`LAYOUTS`,
+ *  `ANIM_PRESETS`, `KIT_IMAGES`): completion can never suggest what
+ *  validation would then flag, and nothing here is a second list. */
 let layoutCatalog = null;
+let animPresets = null;
+let kitImages = null;
+
+/** The Lucide icon names, fetched once from our own origin the first time a
+ *  `lucide:` completion is asked — ~2 000 names, ~30 kB, and only for the
+ *  visitor who types the scheme. Memoized including failure: a page that
+ *  cannot fetch the index must not re-fetch nothing per keystroke. The file
+ *  is generated beside the icons by site-serve.mjs and pages.yml, the
+ *  layouts.json pattern again. */
+let _iconIndex = null;
+async function iconIndex() {
+  if (_iconIndex === null) {
+    try {
+      const url = new URL('../icons.json', import.meta.resolve('lucide-static/icons/'));
+      const res = await fetch(url);
+      _iconIndex = res.ok ? await res.json() : false;
+    } catch {
+      _iconIndex = false;
+    }
+  }
+  return _iconIndex || null;
+}
+
+/** A key chained straight into its values: the key alone is never the
+ *  answer. startCompletion is deferred a task — called synchronously from
+ *  apply, it is cancelled by the popup's own accept-and-close that runs
+ *  right after, and the chain silently never opens. */
+const keyOption = (label, detail) => ({
+  label,
+  type: 'keyword',
+  detail,
+  apply: (v, _c, from, to) => {
+    v.dispatch({
+      changes: { from, to, insert: `${label} ` },
+      selection: { anchor: from + label.length + 1 },
+    });
+    setTimeout(() => startCompletion(v), 0);
+  },
+});
+
+/** Is `lineNo` inside the frontmatter? True only under a `---` opener on
+ *  line 1 with no closing `---` met yet — the same reading parseDeck makes. */
+function inFrontmatter(doc, lineNo) {
+  if (doc.line(1).text.trim() !== '---') return false;
+  for (let n = 2; n < lineNo; n++) if (doc.line(n).text.trim() === '---') return false;
+  return lineNo > 1;
+}
 
 /**
- * Completes the layout directive, the one place the DSL asks for a name from
- * a closed list nobody remembers in full. Two positions:
+ * Everything the DSL asks for out of a closed list, completed where it is
+ * asked. Matched on the text before the caret, most specific first:
  *
- *   `<!-- lay`          → the directive key, then straight into the names
- *   `<!-- layout: fu`   → the names, each with its own description as the
- *                         detail text, and ` -->` appended when the line has
- *                         not written it yet
+ *   `<!-- layout: fu`      → layout names, catalogue description as detail
+ *   `<!-- animate: f`      → the presets, plus true/none
+ *   `animate: f` (frontmatter) → the same, for the deck-wide default
+ *   `<!-- lay`             → the directive keys, chaining into their values
+ *   `](lucide:ro` / `](icon:ro` → the icon set, fetched on first ask
+ *   `](kit:he`             → the aliases the active kit declares
+ *
+ * The closing token (` -->`, `)`) is appended only when the line has not
+ * written it yet.
  */
-function directiveCompletions(ctx) {
+async function directiveCompletions(ctx) {
   if (!layoutCatalog) return null;
   const line = ctx.state.doc.lineAt(ctx.pos);
   const before = line.text.slice(0, ctx.pos - line.from);
   const after = line.text.slice(ctx.pos - line.from);
-  const close = /^\s*-->/.test(after) ? '' : ' -->';
+  const closeComment = /^\s*-->/.test(after) ? '' : ' -->';
+  const closeParen = /^\)/.test(after) ? '' : ')';
 
-  const name = /<!--\s*layout:\s*([a-z0-9-]*)$/i.exec(before);
-  if (name)
+  const layoutName = /<!--\s*layout:\s*([a-z0-9-]*)$/i.exec(before);
+  if (layoutName)
     return {
-      from: ctx.pos - name[1].length,
+      from: ctx.pos - layoutName[1].length,
       options: layoutCatalog.LAYOUTS.map((n) => ({
         label: n,
         type: 'type',
         detail: layoutCatalog.layoutDef(n)?.description,
-        apply: `${n}${close}`,
+        apply: `${n}${closeComment}`,
       })),
       validFor: /^[a-z0-9-]*$/i,
+    };
+
+  const animOptions = (close) => [
+    ...(animPresets ?? []).map((n) => ({
+      label: n,
+      type: 'type',
+      detail: 'preset',
+      apply: `${n}${close}`,
+    })),
+    {
+      label: 'true',
+      type: 'constant',
+      detail: 'each block type picks its preset',
+      apply: `true${close}`,
+    },
+    { label: 'none', type: 'constant', detail: 'no animation', apply: `none${close}` },
+  ];
+  const animName = /<!--\s*animate:\s*([a-z]*)$/i.exec(before);
+  if (animName)
+    return {
+      from: ctx.pos - animName[1].length,
+      options: animOptions(closeComment),
+      validFor: /^[a-z]*$/i,
+    };
+  const animMeta = /^animate:\s*([a-z]*)$/i.exec(before);
+  if (animMeta && inFrontmatter(ctx.state.doc, line.number))
+    return {
+      from: ctx.pos - animMeta[1].length,
+      options: animOptions(''),
+      validFor: /^[a-z]*$/i,
     };
 
   const key = /<!--\s*([a-z]*)$/i.exec(before);
@@ -214,25 +298,39 @@ function directiveCompletions(ctx) {
     return {
       from: ctx.pos - key[1].length,
       options: [
-        {
-          label: 'layout:',
-          type: 'keyword',
-          detail: 'impose a layout on this slide',
-          // straight into the names: the key alone is never the answer.
-          // startCompletion is deferred a task — called synchronously from
-          // apply, it is cancelled by the popup's own accept-and-close that
-          // runs right after, and the chain silently never opens.
-          apply: (v, _c, from, to) => {
-            v.dispatch({
-              changes: { from, to, insert: 'layout: ' },
-              selection: { anchor: from + 'layout: '.length },
-            });
-            setTimeout(() => startCompletion(v), 0);
-          },
-        },
+        keyOption('layout:', 'impose a layout on this slide'),
+        keyOption('animate:', 'animate this slide'),
       ],
       validFor: /^[a-z]*$/i,
     };
+
+  // image destinations: `![…](lucide:…)`, `![…](icon:…)`, `![…](kit:…)` —
+  // markdown-it also accepts the `<…>` wrapped form, hence the optional `<`
+  const icon = /!\[[^\]]*\]\(\s*<?\s*(?:lucide|icon):([a-z0-9-]*)$/i.exec(before);
+  if (icon) {
+    const names = await iconIndex();
+    if (!names) return null;
+    return {
+      from: ctx.pos - icon[1].length,
+      options: names.map((n) => ({ label: n, type: 'constant', apply: `${n}${closeParen}` })),
+      validFor: /^[a-z0-9-]*$/i,
+    };
+  }
+  const kit = /!\[[^\]]*\]\(\s*<?\s*kit:([a-z0-9-]*)$/i.exec(before);
+  if (kit) {
+    const aliases = Object.keys(kitImages ?? {});
+    if (!aliases.length) return null; // no kit active: nothing to offer is the truth
+    return {
+      from: ctx.pos - kit[1].length,
+      options: aliases.map((a) => ({
+        label: a,
+        type: 'constant',
+        detail: typeof kitImages[a] === 'string' ? kitImages[a] : undefined,
+        apply: `${a}${closeParen}`,
+      })),
+      validFor: /^[a-z0-9-]*$/i,
+    };
+  }
 
   return null;
 }
@@ -516,7 +614,11 @@ try {
   assets = await import('../../core/src/deck/assets.mjs');
   raster = await import('../../core/src/deck/raster-browser.mjs');
   validateDeck = (await import('../../core/src/deck/validate.mjs')).validateDeck;
-  layoutCatalog = layout; // the completion source wakes up here
+  // the completion sources wake up here — all three lists are the live views
+  // the validator itself checks against
+  layoutCatalog = layout;
+  animPresets = (await import('../../core/src/deck/parse.mjs')).ANIM_PRESETS;
+  kitImages = (await import('../../core/src/deck/tokens.mjs')).KIT_IMAGES;
 
   const got = layout.officialLayouts().length;
   if (got !== manifest.length) {

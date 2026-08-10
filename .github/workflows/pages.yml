@@ -157,6 +157,10 @@ jobs:
           # stay, for the same two reasons as mathjax-full's.
           find _site/vendor/lucide-static -mindepth 1 -maxdepth 1 \
                ! -name icons ! -name package.json ! -name LICENSE -exec rm -rf {} +
+          # The icon-name index, for the editor's `lucide:` completion —
+          # BESIDE the icons directory, the layouts.json pattern again.
+          # site-serve.mjs generates the same file per request.
+          node -e "const fs=require('node:fs');fs.writeFileSync('_site/vendor/lucide-static/icons.json',JSON.stringify(fs.readdirSync('node_modules/lucide-static/icons').filter(f=>f.endsWith('.svg')).map(f=>f.slice(0,-4)).sort()))"
           du -sh _site/core _site/vendor
 
       # A stale absolute URL must never ship again. demo.html is compiled

@@ -315,6 +315,29 @@ test('the mermaid shim reaches the bundle the core package ships', () => {
  * end in '/', and the package must be in the CI vendoring loop (the parity
  * test above checks that) with its icons/ directory actually installed.
  */
+/**
+ * The `lucide:` completion reads an icon-name index that TWO generators
+ * write: site-serve.mjs per request, pages.yml at deploy. Neither is
+ * exercised by the other's path — a dev box never runs the workflow, CI
+ * never runs the dev server — so the pin is that both name the same file.
+ * Lose one and the completion works exactly where it was tested and 404s
+ * exactly where visitors are.
+ */
+test('both site generators publish the lucide icon index at the same path', () => {
+  const serve = fs.readFileSync(path.join(REPO, 'scripts', 'site-serve.mjs'), 'utf8');
+  const workflow = fs.readFileSync(path.join(REPO, '.github/workflows/pages.yml'), 'utf8');
+  assert.match(
+    serve,
+    /'\/vendor\/lucide-static\/icons\.json'/,
+    'site-serve.mjs no longer serves the icon index the completion fetches',
+  );
+  assert.match(
+    workflow,
+    /_site\/vendor\/lucide-static\/icons\.json/,
+    'pages.yml no longer writes the icon index — completion would 404 in production only',
+  );
+});
+
 test('the lucide icons prefix entry is a valid prefix and the icons exist', () => {
   const target = importMap()['lucide-static/icons/'];
   assert.ok(target, 'the import map lost its lucide-static/icons/ entry');
