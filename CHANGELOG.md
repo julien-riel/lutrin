@@ -11,6 +11,18 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The special fences write their first draft too.** A line starting
+  `` ``` `` completes into the three fences the compiler treats as more than
+  code — `chart` (a full bar-chart spec with categories, two series and a
+  target), `math` (an equation that actually renders), `mermaid` (a minimal
+  flowchart) — as tabbable snippets, closing fence included. Any other
+  fence (` ```js `) matches nothing and the popup closes: the help never
+  gets between an author and a plain code block. The compiler exports no
+  list of special fences, so their test asserts behavior instead of
+  membership: each template, parsed, must yield a block of its own type,
+  and the math default is rendered through MathJax on Node rather than
+  merely validated.
+
 - **The `:::` directives write their own first draft.** A line starting
   `:::` completes into the seven containers the DSL knows — the four
   callouts, `metric`, `progress`, `status` — and accepting one inserts a

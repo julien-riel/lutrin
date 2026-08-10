@@ -22,6 +22,38 @@
  * it gets its snippet, instead of silently missing from the help.
  */
 
+/**
+ * The three fences the compiler treats as more than code — same contract as
+ * the containers below, with one difference in how the coverage is held: the
+ * compiler exports no list of special fences (the dispatch is inline in
+ * parse.mjs), so the test asserts BEHAVIOR instead — each template, parsed,
+ * must yield a block of its own type. A fence name that stopped being
+ * special would fail as "came out a code block", which is exactly the
+ * regression that matters.
+ *
+ * The math default avoids `{}` on purpose: a snippet field runs to the first
+ * `}`, so `\frac{1}{2}` would end the field early. Pythagoras compiles just
+ * as well and survives the syntax.
+ */
+export const FENCE_SNIPPETS = {
+  chart: {
+    detail: 'a native chart — bar, line, pie…, drawn in the kit colours',
+    // numbered `${n:text}` fields, NOT `${text}`: a purely numeric name
+    // (`${165}`) is read as a field ORDER with no default text, and the
+    // inserted deck then carries an empty `target:` the chart parser refuses
+    template:
+      'chart\ntype: ${1:bar}\ncategories: ${2:Q1, Q2, Q3, Q4}\n${3:Planned}: ${4:120, 150, 180, 210}\n${5:Actual}: ${6:110, 155, 175, 190}\ntarget: ${7:165}\n```\n',
+  },
+  math: {
+    detail: 'a LaTeX equation — native and editable in the .pptx',
+    template: 'math\n${a^2 + b^2 = c^2}\n```\n',
+  },
+  mermaid: {
+    detail: 'a Mermaid diagram, rendered by the engine',
+    template: 'mermaid\nflowchart LR\n  ${start[Start]} --> ${finish[Finish]}\n```\n',
+  },
+};
+
 export const CONTAINER_SNIPPETS = {
   info: {
     detail: 'a neutral callout',

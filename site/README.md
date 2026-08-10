@@ -199,7 +199,20 @@ default text (`assets/js/deck-snippets.mjs`). The templates live under a
 test that compiles every one of them through `validateDeck` and demands
 zero diagnostics: help that inserts something the validator then
 underlines is worse than no help, and a directive added to `CONTAINERS`
-fails CI until it gets its snippet. It was chosen over
+fails CI until it gets its snippet.
+
+A line starting `` ``` `` does the same for the three fences the compiler
+treats as more than code — `chart`, `math`, `mermaid` — and leaves every
+other fence alone (` ```js ` matches nothing and the popup closes). The
+compiler exports no list of special fences, so their test asserts BEHAVIOR
+instead: each template, parsed, must yield a block of its own type — a
+fence that stopped being special fails as "came out a code block". The
+math template is additionally rendered through MathJax on Node, and its
+default avoids `{}` on purpose (a snippet field runs to the first `}`, so
+`\frac{1}{2}` would end the field early — Pythagoras compiles just as
+well); chart's numeric target field is written in the numbered
+`${n:text}` form, because a purely numeric `${165}` reads as a field
+ORDER with no default text. It was chosen over
 Monaco deliberately: real ESM the map can resolve against ~3.5 MB of AMD on
 the critical path, and a fraction of the weight. The rest of this file drives
 it through the four-verb `ed` seam in playground.js, and harness scripts

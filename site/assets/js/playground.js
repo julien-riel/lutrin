@@ -96,7 +96,7 @@ import {
 } from '@codemirror/autocomplete';
 import { tags } from '@lezer/highlight';
 
-import { CONTAINER_SNIPPETS } from './deck-snippets.mjs';
+import { CONTAINER_SNIPPETS, FENCE_SNIPPETS } from './deck-snippets.mjs';
 
 // Resolved from this file's own URL, so the page works at the site root or
 // under a path — and taken as `.pathname`, because that is the form the
@@ -278,6 +278,19 @@ async function directiveCompletions(ctx) {
             detail: CONTAINER_SNIPPETS[n].detail,
           }),
         ),
+      validFor: /^[a-z]*$/i,
+    };
+
+  // the three fences the compiler treats as more than code. An ordinary code
+  // fence (```js…) simply matches none of the three and the popup closes —
+  // the help must never get between an author and a plain code block.
+  const fence = /^```([a-z]*)$/i.exec(before);
+  if (fence)
+    return {
+      from: ctx.pos - fence[1].length,
+      options: Object.entries(FENCE_SNIPPETS).map(([n, s]) =>
+        snippetCompletion(s.template, { label: n, type: 'keyword', detail: s.detail }),
+      ),
       validFor: /^[a-z]*$/i,
     };
 
