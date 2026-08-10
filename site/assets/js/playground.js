@@ -25,16 +25,27 @@
  *     the deck's own fonts would leak into the UI. The kit editor isolates its
  *     preview the same way, for the same reason.
  *
- * `describeGaps()` exists for the same honesty reason as (2): Mermaid needs a
- * subprocess, icons and images need a disk. Both vanish in silence here, so the
- * page works out what went missing and names the command that would have
- * rendered it. Equations used to be on that list and are not any more —
- * shims/mathjax.mjs loads MathJax's UMD bundle as a classic script, and they
- * reach the preview, the .html and the .pptx (natively, as an OMML equation
- * PowerPoint lets you click into) like anything else. `describeMath()` reports
- * what is left over — the ones the compiler could not draw — separately, and
- * without the "it works on the command line" line, because for invalid LaTeX
- * it does not.
+ * THE PROVISIONING LOOP is how diagrams, icons and dropped images reach a
+ * compiler whose call sites are synchronous. `renderMermaidCached()` and
+ * `lucideSvg()` cannot await anything mid-dispatch — but both begin by looking
+ * at a DISK: the deck's vendored `assets/mermaid/`, the user's icon cache. In
+ * this page the disk is the fs shim, and the page controls what is on it. So
+ * after each compile, `provision()` renders the diagrams the scene graph asked
+ * for (the vendored Mermaid bundle, loaded like MathJax), fetches the icons it
+ * named (same-origin, out of /vendor/lucide-static/), writes both exactly
+ * where the compiler will look — `mermaidContentKey()` is that contract — and
+ * compiles once more. The second pass finds everything already "on disk" and
+ * writes nothing, which is what makes the loop converge.
+ *
+ * `describeGaps()` exists for the same honesty reason as (2): what cannot be
+ * drawn must be named, not dropped. The list has shrunk to what actually
+ * fails HERE — a diagram Mermaid refused (it refuses it on the command line
+ * too), an icon that is not in the Lucide set, an image whose file this page
+ * was never given (dropping it onto the editor is the remedy now), and the
+ * one true remaining CLI-only case: a remote image, which needs the disk
+ * cache the CLI fetches through. Equations went through the same shrinking —
+ * `describeMath()` reports what MathJax refused, separately, without the "it
+ * works on the command line" line, because for invalid LaTeX it does not.
  *
  * THE TWO DOWNLOADS are the same compiler again, not an export of the preview.
  * `.html` is `compileHtml` without `fragment`, so it is the standalone page
@@ -114,8 +125,9 @@ Actual: 110, 155, 175, 190
 target: 165
 \`\`\`
 `,
-  // Deliberately the LAST example: clicking it is what fetches MathJax's 2.3 MB
-  // bundle, and nobody should pay for that by arriving on the page.
+  // The two heavy examples come last: clicking "An equation" is what fetches
+  // MathJax's 2.3 MB, clicking "A diagram" Mermaid's 3.5 MB. Nobody pays for
+  // either by merely arriving on the page.
   math: `# The model
 
 The engine typesets LaTeX with MathJax, here and in the file you download.
@@ -126,6 +138,18 @@ The engine typesets LaTeX with MathJax, here and in the file you download.
 
 \`\`\`math
 e^{i\\pi} + 1 = 0
+\`\`\`
+`,
+  diagram: `# How a deck gets made
+
+The diagram is rendered right here, by the same Mermaid the
+command line uses, in the brand's colours.
+
+\`\`\`mermaid
+flowchart LR
+  md[Markdown] --> ast[AST] --> ir[IR]
+  ir --> pptx[.pptx]
+  ir --> html[HTML]
 \`\`\`
 `,
 };
@@ -191,6 +215,13 @@ function openFrame() {
 say('loading the compiler…');
 
 let compileHtml;
+/** `deck/assets.mjs` — the cache-key contract and the config the provisioning
+ *  loop must share with the compiler, imported from the SAME module instance
+ *  the compiler uses so the two can never disagree. */
+let assets;
+/** `deck/raster-browser.mjs` — the canvas rasterizer, for the PNG half of a
+ *  diagram (the .pptx wants a raster; the preview and the vector twin do not). */
+let raster;
 
 try {
   // The catalog first, into the virtual filesystem. The manifest is written by
@@ -213,6 +244,8 @@ try {
   const render = await import('../../core/src/html/render.mjs');
   const layout = await import('../../core/src/deck/layout.mjs');
   compileHtml = render.compileHtml;
+  assets = await import('../../core/src/deck/assets.mjs');
+  raster = await import('../../core/src/deck/raster-browser.mjs');
 
   const got = layout.officialLayouts().length;
   if (got !== manifest.length) {
@@ -239,38 +272,210 @@ try {
 const view = openFrame();
 
 // ---------------------------------------------------------------------------
-// what a browser cannot do, said out loud
+// provisioning: put on the virtual disk what the compiler will look for
 // ---------------------------------------------------------------------------
 
+/** Where the deck's pre-rendered diagrams live — the same `assets/mermaid/`
+ *  that `lutrin vendor` fills next to a real deck, because that is the first
+ *  place `renderMermaidCached()` looks. */
+const DIAGRAM_DIR = '/deck/assets/mermaid';
+
+/** Where `lucideSvg()` looks after node_modules (absent here): the user icon
+ *  cache, under the home directory the os shim answers with. The layout
+ *  (`<cache>/icons/lucide/<name>.svg`) is deck/assets.mjs's; a drift would
+ *  show as icons silently gone from this page and nowhere else. */
+const ICON_CACHE = '/home/playground/.cache/lutrin/icons/lucide';
+
+/** Diagram sources that failed here, with why — consulted so a broken diagram
+ *  is rendered once, reported honestly, and not retried on every keystroke.
+ *  Maps source → 'invalid' (Mermaid refused it; the CLI refuses it too) or
+ *  'bundle' (the 3.5 MB could not be fetched into this page). */
+const failedDiagrams = new Map();
+
+/** Icon names the pinned Lucide set does not have (a 404 from our own origin,
+ *  not a network failure — those are retried). */
+const missingIcons = new Set();
+
+/** The Mermaid module, imported once on the first diagram and remembered
+ *  including failure — the MathJax bargain, and the same reason: a page that
+ *  cannot fetch the bundle must not re-fetch nothing on every keystroke. */
+let _mermaid = null;
+async function mermaidModule() {
+  if (_mermaid === null) {
+    try {
+      _mermaid = (await import('./shims/mermaid.mjs')).default;
+      _mermaid.initialize({ startOnLoad: false, ...assets.mermaidConfig() });
+    } catch {
+      _mermaid = false;
+    }
+  }
+  return _mermaid || null;
+}
+
+/** Distinct render ids: Mermaid writes the id into the SVG it returns, and
+ *  reusing one across renders has produced stale references. */
+let diagramSeq = 0;
+
+/**
+ * Renders one diagram into the virtual filesystem, under the names the
+ * compiler will ask for — the SVG the preview and the .html inline, and the
+ * PNG the .pptx embeds (at the same scale the CLI rasterizes at, because the
+ * scale is part of the PNG's name). A missing PNG costs the export, not the
+ * preview, so it is best-effort behind the SVG.
+ */
+async function provisionDiagram(src) {
+  const mermaid = await mermaidModule();
+  if (!mermaid) {
+    failedDiagrams.set(src, 'bundle');
+    return false;
+  }
+  const id = `lutrin-playground-diagram-${diagramSeq++}`;
+  let svg;
+  try {
+    ({ svg } = await mermaid.render(id, src));
+    if (!svg || !/^\s*<svg/i.test(svg)) throw new Error('mermaid returned no SVG');
+  } catch {
+    // Mermaid leaves its error placard in the host document on a refused
+    // source; this page renders into slides, never into itself.
+    document.getElementById(`d${id}`)?.remove();
+    failedDiagrams.set(src, 'invalid');
+    return false;
+  } finally {
+    document.getElementById(id)?.remove();
+  }
+
+  vfs.mkdirSync(DIAGRAM_DIR, { recursive: true });
+  vfs.writeFileSync(`${DIAGRAM_DIR}/${assets.mermaidContentKey(src, 'svg')}`, svg);
+  const box = raster.svgAspect(svg);
+  const png = box ? await raster.svgToPngCanvas(svg, box.w * assets.MERMAID_PNG_SCALE) : null;
+  if (png) vfs.writeFileSync(`${DIAGRAM_DIR}/${assets.mermaidContentKey(src, 'png')}`, png.png);
+  return true;
+}
+
+/** Mirrors the name sanitation in `lucideSvg()`: the fetch and the compiler's
+ *  later lookup must agree on the file name or the icon vanishes between them. */
+const iconSafeName = (name) =>
+  String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '');
+
+/**
+ * Fetches one icon from our own origin — /vendor/lucide-static/, the exact
+ * files the CLI reads out of node_modules — into the virtual icon cache where
+ * `lucideSvg()` looks. Same-origin on purpose: the page promises that nothing
+ * about the deck leaves the machine, and an icon name is something about the
+ * deck. The URL is asked of the import map, the single list of vendored
+ * packages.
+ */
+async function provisionIcon(name) {
+  const safe = iconSafeName(name);
+  if (!safe) return false;
+  try {
+    const res = await fetch(import.meta.resolve(`lucide-static/icons/${safe}.svg`));
+    if (res.status === 404) {
+      missingIcons.add(safe);
+      return false;
+    }
+    const svg = res.ok ? await res.text() : null;
+    if (!svg || !assets.hasSvgRoot(svg)) return false; // transient: retried next compile
+    vfs.mkdirSync(ICON_CACHE, { recursive: true });
+    vfs.writeFileSync(`${ICON_CACHE}/${safe}.svg`, svg);
+    return true;
+  } catch {
+    return false; // offline is transient too
+  }
+}
+
+/** Every block of every scene — the shape describeGaps() has always read. */
+const allBlocks = (result) =>
+  result.scenes.flatMap((s) => [...s.elements.map((e) => e.block), ...(s.image ? [s.image] : [])]);
+
+/**
+ * Renders and fetches whatever this compile asked for and does not have yet.
+ * Returns how many files landed on the virtual disk: zero means the next
+ * compile would see the same disk, so the caller only recompiles on > 0 —
+ * that, plus the negative caches above, is the loop's convergence argument.
+ */
+async function provision(result) {
+  const blocks = allBlocks(result);
+  let wrote = 0;
+
+  const sources = [
+    ...new Set(blocks.filter((b) => b.type === 'mermaid').map((b) => b.source)),
+  ].filter(
+    (s) =>
+      !failedDiagrams.has(s) &&
+      assets.mermaidContentKey(s, 'svg') &&
+      !vfs.existsSync(`${DIAGRAM_DIR}/${assets.mermaidContentKey(s, 'svg')}`),
+  );
+  if (sources.length) {
+    say(sources.length > 1 ? 'rendering the diagrams…' : 'rendering the diagram…');
+    for (const src of sources) if (await provisionDiagram(src)) wrote++;
+  }
+
+  const icons = [...new Set(blocks.filter((b) => b.type === 'icon').map((b) => b.name))].filter(
+    (n) =>
+      iconSafeName(n) &&
+      !missingIcons.has(iconSafeName(n)) &&
+      !vfs.existsSync(`${ICON_CACHE}/${iconSafeName(n)}.svg`),
+  );
+  for (const name of icons) if (await provisionIcon(name)) wrote++;
+
+  return wrote;
+}
+
+// ---------------------------------------------------------------------------
+// what could not be drawn, said out loud
+// ---------------------------------------------------------------------------
+
+/**
+ * What this page could not draw, AFTER it has tried — each entry carries
+ * whether "npx lutrin" is a true remedy, because ending every line with the
+ * CLI was only honest when the CLI genuinely had what the page lacked. A
+ * diagram Mermaid refused and an icon Lucide does not ship fail identically
+ * on the command line; only a remote image still lands there and not here.
+ *
+ * @returns {{text:string, cli:boolean}[]}
+ */
 function describeGaps(result) {
-  const blocks = result.scenes.flatMap((s) => [
-    ...s.elements.map((e) => e.block),
-    ...(s.image ? [s.image] : []),
-  ]);
-  const n = (t) => blocks.filter((b) => b.type === t).length;
-  const plural = (k, one, many) => `${k} ${k > 1 ? many : one}`;
+  const blocks = allBlocks(result);
   const gaps = [];
 
-  if (n('mermaid'))
-    gaps.push(
-      `${plural(n('mermaid'), 'Mermaid diagram', 'Mermaid diagrams')} — rendering one needs a headless browser, which a page cannot start.`,
-    );
-  // Equations are deliberately NOT in this list any more. shims/mathjax.mjs
-  // loads MathJax's UMD bundle as a classic script, so the page draws them and
-  // the .pptx carries them natively — and every line above ends in the same
-  // sentence, "it works on the command line", which for a failed equation is
-  // usually FALSE: what fails now is the LaTeX itself, and invalid LaTeX fails
-  // just as hard under `npx lutrin`. A true finding under an untrue remedy is
-  // the kind of half-honesty this page exists not to practise, so equations get
-  // their own note (`describeMath`) with their own sentence.
-  if (n('icon'))
-    gaps.push(
-      `${plural(n('icon'), 'icon', 'icons')} — the icon set is read from disk, not fetched.`,
-    );
-  if (n('image'))
-    gaps.push(
-      `${plural(n('image'), 'image', 'images')} — a local file has no path here, and a remote one is fetched through a disk cache.`,
-    );
+  for (const src of new Set(blocks.filter((b) => b.type === 'mermaid').map((b) => b.source))) {
+    const why = failedDiagrams.get(src);
+    if (why === 'bundle')
+      gaps.push({
+        text: 'a Mermaid diagram — the 3.5 MB renderer could not be fetched into this page.',
+        cli: true,
+      });
+    else if (why)
+      gaps.push({
+        text: 'a Mermaid diagram is shown as its source: Mermaid refused it — an invalid diagram fails on the command line too.',
+        cli: false,
+      });
+  }
+
+  const iconNames = [...new Set(blocks.filter((b) => b.type === 'icon').map((b) => b.name))];
+  const lost = iconNames.filter((n) => missingIcons.has(iconSafeName(n)));
+  if (lost.length)
+    gaps.push({
+      text: `${lost.length > 1 ? 'icons' : 'the icon'} ${lost.map((n) => `"${n}"`).join(', ')} — not in the Lucide set this compiler pins, here or on the command line.`,
+      cli: false,
+    });
+
+  for (const b of blocks) {
+    if (b.type !== 'image' || /^kit:/i.test(b.src)) continue; // kit: has its own diagnostic
+    if (/^[a-z][a-z0-9+.-]*:/i.test(b.src))
+      gaps.push({
+        text: `the remote image ${b.src} — fetched through a disk cache this page does not have.`,
+        cli: true,
+      });
+    else if (!vfs.existsSync(assets.resolveImagePath('/deck', b.src)))
+      gaps.push({
+        text: `the image ${b.src} — no file by that name here. Drop the file onto the editor to embed it.`,
+        cli: false,
+      });
+  }
 
   return gaps;
 }
@@ -306,19 +511,24 @@ function paintNotes(result) {
   const gaps = describeGaps(result);
   if (!gaps.length) return;
 
-  note('pg-note pg-note-gap', 'This deck asks for something a browser cannot draw:');
+  note('pg-note pg-note-gap', 'This deck asks for something this page could not draw:');
   const ul = document.createElement('ul');
   ul.className = 'pg-gaps';
   for (const g of gaps) {
     const li = document.createElement('li');
-    li.textContent = g;
+    li.textContent = g.text;
     ul.appendChild(li);
   }
   notes.appendChild(ul);
-  note(
-    'pg-note pg-note-cmd',
-    `${gaps.length > 1 ? 'They all work' : 'It works'} on the command line: npx lutrin build deck.md -o deck.pptx`,
-  );
+  // The command is offered only when it is TRUE — a diagram Mermaid refused or
+  // an icon Lucide does not ship fails identically under `npx lutrin`, and a
+  // remedy that does not remedy is the half-honesty this page refuses.
+  const cliFixes = gaps.filter((g) => g.cli).length;
+  if (cliFixes)
+    note(
+      'pg-note pg-note-cmd',
+      `${cliFixes > 1 ? 'Those land' : 'It lands'} from the command line: npx lutrin build deck.md -o deck.pptx`,
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -353,9 +563,10 @@ let timer = null;
 
 async function compile() {
   say('compiling…');
+  const text = source.value;
   let result;
   try {
-    result = await compileHtml(source.value, { baseDir: '/deck', fragment: true });
+    result = await compileHtml(text, { baseDir: '/deck', fragment: true });
   } catch (e) {
     say('error', 'bad');
     notes.innerHTML = '';
@@ -367,6 +578,14 @@ async function compile() {
     setDownloads();
     return;
   }
+
+  // Anything this deck asked for that the virtual disk does not hold yet —
+  // diagrams to render, icons to fetch — lands now, and the deck is compiled
+  // once more over the filled disk. `provision()` only touches misses, so the
+  // second pass writes nothing and the recursion stops there; a keystroke
+  // during the async work wins instead, its own compile already scheduled.
+  if ((await provision(result)) > 0 && source.value === text) return compile();
+
   last = result;
   setDownloads();
 
@@ -569,6 +788,97 @@ source.addEventListener('input', () => {
     compile();
   }, 250);
 });
+
+// ---------------------------------------------------------------------------
+// dropped images: hand the page the disk a local image needs
+// ---------------------------------------------------------------------------
+
+/** The formats the compiler itself accepts (EXT_BY_MIME, deck/assets.mjs) —
+ *  anything else is refused HERE, by name, rather than accepted onto the disk
+ *  and lost to a placeholder with less to say. */
+const DROP_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']);
+
+/** Generous for a slide image, and a bound all the same: everything dropped
+ *  lives in page memory, inlined base64 into every preview. */
+const DROP_MAX_BYTES = 8 * 1024 * 1024;
+
+/** `Photo d'équipe (1).JPG` → `photo-dequipe-1.jpg` — a name that survives a
+ *  Markdown image destination unquoted and `resolveImagePath` untouched. The
+ *  extension is kept from the name (the compiler picks its MIME by it). */
+function droppedName(file, taken) {
+  const dot = file.name.lastIndexOf('.');
+  const ext = (dot > 0 ? file.name.slice(dot) : '.png').toLowerCase();
+  const stem =
+    file.name
+      .slice(0, dot > 0 ? dot : undefined)
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'image';
+  let name = `${stem}${ext}`;
+  // a second drop of the same name REPLACES the file (that is what a person
+  // re-dropping an edited photo means); only a same-batch collision suffixes
+  for (let i = 2; taken.has(name); i++) name = `${stem}-${i}${ext}`;
+  return name;
+}
+
+/** Inserts `text` at the caret, on its own paragraph, and recompiles. */
+function insertAtCaret(text) {
+  const at = source.selectionStart ?? source.value.length;
+  const before = source.value.slice(0, at);
+  const after = source.value.slice(source.selectionEnd ?? at);
+  const glue =
+    before === '' || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
+  source.value = `${before}${glue}${text}\n${after}`;
+  const caret = before.length + glue.length + text.length + 1;
+  source.setSelectionRange(caret, caret);
+  source.focus();
+}
+
+/** Every dropped image goes into the virtual `/deck/`, which is the baseDir
+ *  every compile runs against — from the compiler's point of view the file has
+ *  simply always been next to the deck, exactly like on disk. Nothing is
+ *  uploaded: the bytes go from the drop event into the page's own memory. */
+async function acceptDrop(files) {
+  const images = [...files].filter((f) => DROP_TYPES.has(f.type));
+  if (!images.length) {
+    say('not an image — png, jpeg, gif, webp or svg', 'warn');
+    return;
+  }
+  const taken = new Set();
+  const refs = [];
+  for (const file of images) {
+    if (file.size > DROP_MAX_BYTES) {
+      say(`${file.name}: over 8 MB, not embedded`, 'warn');
+      continue;
+    }
+    const name = droppedName(file, taken);
+    taken.add(name);
+    vfs.writeFileSync(`/deck/${name}`, new Uint8Array(await file.arrayBuffer()));
+    refs.push(`![](${name})`);
+  }
+  if (!refs.length) return;
+  insertAtCaret(refs.join('\n\n'));
+  clearTimeout(timer);
+  timer = null;
+  await compile();
+}
+
+const editor = document.querySelector('.pg-editor');
+if (editor) {
+  for (const type of ['dragover', 'dragleave', 'drop']) {
+    editor.addEventListener(type, (e) => {
+      // only for files — a text selection dragged within the textarea is the
+      // browser's business, not ours
+      if (![...(e.dataTransfer?.types ?? [])].includes('Files')) return;
+      e.preventDefault();
+      editor.classList.toggle('is-dropping', type === 'dragover');
+      if (type === 'drop') acceptDrop(e.dataTransfer.files);
+    });
+  }
+}
 
 addEventListener('resize', fit);
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(frame);

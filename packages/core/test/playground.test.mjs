@@ -109,8 +109,15 @@ test('the import map covers every specifier the compiler statically imports', ()
 
 test('every file the import map points at exists', () => {
   for (const [spec, target] of Object.entries(importMap())) {
-    if (!target.startsWith('./assets/')) continue; // vendored packages are copied by CI
-    const file = path.join(SITE, target.slice(2));
+    // ./vendor/ entries are copied out of node_modules by CI and checked by
+    // the loop-parity test below; the other two prefixes exist in this repo.
+    const root = target.startsWith('./assets/')
+      ? path.join(SITE, 'assets')
+      : target.startsWith('./core/')
+        ? CORE
+        : null;
+    if (!root) continue;
+    const file = path.join(root, ...target.split('/').slice(2));
     assert.ok(fs.existsSync(file), `${spec} → ${target}, which does not exist`);
   }
 });
@@ -238,6 +245,47 @@ test('the vendored MathJax bundle publishes both halves the compiler needs', () 
   assert.match(bundle, /startup:/, 'the bundle exposes no startup object to await');
 });
 
+/**
+ * Mermaid follows the jszip/mathjax pattern with one difference worth pinning:
+ * the compiler never imports the specifier. Only playground.js does, to
+ * pre-render diagrams into the virtual filesystem the compiler then reads.
+ * And the bundle must be THE one @lutrin/core ships (/core/vendor/, mirrored
+ * from packages/core/vendor/) — pointing the map at a node_modules copy would
+ * let the page render with a different Mermaid than the CLI, and the two
+ * outputs would disagree about the same deck.
+ */
+test('the mermaid shim reaches the bundle the core package ships', () => {
+  const shimFile = path.join(SITE, 'assets', 'js', 'shims', 'mermaid.mjs');
+  const shim = fs.readFileSync(shimFile, 'utf8');
+  const map = importMap();
+
+  const spec = shim.match(/import\.meta\.resolve\(['"]([^'"]+)['"]\)/)?.[1];
+  assert.ok(spec, 'the shim no longer resolves its bundle through the import map');
+  assert.ok(map[spec], `the import map has no ${spec} entry for the shim to resolve`);
+  assert.match(
+    map[spec],
+    /^\.\/core\/vendor\//,
+    `${spec} must point at the copy @lutrin/core ships, not at node_modules`,
+  );
+  assert.doesNotMatch(shim, /\.\.\/\.\.\/\.\.\/vendor\//, 'the shim spells out a second path');
+});
+
+/**
+ * The icons prefix entry is what playground.js resolves icon URLs against, and
+ * both halves have to hold: a prefix mapping only matches when key AND value
+ * end in '/', and the package must be in the CI vendoring loop (the parity
+ * test above checks that) with its icons/ directory actually installed.
+ */
+test('the lucide icons prefix entry is a valid prefix and the icons exist', () => {
+  const target = importMap()['lucide-static/icons/'];
+  assert.ok(target, 'the import map lost its lucide-static/icons/ entry');
+  assert.match(target, /\/$/, 'a prefix mapping whose value lacks the trailing / matches nothing');
+  assert.ok(
+    fs.existsSync(path.join(REPO, 'node_modules', 'lucide-static', 'icons', 'zap.svg')),
+    'lucide-static/icons is not installed — the playground would 404 on every icon',
+  );
+});
+
 test('process is stubbed by a classic script before the module runs', () => {
   const html = fs.readFileSync(PLAYGROUND, 'utf8');
   const stub = html.indexOf('window.process');
@@ -352,6 +400,50 @@ test('the fs shim round-trips bytes as bytes', async () => {
   // and an export leaves nothing for the next one to read back
   vfs.rmSync('/tmp', { recursive: true, force: true });
   assert.equal(vfs.existsSync('/tmp/deck.pptx'), false);
+});
+
+/**
+ * html/render.mjs memoizes each inlined image by `file|mtimeMs|size`. A shim
+ * that answered a constant mtime would satisfy every other test and still
+ * serve a stale picture the day someone drops a same-named, same-sized
+ * replacement — the memo key would not budge. mtime here is a write counter,
+ * which is the property that memo actually relies on.
+ */
+test('overwriting a file moves its mtime, even at the same size', async () => {
+  const vfs = await shim('fs');
+  vfs.writeFileSync('/deck/pic.png', new Uint8Array([1, 2, 3]));
+  const before = vfs.statSync('/deck/pic.png').mtimeMs;
+  vfs.writeFileSync('/deck/pic.png', new Uint8Array([9, 9, 9]));
+  assert.notEqual(vfs.statSync('/deck/pic.png').mtimeMs, before);
+  vfs.rmSync('/deck', { recursive: true, force: true });
+});
+
+/**
+ * A dropped image travels VFS → `readFileSync(img).toString('base64')` → data:
+ * URI (html/render.mjs). A bare Uint8Array would satisfy the byte round-trip
+ * test above and still break this: its `toString` ignores the argument and
+ * yields comma-joined decimals — a data: URI of "137,80,78,…", a broken
+ * picture, no error anywhere. So the read is pinned against Buffer itself.
+ */
+test('a binary read answers toString like a Buffer, base64 included', async () => {
+  const vfs = await shim('fs');
+  // non-ASCII bytes on both sides of 0x80, and a length that is not a multiple
+  // of 3: the base64 padding path
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0x10, 0x81]);
+  vfs.writeFileSync('/deck/photo.png', bytes);
+  const back = vfs.readFileSync('/deck/photo.png');
+  assert.ok(back instanceof Uint8Array, 'the rasterizer and JSZip type-check the read');
+  assert.equal(back.toString('base64'), Buffer.from(bytes).toString('base64'));
+  // imageDims() sizes a PNG read back off this filesystem with these two —
+  // called on the diagram PNGs the playground provisions and on dropped photos
+  assert.equal(back.readUInt32BE(0), Buffer.from(bytes).readUInt32BE(0));
+  assert.equal(back.readUInt16BE(4), Buffer.from(bytes).readUInt16BE(4));
+  // and a text file written as bytes decodes as text, the way Node's does
+  const text = new TextEncoder().encode('accentué — ✓');
+  vfs.writeFileSync('/deck/note.txt', text);
+  assert.equal(vfs.readFileSync('/deck/note.txt', 'utf8'), 'accentué — ✓');
+  assert.equal(vfs.readFileSync('/deck/note.txt').toString(), 'accentué — ✓');
+  vfs.rmSync('/deck', { recursive: true, force: true });
 });
 
 /** Two exports in one session must not share a directory: the second would

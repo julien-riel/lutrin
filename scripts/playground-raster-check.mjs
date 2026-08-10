@@ -43,9 +43,10 @@ import { findBrowser } from '../packages/core/src/deck/browser.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const KEEP = process.argv.includes('--keep');
 
-/** A deck that asks for exactly the three things this path had to unlock: a
- *  diagram (native SmartArt asks for the raster fallback), a chart, and an
- *  equation.
+/** A deck that asks for everything this path had to unlock, one block each: a
+ *  cycle (native SmartArt asks for the raster fallback), a chart, an equation,
+ *  a Mermaid diagram and a Lucide icon — the last two provisioned by the page
+ *  itself into the virtual filesystem before the compiler looks.
  *
  *  The equation is the newest of the three and the one with TWO outcomes to
  *  check rather than one. MathJax is CommonJS, so the page reaches it through a
@@ -87,6 +88,17 @@ Planned: 120, 150, 180
 \`\`\`math
 \\frac{1}{2}\\sum_{i=1}^{n} (y_i - \\hat{y}_i)^2
 \`\`\`
+
+# A diagram
+
+\`\`\`mermaid
+flowchart LR
+  In[Input] --> Out[Output]
+\`\`\`
+
+# An icon
+
+![medium](lucide:zap)
 `;
 
 /** PNG signature + the IHDR dimensions, or null when the bytes are not a PNG.
@@ -216,6 +228,34 @@ async function main() {
       failures++;
     }
 
+    // The two blocks the provisioning loop exists for. Each leaves a signature
+    // nothing else writes: the diagram's SVG carries the render id
+    // playground.js hands to Mermaid, the icon its lucide-<name> class. Their
+    // absence is the old silent degradation — the deck compiles, the slide
+    // shows the source as a code block, and no error says so.
+    const previewHas = async (re) => {
+      for (const frame of page.frames()) {
+        try {
+          if (re.test(await frame.content())) return true;
+        } catch {
+          // a frame that navigated mid-read
+        }
+      }
+      return false;
+    };
+    if (await previewHas(/lutrin-playground-diagram/)) {
+      console.log('  ✓ the diagram is there, rendered by the in-page Mermaid');
+    } else {
+      console.log('  ✗ no Mermaid SVG in it: the page drew no diagram');
+      failures++;
+    }
+    if (await previewHas(/lucide-zap/)) {
+      console.log('  ✓ the icon is there, inlined and recolored');
+    } else {
+      console.log('  ✗ no lucide-zap SVG in it: the page drew no icon');
+      failures++;
+    }
+
     const cdp = await page.target().createCDPSession();
     await cdp.send('Browser.setDownloadBehavior', {
       behavior: 'allow',
@@ -282,6 +322,22 @@ async function main() {
     } else {
       console.log('  ✗ no <m:oMath> on any slide: the equation shipped as a picture only');
       failures++;
+    }
+
+    // The diagram and the icon fall back to their SOURCE when their picture is
+    // missing — `flowchart LR` printed as code, the `lucide:zap` reference as
+    // text. A slide carrying either string shipped the fallback, however many
+    // sound PNGs sit in ppt/media/ beside it.
+    let sourceShipped = 0;
+    for (const name of slides) {
+      const xml = await zip.file(name).async('string');
+      if (xml.includes('flowchart LR') || xml.includes('lucide:zap')) sourceShipped++;
+    }
+    if (sourceShipped) {
+      console.log(`  ✗ ${sourceShipped} slide(s) carry a diagram or icon as source, not picture`);
+      failures++;
+    } else {
+      console.log('  ✓ the diagram and the icon shipped as pictures, not as their source');
     }
 
     if (problems.length) {

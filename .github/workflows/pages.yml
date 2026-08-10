@@ -98,6 +98,12 @@ jobs:
           mkdir -p _site/core/design _site/vendor
           cp -R packages/core/src _site/core/src
           cp -R packages/core/design/layouts _site/core/design/layouts
+          # The package's own vendored files — today the Mermaid bundle, which
+          # the playground loads as a classic script (shims/mermaid.mjs) to
+          # pre-render diagrams in the page. Under /core/ rather than /vendor/
+          # because it ships INSIDE @lutrin/core, not out of node_modules —
+          # the same provenance rule the mirror above follows.
+          cp -R packages/core/vendor _site/core/vendor
           # The manifest lives BESIDE the directory, never inside it: a file
           # returned by readdirSync that is not a layout definition would be
           # registered as a broken one and reported as a diagnostic.
@@ -108,10 +114,12 @@ jobs:
           # fetches only when a visitor asks for that export or types an
           # equation. `pptxgenjs` ships real ESM; `jszip` and `mathjax-full`
           # ship none at all, so their UMD bundles are loaded as classic scripts
-          # by site/assets/js/shims/{jszip,mathjax}.mjs. Keep this list in step
-          # with that map: packages/core/test/playground.test.mjs fails the
-          # build if they drift apart.
-          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro jszip pptxgenjs mathjax-full; do
+          # by site/assets/js/shims/{jszip,mathjax}.mjs. `lucide-static` is not
+          # imported at all: the playground fetches individual icons out of it,
+          # same-origin, to fill the compiler's virtual icon cache. Keep this
+          # list in step with that map: packages/core/test/playground.test.mjs
+          # fails the build if they drift apart.
+          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro jszip pptxgenjs mathjax-full lucide-static; do
             cp -R "node_modules/$p" "_site/vendor/$p"
           done
           # Source maps and typings are a third of the bytes and are never
@@ -136,6 +144,13 @@ jobs:
                ! -name es5 ! -name package.json ! -name LICENSE -exec rm -rf {} +
           find _site/vendor/mathjax-full/es5 -mindepth 1 \
                ! -name tex-svg-full.js -exec rm -rf {} +
+          # lucide-static is 61 MB, of which the page fetches only icons/*.svg
+          # (~8 MB, one small file per icon a deck actually names). The icon
+          # font, the JS builds and the sprite are other ways of consuming the
+          # same drawings; nothing here reaches them. LICENSE and package.json
+          # stay, for the same two reasons as mathjax-full's.
+          find _site/vendor/lucide-static -mindepth 1 -maxdepth 1 \
+               ! -name icons ! -name package.json ! -name LICENSE -exec rm -rf {} +
           du -sh _site/core _site/vendor
 
       # A stale absolute URL must never ship again. demo.html is compiled

@@ -70,9 +70,10 @@ npm run site:serve    # http://127.0.0.1:4400/
 playground needs a real origin: modules loaded from `file://` get an opaque one
 and `fetch` is refused outright.
 
-`site:serve` copies nothing. It maps three virtual routes onto the working
+`site:serve` copies nothing. It maps four virtual routes onto the working
 copy — `/core/src` → `packages/core/src`, `/core/design/layouts` →
-`packages/core/design/layouts` (with the manifest generated per request), and
+`packages/core/design/layouts` (with the manifest generated per request),
+`/core/vendor` → `packages/core/vendor` (the Mermaid bundle), and
 `/vendor/<pkg>` → `node_modules/<pkg>` — so **editing the compiler and
 reloading the page shows the change**, with no restart and no build step. The
 Pages workflow does the same mapping with `cp`, because a deploy has no
@@ -97,7 +98,11 @@ There is still **no build step**. What makes that possible:
 - **An import map** in `playground.html` resolves the eight `node:*` specifiers
   the compiler statically imports, plus `markdown-it` and its five transitive
   dependencies, plus `jszip` and `pptxgenjs` for the `.pptx` export. Import maps
-  resolve `node:fs` like any other specifier.
+  resolve `node:fs` like any other specifier. The map is also where the
+  playground's own loaders ask for what the compiler never imports: the
+  Mermaid bundle (`mermaid/umd`, served out of `@lutrin/core`'s vendored copy
+  under `/core/vendor/`) and the Lucide icon files (the `lucide-static/icons/`
+  prefix entry).
 - **`assets/js/shims/`** — `path`, `os`, `url` and `crypto` compute for real
   (`path` and `crypto` are pinned against Node's own by
   `packages/core/test/playground.test.mjs`); `fs` is a map filled before the
@@ -109,9 +114,10 @@ There is still **no build step**. What makes that possible:
 - **A classic `<script>` stubbing `window.process` before the module.**
   `deck/assets.mjs` reads `process.env` at module scope, on its first
   statement. Out of order, the page dies before anything runs.
-- **Three copies in `pages.yml`**: `packages/core/src` → `_site/core/src`,
+- **Four copies in `pages.yml`**: `packages/core/src` → `_site/core/src`,
   `design/layouts` → `_site/core/design/layouts` (plus a manifest written
-  *beside* it), and nine npm packages → `_site/vendor/`.
+  *beside* it), `packages/core/vendor` → `_site/core/vendor` (the Mermaid
+  bundle the package ships), and eleven npm packages → `_site/vendor/`.
 
 `_site/core/` is not a stylistic choice. `deck/layout.mjs` and
 `deck/assets.mjs` derive the package root from
@@ -128,19 +134,37 @@ holds `design/layouts`.
    `loadOfficialLayouts()` reports `LAYOUT_CATALOG_MISSING` where it used to
    hold a bare `catch {}` that pushed no diagnostic at all — but the page keeps
    its own count: it is the one that knows how many the manifest promised.
-2. **Name what a browser cannot draw.** Mermaid needs a subprocess, icons and
-   images need a disk — and all three vanish *silently*. `describeGaps()`
-   inspects the scene graph itself and says which are missing, naming the CLI.
+2. **Name what could not be drawn.** The list used to be long — Mermaid needs
+   a subprocess, icons and images need a disk, all vanishing *silently* — and
+   it has been worked down item by item, each time the same way LaTeX was:
 
-   LaTeX was on that list until `site/assets/js/shims/mathjax.mjs`. MathJax is
-   CommonJS and no import map can load it, but the package also publishes
-   `es5/tex-svg-full.js`, a UMD bundle a classic `<script>` runs — the JSZip
-   trick again, and `deck/assets.mjs` picks the browser engine over its seven
-   Node imports when it sees a `document`. Both halves survive the change of
-   API: `tex2svg` for the picture, `tex2mml` for the MathML that becomes a
-   native OMML equation in the `.pptx`. What `describeGaps()` still reports
-   about equations is the *leftover* — `stats.mathTotal - stats.mathRendered`,
-   which is invalid LaTeX, or a browser that could not fetch the 2.3 MB.
+   - **LaTeX** fell first (`shims/mathjax.mjs`). MathJax is CommonJS and no
+     import map can load it, but the package also publishes
+     `es5/tex-svg-full.js`, a UMD bundle a classic `<script>` runs — the JSZip
+     trick — and `deck/assets.mjs` picks the browser engine over its seven
+     Node imports when it sees a `document`. Both halves survive the change of
+     API: `tex2svg` for the picture, `tex2mml` for the MathML that becomes a
+     native OMML equation in the `.pptx`.
+   - **Mermaid, icons and local images** fell to the *provisioning loop*
+     (`provision()` in playground.js). The compiler's call sites are
+     synchronous and cannot await a render — but they all begin by looking at
+     a disk, and the page controls the disk. After each compile the page
+     renders the diagrams the scene graph asked for (the bundle `@lutrin/core`
+     ships, loaded like MathJax), fetches the icons it named (same-origin, out
+     of `/vendor/lucide-static/`), writes both where the compiler looks —
+     `mermaidContentKey()` names the file, the deck's virtual
+     `assets/mermaid/` and the icon cache hold it — and compiles once more
+     over the filled disk. A dropped image is the manual version of the same
+     move: the bytes land in the virtual `/deck/`, and the compiler finds a
+     file that was, as far as it can tell, always there.
+
+   What `describeGaps()` reports now is what actually FAILED here, each line
+   only offering `npx lutrin` when that is genuinely the remedy: a diagram
+   Mermaid refused (it refuses it on the CLI too), an icon the pinned Lucide
+   set does not have (same), an image no file was dropped for, and the one
+   true CLI-only case left — a remote image URL, which needs the disk cache
+   only the CLI has. Equations are the same shape: `describeMath()` reports
+   the leftover, `stats.mathTotal - stats.mathRendered`.
 
 ### The two downloads
 

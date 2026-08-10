@@ -18,13 +18,20 @@
  * exporting a .pptx writes the package here and reopens it once per
  * post-processing pass. That is why bytes stay bytes — a `String(data)` on the
  * way in would hand the next `JSZip.loadAsync` a mangled zip, and it would fail
- * as a corrupt archive rather than as a lost write. The rest (the Lucide and
- * Mermaid caches) is never read back at all, but a throwing `writeFileSync`
- * would turn a cache miss into a crash.
+ * as a corrupt archive rather than as a lost write. The Lucide and Mermaid
+ * caches are read back too: playground.js provisions them before a recompile,
+ * and the compiler then finds diagrams and icons exactly where a disk would
+ * have held them.
  */
 
 const FILES = new Map();
 const DIRS = new Set(['/']);
+/** Write counter per path, served as `mtimeMs`. Not wall-clock time — what the
+ *  one caller of mtime (html/render.mjs's data-URI memo, keyed file|mtime|size)
+ *  actually needs is "has this file changed since I read it", and a constant
+ *  would answer "no" forever: drop a same-named, same-sized replacement image
+ *  and the stale picture would be served silently. */
+const WRITES = new Map();
 
 function noteDirs(file) {
   let dir = file.slice(0, file.lastIndexOf('/'));
@@ -39,6 +46,7 @@ function noteDirs(file) {
 export function preload(file, content) {
   const p = String(file);
   FILES.set(p, content);
+  WRITES.set(p, (WRITES.get(p) ?? 0) + 1);
   noteDirs(p);
 }
 
@@ -53,14 +61,51 @@ const enoent = (p, syscall) => {
 };
 
 /** Stands in for a Buffer well enough for the two things the compiler does with
- *  one: `.toString(enc)` and `.length`. Nothing here base64-encodes anything —
- *  the paths that would (font and image inlining) have no files to read. */
+ *  one: `.toString(enc)` and `.length`. */
 const bufferLike = (s) => ({
   toString: (enc) => (enc === 'base64' ? btoa(unescape(encodeURIComponent(s))) : s),
   get length() {
     return s.length;
   },
 });
+
+/** Base64 of raw bytes. Chunked: one `btoa(String.fromCharCode(...all))` blows
+ *  the argument limit on a photo-sized file, and it does so only on LARGE
+ *  inputs — the kind of failure a small test never sees. */
+function bytesToBase64(bytes) {
+  let bin = '';
+  const STEP = 0x8000;
+  for (let i = 0; i < bytes.length; i += STEP)
+    bin += String.fromCharCode(...bytes.subarray(i, i + STEP));
+  return btoa(bin);
+}
+
+/**
+ * What a binary read hands back: a real Uint8Array (JSZip and the rasterizer
+ * type-check it), whose `toString` answers like a Buffer's for the two
+ * encodings the compiler uses. A bare Uint8Array is NOT enough here, and the
+ * failure is silent: its `toString` ignores the argument and yields
+ * comma-joined decimals, so `readFileSync(img).toString('base64')`
+ * (html/render.mjs, inlining a dropped image) would build a data: URI out of
+ * "137,80,78,…" — a broken picture, not an error.
+ *
+ * The two big-endian reads are for `imageDims()` (deck/assets.mjs), which
+ * sizes every image the compiler reads BACK off this filesystem — a
+ * pre-rendered diagram's PNG, a dropped photo. Buffer has dozens more
+ * accessors; these are the ones that code path calls, and a new one would
+ * fail loudly ("not a function"), never wrongly.
+ */
+class FileBytes extends Uint8Array {
+  toString(enc) {
+    return enc === 'base64' ? bytesToBase64(this) : new TextDecoder().decode(this);
+  }
+  readUInt16BE(offset) {
+    return new DataView(this.buffer, this.byteOffset, this.byteLength).getUint16(offset);
+  }
+  readUInt32BE(offset) {
+    return new DataView(this.buffer, this.byteOffset, this.byteLength).getUint32(offset);
+  }
+}
 
 const isBytes = (v) => v instanceof Uint8Array;
 
@@ -70,11 +115,15 @@ export function readFileSync(p, options) {
   const key = String(p);
   const v = FILES.get(key);
   if (v === undefined) throw enoent(key, 'open');
-  // A binary file goes back out as it came in — `JSZip.loadAsync` takes a
-  // Uint8Array, and there is nothing to decode it into that would survive the
-  // trip back through writeFileSync.
-  if (isBytes(v)) return v;
   const enc = typeof options === 'string' ? options : options?.encoding;
+  // A binary file goes back out as the bytes it came in as — `JSZip.loadAsync`
+  // takes a Uint8Array, and there is nothing to decode it into that would
+  // survive the trip back through writeFileSync. The view (same memory) only
+  // adds the Buffer-shaped `toString` — see FileBytes.
+  if (isBytes(v)) {
+    const bytes = new FileBytes(v.buffer, v.byteOffset, v.byteLength);
+    return enc ? bytes.toString(enc) : bytes;
+  }
   return enc ? v : bufferLike(v);
 }
 
@@ -97,7 +146,7 @@ export function statSync(p) {
     isFile: () => isFile,
     isDirectory: () => !isFile,
     size: isFile ? FILES.get(key).length : 0,
-    mtimeMs: 0,
+    mtimeMs: WRITES.get(key) ?? 0,
   };
 }
 

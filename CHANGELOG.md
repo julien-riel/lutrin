@@ -11,6 +11,30 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The playground draws diagrams, icons and dropped images.** Three of the
+  four things the page used to name as impossible fell to one observation: the
+  compiler's synchronous call sites cannot await a render, but every one of
+  them begins by looking at a disk, and the page controls the disk. After each
+  compile, playground.js renders the Mermaid diagrams the scene graph asked
+  for — with the bundle `@lutrin/core` already ships, loaded like MathJax, so
+  the page and the CLI run the *same* Mermaid — fetches the Lucide icons the
+  deck names from the site's own origin (never a third party: an icon name is
+  something about your deck), writes both exactly where `renderMermaidCached()`
+  and `lucideSvg()` will look, and compiles once more over the filled disk. A
+  local image is the manual version of the same move: drop the file onto the
+  editor and its bytes land in the virtual `/deck/`, embedded from tab memory,
+  uploaded nowhere. The new `mermaidContentKey()` export is the naming
+  contract that keeps pre-renderers and the compiler's lookup in step; the
+  `.pptx` export carries the diagram at the same 3× raster the CLI produces.
+
+  The gap notes shrank to what actually fails, and each offers `npx lutrin`
+  only when the command genuinely is the remedy — a diagram Mermaid refused or
+  an icon the pinned set lacks fails identically there. The one true CLI-only
+  case left is a remote image URL. `scripts/playground-raster-check.mjs` now
+  proves the whole loop end to end: the diagram and the icon reach the
+  preview, and the exported `.pptx` carries them as sound PNGs rather than as
+  their source text.
+
 - **Equations reach the page, both halves of them.** LaTeX was the last block
   type the playground could not carry, and the reason it gave was true as far as
   it went: `deck/assets.mjs` builds MathJax out of seven bare specifiers,

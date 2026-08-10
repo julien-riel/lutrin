@@ -8,6 +8,7 @@
  *     /core/src/…             → packages/core/src/…
  *     /core/design/layouts/…  → packages/core/design/layouts/…
  *     /core/design/layouts.json → generated per request
+ *     /core/vendor/…          → packages/core/vendor/… (the Mermaid bundle)
  *     /vendor/<pkg>/…         → node_modules/<pkg>/…
  *
  * So editing the compiler and reloading the page shows the change, with no
@@ -90,6 +91,10 @@ function resolve(urlPath) {
     return { file: within(path.join(CORE, 'src'), urlPath.slice('/core/src'.length)) };
   if (urlPath.startsWith('/core/design/layouts/'))
     return { file: within(LAYOUTS, urlPath.slice('/core/design/layouts'.length)) };
+  // the package's own vendored files — the Mermaid bundle the playground loads
+  // as a classic script; under /core/ because it ships inside @lutrin/core
+  if (urlPath.startsWith('/core/vendor/'))
+    return { file: within(path.join(CORE, 'vendor'), urlPath.slice('/core/vendor'.length)) };
 
   if (urlPath.startsWith('/vendor/')) {
     const [pkg, ...rest] = urlPath.slice('/vendor/'.length).split('/');

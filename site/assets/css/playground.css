@@ -111,6 +111,12 @@
   /* Matches the frame beside it so the two panes agree on the fold. */
   height: min(70vh, 640px);
 }
+/* An image file held over the editor — the border says "let go here" without
+   moving a pixel of layout. */
+.pg-editor.is-dropping {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
 .pg-editor .editor-bar {
   flex: none;
 }

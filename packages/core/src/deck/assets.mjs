@@ -1189,7 +1189,17 @@ function svgUsableInHtml(file) {
   }
 }
 
-export function renderMermaidCached(sourceText, { format = 'png', baseDir = null } = {}) {
+/**
+ * The file name under which a rendering of `sourceText` is cached and vendored
+ * — `<sha1>.<format>`, or null on a Node whose OpenSSL refuses sha1.
+ *
+ * Exported because it is a CONTRACT, not a convenience: anything able to
+ * produce a rendering ahead of time (`lutrin vendor`, the browser playground
+ * pre-rendering into its virtual `assets/mermaid/`) must name the file exactly
+ * as this lookup will ask for it, or the rendering is invisible. One producer
+ * spelling the shape out for itself is one producer that drifts.
+ */
+export function mermaidContentKey(sourceText, format = 'png') {
   // the raster scale keys the PNGs only: SVGs are scale-free, and including it
   // there would orphan every diagram already vendored next to existing decks
   const digest = sha1(
@@ -1200,8 +1210,12 @@ export function renderMermaidCached(sourceText, { format = 'png', baseDir = null
       ...(format === 'png' ? { px: MERMAID_PNG_SCALE } : {}),
     }),
   );
-  if (!digest) return null;
-  const key = `${digest}.${format}`;
+  return digest ? `${digest}.${format}` : null;
+}
+
+export function renderMermaidCached(sourceText, { format = 'png', baseDir = null } = {}) {
+  const key = mermaidContentKey(sourceText, format);
+  if (!key) return null;
   // The FILE NAME depends only on the content (source + format + config) —
   // that is what makes a vendored directory readable by any Lutrin. The
   // MEMOIZATION key, on the other hand, must also carry baseDir: the verdict
