@@ -47,6 +47,36 @@ its raster is not a harmless upgrade there.
 open question that decides how much this plan is worth. If PowerPoint behaves
 like Impress, the same defect was hitting the primary target all along.
 
+## Re-measured on `c600e18`
+
+Everything above still holds; three details are worth pinning down before
+anyone picks this up again.
+
+**The gate is doing exactly what it was built to do.** `examples/demo.deck.md`
+builds to eleven PNGs and ten SVGs. The one raster with no vector twin is
+`ppt/media/image-8-1.png`, the Mermaid diagram — `svgPartSafe` refuses it on
+the `<style>` test and nothing else in the deck is affected.
+
+**The test to write first is not quite the one described below.** That
+paragraph says to pull `ppt/media/vector-8-1.svg` out of the zip and assert its
+node rects carry a `fill`. There is no such entry in the zip today: the twin is
+declined, so the file is absent entirely. The test that fails on today's tree
+asserts *absence*; after the change it has to assert both that the part exists
+**and** that its node rects carry a `fill` of their own. A test written the
+original way would pass vacuously on a build where the transform silently
+declined.
+
+**Impress still reproduces, and the picture is unambiguous.** Rebuilding with
+the `<style>` line at `deck/svg.mjs:486` disabled ships the twin, and slide 8
+renders in Impress as solid dark boxes with every label pushed clear of its
+box; the same slide from an unmodified build is correct. So the cheap fix is
+not merely defensible, it is load-bearing for Impress readers.
+
+One caveat for whoever runs this next: `scripts/pptx-fidelity.mjs` needs
+`libreoffice-impress`, not just `libreoffice-core`. A box with only the core
+package fails with `source file could not be loaded`, which reads like a
+corrupt `.pptx` and is not one.
+
 ## The work
 
 Inline the computed CSS onto the elements as presentation attributes, before
