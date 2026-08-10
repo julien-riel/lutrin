@@ -1478,9 +1478,30 @@ function renderCover(pptx, scene) {
   return s;
 }
 
-function renderSection(pptx, scene) {
+function renderSection(pptx, scene, ctx, brand) {
   const s = pptx.addSlide({ masterName: 'DECK_SECTION' });
   const c = CHROME.section;
+  if (scene.image) {
+    // layout-declared kit image (`image` parameter of the section base):
+    // full-bleed under a scrim of the section surface — the divider stays the
+    // brand's colour and the sectionInk pair keeps roughly its contrast
+    // whatever the photo. Slide shapes draw above the master, so the title
+    // and logo below land on top; the master's attribution does NOT — it is
+    // covered like on a hero, and re-added here for the same reason.
+    addImage(s, scene.image, { x: 0, y: 0, w: PAGE.width, h: PAGE.height }, ctx);
+    s.addShape('rect', {
+      x: 0,
+      y: 0,
+      w: px(PAGE.width),
+      h: px(PAGE.height),
+      fill: {
+        color: SURFACE.sectionBg,
+        transparency: Math.round((1 - c.scrimAlpha) * 100),
+      },
+      line: { type: 'none' },
+    });
+    if (brand) s.addText(brand, brandTextOptions('section'));
+  }
   s.addText(scene.title ?? '', {
     placeholder: 'title',
     ...sectionTitleBox(),
@@ -1938,7 +1959,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   scenes.forEach((scene, sceneIdx) => {
     let slide;
     if (scene.master === 'cover') slide = renderCover(pptx, scene);
-    else if (scene.master === 'section') slide = renderSection(pptx, scene);
+    else if (scene.master === 'section') slide = renderSection(pptx, scene, ctx, brand);
     else {
       slide = pptx.addSlide({ masterName: 'DECK_CONTENT' });
       // animated slide: log every shape written (chrome included, as null)

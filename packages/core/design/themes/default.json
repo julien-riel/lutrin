@@ -87,7 +87,8 @@
     "section": {
       "titleY": 288,
       "titleH": 144,
-      "logoH": 32
+      "logoH": 32,
+      "scrimAlpha": 0.85
     },
     "title": {
       "accentW": 64,

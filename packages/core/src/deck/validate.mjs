@@ -458,15 +458,21 @@ export function validateDeck(
         );
       }
     }
-    // layout-declared kit image (`image:` parameter of the split and hero
-    // bases): the image never appears in the deck's own blocks, so the walk
-    // below cannot see it — the alias is checked here, anchored on the
-    // layout line. Same for the rule that resolves a conflict: the deck's
-    // own visual wins, and the author is told the layout's image stays away.
+    // layout-declared kit images (`image` on split/hero/section, `images` on
+    // grid): they never appear in the deck's own blocks, so the walk below
+    // cannot see them — the aliases are checked here, anchored on the layout
+    // line. Same anchor for the rule that resolves a conflict: the deck's own
+    // visual wins, and the author is told the layout's image stays away. Two
+    // bases keep quiet on purpose: `section` places no content, so there is
+    // no deck visual to yield to, and a cell-less grid has nothing to say.
     if (slide.layout) {
-      const layImage = layoutParams(slide.layout).image;
-      if (layImage != null) {
-        const d = kitImageDiagnostic(layImage);
+      const P = layoutParams(slide.layout);
+      const layImages = [
+        ...(P.image != null ? [P.image] : []),
+        ...(Array.isArray(P.images) ? P.images : []),
+      ];
+      for (const src of new Set(layImages)) {
+        const d = kitImageDiagnostic(src);
         if (d)
           push(
             d.severity,
@@ -475,21 +481,36 @@ export function validateDeck(
             slide.layoutLine ?? slide.line,
             d.suggestion,
           );
+      }
+      const isVisual = (b) =>
+        b.type === 'mermaid' ||
+        b.type === 'chart' ||
+        (b.type === 'image' && b.role !== 'background');
+      if (P.image != null && (layoutBase === 'split' || layoutBase === 'hero')) {
         const blocks = slide.sections.flatMap((s) => s.blocks);
         const ownVisual =
-          layoutBase === 'hero'
-            ? blocks.some((b) => b.type === 'image')
-            : blocks.some(
-                (b) =>
-                  b.type === 'mermaid' ||
-                  b.type === 'chart' ||
-                  (b.type === 'image' && b.role !== 'background'),
-              );
+          layoutBase === 'hero' ? blocks.some((b) => b.type === 'image') : blocks.some(isVisual);
         if (ownVisual)
           push(
             'info',
             'LAYOUT_IMAGE_UNUSED',
-            `The slide brings its own visual, which wins: the image the "${slide.layout}" layout declares (${layImage}) is not placed on this slide.`,
+            `The slide brings its own visual, which wins: the image the "${slide.layout}" layout declares (${P.image}) is not placed on this slide.`,
+            slide.layoutLine ?? slide.line,
+          );
+      }
+      if (Array.isArray(P.images) && layoutBase === 'grid') {
+        // per cell: only the cells bringing a visual of their own skip the
+        // layout's image — named so the author knows which, in one line
+        const shadowed = slide.sections
+          .filter((s) => s.heading || s.blocks.length)
+          .map((s, i) => ({ s, i }))
+          .filter(({ s }) => s.blocks.some(isVisual))
+          .map(({ s, i }) => (s.heading ? `"${runsToText(s.heading)}"` : `#${i + 1}`));
+        if (shadowed.length)
+          push(
+            'info',
+            'LAYOUT_IMAGE_UNUSED',
+            `${shadowed.length === 1 ? 'A cell brings' : 'Cells bring'} a visual of ${shadowed.length === 1 ? 'its' : 'their'} own, which wins: the "${slide.layout}" layout places no image in ${shadowed.join(', ')}.`,
             slide.layoutLine ?? slide.line,
           );
       }
@@ -1063,9 +1084,12 @@ export function capabilities() {
         'lowercase [a-z][a-z0-9-]{1,31}, files inside the kit) — a deck places one with ![role](kit:<alias>), ' +
         'which then behaves exactly like a local image; an unknown alias produces KIT_IMAGE_UNKNOWN and a ' +
         'placeholder. The aliases of the resolved kit are listed under kitImages. A layout can also place ' +
-        'one ITSELF: "image": "kit:<alias>" in a layouts/*.json on the split base (visual beside the text) ' +
-        'or the hero base (full-page background) shows the kit image on every slide using the layout, with ' +
-        'nothing written in the deck — a slide that brings its own visual keeps it (LAYOUT_IMAGE_UNUSED).',
+        'one ITSELF: "image": "kit:<alias>" in a layouts/*.json on the split base (visual beside the text), ' +
+        'the hero base (full-page background) or the section base (branded divider, under a scrim of the ' +
+        'section surface), and "images": [...] on the grid base (a band at the head of each cell, cycling ' +
+        'like panels) — the kit image shows on every slide using the layout, with nothing written in the ' +
+        'deck. A slide or a cell that brings its own visual keeps it (LAYOUT_IMAGE_UNUSED); a section, ' +
+        'which places no content, always applies it.',
       keys: THEME_KEYS,
     },
     layoutsDir:

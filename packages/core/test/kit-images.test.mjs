@@ -430,3 +430,70 @@ test('PPTX: a hero layout background from the kit is embedded as a media part', 
   );
   assert.ok(!stats.warnings.some((w) => w.includes('Kit image')));
 });
+
+test('HTML: a section divider draws the kit image under a scrim of the section surface', async (t) => {
+  freshStateAfter(t);
+  const kit = tmpKitWithLayouts(t, HERO_THEME, [
+    { name: 'brand-section', base: 'section', image: 'kit:hero-photo' },
+  ]);
+  const source = `---\nkit: ${kit}\ntitle: T\n---\n\n# New chapter\n\n<!-- layout: brand-section -->\n`;
+  const { html, stats } = await compileHtml(source, { baseDir: tmpDeckDir(t) });
+
+  assert.ok(
+    html.includes(`data:image/png;base64,${PNG_1PX.toString('base64')}`),
+    'the divider background travels inside the document',
+  );
+  assert.match(html, /class="section-scrim"/, 'the scrim keeps the divider the brand colour');
+  assert.match(html, /\.section-scrim\{[^}]*opacity:0?\.85/, 'one constant, read from the tokens');
+  assert.ok(!stats.warnings.some((w) => w.includes('Kit image')));
+});
+
+test('HTML: grid cells lead with the kit images, cycling — and validation names the cell that keeps its own', async (t) => {
+  freshStateAfter(t);
+  const kit = tmpKitWithLayouts(t, HERO_THEME, [
+    { name: 'brand-team', base: 'grid', cols: 2, images: ['kit:hero-photo'] },
+  ]);
+  const dir = tmpDeckDir(t);
+  const source = `---\nkit: ${kit}\ntitle: T\n---\n\n# Team\n\n<!-- layout: brand-team -->\n\n## Marie\n\nDelivery.\n\n## Karim\n\nPlatform.\n`;
+  const { html, stats } = await compileHtml(source, { baseDir: dir });
+  const uri = `data:image/png;base64,${PNG_1PX.toString('base64')}`;
+  assert.equal(
+    html.split(uri).length - 1,
+    2,
+    'one embedded copy per cell — the prepass resolved the synthesized blocks',
+  );
+  assert.ok(!stats.warnings.some((w) => w.includes('Kit image')));
+
+  const withOwn = `---\nkit: ${kit}\ntitle: T\n---\n\n# Team\n\n<!-- layout: brand-team -->\n\n## Marie\n\nDelivery.\n\n## Karim\n\n![](kit:hero-photo)\n`;
+  const diags = validateDeck(withOwn, { baseDir: dir });
+  const d = diags.find((x) => x.code === 'LAYOUT_IMAGE_UNUSED');
+  assert.ok(d, `LAYOUT_IMAGE_UNUSED expected — seen: ${JSON.stringify(diags)}`);
+  assert.match(d.message, /"Karim"/, 'the cell keeping its own visual is named');
+  assert.ok(!/Marie/.test(d.message), 'the cell taking the layout image is not');
+});
+
+test('PPTX: a section divider embeds the kit background and keeps the attribution above it', async (t) => {
+  freshStateAfter(t);
+  const kit = tmpKitWithLayouts(t, HERO_THEME, [
+    { name: 'brand-section', base: 'section', image: 'kit:hero-photo' },
+  ]);
+  const dir = tmpDeckDir(t);
+  const source = `---\nkit: ${kit}\ntitle: T\n---\n\n# New chapter\n\n<!-- layout: brand-section -->\n`;
+
+  const deck = parseDeck(source);
+  prepareDeckContext(deck.meta, { baseDir: dir });
+  const scenes = buildScenes(deck);
+  assert.equal(scenes[1].master, 'section');
+  assert.equal(scenes[1].image.src, 'kit:hero-photo');
+  const out = path.join(dir, 'brand-section.pptx');
+  const stats = await renderDeck(scenes, deck.meta, dir, out);
+
+  const zip = await JSZip.loadAsync(fs.readFileSync(out));
+  assert.ok(
+    Object.keys(zip.files).some((n) => /^ppt\/media\/.*\.png$/.test(n)),
+    'the divider background is embedded as a media part',
+  );
+  const slide2 = await zip.file('ppt/slides/slide2.xml').async('string');
+  assert.match(slide2, /<a:alpha val="85000"\/>/, 'the scrim rides at 85 % opacity');
+  assert.ok(!stats.warnings.some((w) => w.includes('Kit image')));
+});

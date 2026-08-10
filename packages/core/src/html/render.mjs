@@ -537,8 +537,16 @@ function coverHtml(scene, brand) {
   return parts.join('\n');
 }
 
-function sectionHtml(scene, brand) {
-  return `<h2 class="section-title">${esc(scene.title ?? '')}</h2>\n${logoHtml(LOGOS.sectionSvg, CHROME.section.logoH, 'logo-section')}${brand ? `\n${brandHtml(brand, 'brand-section')}` : ''}`;
+function sectionHtml(scene, brand, ctx) {
+  // layout-declared kit image (`image` parameter of the section base): drawn
+  // full-bleed UNDER a scrim of the section surface, so the divider stays the
+  // brand's colour and the validated sectionInk pair keeps roughly its
+  // contrast whatever the photo. Title, logo and attribution come after in
+  // the DOM, hence above.
+  const bg = scene.image
+    ? `${htmlImage(scene.image, { x: 0, y: 0, w: PAGE.width, h: PAGE.height }, ctx, { fullBleed: true })}\n<div class="section-scrim"></div>\n`
+    : '';
+  return `${bg}<h2 class="section-title">${esc(scene.title ?? '')}</h2>\n${logoHtml(LOGOS.sectionSvg, CHROME.section.logoH, 'logo-section')}${brand ? `\n${brandHtml(brand, 'brand-section')}` : ''}`;
 }
 
 /** The attribution. `aria-hidden` is NOT set: it is a statement about the
@@ -720,6 +728,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 
 /* section (accent background) */
 .slide.master-section{background:#${S.sectionBg}}${coverBgCss}
+.section-scrim{position:absolute;left:0;top:0;width:100%;height:100%;background:#${S.sectionBg};opacity:${CH.section.scrimAlpha}}
 .section-title{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.section.titleH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.sectionTitle}pt;font-weight:700;color:#${S.sectionInk};line-height:1.2;${DTF}}
 
 /* blocks */
@@ -1479,7 +1488,7 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
       body = coverHtml(scene, brand);
     } else if (scene.master === 'section') {
       masterCls = 'master-section';
-      body = sectionHtml(scene, brand);
+      body = sectionHtml(scene, brand, ctx);
     } else {
       masterCls = scene.master === 'hero' ? 'master-hero' : 'master-content';
       body = contentHtml(scene, k + 1, footerText, ctx, brand);
