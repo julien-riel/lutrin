@@ -561,6 +561,48 @@ test('the fs shim hands out a fresh mkdtemp every call', async () => {
   assert.notEqual(vfs.mkdtempSync('/tmp/lutrin-'), vfs.mkdtempSync('/tmp/lutrin-'));
 });
 
+/**
+ * The `:::` writing help inserts whole worked blocks (deck-snippets.mjs).
+ * Two promises hold it up, both checked here rather than trusted:
+ *
+ *  1. COVERAGE — every container the DSL knows has a snippet, and no snippet
+ *     names a container the DSL does not know. A directive added to
+ *     CONTAINERS fails CI here until it gets its help, instead of silently
+ *     missing from the popup.
+ *  2. HONESTY — every template, fields left at their default text, compiles
+ *     with ZERO diagnostics. Help that inserts something the validator then
+ *     underlines is worse than no help; this is the assertion that keeps the
+ *     templates tracking the DSL when a rule tightens.
+ */
+test('every ::: snippet covers a real container and validates clean', async () => {
+  const { CONTAINER_SNIPPETS } = await import(
+    `file://${path.join(SITE, 'assets', 'js', 'deck-snippets.mjs')}`
+  );
+  const { CONTAINERS } = await import('../src/deck/parse.mjs');
+  const { validateDeck } = await import('../src/deck/validate.mjs');
+
+  assert.deepEqual(
+    Object.keys(CONTAINER_SNIPPETS).sort(),
+    [...CONTAINERS].sort(),
+    'deck-snippets.mjs and CONTAINERS disagree — a directive has no help, or help names a ghost',
+  );
+
+  for (const [name, { template, detail }] of Object.entries(CONTAINER_SNIPPETS)) {
+    assert.ok(detail, `${name}: a snippet without a detail line is a bare name in the popup`);
+    assert.match(template, /\n:::\n$/, `${name}: the template must close its own block`);
+    // fields become their default text — exactly what accepting then tabbing
+    // through without typing leaves in the deck
+    const filled = template.replace(/\$\{([^}]*)\}/g, '$1');
+    const deck = `# Slide\n\n:::${filled}`;
+    const diags = validateDeck(deck, { baseDir: process.cwd() });
+    assert.deepEqual(
+      diags,
+      [],
+      `${name}: the inserted block draws diagnostics — the help is teaching a mistake`,
+    );
+  }
+});
+
 test('the layout catalog the playground preloads is the one the engine expects', () => {
   // The playground fetches a manifest CI writes from this directory, then
   // counts what registered. If the two ever disagree the page refuses to
