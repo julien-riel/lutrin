@@ -11,6 +11,25 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The playground grows into an editor.** A page that renders everything and
+  forgets everything is a demo; this closes the gap between the two, entirely
+  in the visitor's browser. The deck now autosaves — source and file name to
+  localStorage, dropped images to IndexedDB — and is restored on the next
+  visit, images landing in the virtual `/deck/` *before* the first compile so
+  a restored deck never opens on a false "missing image" note. Decks are
+  files: New / Open… / Save `.md` and `Ctrl`/`Cmd`+`S`, through the File
+  System Access API where the browser has it (Open holds the handle, so the
+  next save writes the same file without a dialog) and a download everywhere
+  else; the file name is editable in the editor bar and its stem names all
+  three artifacts. The notes area leads with `validateDeck()` — the same
+  validator the CLI prints from — as clickable, line-anchored findings, and
+  the caret and the preview track each other through the `sourceLine` every
+  scene already carried: the caret highlights its slide, clicking a slide
+  jumps to the line that produced it. Tab indents, and insertions go through
+  the undo stack. None of it runs in the landing page's embedded card, which
+  is a taster, not a workspace — and nothing is ever stored anywhere but the
+  visitor's own browser.
+
 - **The playground draws diagrams, icons and dropped images.** Three of the
   four things the page used to name as impossible fell to one observation: the
   compiler's synchronous call sites cannot await a render, but every one of

@@ -32,13 +32,15 @@ const CORE = path.resolve(import.meta.dirname, '..');
 const REPO = path.resolve(CORE, '..', '..');
 const SITE = path.join(REPO, 'site');
 const PLAYGROUND = path.join(SITE, 'playground.html');
-/** Both graphs the page links: the compiler it loads up front, and the .pptx
- *  renderer it `import()`s the first time a visitor asks for that export. The
- *  second is dynamic, so it fails at CLICK time rather than at load time — a
- *  visitor who typed a deck and then found the download broken, which is worse
- *  than a page that never offered it. */
+/** Every graph the page links: the compiler it loads up front, the validator
+ *  it lints with (line-anchored findings in the notes), and the .pptx renderer
+ *  it `import()`s the first time a visitor asks for that export. The last is
+ *  dynamic, so it fails at CLICK time rather than at load time — a visitor who
+ *  typed a deck and then found the download broken, which is worse than a page
+ *  that never offered it. */
 const ENTRIES = [
   path.join(CORE, 'src', 'html', 'render.mjs'),
+  path.join(CORE, 'src', 'deck', 'validate.mjs'),
   path.join(CORE, 'src', 'pptx', 'render.mjs'),
 ];
 

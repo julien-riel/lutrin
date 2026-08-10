@@ -128,6 +128,14 @@
         <button type="button" data-example="math" aria-pressed="false">An equation</button>
         <button type="button" data-example="diagram" aria-pressed="false">A diagram</button>
       </div>
+      <!-- The deck as a FILE: new, open from disk, save back to disk. Hidden
+           in the embedded card (?embed=1), where there is no workspace to
+           manage — the landing page's card is a taster, not an editor. -->
+      <div class="pg-file" role="group" aria-label="File">
+        <button type="button" id="pg-new">New</button>
+        <button type="button" id="pg-open">Open…</button>
+        <button type="button" id="pg-save">Save .md</button>
+      </div>
       <!-- The two real outputs, built by the same engine the CLI runs and
            handed over as files. Disabled until the first compile succeeds:
            there is nothing to export from a deck that did not compile. -->
@@ -140,7 +148,13 @@
 
     <div class="pg-grid">
       <div class="pg-editor">
-        <div class="editor-bar"><span></span><span></span><span></span><em>deck.md</em></div>
+        <div class="editor-bar"><span></span><span></span><span></span>
+          <!-- The file's name, editable in place. Empty = derived live from the
+               deck's own title (the placeholder shows what that gives); typed
+               or opened = the name every download and save uses. -->
+          <label class="sr-only" for="pg-name">File name</label>
+          <input id="pg-name" spellcheck="false" autocomplete="off" placeholder="deck.md">
+        </div>
         <label class="sr-only" for="pg-source">The deck, in Markdown</label>
         <textarea id="pg-source" spellcheck="false" autocapitalize="off" autocomplete="off"
           disabled placeholder="Loading the compiler…"></textarea>
@@ -170,7 +184,13 @@
       rasterized, and your browser is a rasterizer — it draws them onto a
       canvas here, where the command line uses its own. What that costs is
       determinism rather than fidelity, since a canvas paints with the fonts
-      this machine resolves. For all of that, and for decks that live in files,
+      this machine resolves. And this page is a workbench, not a scratchpad:
+      your deck autosaves to this browser — never to a server — and is here
+      when you come back; it opens from and saves back to a real
+      <code>.md</code> file (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>); the
+      findings under the editor are the compiler's own validator, and clicking
+      one puts the cursor on the line; the preview follows the cursor, and
+      clicking a slide jumps to the line that produced it. For everything else,
       there is the command below.</p>
 
     <div class="cmd" role="group" aria-label="Install command">

@@ -166,6 +166,35 @@ holds `design/layouts`.
    only the CLI has. Equations are the same shape: `describeMath()` reports
    the leftover, `stats.mathTotal - stats.mathRendered`.
 
+### The workbench
+
+What separates the page from a demo, and all of it in the visitor's browser —
+none of it in the embedded card (`?embed=1`), which is a taster and must
+neither swallow work in progress nor restore someone's deck into a marketing
+page:
+
+- **It remembers.** The source and the file name autosave to localStorage,
+  dropped images to IndexedDB, and `restoreWorkspace()` puts all of it back —
+  images into the virtual `/deck/` *before* the first compile, so a restored
+  deck never opens on a false "missing image" note. Storage is best-effort
+  throughout: a private window that denies it gets an editor that cannot
+  remember, not an editor that cannot edit.
+- **Decks are files.** New / Open… / Save `.md` (and `Ctrl`/`Cmd`+`S`), through
+  the File System Access API where the browser has it — Open holds the handle,
+  so the second save writes the same file without a dialog — and through a
+  download everywhere else. The file name is editable in the editor bar; typed
+  or opened, its stem names all three artifacts (`.md`, `.html`, `.pptx`).
+  Empty, the deck's own title keeps naming them, live, in the placeholder.
+- **Findings are places.** The notes area leads with `validateDeck()` — the
+  same validator the CLI prints from and the VS Code extension underlines
+  with — one button per finding, severity and line first; clicking one puts
+  the caret on the line. A kit-image warning that reaches both channels
+  (renderer stats and validator) is shown once, as the clickable form.
+- **The two panes track each other.** Every scene carries `sourceLine`, so the
+  caret highlights and scrolls to the slide it is inside (`selectionchange`,
+  rAF-throttled), and clicking a slide jumps the caret to the line that
+  produced it. No parsing in the page: the compiler stamped the mapping.
+
 ### The two downloads
 
 The page hands out both real outputs, built in the tab and uploaded nowhere.

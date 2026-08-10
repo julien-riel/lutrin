@@ -55,6 +55,17 @@
  * FIRST CLICK and never before: `jszip` and `pptxgenjs` are half a megabyte
  * that a reader who only types must not pay for. MathJax is the same bargain
  * paid on the first equation rather than on the first click.
+ *
+ * THE WORKBENCH is what makes this an editor rather than a demo, and all of
+ * it stays in the visitor's browser: the source autosaves to localStorage and
+ * dropped images to IndexedDB, restored on the next visit; a deck opens from
+ * and saves back to a real `.md` file (File System Access where the browser
+ * has it, download where it does not); the caret and the preview track each
+ * other through `scene.sourceLine`; and `validateDeck` — the same validator
+ * the CLI and the VS Code extension run — reports line-anchored findings a
+ * click can jump to. None of it runs in the embedded card (`?embed=1`): the
+ * landing page's taster must not swallow a visitor's work in progress, nor
+ * restore someone's deck into a marketing page.
  */
 
 import * as vfs from './shims/fs.mjs';
@@ -75,6 +86,11 @@ const notes = $('pg-notes');
 const status = $('pg-status');
 const dlHtml = $('pg-dl-html');
 const dlPptx = $('pg-dl-pptx');
+const nameInput = $('pg-name');
+
+/** The landing page's card (?embed=1) is a taster, not a workspace: nothing
+ *  is restored into it and nothing typed there is kept. */
+const IS_EMBED = document.documentElement.classList.contains('is-embed');
 
 /** The three examples from the landing page: a reader arrives at something
  *  already recognised, and edits rather than invents. */
@@ -196,7 +212,11 @@ function openFrame() {
     '<!doctype html><html><head><meta charset="utf-8">' +
       '<style id="pg-fonts"></style><style id="pg-deck"></style>' +
       '<style>html,body{margin:0;background:transparent}' +
-      '.pg-stack{display:flex;flex-direction:column;gap:14px;padding:14px}</style>' +
+      '.pg-stack{display:flex;flex-direction:column;gap:14px;padding:14px}' +
+      // the slide the caret is in — quiet enough not to read as selection
+      '.pg-stack>.is-current{outline:2px solid rgba(37,99,235,.45);outline-offset:2px}' +
+      '.pg-stack>*{cursor:pointer}' +
+      '</style>' +
       '</head><body><div class="pg-stack deck"></div></body></html>',
   );
   doc.close();
@@ -222,6 +242,9 @@ let assets;
 /** `deck/raster-browser.mjs` — the canvas rasterizer, for the PNG half of a
  *  diagram (the .pptx wants a raster; the preview and the vector twin do not). */
 let raster;
+/** `deck/validate.mjs` — the validator the CLI and the VS Code extension run,
+ *  for line-anchored findings the page can jump the caret to. */
+let validateDeck;
 
 try {
   // The catalog first, into the virtual filesystem. The manifest is written by
@@ -246,6 +269,7 @@ try {
   compileHtml = render.compileHtml;
   assets = await import('../../core/src/deck/assets.mjs');
   raster = await import('../../core/src/deck/raster-browser.mjs');
+  validateDeck = (await import('../../core/src/deck/validate.mjs')).validateDeck;
 
   const got = layout.officialLayouts().length;
   if (got !== manifest.length) {
@@ -501,9 +525,48 @@ function describeMath(result) {
     : 'One equation is shown as its LaTeX source: MathJax refused it — invalid LaTeX fails on the command line too — or its 2.3 MB could not be fetched into this page.';
 }
 
-function paintNotes(result) {
+/**
+ * The validator's findings, each a place to GO — a click puts the caret on the
+ * line. This is the same `validateDeck` the CLI prints from and the VS Code
+ * extension underlines with, so the page cannot invent findings of its own or
+ * miss the ones the product would raise.
+ */
+function paintLint(diags) {
+  if (!diags.length) return;
+  const ul = document.createElement('ul');
+  ul.className = 'pg-lint';
+  for (const d of diags) {
+    const li = document.createElement('li');
+    li.dataset.severity = d.severity;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const where = document.createElement('span');
+    where.className = 'pg-lint-line';
+    where.textContent = `${d.severity} · line ${d.line}`;
+    const msg = document.createElement('span');
+    msg.className = 'pg-lint-msg';
+    msg.textContent = d.suggestion ? `${d.message} Did you mean "${d.suggestion}"?` : d.message;
+    btn.append(where, msg);
+    btn.addEventListener('click', () => jumpToLine(d.line));
+    li.appendChild(btn);
+    ul.appendChild(li);
+  }
+  notes.appendChild(ul);
+}
+
+function paintNotes(result, diags) {
   notes.innerHTML = '';
-  for (const w of result.stats?.warnings ?? []) note('pg-note pg-note-warn', w);
+  paintLint(diags);
+
+  // A kit-image warning reaches this channel AND the validator, worded from
+  // the same diagnostic — shown once, as the clickable finding, never twice.
+  const said = new Set(
+    diags.flatMap((d) => [
+      d.message,
+      ...(d.suggestion ? [`${d.message} Did you mean "${d.suggestion}"?`] : []),
+    ]),
+  );
+  for (const w of result.stats?.warnings ?? []) if (!said.has(w)) note('pg-note pg-note-warn', w);
 
   const math = describeMath(result);
   if (math) note('pg-note pg-note-warn', math);
@@ -606,7 +669,16 @@ async function compile() {
 
   const n = result.slides.length;
   say(n ? `${n} slide${n > 1 ? 's' : ''}` : 'no slides yet', n ? 'ok' : 'warn');
-  paintNotes(result);
+
+  let diags = [];
+  try {
+    diags = validateDeck(text, { baseDir: '/deck' });
+  } catch {
+    // a validator crash must not cost the preview — the compile already stood
+  }
+  paintNotes(result, diags);
+  nameInput.placeholder = `${titleStem()}.md`;
+  syncPreviewToCaret();
 }
 
 // ---------------------------------------------------------------------------
@@ -622,9 +694,9 @@ function setDownloads() {
   for (const b of [dlHtml, dlPptx]) b.disabled = !ready;
 }
 
-/** `Ma présentation` → `ma-presentation`. The deck's own title, so the file
+/** `Ma présentation` → `ma-presentation`. The deck's own title, so a file
  *  arrives named after what is in it; `deck` when it has no title to take. */
-function fileStem() {
+function titleStem() {
   const raw = last?.meta?.title ?? last?.scenes?.[0]?.title ?? '';
   const slug = String(raw)
     .normalize('NFD')
@@ -634,6 +706,19 @@ function fileStem() {
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
   return slug || 'deck';
+}
+
+/** The name the visitor chose — typed into the bar, or carried by an opened
+ *  file. Null until then: the title-derived stem stays live (the input's
+ *  placeholder shows it), which is the old behavior and the right default. */
+let docName = null;
+
+/** One stem for every artifact — `.md`, `.html`, `.pptx` — so the three files
+ *  of one deck sort together on disk instead of answering to two naming
+ *  schemes. */
+function fileStem() {
+  if (!docName) return titleStem();
+  return docName.replace(/\.[^.]*$/, '') || titleStem();
 }
 
 function offer(data, filename, mime) {
@@ -786,6 +871,7 @@ source.addEventListener('input', () => {
   timer = setTimeout(() => {
     timer = null;
     compile();
+    persistSource();
   }, 250);
 });
 
@@ -856,7 +942,9 @@ async function acceptDrop(files) {
     }
     const name = droppedName(file, taken);
     taken.add(name);
-    vfs.writeFileSync(`/deck/${name}`, new Uint8Array(await file.arrayBuffer()));
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    vfs.writeFileSync(`/deck/${name}`, bytes);
+    persistImage(name, bytes);
     refs.push(`![](${name})`);
   }
   if (!refs.length) return;
@@ -864,6 +952,7 @@ async function acceptDrop(files) {
   clearTimeout(timer);
   timer = null;
   await compile();
+  persistSource();
 }
 
 const editor = document.querySelector('.pg-editor');
@@ -889,9 +978,318 @@ for (const btn of document.querySelectorAll('[data-example]')) {
     for (const b of document.querySelectorAll('[data-example]'))
       b.setAttribute('aria-pressed', String(b === btn));
     compile();
+    persistSource();
   });
 }
 
-source.value = EXAMPLES.funnel;
+// ---------------------------------------------------------------------------
+// the workspace: what survives a reload, and how it leaves as a file
+// ---------------------------------------------------------------------------
+
+/** localStorage for the two small things (source, name), IndexedDB for image
+ *  bytes. Every access is best-effort: storage can be denied outright
+ *  (private windows, locked-down profiles), and an editor that cannot
+ *  remember must still edit. */
+const STORE_SOURCE = 'lutrin.playground.source';
+const STORE_NAME = 'lutrin.playground.name';
+
+function idb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('lutrin-playground', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('files');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+/** One settled transaction per call — an editor tab is not a database load. */
+async function idbFiles(mode, run) {
+  const db = await idb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction('files', mode);
+      const out = run(tx.objectStore('files'));
+      tx.oncomplete = () => resolve(out?.result ?? out);
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+function persistSource() {
+  if (IS_EMBED) return;
+  try {
+    localStorage.setItem(STORE_SOURCE, source.value);
+    if (docName) localStorage.setItem(STORE_NAME, docName);
+    else localStorage.removeItem(STORE_NAME);
+  } catch {
+    /* storage denied: the editor still edits */
+  }
+}
+
+async function persistImage(name, bytes) {
+  if (IS_EMBED) return;
+  try {
+    await idbFiles('readwrite', (files) => files.put(bytes, name));
+  } catch {
+    /* same policy */
+  }
+}
+
+/** Everything the last visit left: the source into the textarea, the images
+ *  into the virtual /deck/ — BEFORE the first compile, so the restored deck
+ *  compiles over its images rather than reporting them missing once. */
+async function restoreWorkspace() {
+  if (IS_EMBED) return false;
+  let text = null;
+  try {
+    text = localStorage.getItem(STORE_SOURCE);
+    docName = localStorage.getItem(STORE_NAME) || null;
+    if (docName) nameInput.value = docName;
+  } catch {
+    return false;
+  }
+  if (text === null) return false;
+  try {
+    const [names, all] = await Promise.all([
+      idbFiles('readonly', (files) => files.getAllKeys()),
+      idbFiles('readonly', (files) => files.getAll()),
+    ]);
+    names.forEach((name, i) => vfs.writeFileSync(`/deck/${name}`, all[i]));
+  } catch {
+    /* no images to restore is a working editor with fewer pictures */
+  }
+  source.value = text;
+  for (const b of document.querySelectorAll('[data-example]'))
+    b.setAttribute('aria-pressed', 'false');
+  return true;
+}
+
+// --- the file verbs --------------------------------------------------------
+
+/** The handle of the file Save writes back to — held from Open or from the
+ *  first picker-backed Save, so the second Ctrl+S is a real save, not another
+ *  dialog. Chromium-only today; everywhere else Save is a download. */
+let fileHandle = null;
+
+/** `deck` + `.md`, whatever was typed: the name drives three artifact names,
+ *  and a stray path separator or an empty stem would surface at download
+ *  time, as a browser-mangled filename nobody chose. */
+function cleanDocName(raw) {
+  const trimmed = String(raw ?? '')
+    .trim()
+    .replace(/^.*[/\\]/, '');
+  if (!trimmed) return null;
+  const stem = trimmed.replace(/\.(md|markdown|txt)$/i, '');
+  return stem ? `${stem}.md` : null;
+}
+
+nameInput.addEventListener('change', () => {
+  docName = cleanDocName(nameInput.value);
+  nameInput.value = docName ?? '';
+  fileHandle = null; // a renamed deck is no longer the opened file
+  persistSource();
+});
+
+async function openDeck() {
+  let text = null;
+  let name = null;
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [
+          { description: 'Markdown deck', accept: { 'text/markdown': ['.md', '.markdown'] } },
+        ],
+      });
+      const file = await handle.getFile();
+      text = await file.text();
+      name = file.name;
+      fileHandle = handle;
+    } catch {
+      return; // the picker was dismissed
+    }
+  } else {
+    // the fallback picker: an <input type=file> that never joins the DOM
+    const picked = await new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.md,.markdown,.txt,text/markdown,text/plain';
+      input.addEventListener('change', () => resolve(input.files?.[0] ?? null));
+      input.addEventListener('cancel', () => resolve(null));
+      input.click();
+    });
+    if (!picked) return;
+    text = await picked.text();
+    name = picked.name;
+    fileHandle = null;
+  }
+  source.value = text;
+  docName = cleanDocName(name);
+  nameInput.value = docName ?? '';
+  for (const b of document.querySelectorAll('[data-example]'))
+    b.setAttribute('aria-pressed', 'false');
+  await compile();
+  persistSource();
+}
+
+async function saveDeck() {
+  // the source as it stands, not as it last compiled: a save must never lose
+  // the sentence typed since the debounce
+  const text = source.value;
+  if (fileHandle) {
+    try {
+      const w = await fileHandle.createWritable();
+      await w.write(text);
+      await w.close();
+      say(`saved to ${docName}`, 'ok');
+      persistSource();
+      return;
+    } catch {
+      fileHandle = null; // permission lapsed: fall through to the picker/download
+    }
+  }
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `${fileStem()}.md`,
+        types: [{ description: 'Markdown deck', accept: { 'text/markdown': ['.md'] } }],
+      });
+      const w = await handle.createWritable();
+      await w.write(text);
+      await w.close();
+      fileHandle = handle;
+      docName = cleanDocName(handle.name);
+      nameInput.value = docName ?? '';
+      say(`saved to ${docName}`, 'ok');
+      persistSource();
+      return;
+    } catch {
+      return; // dismissed — a cancelled save must not download instead
+    }
+  }
+  offer(text, `${fileStem()}.md`, 'text/markdown;charset=utf-8');
+  say('.md downloaded', 'ok');
+  persistSource();
+}
+
+async function newDeck() {
+  if (
+    source.value.trim() &&
+    !window.confirm('Start a new deck? The current one is discarded, saved images included.')
+  )
+    return;
+  source.value = '# ';
+  docName = null;
+  fileHandle = null;
+  nameInput.value = '';
+  try {
+    localStorage.removeItem(STORE_SOURCE);
+    localStorage.removeItem(STORE_NAME);
+  } catch {
+    /* nothing stored, nothing to clear */
+  }
+  try {
+    await idbFiles('readwrite', (files) => files.clear());
+  } catch {
+    /* same */
+  }
+  vfs.rmSync('/deck', { recursive: true, force: true });
+  source.focus();
+  source.setSelectionRange(source.value.length, source.value.length);
+  await compile();
+}
+
+$('pg-new')?.addEventListener('click', newDeck);
+$('pg-open')?.addEventListener('click', openDeck);
+$('pg-save')?.addEventListener('click', saveDeck);
+
+// --- keys an editor owes its keyboard --------------------------------------
+
+source.addEventListener('keydown', (e) => {
+  // Tab indents rather than leaves — Escape then Tab is the standard way out,
+  // and stays available because only a bare Tab is claimed here.
+  if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    // execCommand is deprecated and still the only insertion the undo stack
+    // keeps; setRangeText would make the indent the last undoable thing ever
+    if (!document.execCommand('insertText', false, '  '))
+      source.setRangeText('  ', source.selectionStart, source.selectionEnd, 'end');
+  }
+});
+
+addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault(); // the browser would offer to save the page, not the deck
+    if (!IS_EMBED) saveDeck();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// the caret and the preview, tracking each other
+// ---------------------------------------------------------------------------
+
+/** Puts the caret on `line` (1-based, as every diagnostic counts) and brings
+ *  it into view — the textarea scrolls by arithmetic, having no scrollIntoView
+ *  of its own. */
+function jumpToLine(line) {
+  const lines = source.value.split('\n');
+  const at = lines.slice(0, Math.max(0, line - 1)).join('\n').length + (line > 1 ? 1 : 0);
+  source.focus();
+  source.setSelectionRange(at, at);
+  const lineHeight = Number.parseFloat(getComputedStyle(source).lineHeight) || 20;
+  source.scrollTop = Math.max(0, (line - 3) * lineHeight);
+  syncPreviewToCaret();
+}
+
+/** The scene the caret is in: the last one whose `sourceLine` is at or above
+ *  the caret's line. The compiler stamps every scene with where it came from,
+ *  so this is a lookup, not a guess. */
+function sceneIndexAtCaret() {
+  const scenes = last?.scenes;
+  if (!scenes?.length) return -1;
+  const line = source.value.slice(0, source.selectionStart ?? 0).split('\n').length;
+  let found = 0;
+  scenes.forEach((s, i) => {
+    if ((s.sourceLine ?? 1) <= line) found = i;
+  });
+  return found;
+}
+
+function syncPreviewToCaret() {
+  const i = sceneIndexAtCaret();
+  if (i < 0) return;
+  const frames = view.stack.children;
+  for (let k = 0; k < frames.length; k++) frames[k].classList.toggle('is-current', k === i);
+  frames[i]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+/** Caret moves that are not edits — clicks, arrows — still move the preview.
+ *  rAF-throttled: selectionchange fires per caret step. */
+let syncQueued = false;
+document.addEventListener('selectionchange', () => {
+  if (document.activeElement !== source || syncQueued) return;
+  syncQueued = true;
+  requestAnimationFrame(() => {
+    syncQueued = false;
+    syncPreviewToCaret();
+  });
+});
+
+/** And the other direction: clicking a slide puts the caret on the line that
+ *  produced it. Delegated on the stack, which outlives every innerHTML swap. */
+view.stack.addEventListener('click', (e) => {
+  if (e.target.closest('a')) return; // a real link keeps its meaning
+  const frames = [...view.stack.children];
+  const hit = frames.findIndex((f) => f.contains(e.target));
+  if (hit < 0) return;
+  const line = last?.scenes?.[hit]?.sourceLine;
+  if (line) jumpToLine(line);
+});
+
+// ---------------------------------------------------------------------------
+// boot: the last session if there was one, the first example if not
+// ---------------------------------------------------------------------------
+
+if (!(await restoreWorkspace())) source.value = EXAMPLES.funnel;
 source.disabled = false;
 await compile();
