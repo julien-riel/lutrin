@@ -88,8 +88,15 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { lintGutter, setDiagnostics } from '@codemirror/lint';
 import { markdown, markdownKeymap } from '@codemirror/lang-markdown';
-import { autocompletion, completionKeymap, startCompletion } from '@codemirror/autocomplete';
+import {
+  autocompletion,
+  completionKeymap,
+  snippetCompletion,
+  startCompletion,
+} from '@codemirror/autocomplete';
 import { tags } from '@lezer/highlight';
+
+import { CONTAINER_SNIPPETS } from './deck-snippets.mjs';
 
 // Resolved from this file's own URL, so the page works at the site root or
 // under a path — and taken as `.pathname`, because that is the form the
@@ -183,6 +190,7 @@ const editorHighlight = HighlightStyle.define([
 let layoutCatalog = null;
 let animPresets = null;
 let kitImages = null;
+let containerNames = null;
 
 /** The Lucide icon names, fetched once from our own origin the first time a
  *  `lucide:` completion is asked — ~2 000 names, ~30 kB, and only for the
@@ -239,6 +247,12 @@ function inFrontmatter(doc, lineNo) {
  *   `<!-- lay`             → the directive keys, chaining into their values
  *   `](lucide:ro` / `](icon:ro` → the icon set, fetched on first ask
  *   `](kit:he`             → the aliases the active kit declares
+ *   `:::me` (line start)   → a whole WORKED block, as a snippet — fields the
+ *                            Tab key walks, closing `:::` included. The names
+ *                            come from `CONTAINERS`, the templates from
+ *                            deck-snippets.mjs, and a test compiles every
+ *                            template through the validator: the help can
+ *                            never insert what validation would underline.
  *
  * The closing token (` -->`, `)`) is appended only when the line has not
  * written it yet.
@@ -250,6 +264,22 @@ async function directiveCompletions(ctx) {
   const after = line.text.slice(ctx.pos - line.from);
   const closeComment = /^\s*-->/.test(after) ? '' : ' -->';
   const closeParen = /^\)/.test(after) ? '' : ')';
+
+  const container = /^:::([a-z]*)$/i.exec(before);
+  if (container)
+    return {
+      from: ctx.pos - container[1].length,
+      options: (containerNames ?? [])
+        .filter((n) => CONTAINER_SNIPPETS[n])
+        .map((n) =>
+          snippetCompletion(CONTAINER_SNIPPETS[n].template, {
+            label: n,
+            type: 'keyword',
+            detail: CONTAINER_SNIPPETS[n].detail,
+          }),
+        ),
+      validFor: /^[a-z]*$/i,
+    };
 
   const layoutName = /<!--\s*layout:\s*([a-z0-9-]*)$/i.exec(before);
   if (layoutName)
@@ -621,7 +651,9 @@ try {
   // the completion sources wake up here — all three lists are the live views
   // the validator itself checks against
   layoutCatalog = layout;
-  animPresets = (await import('../../core/src/deck/parse.mjs')).ANIM_PRESETS;
+  const parse = await import('../../core/src/deck/parse.mjs');
+  animPresets = parse.ANIM_PRESETS;
+  containerNames = parse.CONTAINERS;
   kitImages = (await import('../../core/src/deck/tokens.mjs')).KIT_IMAGES;
 
   const got = layout.officialLayouts().length;

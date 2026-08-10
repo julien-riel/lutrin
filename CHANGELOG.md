@@ -11,6 +11,18 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The `:::` directives write their own first draft.** A line starting
+  `:::` completes into the seven containers the DSL knows — the four
+  callouts, `metric`, `progress`, `status` — and accepting one inserts a
+  whole worked block as a snippet: fields the Tab key walks, closing `:::`
+  included, the documentation's own examples as the default text. The names
+  come from `CONTAINERS` (deck/parse.mjs), the live list the validator
+  checks unknown directives against; the templates live in
+  `site/assets/js/deck-snippets.mjs` under a test that compiles every one of
+  them through `validateDeck` and demands zero diagnostics — help that
+  inserts something the validator then underlines is worse than no help,
+  and a directive added to the DSL fails CI until it gets its snippet.
+
 - **Your own kit uploads into the playground, and stays.** The kit picker's
   last entry takes a `.deckkit` — the same archive `lutrin kit install`
   takes — and reads it with the same `readKitArchive`: zip-slip refusal,

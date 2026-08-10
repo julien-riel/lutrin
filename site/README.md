@@ -188,8 +188,18 @@ an index both site generators publish beside the icons (the layouts.json
 pattern — `playground.test.mjs` pins the two to each other); `](kit:` the
 image aliases the active kit declares — and with no kit active it offers
 nothing, which is the truth. Every list is the live view the validator
-checks the same syntax against (`LAYOUTS`, `ANIM_PRESETS`, `KIT_IMAGES`),
-so completion can never suggest what validation would then flag. It was chosen over
+checks the same syntax against (`LAYOUTS`, `ANIM_PRESETS`, `KIT_IMAGES`,
+`CONTAINERS`), so completion can never suggest what validation would then
+flag.
+
+A line starting `:::` goes further than names: each of the seven
+directives inserts a whole WORKED block as a snippet — fields the Tab key
+walks, closing `:::` included, the documentation's own examples as the
+default text (`assets/js/deck-snippets.mjs`). The templates live under a
+test that compiles every one of them through `validateDeck` and demands
+zero diagnostics: help that inserts something the validator then
+underlines is worse than no help, and a directive added to `CONTAINERS`
+fails CI until it gets its snippet. It was chosen over
 Monaco deliberately: real ESM the map can resolve against ~3.5 MB of AMD on
 the critical path, and a fraction of the weight. The rest of this file drives
 it through the four-verb `ed` seam in playground.js, and harness scripts
