@@ -40,6 +40,13 @@ export function createRequire() {
   return require;
 }
 
+// ----------------------------------------------------------------------- https
+// kit/archive.mjs imports it at module scope for `fetchKitArchive` (installing
+// a kit from a URL — a CLI verb). The page only ever READS an archive the
+// visitor handed it, so the fetch path is never called here.
+export const request = () => refuse('https.request');
+export const get = () => refuse('https.get');
+
 export default {
   execFileSync,
   execSync,
@@ -48,4 +55,6 @@ export default {
   promises,
   lookup,
   createRequire,
+  request,
+  get,
 };

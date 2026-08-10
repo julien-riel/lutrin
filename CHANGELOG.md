@@ -11,6 +11,22 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Your own kit uploads into the playground, and stays.** The kit picker's
+  last entry takes a `.deckkit` — the same archive `lutrin kit install`
+  takes — and reads it with the same `readKitArchive`: zip-slip refusal,
+  extension allowlist, size limits, manifest validation, the CLI's own
+  refusal wording. `kit/archive.mjs` went runtime-neutral to make that
+  possible (JSZip's `internalStream` instead of `nodeStream`, `Uint8Array`
+  instead of `Buffer`, `TextDecoder` instead of `Buffer.toString`) with the
+  anti-zip-bomb budget still enforced *during* inflation, and Node behaves
+  exactly as before. What is persisted in IndexedDB is the archive's BYTES,
+  not the extracted tree: the next visit remounts without re-uploading and
+  re-validates from scratch — the bytes were kept, not the trust, and a rule
+  tightened since the upload re-refuses it. "New" forgets the kit with the
+  rest of the workspace. The crypto shim learned to hash bytes on the way
+  (its `update()` stringified a `Uint8Array` into "137,80,78,…" — a digest
+  of the wrong thing, silently), pinned against Node's own.
+
 - **The playground compiles under a kit.** A picker in the bar offers the
   eight example kits; choosing one fetches the kit's files — theme, fonts,
   logos, its own layouts — into the page's virtual filesystem (file list from

@@ -42,6 +42,9 @@ const ENTRIES = [
   path.join(CORE, 'src', 'html', 'render.mjs'),
   path.join(CORE, 'src', 'deck', 'validate.mjs'),
   path.join(CORE, 'src', 'pptx', 'render.mjs'),
+  // dynamic like the .pptx renderer, imported on the first kit upload — and
+  // like it, a broken graph must fail HERE rather than at that click
+  path.join(CORE, 'src', 'kit', 'archive.mjs'),
 ];
 
 // ---------------------------------------------------------------------------
@@ -452,6 +455,22 @@ test('the crypto shim digests exactly as node:crypto does', async () => {
         nodeCrypto.createHash(algorithm).update(s, 'utf8').digest('hex'),
         `${algorithm}(${JSON.stringify(s.slice(0, 16))})`,
       );
+
+  // BYTES hash as the bytes they are — `String(chunk)` on a Uint8Array yields
+  // "137,80,78,…" and a digest of the wrong thing, silently. The caller that
+  // hashes bytes is the kit-archive reader naming an uploaded .deckkit.
+  const bytes = Uint8Array.from({ length: 300 }, (_, i) => (i * 7 + 128) % 256);
+  for (const algorithm of ['sha1', 'sha256'])
+    assert.equal(
+      c.createHash(algorithm).update(bytes).digest('hex'),
+      nodeCrypto.createHash(algorithm).update(bytes).digest('hex'),
+      `${algorithm}(bytes)`,
+    );
+  // and a multi-chunk update concatenates rather than restarts
+  assert.equal(
+    c.createHash('sha256').update('ab').update(bytes).digest('hex'),
+    nodeCrypto.createHash('sha256').update('ab').update(bytes).digest('hex'),
+  );
 });
 
 test('the fs shim serves what was preloaded, and refuses what was not', async () => {

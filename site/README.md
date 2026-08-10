@@ -236,6 +236,17 @@ page:
   the path shim for this — the kit-confinement checks call it — pinned
   against Node's own like every computing shim.
 
+  The picker's last entry uploads the visitor's OWN kit: a `.deckkit`, read
+  by the SAME `readKitArchive` the CLI installs through (zip-slip refusal,
+  extension allowlist, size limits, manifest validation — `kit/archive.mjs`
+  went runtime-neutral for this: `internalStream` instead of `nodeStream`,
+  `Uint8Array` instead of `Buffer`). The archive's bytes persist in
+  IndexedDB and remount on the next visit WITHOUT re-uploading — and they go
+  through the validation again each time: the bytes were kept, not the
+  trust. New forgets the kit along with the rest of the workspace. The
+  crypto shim learned to hash bytes on the way (its `update()` stringified
+  them — a silently wrong digest), pinned against Node's own.
+
 ### The two downloads
 
 The page hands out both real outputs, built in the tab and uploaded nowhere.
