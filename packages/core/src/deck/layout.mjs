@@ -234,6 +234,19 @@ const densityParam = () => ({
   description: 'text scale of the blocks placed in the regions: comfortable, compact or dense',
 });
 
+/** A kit image placed by the LAYOUT rather than written in the deck — the
+ *  branded visual of a split, the background of a hero. The value designates
+ *  an alias of the active kit (`kit:<alias>`, checkParam refuses any other
+ *  form): a deck slide using the layout shows the image without one line of
+ *  Markdown naming it, and the deck's own content keeps the last word — a
+ *  slide that brings its own visual keeps it, and the layout's image stays
+ *  away (validate says so with LAYOUT_IMAGE_UNUSED). */
+const kitImageParam = (what) => ({
+  type: 'kit-image',
+  default: null,
+  description: `kit image ("kit:<alias>") placed as ${what} when the slide brings no visual of its own`,
+});
+
 /** Horizontal alignment offered by the generators that place text in a region
  *  of their own choosing. Deliberately NOT author-facing: `align` has exactly
  *  two producers — the table parser (which honours a Markdown delimiter row)
@@ -417,6 +430,20 @@ function checkParam(layoutName, key, spec, value) {
         fail(`the sum exceeds ${spec.sumMax}`);
       return [...value];
     }
+    case 'kit-image': {
+      // Only a kit alias, never a file path or a URL. The kit is the one
+      // place a brand's images are declared, confined and validated
+      // (theme.json "images", same realpath guard as the logos); a layout
+      // that could name an arbitrary file would bypass exactly that. Only
+      // the FORM is checked here — whether the alias exists depends on the
+      // kit active at compile time, and validate reports it there
+      // (KIT_IMAGE_UNKNOWN on the slide's layout line).
+      if (typeof value !== 'string' || !/^kit:.+$/i.test(value.trim()))
+        fail(
+          `a kit image reference expected — "kit:<alias>", an alias declared by the kit's theme.json under "images". A layout never names a file path or a URL: the kit owns its images`,
+        );
+      return value.trim();
+    }
     default:
       return fail(`unknown spec type "${spec.type}" (inconsistent built-in schema)`);
   }
@@ -592,7 +619,13 @@ export function registerLayout(def) {
     name: 'section',
     description: 'chapter divider: a numbered section title on an accent surface',
   },
-  { name: 'hero', description: 'full-bleed opener: a background visual under the title block' },
+  {
+    name: 'hero',
+    description: 'full-bleed opener: a background visual under the title block',
+    paramSchema: {
+      image: kitImageParam('the full-page background'),
+    },
+  },
   { name: 'quote', description: 'a single quotation set large, with its attribution' },
   {
     name: 'metrics',
@@ -634,6 +667,7 @@ export function registerLayout(def) {
         default: 'right',
         description: 'side of the visual (![left](…) forces it image by image)',
       },
+      image: kitImageParam('the visual beside the text'),
     },
   },
   {
@@ -1450,8 +1484,15 @@ export function buildScenes(deck) {
         break;
       }
       case 'hero': {
-        const img = blocks.find((b) => b.type === 'image');
-        const rest = blocks.filter((b) => b !== img);
+        const own = blocks.find((b) => b.type === 'image');
+        // layout-declared kit image (`image: "kit:<alias>"` in the layout's
+        // JSON): the DEFAULT background, standing only when the slide brings
+        // no image of its own — the deck's content always wins over the
+        // layout's decoration (LAYOUT_IMAGE_UNUSED says so in validation)
+        const img =
+          own ??
+          (P.image ? { type: 'image', src: P.image, role: 'background', alt: '' } : undefined);
+        const rest = blocks.filter((b) => b !== own);
         push({
           master: 'hero',
           image: img,
@@ -1510,6 +1551,12 @@ export function buildScenes(deck) {
           );
         const visuals = written.filter(isVisual);
         const text = written.filter((b) => !isVisual(b));
+        // layout-declared kit image: the default visual, only when the slide
+        // brings none of its own — same rule as `hero` above. The synthesized
+        // block carries the neutral role, so `flip` below reads nothing from
+        // it: the side stays the layout's `side` parameter.
+        if (!visuals.length && P.image)
+          visuals.push({ type: 'image', src: P.image, role: 'auto', alt: '' });
         const flip = P.side === 'left' || visuals.some((b) => b.role === 'left'); // visual left
         const leftW = Math.round((area.w - PAGE.gutter) * (P.ratio ?? 0.42));
         const rightW = area.w - PAGE.gutter - leftW;

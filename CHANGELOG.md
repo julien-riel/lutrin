@@ -11,6 +11,24 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **A layout can place a kit image the deck never writes.** The `split` and
+  `hero` bases take a new `image` parameter in a `layouts/*.json` —
+  `"image": "kit:<alias>"` — and every slide using the layout shows that
+  image with nothing in the Markdown naming it: beside the text for `split`
+  (the existing `side` and `ratio` say where and how wide), as the full-page
+  background for `hero`. Only a kit alias is accepted, never a file path or
+  a URL — the kit is the one place a brand's images are declared, confined
+  and validated, and a layout that could name an arbitrary file would bypass
+  exactly that; `checkParam` refuses the form at registration, and whether
+  the alias exists is judged against the ACTIVE kit at compile time, where
+  `KIT_IMAGE_UNKNOWN` lands on the slide's `<!-- layout: … -->` line with
+  the usual did-you-mean. The deck's content keeps the last word: a slide
+  that brings its own visual keeps it, and the layout's image stays away —
+  said out loud by the new `LAYOUT_IMAGE_UNUSED` (info), because an
+  automatic decision the author cannot see is a decision they cannot refuse.
+  The synthesized image block travels the ordinary road from there — asset
+  prepass, embedding, placeholder on an unknown alias — in both outputs.
+
 - **The special fences write their first draft too.** A line starting
   `` ``` `` completes into the three fences the compiler treats as more than
   code — `chart` (a full bar-chart spec with categories, two series and a

@@ -152,6 +152,7 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
     'cycle',
     'focus',
     'grid',
+    'hero',
     'layers',
     'metrics',
     'pillars',
@@ -514,4 +515,67 @@ test('an alias of an official layout is flattened: built-in base, parameters inh
     { min: 2, max: 2 },
     'bounds inherited from comparison via the official layout',
   );
+});
+
+// ---------------------------------------------------------------------------
+// `image` — a kit image placed by the LAYOUT (split and hero bases)
+// ---------------------------------------------------------------------------
+
+test('image: only a "kit:<alias>" reference registers — a path or a URL is refused with the reason', (t) => {
+  t.after(resetUserLayouts);
+  assert.throws(
+    () => registerLayout({ name: 'p-img-path', base: 'split', image: './photo.png' }),
+    /kit image reference expected.*kit owns its images/s,
+    'a file path never enters a layout definition',
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-img-url', base: 'hero', image: 'https://x/y.png' }),
+    /kit image reference expected/,
+    'a URL neither',
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-img-base', base: 'comparison', image: 'kit:hero-photo' }),
+    /unknown parameter "image"/,
+    'only the split and hero bases carry the parameter',
+  );
+  const def = registerLayout({ name: 'p-img-ok', base: 'split', image: 'kit:hero-photo' });
+  assert.equal(def.params.image, 'kit:hero-photo');
+});
+
+test('split image: the layout supplies the visual when the slide brings none — deck content wins otherwise', (t) => {
+  t.after(resetUserLayouts);
+  registerLayout({ name: 'p-brand', base: 'split', image: 'kit:hero-photo', side: 'left' });
+  const [scene] = scenesFor('p-brand', 'Some text beside the kit visual.\n');
+  const img = scene.elements.find((e) => e.block.type === 'image');
+  assert.ok(img, 'the layout-declared image is placed as the visual');
+  assert.equal(img.block.src, 'kit:hero-photo');
+  const text = scene.elements.find((e) => e.block.type === 'para');
+  assert.ok(
+    img.region.x < text.region.x,
+    'side: left puts the layout image left of the text column',
+  );
+
+  // a slide that brings its own visual keeps it, and the layout image stays away
+  const [withChart] = scenesFor('p-brand', 'Text.\n\n```chart\ntype: bar\nA: 1, 2\n```\n');
+  assert.ok(
+    !withChart.elements.some((e) => e.block.type === 'image'),
+    'no synthesized image beside a deck visual',
+  );
+  assert.ok(withChart.elements.some((e) => e.block.type === 'chart'));
+});
+
+test('hero image: the layout supplies the background — the slide’s own image wins over it', (t) => {
+  t.after(resetUserLayouts);
+  registerLayout({ name: 'p-hero-brand', base: 'hero', image: 'kit:hero-photo' });
+  const [scene] = scenesFor('p-hero-brand', 'A line under the title.\n');
+  assert.equal(scene.master, 'hero');
+  assert.equal(scene.image.src, 'kit:hero-photo');
+  assert.equal(scene.image.role, 'background');
+  assert.ok(
+    scene.elements.some((e) => e.block.type === 'para'),
+    'the slide content still flows over the background',
+  );
+
+  const [own] = scenesFor('p-hero-brand', '![cover](own.png)\n');
+  assert.equal(own.image.src, 'own.png', "the deck's own image wins over the layout's");
 });
