@@ -43,6 +43,26 @@
   border-color: var(--ink);
   color: #fff;
 }
+/* The file verbs read like the examples — quiet outlines — because both are
+   ways of getting a deck INTO the editor; only the exports are filled. */
+.pg-file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.pg-file button {
+  font: inherit;
+  font-size: 0.85rem;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted-strong);
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+}
+.pg-file button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 /* The payoff, so it reads as one: filled rather than outlined, next to the
    examples that produce something to export. Both are `disabled` until a
    compile succeeds, and `.is-busy` covers the seconds a .pptx takes — the
@@ -116,6 +136,62 @@
 .pg-editor.is-dropping {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* The file name, editable where the fake window chrome used to state it.
+   Styled as the <em> it replaces (main.css .editor-bar em) — an input that
+   does not look like an input until it is focused. */
+#pg-name {
+  font-family: var(--f-mono);
+  font-size: 0.74rem;
+  color: var(--dust);
+  margin-left: 0.5rem;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  outline: none;
+  padding: 0;
+  min-width: 0;
+  flex: 1;
+}
+#pg-name:hover,
+#pg-name:focus {
+  border-bottom-color: var(--line-night);
+}
+/* Line-anchored findings from the compiler's own validator. Buttons, because a
+   finding is a place to GO: clicking one puts the caret on the line. */
+.pg-lint {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+}
+.pg-lint li {
+  margin: 0.25rem 0;
+}
+.pg-lint button {
+  font: inherit;
+  font-size: 0.85rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--muted-strong);
+}
+.pg-lint button:hover .pg-lint-msg {
+  text-decoration: underline;
+}
+.pg-lint .pg-lint-line {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-right: 0.45rem;
+  white-space: nowrap;
+}
+.pg-lint [data-severity="error"] .pg-lint-line {
+  color: #b91c1c;
+}
+.pg-lint [data-severity="warning"] .pg-lint-line {
+  color: #92600a;
 }
 .pg-editor .editor-bar {
   flex: none;
@@ -266,6 +342,10 @@
 .is-embed .pg-bar {
   flex: none;
   margin-bottom: 0.7rem;
+}
+/* The card is a taster: no workspace, so no file verbs and no restore. */
+.is-embed .pg-file {
+  display: none;
 }
 .is-embed .pg-grid {
   flex: 1;
