@@ -107,6 +107,7 @@ const status = $('pg-status');
 const dlHtml = $('pg-dl-html');
 const dlPptx = $('pg-dl-pptx');
 const nameInput = $('pg-name');
+const kitSelect = $('pg-kit');
 
 /** The landing page's card (?embed=1) is a taster, not a workspace: nothing
  *  is restored into it and nothing typed there is kept. */
@@ -645,6 +646,67 @@ try {
 const view = openFrame();
 
 // ---------------------------------------------------------------------------
+// kits: a brand, fetched into the virtual filesystem and resolved for real
+// ---------------------------------------------------------------------------
+
+/** The kit the deck compiles under — a PATH in the virtual filesystem, handed
+ *  to the compiler as `themePath`. Everything downstream is the same code
+ *  that resolves a kit directory on disk: the manifest is read, the theme
+ *  validated, assets confined to the kit, the kit's own layouts registered
+ *  (which is what makes them appear in the layout completion, live). Null is
+ *  the default theme. */
+let kitPath = null;
+
+/** What /kits/index.json declared: kit name → its files. Fetched once at
+ *  load; empty when the index is unreachable, and the picker then simply
+ *  offers nothing beyond the default. */
+let kitIndex = {};
+
+/** Kits whose files already landed in the VFS — a kit is fetched once per
+ *  visit, switching back to it is instant. */
+const loadedKits = new Set();
+
+/** Kit files that are text to the compiler; everything else stays bytes.
+ *  (Fonts are the case that matters: a .woff2 read back must still be the
+ *  bytes fontFaceCss base64-inlines.) */
+const KIT_TEXT = /\.(json|svg|txt|md)$/i;
+
+async function fetchKit(name) {
+  if (loadedKits.has(name)) return;
+  const files = kitIndex[name];
+  if (!files) throw new Error(`unknown kit "${name}"`);
+  await Promise.all(
+    files.map(async (f) => {
+      const res = await fetch(`kits/${name}/${f}`);
+      if (!res.ok) throw new Error(`${name}/${f}: HTTP ${res.status}`);
+      vfs.writeFileSync(
+        `/kits/${name}/${f}`,
+        KIT_TEXT.test(f) ? await res.text() : new Uint8Array(await res.arrayBuffer()),
+      );
+    }),
+  );
+  loadedKits.add(name);
+}
+
+/** Applies a kit by name ('' = default), fetching it first if needed.
+ *  Returns true when the switch happened — the caller recompiles. */
+async function useKit(name) {
+  if (!name) {
+    kitPath = null;
+    return true;
+  }
+  try {
+    say('loading the kit…');
+    await fetchKit(name);
+    kitPath = `/kits/${name}`;
+    return true;
+  } catch {
+    say(`the kit "${name}" could not be loaded`, 'bad');
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // provisioning: put on the virtual disk what the compiler will look for
 // ---------------------------------------------------------------------------
 
@@ -988,7 +1050,7 @@ async function compile() {
   const text = ed.text;
   let result;
   try {
-    result = await compileHtml(text, { baseDir: '/deck', fragment: true });
+    result = await compileHtml(text, { baseDir: '/deck', fragment: true, themePath: kitPath });
   } catch (e) {
     say('error', 'bad');
     notes.innerHTML = '';
@@ -1031,7 +1093,7 @@ async function compile() {
 
   let diags = [];
   try {
-    diags = validateDeck(text, { baseDir: '/deck' });
+    diags = validateDeck(text, { baseDir: '/deck', themePath: kitPath });
   } catch {
     // a validator crash must not cost the preview — the compile already stood
   }
@@ -1223,7 +1285,7 @@ dlHtml.addEventListener('click', () =>
     // Recompiled WITHOUT `fragment`, which is the whole difference: this is the
     // complete document — the stylesheet, the fit script, the presenter mode —
     // rather than the slide fragments the preview frame stacks.
-    const full = await compileHtml(ed.text, { baseDir: '/deck' });
+    const full = await compileHtml(ed.text, { baseDir: '/deck', themePath: kitPath });
     offer(full.html, `${fileStem()}.html`, 'text/html;charset=utf-8');
     say('.html downloaded', 'ok');
   }),
@@ -1382,6 +1444,11 @@ for (const btn of document.querySelectorAll('[data-example]')) {
  *  remember must still edit. */
 const STORE_SOURCE = 'lutrin.playground.source';
 const STORE_NAME = 'lutrin.playground.name';
+const STORE_KIT = 'lutrin.playground.kit';
+
+/** The active kit's name, '' for the default — what the picker shows and the
+ *  storage keeps. */
+const kitName = () => (kitPath ? kitPath.slice('/kits/'.length) : '');
 
 function idb() {
   return new Promise((resolve, reject) => {
@@ -1412,6 +1479,8 @@ function persistSource() {
     localStorage.setItem(STORE_SOURCE, ed.text);
     if (docName) localStorage.setItem(STORE_NAME, docName);
     else localStorage.removeItem(STORE_NAME);
+    if (kitName()) localStorage.setItem(STORE_KIT, kitName());
+    else localStorage.removeItem(STORE_KIT);
   } catch {
     /* storage denied: the editor still edits */
   }
@@ -1432,14 +1501,19 @@ async function persistImage(name, bytes) {
 async function restoreWorkspace() {
   if (IS_EMBED) return false;
   let text = null;
+  let kit = null;
   try {
     text = localStorage.getItem(STORE_SOURCE);
     docName = localStorage.getItem(STORE_NAME) || null;
+    kit = localStorage.getItem(STORE_KIT) || null;
     if (docName) nameInput.value = docName;
   } catch {
     return false;
   }
   if (text === null) return false;
+  // the kit BEFORE the first compile, like the images below — a restored deck
+  // must open under its brand, not flash the default and repaint
+  if (kit && kitIndex[kit] && (await useKit(kit))) kitSelect.value = kit;
   try {
     const [names, all] = await Promise.all([
       idbFiles('readonly', (files) => files.getAllKeys()),
@@ -1664,6 +1738,36 @@ view.stack.addEventListener('click', (e) => {
   if (hit < 0) return;
   const line = last?.scenes?.[hit]?.sourceLine;
   if (line) jumpToLine(line);
+});
+
+// ---------------------------------------------------------------------------
+// the kit picker
+// ---------------------------------------------------------------------------
+
+// Populated before restore, which may need to re-select a remembered kit. An
+// unreachable index costs the picker its options and nothing else — the page
+// compiles under the default theme exactly as before kits existed here.
+try {
+  const res = await fetch('kits/index.json');
+  if (res.ok) kitIndex = await res.json();
+  for (const name of Object.keys(kitIndex).sort()) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    kitSelect.appendChild(opt);
+  }
+} catch {
+  kitIndex = {};
+}
+
+kitSelect.addEventListener('change', async () => {
+  const wanted = kitSelect.value;
+  if (await useKit(wanted)) {
+    await compile();
+    persistSource();
+  } else {
+    kitSelect.value = kitName(); // the fetch failed: the picker must not lie
+  }
 });
 
 // ---------------------------------------------------------------------------

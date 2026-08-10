@@ -84,6 +84,31 @@ const layoutManifest = () =>
       .sort(),
   );
 
+/** The example kits, for the playground's kit picker: which kits exist and
+ *  which files each one is made of — so the page can fetch a kit into its
+ *  virtual filesystem without parsing theme.json to guess at asset names.
+ *  Generated like the layout manifest; pages.yml writes the same file and
+ *  playground.test.mjs pins the two generators to each other. */
+const KITS_DIR = path.join(REPO, 'examples', 'kits');
+const kitsManifest = () => {
+  const kits = {};
+  for (const name of fs.readdirSync(KITS_DIR)) {
+    const dir = path.join(KITS_DIR, name);
+    if (!fs.existsSync(path.join(dir, 'kit.json'))) continue; // README, specimen
+    const files = [];
+    const walk = (sub) => {
+      for (const f of fs.readdirSync(path.join(dir, sub))) {
+        const rel = sub ? `${sub}/${f}` : f;
+        if (fs.statSync(path.join(dir, rel)).isDirectory()) walk(rel);
+        else files.push(rel);
+      }
+    };
+    walk('');
+    kits[name] = files.sort();
+  }
+  return JSON.stringify(kits);
+};
+
 /** The Lucide icon names, for the editor's `lucide:` completion — generated
  *  like the layout manifest, and BESIDE the icons directory for the same
  *  reason layouts.json sits beside layouts/. pages.yml writes the same file;
@@ -100,6 +125,9 @@ const iconManifest = () =>
 function resolve(urlPath) {
   if (urlPath === '/core/design/layouts.json') return { generated: layoutManifest() };
   if (urlPath === '/vendor/lucide-static/icons.json') return { generated: iconManifest() };
+  if (urlPath === '/kits/index.json') return { generated: kitsManifest() };
+  if (urlPath.startsWith('/kits/'))
+    return { file: within(KITS_DIR, urlPath.slice('/kits'.length)) };
 
   if (urlPath.startsWith('/core/src/'))
     return { file: within(path.join(CORE, 'src'), urlPath.slice('/core/src'.length)) };
