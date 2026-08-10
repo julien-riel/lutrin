@@ -591,8 +591,10 @@ test('every ::: snippet covers a real container and validates clean', async () =
     assert.ok(detail, `${name}: a snippet without a detail line is a bare name in the popup`);
     assert.match(template, /\n:::\n$/, `${name}: the template must close its own block`);
     // fields become their default text — exactly what accepting then tabbing
-    // through without typing leaves in the deck
-    const filled = template.replace(/\$\{([^}]*)\}/g, '$1');
+    // through without typing leaves in the deck. Both field forms: `${text}`
+    // and the numbered `${n:text}` (a purely numeric name is an ORDER, which
+    // is why chart's target field is written numbered).
+    const filled = template.replace(/\$\{(?:\d+:)?([^}]*)\}/g, '$1');
     const deck = `# Slide\n\n:::${filled}`;
     const diags = validateDeck(deck, { baseDir: process.cwd() });
     assert.deepEqual(
@@ -601,6 +603,43 @@ test('every ::: snippet covers a real container and validates clean', async () =
       `${name}: the inserted block draws diagnostics — the help is teaching a mistake`,
     );
   }
+});
+
+/**
+ * The fence snippets hold the same two promises, with the coverage held
+ * differently: the compiler exports no list of special fences (the dispatch
+ * is inline in parse.mjs), so what is asserted is BEHAVIOR — each template,
+ * parsed, must yield a block of its own type. A fence name that stopped
+ * being special fails as "came out a code block", which is the regression
+ * that matters. The math template goes one further: MathJax is installed on
+ * Node, so the equation is actually rendered, not merely typed.
+ */
+test('every fence snippet parses to its own block type and validates clean', async () => {
+  const { FENCE_SNIPPETS } = await import(
+    `file://${path.join(SITE, 'assets', 'js', 'deck-snippets.mjs')}`
+  );
+  const { parseDeck } = await import('../src/deck/parse.mjs');
+  const { validateDeck } = await import('../src/deck/validate.mjs');
+
+  for (const [name, { template, detail }] of Object.entries(FENCE_SNIPPETS)) {
+    assert.ok(detail, `${name}: a snippet without a detail line is a bare name in the popup`);
+    assert.match(template, /\n```\n$/, `${name}: the template must close its own fence`);
+    const filled = template.replace(/\$\{(?:\d+:)?([^}]*)\}/g, '$1');
+    const deck = `# Slide\n\n\`\`\`${filled}`;
+    const blocks = parseDeck(deck).slides[0].sections.flatMap((s) => s.blocks);
+    assert.deepEqual(
+      blocks.map((b) => b.type),
+      [name],
+      `${name}: the template no longer parses as a ${name} block — the help inserts dead syntax`,
+    );
+    assert.deepEqual(validateDeck(deck, { baseDir: process.cwd() }), []);
+  }
+
+  // the equation renders, with the engine the CLI uses — an invalid default
+  // would compile to "its LaTeX source as a code block" and no diagnostic
+  const { mathSvg } = await import('../src/deck/assets.mjs');
+  const tex = FENCE_SNIPPETS.math.template.match(/\$\{([^}]*)\}/)[1];
+  assert.ok(await mathSvg(tex), `math: MathJax refuses the template's equation "${tex}"`);
 });
 
 test('the layout catalog the playground preloads is the one the engine expects', () => {
