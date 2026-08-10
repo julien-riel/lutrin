@@ -119,7 +119,10 @@ jobs:
           # same-origin, to fill the compiler's virtual icon cache. Keep this
           # list in step with that map: packages/core/test/playground.test.mjs
           # fails the build if they drift apart.
-          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro jszip pptxgenjs mathjax-full lucide-static; do
+          # The @codemirror/@lezer/@marijn entries are SCOPES, copied whole:
+          # the map points into them per package, and the parity test compares
+          # at the scope level for the same reason the copy happens there.
+          for p in markdown-it markdown-it-container entities linkify-it mdurl punycode.js uc.micro jszip pptxgenjs mathjax-full lucide-static @codemirror @lezer @marijn crelt style-mod w3c-keyname; do
             cp -R "node_modules/$p" "_site/vendor/$p"
           done
           # Source maps and typings are a third of the bytes and are never
@@ -127,7 +130,10 @@ jobs:
           # alternative builds of the two newest packages are another 1.6 MB of
           # the same dead weight: the import map names `pptxgen.es.js` and
           # `jszip.min.js`, and nothing reaches the rest.
-          find _site/vendor \( -name '*.map' -o -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' \) -delete
+          # *.cjs: the CommonJS twins CodeMirror and Lezer ship beside their
+          # ESM — nothing in the import map names one, and nothing else
+          # vendored here is reached through a .cjs either.
+          find _site/vendor \( -name '*.map' -o -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' -o -name '*.cjs' \) -delete
           rm -f _site/vendor/pptxgenjs/dist/pptxgen.cjs.js \
                 _site/vendor/pptxgenjs/dist/pptxgen.bundle.js \
                 _site/vendor/pptxgenjs/dist/pptxgen.min.js \

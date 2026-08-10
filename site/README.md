@@ -101,8 +101,12 @@ There is still **no build step**. What makes that possible:
   resolve `node:fs` like any other specifier. The map is also where the
   playground's own loaders ask for what the compiler never imports: the
   Mermaid bundle (`mermaid/umd`, served out of `@lutrin/core`'s vendored copy
-  under `/core/vendor/`) and the Lucide icon files (the `lucide-static/icons/`
-  prefix entry).
+  under `/core/vendor/`), the Lucide icon files (the `lucide-static/icons/`
+  prefix entry), and the editor pane itself — CodeMirror 6, ~20 `@codemirror/*`
+  and `@lezer/*` packages of genuine browser ESM, statically imported because
+  the editor is the page. Two tests guard the map: the compiler-graph walk,
+  and a second walk over the vendored ESM itself, so a transitive specifier
+  missing from the map fails in CI instead of at link time in a visitor's tab.
 - **`assets/js/shims/`** — `path`, `os`, `url` and `crypto` compute for real
   (`path` and `crypto` are pinned against Node's own by
   `packages/core/test/playground.test.mjs`); `fs` is a map filled before the
@@ -117,7 +121,9 @@ There is still **no build step**. What makes that possible:
 - **Four copies in `pages.yml`**: `packages/core/src` → `_site/core/src`,
   `design/layouts` → `_site/core/design/layouts` (plus a manifest written
   *beside* it), `packages/core/vendor` → `_site/core/vendor` (the Mermaid
-  bundle the package ships), and eleven npm packages → `_site/vendor/`.
+  bundle the package ships), and the npm packages the import map names →
+  `_site/vendor/` (the parity test keeps the two lists equal; `@codemirror`,
+  `@lezer` and `@marijn` are copied as whole scopes).
 
 `_site/core/` is not a stylistic choice. `deck/layout.mjs` and
 `deck/assets.mjs` derive the package root from
@@ -167,6 +173,17 @@ holds `design/layouts`.
    the leftover, `stats.mathTotal - stats.mathRendered`.
 
 ### The workbench
+
+The pane itself is **CodeMirror 6** — vendored ESM resolved by the import map
+like everything else, no build step — which is what turned the textarea into
+an editor: Markdown highlighting and line numbers, the validator's findings as
+squiggles under the very line (hover for the message, gutter marks beside),
+native undo/redo, Tab indentation, Enter continuing a list. It was chosen over
+Monaco deliberately: real ESM the map can resolve against ~3.5 MB of AMD on
+the critical path, and a fraction of the weight. The rest of this file drives
+it through the four-verb `ed` seam in playground.js, and harness scripts
+through `window.lutrinEditorHooks` — a canvas of spans has no `.value` to set,
+so the drive surface is published on purpose.
 
 What separates the page from a demo, and all of it in the visitor's browser —
 none of it in the embedded card (`?embed=1`), which is a taster and must

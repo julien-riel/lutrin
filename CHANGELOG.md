@@ -11,6 +11,24 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The playground's pane is CodeMirror 6.** The textarea served the demo; an
+  editor deserves an editor. CodeMirror was chosen over Monaco deliberately:
+  it ships genuine browser ESM the site's import map resolves with no build
+  step — the founding constraint of `site/` — where Monaco would put ~3.5 MB
+  of AMD loader on the critical path, and it weighs a fraction as much. What
+  the swap buys: Markdown highlighting and line numbers in the site's dark
+  pane, the validator's findings drawn as squiggles under the offending line
+  (message on hover, marks in the gutter — the same `validateDeck` findings
+  the clickable list shows), native undo/redo that survives programmatic
+  inserts, Tab indentation and Markdown list continuation from the keymap.
+  Every workbench feature — autosave and restore, drag-and-drop images,
+  caret↔slide sync, Open/Save — carries over on top of a four-verb seam, and
+  the harness scripts drive the page through a published
+  `window.lutrinEditorHooks`, because a canvas of spans has no `.value` to
+  set. A second graph-walking test keeps every transitive `@codemirror`/
+  `@lezer` specifier covered by the import map, so a missing entry fails in CI
+  rather than at link time in a visitor's tab.
+
 - **The playground grows into an editor.** A page that renders everything and
   forgets everything is a demo; this closes the gap between the two, entirely
   in the visitor's browser. The deck now autosaves — source and file name to

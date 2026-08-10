@@ -40,7 +40,14 @@
      names — they are how the shims ask the map where their UMD bundle lives,
      so this stays the only list of vendored packages. `lucide-static/icons/`
      is a prefix entry for the same reason: playground.js asks the map where
-     the icon files live, and fetches only the ones a deck names. -->
+     the icon files live, and fetches only the ones a deck names.
+
+     The @codemirror/@lezer block is the editor pane itself — genuine browser
+     ESM like markdown-it, statically imported by playground.js, so it loads
+     with the page (the editor IS the page; there is no later moment to defer
+     it to). Every transitive bare specifier of that graph must be an entry
+     here or the page dies at link time; playground.test.mjs walks the
+     vendored graph to keep this true. -->
 <script type="importmap">
 {
   "imports": {
@@ -65,7 +72,28 @@
     "mathjax": "./assets/js/shims/mathjax.mjs",
     "mathjax/umd": "./vendor/mathjax-full/es5/tex-svg-full.js",
     "mermaid/umd": "./core/vendor/mermaid/mermaid.min.js",
-    "lucide-static/icons/": "./vendor/lucide-static/icons/"
+    "lucide-static/icons/": "./vendor/lucide-static/icons/",
+    "@codemirror/view": "./vendor/@codemirror/view/dist/index.js",
+    "@codemirror/state": "./vendor/@codemirror/state/dist/index.js",
+    "@codemirror/commands": "./vendor/@codemirror/commands/dist/index.js",
+    "@codemirror/language": "./vendor/@codemirror/language/dist/index.js",
+    "@codemirror/lint": "./vendor/@codemirror/lint/dist/index.js",
+    "@codemirror/lang-markdown": "./vendor/@codemirror/lang-markdown/dist/index.js",
+    "@codemirror/lang-html": "./vendor/@codemirror/lang-html/dist/index.js",
+    "@codemirror/lang-css": "./vendor/@codemirror/lang-css/dist/index.js",
+    "@codemirror/lang-javascript": "./vendor/@codemirror/lang-javascript/dist/index.js",
+    "@codemirror/autocomplete": "./vendor/@codemirror/autocomplete/dist/index.js",
+    "@lezer/common": "./vendor/@lezer/common/dist/index.js",
+    "@lezer/highlight": "./vendor/@lezer/highlight/dist/index.js",
+    "@lezer/lr": "./vendor/@lezer/lr/dist/index.js",
+    "@lezer/markdown": "./vendor/@lezer/markdown/dist/index.js",
+    "@lezer/html": "./vendor/@lezer/html/dist/index.js",
+    "@lezer/css": "./vendor/@lezer/css/dist/index.js",
+    "@lezer/javascript": "./vendor/@lezer/javascript/dist/index.js",
+    "@marijn/find-cluster-break": "./vendor/@marijn/find-cluster-break/src/index.js",
+    "crelt": "./vendor/crelt/index.js",
+    "style-mod": "./vendor/style-mod/src/style-mod.js",
+    "w3c-keyname": "./vendor/w3c-keyname/index.js"
   }
 }
 </script>
@@ -155,9 +183,10 @@
           <label class="sr-only" for="pg-name">File name</label>
           <input id="pg-name" spellcheck="false" autocomplete="off" placeholder="deck.md">
         </div>
-        <label class="sr-only" for="pg-source">The deck, in Markdown</label>
-        <textarea id="pg-source" spellcheck="false" autocapitalize="off" autocomplete="off"
-          disabled placeholder="Loading the compiler…"></textarea>
+        <!-- CodeMirror mounts here (playground.js). A DIV, not a textarea:
+             the editor draws its own content surface, and a textarea underneath
+             would be a second, invisible copy of the deck that drifts. -->
+        <div id="pg-source" aria-label="The deck, in Markdown"></div>
       </div>
       <div class="pg-out">
         <iframe id="pg-frame" title="The compiled slides"></iframe>

@@ -124,6 +124,43 @@ test('every file the import map points at exists', () => {
   }
 });
 
+/**
+ * The compiler's graph is walked above; the EDITOR's graph is this one.
+ * CodeMirror is ~20 vendored ESM packages importing each other by bare
+ * specifier, and one transitive dependency missing from the map (@lezer/lr,
+ * say — imported by nothing we wrote) kills the page at link time with
+ * nothing in the Node suite noticing. So: start from every ./vendor/ file
+ * the map names, follow relative imports through the package, and demand
+ * that every bare specifier met on the way is itself in the map.
+ */
+test('the vendored ESM graph resolves entirely inside the map', () => {
+  const map = importMap();
+  const toFile = (target) => path.join(REPO, 'node_modules', target.slice('./vendor/'.length));
+  const queue = Object.values(map)
+    .filter((t) => t.startsWith('./vendor/') && /\.(mjs|js)$/.test(t))
+    .map(toFile);
+  const seen = new Set();
+  const missing = new Set();
+  while (queue.length) {
+    const file = queue.pop();
+    if (seen.has(file) || !fs.existsSync(file)) continue;
+    seen.add(file);
+    for (const spec of staticSpecifiers(fs.readFileSync(file, 'utf8'))) {
+      if (spec.startsWith('.')) {
+        queue.push(path.resolve(path.dirname(file), spec));
+        continue;
+      }
+      if (!(spec in map)) missing.add(spec);
+      else if (map[spec].startsWith('./vendor/')) queue.push(toFile(map[spec]));
+    }
+  }
+  assert.deepEqual(
+    [...missing].sort(),
+    [],
+    'a vendored package imports these and the map does not resolve them — the playground dies at link time',
+  );
+});
+
 test('the vendored packages CI copies are exactly the ones the map names', () => {
   const workflow = fs.readFileSync(path.join(REPO, '.github/workflows/pages.yml'), 'utf8');
   const m = workflow.match(/for p in ([^;]+); do/);
