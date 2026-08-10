@@ -252,13 +252,14 @@ Parameters published by the bases (exact types, domains and defaults in
 |---|---|
 | `split` | `ratio` (0.2–0.8, default 0.42), `side` (`right`/`left`), `image` (`kit:<alias>`) |
 | `hero` | `image` (`kit:<alias>`) |
+| `section` | `image` (`kit:<alias>`) |
 | `metrics` | `max` (1–6, default 4), `cardHeight` (120–320 px, default 176), `align` |
 | `comparison` | `panels` (list of variants), `pad` (0–48 px), `density`, `radius` |
 | `pillars` | `panels`, `accent` (boolean), `density`, `radius` |
 | `timeline` | `dot` (20–48 px), `arrow`, `numbered`, `orientation` (`horizontal`/`vertical`) |
 | `layers` | `ratios`, `shades`, `shape` (`stack`/`funnel`/`pyramid`), `density` |
 | `swot` | `kinds` (tint per quadrant), `density` |
-| `grid` | `cols` (1–4), `panels`, `kinds`, `spans`, `headed`, `density`, `radius`, `align` |
+| `grid` | `cols` (1–4), `panels`, `kinds`, `spans`, `headed`, `images` (`kit:<alias>` list), `density`, `radius`, `align` |
 | `steps` | `connector` (`arrow`/`line`/`none`), `panels`, `density`, `radius` |
 | `content` | `density`, `align` |
 | `focus` | `align` (default `center`), `accent`, `scale` (0.5–2.5) |
@@ -328,9 +329,12 @@ cramped single one.
 **`image` — the layout places a kit image the deck never writes.** On the
 `split` base the image stands beside the text (`side` and `ratio` say where
 and how wide); on the `hero` base it is the full-page background under the
-title. A slide using the layout shows the image with nothing in the Markdown
-naming it — the brand's visual comes from the layout, and a kit that ships
-its layouts carries the whole arrangement:
+title; on the `section` base it is the branded divider — the photo full-bleed
+under a scrim of the section surface, so the slide stays the brand's colour
+and the title stays legible whatever the photo. A slide using the layout
+shows the image with nothing in the Markdown naming it — the brand's visual
+comes from the layout, and a kit that ships its layouts carries the whole
+arrangement:
 
 ```json
 {
@@ -343,13 +347,32 @@ its layouts carries the whole arrangement:
 }
 ```
 
-Only a **kit alias** is accepted, never a file path or a URL: the kit is the
+`grid` takes the list twin, **`images`** — one image per cell, cycling by
+cell position exactly like `panels`. The generator places it as a band at the
+head of the cell and flows the heading and the text below, which is the team
+page: photo, name, role, once per `##` section, and the cells stay bounded —
+the band takes a fixed share of the cell rather than riding the flow.
+
+```json
+{
+  "name": "team",
+  "base": "grid",
+  "cols": 3,
+  "images": ["kit:face-marie", "kit:face-karim", "kit:face-ana"],
+  "density": "compact",
+  "description": "One card per person: portrait, name, role."
+}
+```
+
+Only **kit aliases** are accepted, never a file path or a URL: the kit is the
 one place a brand's images are declared, confined and validated (`images` in
 its `theme.json`, see [kit images](#images-icons-diagrams)), and a layout
 that could name an arbitrary file would bypass exactly that. The deck's
-content keeps the last word — a slide that brings its own visual (an image, a
-chart, a diagram) keeps it, and the layout's image stays away, reported by
-`LAYOUT_IMAGE_UNUSED` (info). An alias the active kit does not declare is
+content keeps the last word — a slide (or a `grid` cell) that brings its own
+visual (an image, a chart, a diagram) keeps it, and the layout's image stays
+away, reported by `LAYOUT_IMAGE_UNUSED` (info, naming the cells concerned).
+The one exception is `section`, which places no content at all: there the
+image always applies. An alias the active kit does not declare is
 `KIT_IMAGE_UNKNOWN` on the slide's `<!-- layout: … -->` line, with the usual
 placeholder — and the usual "did you mean".
 
@@ -577,9 +600,9 @@ without a kit, since the default theme declares no images. The kit editor
 (`lutrin kit edit`, [docs/kit-editor.md](kit-editor.md)) manages these
 aliases visually — upload, rename, per-alias preview. A **layout** can also
 place a kit image itself — `"image": "kit:<alias>"` in a `layouts/*.json` on
-the `split` or `hero` base — so the deck shows the brand's visual without one
-line of Markdown naming it: see
-[custom layouts](#custom-layouts-layoutsjson).
+the `split`, `hero` or `section` base, `"images": […]` per cell on `grid` —
+so the deck shows the brand's visual without one line of Markdown naming it:
+see [custom layouts](#custom-layouts-layoutsjson).
 
 **Lucide icons** — `![](lucide:name)` places an icon from
 [lucide.dev](https://lucide.dev) (`bike`, `house`, `leaf`, `chart-bar`…). An
@@ -1043,7 +1066,7 @@ The main ones:
 | `UNKNOWN_PROGRESS_KIND` | warning | unknown tint after `:::progress` |
 | `ALERT_CONTENT_DROPPED` | warning | block not rendered inside a callout |
 | `QUOTE_CONTENT_DROPPED` | warning | block not rendered inside a quotation |
-| `LAYOUT_IMAGE_UNUSED` | info | the slide brings its own visual: the kit image the layout declares is not placed |
+| `LAYOUT_IMAGE_UNUSED` | info | the slide (or a grid cell) brings its own visual: the kit image the layout declares is not placed there |
 | `TABLE_CONTENT_DROPPED`, `LIST_CONTENT_DROPPED`, `HEADING_CONTENT_DROPPED` | warning | an image or icon written into a cell, a bullet or a heading, which render text only |
 | `UNKNOWN_ANIMATE` | warning | unknown animation effect |
 | `COVER_NOTES_ORPHAN` | warning | frontmatter `notes:` with no cover to carry it — no `title:`, or a Marp deck |

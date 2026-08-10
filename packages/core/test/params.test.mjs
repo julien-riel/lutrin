@@ -156,6 +156,7 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
     'layers',
     'metrics',
     'pillars',
+    'section',
     'split',
     'steps',
     'swot',
@@ -578,4 +579,52 @@ test('hero image: the layout supplies the background — the slide’s own image
 
   const [own] = scenesFor('p-hero-brand', '![cover](own.png)\n');
   assert.equal(own.image.src, 'own.png', "the deck's own image wins over the layout's");
+});
+
+test('section image: the divider carries the kit background — always, a section places no content', (t) => {
+  t.after(resetUserLayouts);
+  registerLayout({ name: 'p-divider', base: 'section', image: 'kit:hero-photo' });
+  const [scene] = scenesFor('p-divider', '');
+  assert.equal(scene.master, 'section');
+  assert.equal(scene.image.src, 'kit:hero-photo');
+  assert.equal(scene.image.role, 'background');
+  assert.deepEqual(scene.elements, [], 'a section slide still places no content');
+});
+
+test('grid images: a band at the head of each cell, cycling by cell position — a cell with its own visual skips it', (t) => {
+  t.after(resetUserLayouts);
+  registerLayout({
+    name: 'p-team',
+    base: 'grid',
+    cols: 3,
+    images: ['kit:face-a', 'kit:face-b'],
+  });
+  const body = [
+    '## Marie\n\nDelivery.\n',
+    '## Karim\n\n![](own.png)\n',
+    '## Ana\n\nPlatform.\n',
+  ].join('\n');
+  const [scene] = scenesFor('p-team', body);
+  const imgs = scene.elements.filter((e) => e.block.type === 'image');
+  assert.deepEqual(
+    imgs.map((e) => e.block.src).sort(),
+    ['kit:face-a', 'kit:face-a', 'own.png'],
+    'cell 1 gets face-a (k=0), cell 2 keeps its own image, cell 3 cycles back to face-a (k=2)',
+  );
+  assert.equal(
+    imgs.filter((e) => e.block.src === 'kit:face-a').length,
+    2,
+    'the list cycles by CELL position: k % length, skipped cells consume their slot',
+  );
+  const band = imgs.find((e) => e.block.src === 'kit:face-a');
+  const heading = scene.elements.find((e) => e.block.type === 'heading' && e.group === band.group);
+  assert.ok(band.region.y < heading.region.y, 'the image leads the cell, the heading flows below');
+  assert.throws(
+    () => registerLayout({ name: 'p-team-bad', base: 'grid', images: ['./face.png'] }),
+    /is not a kit image reference/,
+  );
+  assert.throws(
+    () => registerLayout({ name: 'p-team-empty', base: 'grid', images: [] }),
+    /non-empty list of kit image references/,
+  );
 });

@@ -11,23 +11,31 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
-- **A layout can place a kit image the deck never writes.** The `split` and
-  `hero` bases take a new `image` parameter in a `layouts/*.json` —
-  `"image": "kit:<alias>"` — and every slide using the layout shows that
-  image with nothing in the Markdown naming it: beside the text for `split`
-  (the existing `side` and `ratio` say where and how wide), as the full-page
-  background for `hero`. Only a kit alias is accepted, never a file path or
-  a URL — the kit is the one place a brand's images are declared, confined
-  and validated, and a layout that could name an arbitrary file would bypass
-  exactly that; `checkParam` refuses the form at registration, and whether
-  the alias exists is judged against the ACTIVE kit at compile time, where
-  `KIT_IMAGE_UNKNOWN` lands on the slide's `<!-- layout: … -->` line with
-  the usual did-you-mean. The deck's content keeps the last word: a slide
-  that brings its own visual keeps it, and the layout's image stays away —
-  said out loud by the new `LAYOUT_IMAGE_UNUSED` (info), because an
-  automatic decision the author cannot see is a decision they cannot refuse.
-  The synthesized image block travels the ordinary road from there — asset
-  prepass, embedding, placeholder on an unknown alias — in both outputs.
+- **A layout can place a kit image the deck never writes.** Four bases take
+  it in a `layouts/*.json`: `split` (`"image": "kit:<alias>"` — the visual
+  beside the text, the existing `side` and `ratio` saying where and how
+  wide), `hero` (the full-page background), `section` (the branded divider —
+  the photo full-bleed under a scrim of the section surface at 85 % opacity,
+  one constant both renderers read, so the slide stays the brand's colour
+  and the validated title ink keeps roughly its contrast whatever the
+  photo), and `grid` (`"images": [...]` — one image per cell, cycling by
+  cell position like `panels`; the generator places it as a band at the head
+  of the cell and flows the text below, rather than pushing it through the
+  flow whose fixed 280 px estimate would overflow any dense mosaic — the
+  team page: portrait, name, role). Only kit aliases are accepted, never a
+  file path or a URL — the kit is the one place a brand's images are
+  declared, confined and validated, and a layout that could name an
+  arbitrary file would bypass exactly that; `checkParam` refuses the form at
+  registration, and whether the alias exists is judged against the ACTIVE
+  kit at compile time, where `KIT_IMAGE_UNKNOWN` lands on the slide's
+  `<!-- layout: … -->` line with the usual did-you-mean. The deck's content
+  keeps the last word: a slide — or a grid cell — that brings its own visual
+  keeps it, and the layout's image stays away, said out loud by the new
+  `LAYOUT_IMAGE_UNUSED` (info, naming the cells concerned), because an
+  automatic decision the author cannot see is a decision they cannot refuse;
+  `section`, which places no content, always applies it. The synthesized
+  image blocks travel the ordinary road from there — asset prepass,
+  embedding, placeholder on an unknown alias — in both outputs.
 
 - **The special fences write their first draft too.** A line starting
   `` ``` `` completes into the three fences the compiler treats as more than

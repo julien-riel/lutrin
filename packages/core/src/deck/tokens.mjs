@@ -280,6 +280,11 @@ export const CHROME = {
     titleY: 288,
     titleH: 144,
     logoH: 32,
+    // opacity of the section surface laid OVER a layout-declared background
+    // image (`image` parameter of the section base): high enough that the
+    // validated sectionInk-on-sectionBg pair keeps roughly its contrast, low
+    // enough that the photo reads through. One constant, both renderers.
+    scrimAlpha: 0.85,
   },
   title: {
     accentW: 64, // accent segment of the title rule

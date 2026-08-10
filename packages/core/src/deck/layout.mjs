@@ -444,6 +444,20 @@ function checkParam(layoutName, key, spec, value) {
         );
       return value.trim();
     }
+    case 'kit-image-list': {
+      // the list twin of `kit-image` (grid cells), cycling like `panels` —
+      // same restriction to kit aliases, same reason
+      if (!Array.isArray(value) || !value.length)
+        fail('non-empty list of kit image references expected ("kit:<alias>")');
+      if (value.length > 16) fail('list too long (16 values maximum)');
+      return value.map((v) => {
+        if (typeof v !== 'string' || !/^kit:.+$/i.test(v.trim()))
+          fail(
+            `"${v}" is not a kit image reference — "kit:<alias>", an alias declared by the kit's theme.json under "images". A layout never names a file path or a URL: the kit owns its images`,
+          );
+        return v.trim();
+      });
+    }
     default:
       return fail(`unknown spec type "${spec.type}" (inconsistent built-in schema)`);
   }
@@ -618,6 +632,17 @@ export function registerLayout(def) {
   {
     name: 'section',
     description: 'chapter divider: a numbered section title on an accent surface',
+    paramSchema: {
+      image: {
+        // its own spec rather than kitImageParam(): a section slide places no
+        // content, so the "when the slide brings none" clause would be a lie —
+        // here the image always applies, under a scrim of the section surface
+        type: 'kit-image',
+        default: null,
+        description:
+          'kit image ("kit:<alias>") drawn full-bleed under the divider title, beneath a scrim of the section surface',
+      },
+    },
   },
   {
     name: 'hero',
@@ -814,6 +839,12 @@ export function registerLayout(def) {
         type: 'boolean',
         default: false,
         description: 'detached header per cell (title + rule)',
+      },
+      images: {
+        type: 'kit-image-list',
+        default: null,
+        description:
+          'kit images ("kit:<alias>") placed at the head of the cells, cycling like panels — a cell that brings its own visual keeps it',
       },
       density: densityParam(),
       radius: radiusParam(),
@@ -1480,6 +1511,13 @@ export function buildScenes(deck) {
           notes: slide.notes,
           elements: [],
           sourceLine: slide.line,
+          // layout-declared kit image: the branded divider. Unconditional —
+          // a section slide places no content, so there is no deck visual to
+          // yield to. Both renderers draw it full-bleed under a scrim of the
+          // section surface (CHROME.section.scrimAlpha), the title on top.
+          ...(P.image
+            ? { image: { type: 'image', src: P.image, role: 'background', alt: '' } }
+            : {}),
         });
         break;
       }
@@ -1966,6 +2004,38 @@ export function buildScenes(deck) {
             };
           } else if (heading) {
             cellBlocks = [heading, ...sec.blocks];
+          }
+          // layout-declared kit images (`images`, cycling like `panels` by
+          // cell position): the generator places the image ITSELF — a band at
+          // the head of the cell, the content flowing below — rather than
+          // pushing it through the flow, whose fixed 280 px estimate would
+          // overflow any dense mosaic. Same conflict rule as split/hero,
+          // judged per cell: one that brings its own visual keeps it, and the
+          // layout's image stays away (LAYOUT_IMAGE_UNUSED in validation).
+          const ownVisual = sec.blocks.some(
+            (b) =>
+              b.type === 'mermaid' ||
+              b.type === 'chart' ||
+              (b.type === 'image' && b.role !== 'background'),
+          );
+          if (P.images && !ownVisual && flowRegion.h > 0) {
+            const imgH = Math.round(flowRegion.h * 0.45);
+            elements.push({
+              block: {
+                type: 'image',
+                src: P.images[k % P.images.length],
+                role: 'auto',
+                alt: '',
+              },
+              region: { x: flowRegion.x, y: flowRegion.y, w: flowRegion.w, h: imgH },
+              group: k,
+            });
+            flowRegion = {
+              x: flowRegion.x,
+              y: flowRegion.y + imgH + SPACE.sm,
+              w: flowRegion.w,
+              h: Math.max(0, flowRegion.h - imgH - SPACE.sm),
+            };
           }
           const flowed = flowBlocks(
             alignBlocks(inkBlocks(cellBlocks, block), P.align),
