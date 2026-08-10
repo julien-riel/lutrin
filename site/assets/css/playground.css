@@ -43,6 +43,21 @@
   border-color: var(--ink);
   color: #fff;
 }
+/* The kit picker reads like the examples and the file verbs: a quiet outline,
+   because a kit is a way of seeing the deck, not a payoff. */
+.pg-kit-label select {
+  font: inherit;
+  font-size: 0.85rem;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted-strong);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+}
+.pg-kit-label select:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 /* The file verbs read like the examples — quiet outlines — because both are
    ways of getting a deck INTO the editor; only the exports are filled. */
 .pg-file {
@@ -337,8 +352,10 @@
   flex: none;
   margin-bottom: 0.7rem;
 }
-/* The card is a taster: no workspace, so no file verbs and no restore. */
-.is-embed .pg-file {
+/* The card is a taster: no workspace, so no file verbs, no kit picker and no
+   restore. */
+.is-embed .pg-file,
+.is-embed .pg-kit-label {
   display: none;
 }
 .is-embed .pg-grid {

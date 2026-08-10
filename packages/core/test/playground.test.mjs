@@ -338,6 +338,28 @@ test('both site generators publish the lucide icon index at the same path', () =
   );
 });
 
+/**
+ * Same shape for the kit picker: /kits/index.json is written by two
+ * generators that never run each other's path. And the kits themselves must
+ * be present with their manifests — a kit directory without kit.json is
+ * invisible to both generators, silently.
+ */
+test('both site generators publish the kit index, and the kits carry manifests', () => {
+  const serve = fs.readFileSync(path.join(REPO, 'scripts', 'site-serve.mjs'), 'utf8');
+  const workflow = fs.readFileSync(path.join(REPO, '.github/workflows/pages.yml'), 'utf8');
+  assert.match(serve, /'\/kits\/index\.json'/, 'site-serve.mjs no longer serves the kit index');
+  assert.match(
+    workflow,
+    /_site\/kits\/index\.json/,
+    'pages.yml no longer writes the kit index — the picker would be empty in production only',
+  );
+  const kitsDir = path.join(REPO, 'examples', 'kits');
+  const kits = fs
+    .readdirSync(kitsDir)
+    .filter((n) => fs.existsSync(path.join(kitsDir, n, 'kit.json')));
+  assert.ok(kits.length >= 8, `only ${kits.length} kits carry a kit.json — the picker starves`);
+});
+
 test('the lucide icons prefix entry is a valid prefix and the icons exist', () => {
   const target = importMap()['lucide-static/icons/'];
   assert.ok(target, 'the import map lost its lucide-static/icons/ entry');
@@ -403,6 +425,11 @@ test('the path shim answers exactly as node:path.posix does', async () => {
   for (const s of paths)
     for (const fn of ['dirname', 'basename', 'extname'])
       assert.equal(p[fn](s), real[fn](s), `${fn}(${s})`);
+
+  // normalize is what the kit resolution chain calls (insideKit): trailing
+  // separators, doubled separators, dot-segments, and the empty string
+  const normals = ['/kits/press-noir/', '/a//b/../c', 'a/./b/..', '../x', '/..', '', '.', 'a/'];
+  for (const s of normals) assert.equal(p.normalize(s), real.normalize(s), `normalize(${s})`);
 });
 
 test('the crypto shim digests exactly as node:crypto does', async () => {

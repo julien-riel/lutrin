@@ -156,6 +156,13 @@
         <button type="button" data-example="math" aria-pressed="false">An equation</button>
         <button type="button" data-example="diagram" aria-pressed="false">A diagram</button>
       </div>
+      <!-- The kit the deck compiles under — the example kits, fetched into
+           the page's virtual filesystem and resolved by the same code that
+           resolves a kit directory on disk. Populated by playground.js from
+           /kits/index.json; hidden in the embedded card like the file verbs. -->
+      <label class="pg-kit-label" for="pg-kit"><span class="sr-only">Kit</span>
+        <select id="pg-kit"><option value="">Default kit</option></select>
+      </label>
       <!-- The deck as a FILE: new, open from disk, save back to disk. Hidden
            in the embedded card (?embed=1), where there is no workspace to
            manage — the landing page's card is a taster, not an editor. -->
@@ -213,7 +220,11 @@
       rasterized, and your browser is a rasterizer — it draws them onto a
       canvas here, where the command line uses its own. What that costs is
       determinism rather than fidelity, since a canvas paints with the fonts
-      this machine resolves. And this page is a workbench, not a scratchpad:
+      this machine resolves. The kit picker compiles your deck under any of
+      the example kits — fonts, logos and the kit's own layouts included,
+      resolved by the same code that resolves a kit on disk — and the kits
+      page shows what each one looks like. And this page is a workbench, not
+      a scratchpad:
       your deck autosaves to this browser — never to a server — and is here
       when you come back; it opens from and saves back to a real
       <code>.md</code> file (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>); the

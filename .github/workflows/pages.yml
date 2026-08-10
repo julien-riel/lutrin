@@ -161,7 +161,28 @@ jobs:
           # BESIDE the icons directory, the layouts.json pattern again.
           # site-serve.mjs generates the same file per request.
           node -e "const fs=require('node:fs');fs.writeFileSync('_site/vendor/lucide-static/icons.json',JSON.stringify(fs.readdirSync('node_modules/lucide-static/icons').filter(f=>f.endsWith('.svg')).map(f=>f.slice(0,-4)).sort()))"
-          du -sh _site/core _site/vendor
+          # The example kits, for the playground's kit picker, with the
+          # per-kit file manifest the page fetches a kit's assets by —
+          # site-serve.mjs generates the same index per request.
+          cp -R examples/kits _site/kits
+          rm -f _site/kits/README.md _site/kits/specimen.deck.md
+          node -e "
+            const fs=require('node:fs');
+            const kits={};
+            for (const name of fs.readdirSync('examples/kits')) {
+              const dir='examples/kits/'+name;
+              if (!fs.existsSync(dir+'/kit.json')) continue;
+              const files=[];
+              const walk=(sub)=>{ for (const f of fs.readdirSync(dir+(sub?'/'+sub:''))) {
+                const rel=sub?sub+'/'+f:f;
+                if (fs.statSync(dir+'/'+rel).isDirectory()) walk(rel); else files.push(rel);
+              }};
+              walk('');
+              kits[name]=files.sort();
+            }
+            fs.writeFileSync('_site/kits/index.json', JSON.stringify(kits));
+          "
+          du -sh _site/core _site/vendor _site/kits
 
       # A stale absolute URL must never ship again. demo.html is compiled
       # output and _site/core is the compiler's own source; neither is the
