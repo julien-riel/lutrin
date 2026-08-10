@@ -140,15 +140,26 @@ export function createHash(algorithm) {
   const name = String(algorithm).toLowerCase().replace('-', '');
   const run = ALGORITHMS[name];
   if (!run) throw new Error(`crypto.createHash: "${algorithm}" is not available in the browser`);
-  let data = '';
+  // Chunks are kept as BYTES. `String(chunk)` on a Uint8Array yields
+  // "137,80,78,…" — a digest of the wrong bytes, silently, and the caller
+  // that hashes bytes here is the kit-archive reader naming what a visitor
+  // uploaded. Strings are encoded as UTF-8, exactly as Node's update() does.
+  let chunks = [];
   return {
     update(chunk) {
-      data += String(chunk);
+      chunks.push(chunk instanceof Uint8Array ? chunk : enc.encode(String(chunk)));
       return this;
     },
     digest(encoding) {
-      const words = run(enc.encode(data));
-      const out = hex(words);
+      const total = chunks.reduce((n, c) => n + c.length, 0);
+      const data = new Uint8Array(total);
+      let at = 0;
+      for (const c of chunks) {
+        data.set(c, at);
+        at += c.length;
+      }
+      chunks = [];
+      const out = hex(run(data));
       if (encoding === 'hex' || encoding === undefined) return out;
       throw new Error(`crypto digest: encoding "${encoding}" is not available in the browser`);
     },

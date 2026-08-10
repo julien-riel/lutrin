@@ -433,6 +433,9 @@ window.lutrinEditorHooks = {
   },
   setCaret: (pos) => ed.setCaret(pos),
   caretLine: () => ed.caretLine,
+  // the smoke checks upload a packKit() round-trip through this — a file
+  // dialog cannot be driven headlessly
+  uploadKit: (bytes) => uploadKitBytes(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)),
 };
 
 /** The three examples from the landing page: a reader arrives at something
@@ -688,11 +691,83 @@ async function fetchKit(name) {
   loadedKits.add(name);
 }
 
+/** The visitor's own kit — an uploaded `.deckkit`, one at a time, mounted
+ *  under a reserved name no example kit can carry (kit names are lowercase
+ *  by grammar, so `@user` cannot collide). */
+const USER_KIT = '@user';
+const USER_KIT_DIR = `/kits/${USER_KIT}`;
+
+/**
+ * Validates an archive and mounts it as the user kit: the SAME
+ * `readKitArchive` the CLI installs through — zip-slip refusal, extension
+ * allowlist, size limits, manifest validation — imported on the first upload
+ * and never before (it drags JSZip in). What it accepts lands in the VFS
+ * exactly like a fetched example kit; what it refuses throws with the CLI's
+ * own wording.
+ */
+async function mountKitArchive(bytes) {
+  const { readKitArchive } = await import('../../core/src/kit/archive.mjs');
+  const { manifest, files } = await readKitArchive(bytes);
+  vfs.rmSync(USER_KIT_DIR, { recursive: true, force: true });
+  for (const [rel, content] of files) vfs.writeFileSync(`${USER_KIT_DIR}/${rel}`, content);
+  // the picker names it after the manifest, marked as the visitor's own
+  let opt = [...kitSelect.options].find((o) => o.value === USER_KIT);
+  if (!opt) {
+    opt = document.createElement('option');
+    opt.value = USER_KIT;
+    const upload = [...kitSelect.options].find((o) => o.value === '@upload');
+    kitSelect.insertBefore(opt, upload ?? null);
+  }
+  opt.textContent = `${manifest.name} (uploaded)`;
+  return manifest;
+}
+
+/** An upload, end to end: validate, mount, remember. The archive's BYTES go
+ *  to IndexedDB — not the extracted tree — so the next visit re-validates
+ *  exactly what was uploaded, and a rule tightened since then re-refuses it. */
+async function uploadKitBytes(bytes) {
+  try {
+    say('reading the kit…');
+    await mountKitArchive(bytes);
+    kitPath = USER_KIT_DIR;
+    kitSelect.value = USER_KIT;
+    try {
+      await idbStore('kit', 'readwrite', (s) => s.put(bytes, 'archive'));
+    } catch {
+      /* storage denied: the kit applies for this visit and is forgotten */
+    }
+    await compile();
+    persistSource();
+    return true;
+  } catch (e) {
+    say('the kit was refused', 'bad');
+    note('pg-note pg-note-bad', String(e?.message ?? e));
+    return false;
+  }
+}
+
+/** The file picker behind the "Upload a kit…" entry. */
+function pickKitFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.deckkit,application/zip';
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (file) uploadKitBytes(new Uint8Array(await file.arrayBuffer()));
+  });
+  input.click();
+}
+
 /** Applies a kit by name ('' = default), fetching it first if needed.
  *  Returns true when the switch happened — the caller recompiles. */
 async function useKit(name) {
   if (!name) {
     kitPath = null;
+    return true;
+  }
+  if (name === USER_KIT) {
+    if (!vfs.existsSync(`${USER_KIT_DIR}/kit.json`)) return false; // nothing mounted
+    kitPath = USER_KIT_DIR;
     return true;
   }
   try {
@@ -1452,19 +1527,25 @@ const kitName = () => (kitPath ? kitPath.slice('/kits/'.length) : '');
 
 function idb() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('lutrin-playground', 1);
-    req.onupgradeneeded = () => req.result.createObjectStore('files');
+    // v2 added the 'kit' store (the uploaded .deckkit's bytes). The upgrade
+    // handler creates whatever is missing, so a v1 visitor and a fresh one
+    // arrive at the same schema.
+    const req = indexedDB.open('lutrin-playground', 2);
+    req.onupgradeneeded = () => {
+      for (const store of ['files', 'kit'])
+        if (!req.result.objectStoreNames.contains(store)) req.result.createObjectStore(store);
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 /** One settled transaction per call — an editor tab is not a database load. */
-async function idbFiles(mode, run) {
+async function idbStore(store, mode, run) {
   const db = await idb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction('files', mode);
-      const out = run(tx.objectStore('files'));
+      const tx = db.transaction(store, mode);
+      const out = run(tx.objectStore(store));
       tx.oncomplete = () => resolve(out?.result ?? out);
       tx.onerror = () => reject(tx.error);
     });
@@ -1472,6 +1553,7 @@ async function idbFiles(mode, run) {
     db.close();
   }
 }
+const idbFiles = (mode, run) => idbStore('files', mode, run);
 
 function persistSource() {
   if (IS_EMBED) return;
@@ -1512,8 +1594,21 @@ async function restoreWorkspace() {
   }
   if (text === null) return false;
   // the kit BEFORE the first compile, like the images below — a restored deck
-  // must open under its brand, not flash the default and repaint
-  if (kit && kitIndex[kit] && (await useKit(kit))) kitSelect.value = kit;
+  // must open under its brand, not flash the default and repaint. An uploaded
+  // kit comes back from IndexedDB and through the archive validation AGAIN:
+  // the bytes were kept, not the trust.
+  if (kit === USER_KIT) {
+    try {
+      const bytes = await idbStore('kit', 'readonly', (s) => s.get('archive'));
+      if (bytes) {
+        await mountKitArchive(bytes);
+        kitPath = USER_KIT_DIR;
+        kitSelect.value = USER_KIT;
+      }
+    } catch {
+      /* archive gone or newly refused: the default theme is the honest state */
+    }
+  } else if (kit && kitIndex[kit] && (await useKit(kit))) kitSelect.value = kit;
   try {
     const [names, all] = await Promise.all([
       idbFiles('readonly', (files) => files.getAllKeys()),
@@ -1639,7 +1734,9 @@ async function saveDeck() {
 async function newDeck() {
   if (
     ed.text.trim() &&
-    !window.confirm('Start a new deck? The current one is discarded, saved images included.')
+    !window.confirm(
+      'Start a new deck? The current one is discarded — saved images and your uploaded kit included.',
+    )
   )
     return;
   ed.text = '# ';
@@ -1649,6 +1746,7 @@ async function newDeck() {
   try {
     localStorage.removeItem(STORE_SOURCE);
     localStorage.removeItem(STORE_NAME);
+    localStorage.removeItem(STORE_KIT);
   } catch {
     /* nothing stored, nothing to clear */
   }
@@ -1657,6 +1755,16 @@ async function newDeck() {
   } catch {
     /* same */
   }
+  // the uploaded kit is workspace too: mount, archive and picker entry go
+  try {
+    await idbStore('kit', 'readwrite', (s) => s.clear());
+  } catch {
+    /* same */
+  }
+  vfs.rmSync(USER_KIT_DIR, { recursive: true, force: true });
+  [...kitSelect.options].find((o) => o.value === USER_KIT)?.remove();
+  kitPath = null;
+  kitSelect.value = '';
   vfs.rmSync('/deck', { recursive: true, force: true });
   ed.setCaret(ed.text.length);
   ed.focus();
@@ -1759,9 +1867,24 @@ try {
 } catch {
   kitIndex = {};
 }
+// last, after the examples: the visitor's own brand, as a .deckkit — the
+// same archive `lutrin kit install` takes
+{
+  const opt = document.createElement('option');
+  opt.value = '@upload';
+  opt.textContent = 'Upload a kit (.deckkit)…';
+  kitSelect.appendChild(opt);
+}
 
 kitSelect.addEventListener('change', async () => {
   const wanted = kitSelect.value;
+  if (wanted === '@upload') {
+    // the entry is a VERB: put the picker back on the active kit while the
+    // file dialog is open, so a cancel changes nothing
+    kitSelect.value = kitName();
+    pickKitFile();
+    return;
+  }
   if (await useKit(wanted)) {
     await compile();
     persistSource();

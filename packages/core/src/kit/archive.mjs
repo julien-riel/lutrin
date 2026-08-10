@@ -129,11 +129,18 @@ function readEntry(entry, budget) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
-    const stream = entry.nodeStream('nodebuffer');
+    // internalStream, not nodeStream: the same streaming decompression (the
+    // budget must be enforced DURING inflation — see the module comment), in
+    // the one API JSZip has on every runtime. The browser playground reads
+    // visitor-uploaded .deckkit files through this exact function, and
+    // nodeStream does not exist there.
+    const stream = entry.internalStream('uint8array');
     stream.on('data', (chunk) => {
       size += chunk.length;
       if (size > budget.remaining) {
-        stream.destroy();
+        // pause, not destroy — StreamHelper has no destroy(); pausing stops
+        // the inflation, and the rejected promise abandons the stream
+        stream.pause();
         reject(
           new KitArchiveError(
             `Archive refused: the uncompressed content exceeds ${Math.round(LIMITS.extractedBytes / 1024 / 1024)} MB ` +
@@ -147,8 +154,15 @@ function readEntry(entry, budget) {
     stream.on('error', reject);
     stream.on('end', () => {
       budget.remaining -= size;
-      resolve(Buffer.concat(chunks));
+      const out = new Uint8Array(size);
+      let at = 0;
+      for (const c of chunks) {
+        out.set(c, at);
+        at += c.length;
+      }
+      resolve(out);
     });
+    stream.resume();
   });
 }
 
@@ -156,12 +170,15 @@ function readEntry(entry, budget) {
  * Reads a `.deckkit` archive IN MEMORY and validates everything that can be
  * validated before a single byte touches the disk: entries, manifest, limits.
  *
- * @param {Buffer} buf
- * @returns {Promise<{ manifest: object, files: Map<string, Buffer>,
+ * @param {Uint8Array} buf — a Buffer on Node, plain bytes in a browser; the
+ *                     reader asks nothing of it a Uint8Array cannot answer,
+ *                     which is what lets the playground read an uploaded kit
+ *                     through this exact validation
+ * @returns {Promise<{ manifest: object, files: Map<string, Uint8Array>,
  *                     digest: string, diagnostics: Array }>}
  */
 export async function readKitArchive(buf) {
-  if (!Buffer.isBuffer(buf) || !buf.length) fail('Empty archive.');
+  if (!(buf instanceof Uint8Array) || !buf.length) fail('Empty archive.');
   if (buf.length > LIMITS.archiveBytes)
     fail(
       `Archive refused: ${Math.round(buf.length / 1024 / 1024)} MB > ${Math.round(LIMITS.archiveBytes / 1024 / 1024)} MB.`,
@@ -202,7 +219,9 @@ export async function readKitArchive(buf) {
 
   let json;
   try {
-    json = JSON.parse(raw.toString('utf8'));
+    // TextDecoder rather than Buffer.toString: entries are plain Uint8Arrays
+    // now, and the decode has to hold on the runtime that has no Buffer
+    json = JSON.parse(new TextDecoder().decode(raw));
   } catch (e) {
     fail(`Archive refused: ${KIT_MANIFEST} — invalid JSON (${e?.message ?? e}).`);
   }

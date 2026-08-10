@@ -59,6 +59,7 @@
     "node:dns": "./assets/js/shims/unavailable.mjs",
     "node:child_process": "./assets/js/shims/unavailable.mjs",
     "node:module": "./assets/js/shims/unavailable.mjs",
+    "node:https": "./assets/js/shims/unavailable.mjs",
     "markdown-it": "./vendor/markdown-it/index.mjs",
     "markdown-it-container": "./vendor/markdown-it-container/index.mjs",
     "entities": "./vendor/entities/lib/esm/index.js",
@@ -222,9 +223,11 @@
       determinism rather than fidelity, since a canvas paints with the fonts
       this machine resolves. The kit picker compiles your deck under any of
       the example kits — fonts, logos and the kit's own layouts included,
-      resolved by the same code that resolves a kit on disk — and the kits
-      page shows what each one looks like. And this page is a workbench, not
-      a scratchpad:
+      resolved by the same code that resolves a kit on disk — or under your
+      own: upload a <code>.deckkit</code> and it is validated exactly as
+      <code>lutrin kit install</code> would, kept in this browser, and back
+      without re-uploading on your next visit. And this page is a workbench,
+      not a scratchpad:
       your deck autosaves to this browser — never to a server — and is here
       when you come back; it opens from and saves back to a real
       <code>.md</code> file (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>); the
