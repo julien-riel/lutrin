@@ -33,10 +33,14 @@
      only when a visitor asks for the export: nothing on the HTML path imports
      them, so a reader who only types downloads neither. `mathjax` is the same
      bargain on the other axis — 2.3 MB fetched the first time a deck holds an
-     equation, and never for anyone else. `jszip/umd` and `mathjax/umd` are not
-     packages the compiler names — they are how the two shims ask the map where
-     their UMD bundle lives, so this stays the only list of vendored
-     packages. -->
+     equation, and never for anyone else — and `mermaid/umd` again: 3.5 MB the
+     first time a deck holds a diagram, served out of @lutrin/core's own
+     vendored copy under /core/, which is why its path does not start with
+     /vendor/. `jszip/umd` and `mathjax/umd` are not packages the compiler
+     names — they are how the shims ask the map where their UMD bundle lives,
+     so this stays the only list of vendored packages. `lucide-static/icons/`
+     is a prefix entry for the same reason: playground.js asks the map where
+     the icon files live, and fetches only the ones a deck names. -->
 <script type="importmap">
 {
   "imports": {
@@ -59,7 +63,9 @@
     "jszip/umd": "./vendor/jszip/dist/jszip.min.js",
     "pptxgenjs": "./vendor/pptxgenjs/dist/pptxgen.es.js",
     "mathjax": "./assets/js/shims/mathjax.mjs",
-    "mathjax/umd": "./vendor/mathjax-full/es5/tex-svg-full.js"
+    "mathjax/umd": "./vendor/mathjax-full/es5/tex-svg-full.js",
+    "mermaid/umd": "./core/vendor/mermaid/mermaid.min.js",
+    "lucide-static/icons/": "./vendor/lucide-static/icons/"
   }
 }
 </script>
@@ -116,9 +122,11 @@
         <button type="button" data-example="funnel" aria-pressed="true">A funnel</button>
         <button type="button" data-example="metrics" aria-pressed="false">Three numbers</button>
         <button type="button" data-example="chart" aria-pressed="false">A chart</button>
-        <!-- Last, because it is the one that fetches MathJax: 2.3 MB nobody
-             pays for until they ask for an equation. -->
+        <!-- The two heavy ones last: "An equation" fetches MathJax (2.3 MB),
+             "A diagram" fetches Mermaid (3.5 MB) — nobody pays for either
+             until they ask. -->
         <button type="button" data-example="math" aria-pressed="false">An equation</button>
+        <button type="button" data-example="diagram" aria-pressed="false">A diagram</button>
       </div>
       <!-- The two real outputs, built by the same engine the CLI runs and
            handed over as files. Disabled until the first compile succeeds:
@@ -147,18 +155,23 @@
     <p class="aside">Both buttons hand you the real file, built here in this tab
       and uploaded nowhere: the <code>.html</code> is the standalone page
       <code>lutrin build --html</code> writes, presenter mode and all, and the
-      <code>.pptx</code> is a PowerPoint you can open and retouch. What neither
-      can carry, this page names rather than drops. Mermaid diagrams need a
-      headless browser, and icons and local images are read from disk. LaTeX
-      does work here: the first equation you type fetches MathJax (2.3 MB, once
-      per visit), and it arrives in the <code>.pptx</code> as a native
-      PowerPoint equation you can click into and edit, exactly as from the
-      command line. Charts and diagrams do arrive as
-      pictures: a <code>.pptx</code> wants them rasterized, and your browser is
-      a rasterizer — it draws them onto a canvas here, where the command line
-      uses its own. What that costs is determinism rather than fidelity, since a
-      canvas paints with the fonts this machine resolves. The rest lands from
-      the command line, which is what the command below is for.</p>
+      <code>.pptx</code> is a PowerPoint you can open and retouch. Mermaid
+      diagrams render right here, by the same Mermaid the command line runs —
+      the first one fetches its 3.5 MB, once per visit — and Lucide icons are
+      fetched from this site, never from a third party. LaTeX too: the first
+      equation fetches MathJax (2.3 MB), and it arrives in the
+      <code>.pptx</code> as a native PowerPoint equation you can click into and
+      edit, exactly as from the command line. A local image has no path inside
+      a page, so drop the file onto the editor instead — it is embedded from
+      this tab's memory and uploaded nowhere, like everything else. What the
+      page still cannot carry, it names rather than drops: a remote image URL
+      is fetched through a disk cache only the command line has. Charts and
+      diagrams do arrive as pictures: a <code>.pptx</code> wants them
+      rasterized, and your browser is a rasterizer — it draws them onto a
+      canvas here, where the command line uses its own. What that costs is
+      determinism rather than fidelity, since a canvas paints with the fonts
+      this machine resolves. For all of that, and for decks that live in files,
+      there is the command below.</p>
 
     <div class="cmd" role="group" aria-label="Install command">
       <code>npx lutrin build deck.md -o deck.pptx</code>

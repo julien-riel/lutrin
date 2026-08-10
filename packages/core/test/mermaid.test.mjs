@@ -22,7 +22,13 @@ import { fileURLToPath } from 'node:url';
 
 import { CORE_SUBDIRS } from '../scripts/core-payload.mjs';
 import { findBrowser, resetBrowserCache, browserCacheDir } from '../src/deck/browser.mjs';
-import { mermaidConfig, renderMermaidCached, lastMermaidError } from '../src/deck/assets.mjs';
+import {
+  mermaidConfig,
+  mermaidContentKey,
+  renderMermaidCached,
+  lastMermaidError,
+} from '../src/deck/assets.mjs';
+import os from 'node:os';
 
 const CORE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VENDOR = path.join(CORE, 'vendor', 'mermaid');
@@ -257,6 +263,34 @@ test(
     assert.ok(Date.now() - started < 1000, 'a cache hit must not launch a browser');
   },
 );
+
+/**
+ * `mermaidContentKey` is the contract that lets a rendering be produced AHEAD
+ * of the lookup — `lutrin vendor` on disk, the browser playground into its
+ * virtual filesystem. What is asserted is not the digest's value but the
+ * round trip: a file seeded under exactly that name, in a deck's vendored
+ * `assets/mermaid/`, is what `renderMermaidCached` answers with — no browser
+ * launched, no cache consulted. If the key's shape ever drifts from the
+ * lookup's, every pre-renderer goes blind at once, silently.
+ */
+test('a file pre-seeded under mermaidContentKey is found without any renderer', () => {
+  const src = 'flowchart LR\n  Seeded --> Found';
+  const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-vendored-'));
+  try {
+    for (const format of ['svg', 'png']) {
+      const key = mermaidContentKey(src, format);
+      assert.match(key, /^[0-9a-f]{40}\.(svg|png)$/, 'a sha1-named file, extension included');
+      const dir = path.join(baseDir, 'assets', 'mermaid');
+      fs.mkdirSync(dir, { recursive: true });
+      const seeded = path.join(dir, key);
+      // an svg with real text labels, so svgUsableInHtml lets it through
+      fs.writeFileSync(seeded, format === 'svg' ? '<svg><text>ok</text></svg>' : 'png-bytes');
+      assert.equal(renderMermaidCached(src, { format, baseDir }), seeded);
+    }
+  } finally {
+    fs.rmSync(baseDir, { recursive: true, force: true });
+  }
+});
 
 test('a Node that refuses sha1 costs the diagram, not the build', () => {
   // `crypto.createHash('sha1')` does not return anything to check when OpenSSL
