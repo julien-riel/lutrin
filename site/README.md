@@ -178,7 +178,12 @@ The pane itself is **CodeMirror 6** — vendored ESM resolved by the import map
 like everything else, no build step — which is what turned the textarea into
 an editor: Markdown highlighting and line numbers, the validator's findings as
 squiggles under the very line (hover for the message, gutter marks beside),
-native undo/redo, Tab indentation, Enter continuing a list. It was chosen over
+native undo/redo, Tab indentation, Enter continuing a list — and completion
+for the layout directive, the one place the DSL asks for a name from a closed
+list nobody remembers in full: `<!-- l` offers the key, `<!-- layout: `
+offers the names, each with its catalogue description, read from the same
+live `LAYOUTS` the validator checks, so completion can never suggest what
+validation would then flag. It was chosen over
 Monaco deliberately: real ESM the map can resolve against ~3.5 MB of AMD on
 the critical path, and a fraction of the weight. The rest of this file drives
 it through the four-verb `ed` seam in playground.js, and harness scripts
