@@ -88,6 +88,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { lintGutter, setDiagnostics } from '@codemirror/lint';
 import { markdown, markdownKeymap } from '@codemirror/lang-markdown';
+import { autocompletion, completionKeymap, startCompletion } from '@codemirror/autocomplete';
 import { tags } from '@lezer/highlight';
 
 // Resolved from this file's own URL, so the page works at the site root or
@@ -142,13 +143,19 @@ const editorTheme = EditorView.theme(
     },
     '.cm-activeLineGutter': { backgroundColor: 'transparent', color: '#8fa4c8' },
     '.cm-lint-marker': { width: '0.8em', height: '0.8em' },
-    // the tooltip a squiggle opens on hover
+    // the tooltip a squiggle opens on hover — and the completion popup, which
+    // is a tooltip too
     '.cm-tooltip': {
       backgroundColor: '#1c2536',
       color: '#dce6fb',
       border: '1px solid #33415e',
       fontSize: '0.8rem',
     },
+    '.cm-tooltip-autocomplete ul li[aria-selected]': {
+      backgroundColor: 'rgba(110, 168, 254, 0.25)',
+      color: '#ffffff',
+    },
+    '.cm-completionDetail': { color: '#8fa4c8', fontStyle: 'normal', marginLeft: '0.6em' },
   },
   { dark: true },
 );
@@ -166,6 +173,69 @@ const editorHighlight = HighlightStyle.define([
   { tag: tags.quote, color: '#a9b8d6', fontStyle: 'italic' },
   { tag: tags.labelName, color: '#9ecbff' },
 ]);
+
+/** `deck/layout.mjs`, once the compiler has loaded — the completion source
+ *  reads it at call time, so completions simply do not exist until then.
+ *  `LAYOUTS` is the exact live list the validator checks `<!-- layout: … -->`
+ *  against: completion can never suggest a name validation would then flag. */
+let layoutCatalog = null;
+
+/**
+ * Completes the layout directive, the one place the DSL asks for a name from
+ * a closed list nobody remembers in full. Two positions:
+ *
+ *   `<!-- lay`          → the directive key, then straight into the names
+ *   `<!-- layout: fu`   → the names, each with its own description as the
+ *                         detail text, and ` -->` appended when the line has
+ *                         not written it yet
+ */
+function directiveCompletions(ctx) {
+  if (!layoutCatalog) return null;
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const before = line.text.slice(0, ctx.pos - line.from);
+  const after = line.text.slice(ctx.pos - line.from);
+  const close = /^\s*-->/.test(after) ? '' : ' -->';
+
+  const name = /<!--\s*layout:\s*([a-z0-9-]*)$/i.exec(before);
+  if (name)
+    return {
+      from: ctx.pos - name[1].length,
+      options: layoutCatalog.LAYOUTS.map((n) => ({
+        label: n,
+        type: 'type',
+        detail: layoutCatalog.layoutDef(n)?.description,
+        apply: `${n}${close}`,
+      })),
+      validFor: /^[a-z0-9-]*$/i,
+    };
+
+  const key = /<!--\s*([a-z]*)$/i.exec(before);
+  if (key)
+    return {
+      from: ctx.pos - key[1].length,
+      options: [
+        {
+          label: 'layout:',
+          type: 'keyword',
+          detail: 'impose a layout on this slide',
+          // straight into the names: the key alone is never the answer.
+          // startCompletion is deferred a task — called synchronously from
+          // apply, it is cancelled by the popup's own accept-and-close that
+          // runs right after, and the chain silently never opens.
+          apply: (v, _c, from, to) => {
+            v.dispatch({
+              changes: { from, to, insert: 'layout: ' },
+              selection: { anchor: from + 'layout: '.length },
+            });
+            setTimeout(() => startCompletion(v), 0);
+          },
+        },
+      ],
+      validFor: /^[a-z]*$/i,
+    };
+
+  return null;
+}
 
 /** Locked while the compiler loads, and for good if it cannot load — the
  *  reconfigurable slot readonly lives in. */
@@ -191,9 +261,18 @@ const cmView = new EditorView({
       lintGutter(),
       editorTheme,
       placeholder('# A title starts a slide'),
-      // Tab indents (Escape then Tab leaves, CodeMirror's documented escape
-      // hatch); Enter continues a Markdown list rather than merely breaking it
-      keymap.of([...defaultKeymap, ...historyKeymap, ...markdownKeymap, indentWithTab]),
+      autocompletion({ override: [directiveCompletions] }),
+      // completionKeymap first: its bindings (Enter, arrows, Escape) answer
+      // only while the popup is open, and must answer before the editing
+      // keymaps take Enter for a list continuation. Tab indents (Escape then
+      // Tab leaves, CodeMirror's documented escape hatch).
+      keymap.of([
+        ...completionKeymap,
+        ...defaultKeymap,
+        ...historyKeymap,
+        ...markdownKeymap,
+        indentWithTab,
+      ]),
       lockSlot.of(EditorState.readOnly.of(true)),
       EditorView.contentAttributes.of({ 'aria-label': 'The deck, in Markdown' }),
       EditorView.updateListener.of((u) => {
@@ -437,6 +516,7 @@ try {
   assets = await import('../../core/src/deck/assets.mjs');
   raster = await import('../../core/src/deck/raster-browser.mjs');
   validateDeck = (await import('../../core/src/deck/validate.mjs')).validateDeck;
+  layoutCatalog = layout; // the completion source wakes up here
 
   const got = layout.officialLayouts().length;
   if (got !== manifest.length) {

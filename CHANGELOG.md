@@ -11,6 +11,17 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The layout directive completes itself.** `<!-- layout: … -->` is the one
+  place the DSL asks for a name from a closed list nobody remembers in full —
+  thirty-seven layouts today. The playground's editor now completes it:
+  `<!-- l` offers the directive key and chains straight into the names;
+  `<!-- layout: ` lists them, each with its description from the layout
+  catalogue as the detail text; accepting closes the comment when the line
+  has not written `-->` yet. The list is `LAYOUTS` from `deck/layout.mjs` —
+  the exact live registry view the validator checks the directive against —
+  so completion can never suggest a name validation would then flag, and a
+  layout added to the catalogue appears in both places at once.
+
 - **The playground's pane is CodeMirror 6.** The textarea served the demo; an
   editor deserves an editor. CodeMirror was chosen over Monaco deliberately:
   it ships genuine browser ESM the site's import map resolves with no build
