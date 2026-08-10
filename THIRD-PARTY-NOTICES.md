@@ -20,6 +20,7 @@ its **transitive** dependencies: each one is redistributed with its own
 | [mathjax-full](https://github.com/mathjax/MathJax-src) | 3.2.x | Apache-2.0 | LaTeX rendering |
 | [@resvg/resvg-js](https://github.com/yisibl/resvg-js) | 2.6.x | MPL-2.0 | SVG rasterization (native binary) |
 | [puppeteer-core](https://github.com/puppeteer/puppeteer) | 25.x | Apache-2.0 | drives a system browser for Mermaid; downloads none |
+| [CodeMirror](https://codemirror.net) (`@codemirror/*`, `@lezer/*`, `style-mod`, `w3c-keyname`, `crelt`, `@marijn/find-cluster-break`) | 6.x | MIT | the playground's editor pane; served by the site, each package with its own `LICENSE` |
 
 ## Vendored code
 

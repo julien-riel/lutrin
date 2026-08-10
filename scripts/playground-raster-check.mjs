@@ -173,16 +173,12 @@ async function main() {
       timeout: 30_000,
     });
 
-    // typed the way a visitor types: through the textarea's own input event, so
-    // the page's real compile path runs
-    await page.evaluate((src) => {
-      const ta = document.getElementById('pg-source');
-      Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(
-        ta,
-        src,
-      );
-      ta.dispatchEvent(new Event('input', { bubbles: true }));
-    }, DECK);
+    // Driven through the page's own published hook: the editor is CodeMirror,
+    // whose content is a tree of spans — there is no `.value` to set and no
+    // input event that would carry a whole document. `lutrinEditorHooks` exists
+    // for exactly this script, and `setText` takes the page's real compile
+    // path, provisioning loop included.
+    await page.evaluate((src) => window.lutrinEditorHooks.setText(src), DECK);
 
     // Wait for OUR deck to be the compiled one — its own title on a rendered
     // slide, which is the page's own evidence where a fixed sleep is a guess.

@@ -1,7 +1,7 @@
 {
   "name": "lutrin-monorepo",
   "version": "1.0.0",
-  "description": "Markdown \u2192 PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives. CLI, VS Code extension and agent skill.",
+  "description": "Markdown → PowerPoint / HTML presentation compiler, themable: a generic default theme, organization brand kits distributed as .deckkit archives. CLI, VS Code extension and agent skill.",
   "private": true,
   "type": "module",
   "workspaces": ["packages/*"],
@@ -18,7 +18,13 @@
     "fmt": "biome format --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4"
+    "@biomejs/biome": "^1.9.4",
+    "@codemirror/commands": "^6.10.4",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/state": "^6.7.1",
+    "@codemirror/view": "^6.43.8"
   },
   "keywords": ["markdown", "powerpoint", "pptx", "slides", "presentation", "deck", "html"],
   "repository": {

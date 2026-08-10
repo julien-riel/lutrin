@@ -70,6 +70,26 @@
 
 import * as vfs from './shims/fs.mjs';
 
+// CodeMirror — the editor pane. Statically imported, unlike every heavy
+// optional above: the editor IS the page, there is no later moment to defer
+// it to. Genuine browser ESM resolved by the import map, like markdown-it;
+// ~1.4 MB before gzip, which is the cost of the pane being an editor rather
+// than a textarea, and a third of what Monaco's minified core would weigh.
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  placeholder,
+  drawSelection,
+  highlightActiveLineGutter,
+} from '@codemirror/view';
+import { EditorState, Compartment } from '@codemirror/state';
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
+import { lintGutter, setDiagnostics } from '@codemirror/lint';
+import { markdown, markdownKeymap } from '@codemirror/lang-markdown';
+import { tags } from '@lezer/highlight';
+
 // Resolved from this file's own URL, so the page works at the site root or
 // under a path — and taken as `.pathname`, because that is the form the
 // compiler computes for itself through fileURLToPath(import.meta.url).
@@ -80,7 +100,6 @@ const SLIDE_W = 1280;
 const SLIDE_H = 720;
 
 const $ = (id) => document.getElementById(id);
-const source = $('pg-source');
 const frame = $('pg-frame');
 const notes = $('pg-notes');
 const status = $('pg-status');
@@ -91,6 +110,152 @@ const nameInput = $('pg-name');
 /** The landing page's card (?embed=1) is a taster, not a workspace: nothing
  *  is restored into it and nothing typed there is kept. */
 const IS_EMBED = document.documentElement.classList.contains('is-embed');
+
+// ---------------------------------------------------------------------------
+// the editor pane
+// ---------------------------------------------------------------------------
+
+/** The dark pane, spelled where the code that owns the editor is. Colors are
+ *  the ones the textarea had (see .pg-editor in playground.css for the frame
+ *  around it); the CSS variables come through as variables, so a palette
+ *  change in main.css reaches in here too. */
+const editorTheme = EditorView.theme(
+  {
+    '&': { backgroundColor: 'transparent', color: '#dce6fb', height: '100%' },
+    '.cm-content': {
+      fontFamily: 'var(--f-mono)',
+      fontSize: '0.85rem',
+      lineHeight: '1.65',
+      padding: '1rem 0.6rem',
+      caretColor: '#dce6fb',
+    },
+    '.cm-cursor': { borderLeftColor: '#dce6fb' },
+    '&.cm-focused': { outline: 'none' }, // the host draws the focus ring (playground.css)
+    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
+      backgroundColor: 'rgba(110, 168, 254, 0.25)',
+    },
+    '.cm-gutters': {
+      backgroundColor: 'transparent',
+      color: '#51648a',
+      border: 'none',
+      fontSize: '0.72rem',
+    },
+    '.cm-activeLineGutter': { backgroundColor: 'transparent', color: '#8fa4c8' },
+    '.cm-lint-marker': { width: '0.8em', height: '0.8em' },
+    // the tooltip a squiggle opens on hover
+    '.cm-tooltip': {
+      backgroundColor: '#1c2536',
+      color: '#dce6fb',
+      border: '1px solid #33415e',
+      fontSize: '0.8rem',
+    },
+  },
+  { dark: true },
+);
+
+/** Markdown, lit for a dark pane. Only the tags the DSL actually surfaces —
+ *  headings (slides and sections), fences (chart/math/mermaid), emphasis,
+ *  links, list marks, the frontmatter's meta. */
+const editorHighlight = HighlightStyle.define([
+  { tag: tags.heading, color: '#ffffff', fontWeight: '700' },
+  { tag: tags.strong, fontWeight: '700' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: [tags.link, tags.url], color: '#8ab4ff' },
+  { tag: tags.monospace, color: '#ffd28a' },
+  { tag: [tags.meta, tags.processingInstruction, tags.contentSeparator], color: '#7386a8' },
+  { tag: tags.quote, color: '#a9b8d6', fontStyle: 'italic' },
+  { tag: tags.labelName, color: '#9ecbff' },
+]);
+
+/** Locked while the compiler loads, and for good if it cannot load — the
+ *  reconfigurable slot readonly lives in. */
+const lockSlot = new Compartment();
+
+/** Set during a programmatic dispatch (examples, Open, restore, drop): those
+ *  call sites decide themselves when to compile and persist, and the
+ *  updateListener must not schedule a second, identical pass behind them. */
+let programmaticEdit = false;
+
+const cmView = new EditorView({
+  parent: $('pg-source'),
+  state: EditorState.create({
+    doc: '',
+    extensions: [
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      history(),
+      drawSelection(),
+      EditorView.lineWrapping,
+      markdown(),
+      syntaxHighlighting(editorHighlight),
+      lintGutter(),
+      editorTheme,
+      placeholder('# A title starts a slide'),
+      // Tab indents (Escape then Tab leaves, CodeMirror's documented escape
+      // hatch); Enter continues a Markdown list rather than merely breaking it
+      keymap.of([...defaultKeymap, ...historyKeymap, ...markdownKeymap, indentWithTab]),
+      lockSlot.of(EditorState.readOnly.of(true)),
+      EditorView.contentAttributes.of({ 'aria-label': 'The deck, in Markdown' }),
+      EditorView.updateListener.of((u) => {
+        if (u.docChanged && !programmaticEdit) scheduleCompile();
+        if (u.selectionSet) queueCaretSync();
+      }),
+    ],
+  }),
+});
+
+/** The editor, as the four verbs the rest of this file needs. Everything else
+ *  CodeMirror can do stays CodeMirror's business, behind this seam. */
+const ed = {
+  get text() {
+    return cmView.state.doc.toString();
+  },
+  set text(t) {
+    programmaticEdit = true;
+    try {
+      cmView.dispatch({
+        changes: { from: 0, to: cmView.state.doc.length, insert: t },
+        selection: { anchor: 0 },
+      });
+    } finally {
+      programmaticEdit = false;
+    }
+  },
+  get caret() {
+    return cmView.state.selection.main.head;
+  },
+  get caretLine() {
+    return cmView.state.doc.lineAt(this.caret).number;
+  },
+  setCaret(pos) {
+    const at = Math.max(0, Math.min(pos, cmView.state.doc.length));
+    cmView.dispatch({ selection: { anchor: at }, scrollIntoView: true });
+  },
+  focus() {
+    cmView.focus();
+  },
+  setLocked(locked) {
+    cmView.dispatch({ effects: lockSlot.reconfigure(EditorState.readOnly.of(locked)) });
+  },
+};
+
+/** For the harness scripts (scripts/playground-raster-check.mjs and the smoke
+ *  checks): a page whose editor is a canvas of spans cannot be driven by
+ *  setting `.value` on anything, so the drive surface is published on purpose.
+ *  `setText` behaves like typing — it compiles and persists. */
+window.lutrinEditorHooks = {
+  getText: () => ed.text,
+  setText: (t) => {
+    ed.text = t;
+    clearTimeout(timer);
+    timer = null;
+    const done = compile();
+    persistSource();
+    return done;
+  },
+  setCaret: (pos) => ed.setCaret(pos),
+  caretLine: () => ed.caretLine,
+};
 
 /** The three examples from the landing page: a reader arrives at something
  *  already recognised, and edits rather than invents. */
@@ -185,7 +350,9 @@ const note = (className, text) => {
 
 /** Fatal enough to stop. The page must never offer a compiler that would
  *  quietly produce the wrong thing. */
+let gaveUp = false;
 function giveUp(message, detail) {
+  gaveUp = true;
   say('unavailable', 'bad');
   notes.innerHTML = '';
   note('pg-note pg-note-bad', message);
@@ -195,7 +362,7 @@ function giveUp(message, detail) {
     pre.textContent = detail;
     notes.appendChild(pre);
   }
-  source.disabled = true;
+  ed.setLocked(true);
   for (const b of [dlHtml, dlPptx]) b.disabled = true;
 }
 
@@ -283,7 +450,7 @@ try {
     throw new Error('catalog incomplete');
   }
 } catch (e) {
-  if (!source.disabled)
+  if (!gaveUp)
     giveUp(
       'The compiler could not be loaded in this browser. It needs import maps and ' +
         'top-level await — Safari 16.4, Chrome 89 or Firefox 108 and newer. ' +
@@ -624,9 +791,19 @@ let last = null;
  *  so an export can cash it in first — see `settle()`. */
 let timer = null;
 
+/** The recompile-as-you-type debounce, fed by the editor's updateListener. */
+function scheduleCompile() {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    timer = null;
+    compile();
+    persistSource();
+  }, 250);
+}
+
 async function compile() {
   say('compiling…');
-  const text = source.value;
+  const text = ed.text;
   let result;
   try {
     result = await compileHtml(text, { baseDir: '/deck', fragment: true });
@@ -647,7 +824,7 @@ async function compile() {
   // once more over the filled disk. `provision()` only touches misses, so the
   // second pass writes nothing and the recursion stops there; a keystroke
   // during the async work wins instead, its own compile already scheduled.
-  if ((await provision(result)) > 0 && source.value === text) return compile();
+  if ((await provision(result)) > 0 && ed.text === text) return compile();
 
   last = result;
   setDownloads();
@@ -677,8 +854,33 @@ async function compile() {
     // a validator crash must not cost the preview — the compile already stood
   }
   paintNotes(result, diags);
+  markDiagnostics(diags, text);
   nameInput.placeholder = `${titleStem()}.md`;
   syncPreviewToCaret();
+}
+
+/** The same findings, drawn where an editor draws them: as squiggles under
+ *  the line, with the message on hover and a mark in the gutter. Guarded on
+ *  the text still being the one validated — a keystroke during the async
+ *  compile would otherwise put ranges on a document they were not measured
+ *  against. */
+function markDiagnostics(diags, text) {
+  if (ed.text !== text) return;
+  const doc = cmView.state.doc;
+  cmView.dispatch(
+    setDiagnostics(
+      cmView.state,
+      diags.map((d) => {
+        const line = doc.line(Math.max(1, Math.min(d.line, doc.lines)));
+        return {
+          from: line.from,
+          to: line.to,
+          severity: d.severity === 'error' ? 'error' : d.severity === 'info' ? 'info' : 'warning',
+          message: d.suggestion ? `${d.message} Did you mean "${d.suggestion}"?` : d.message,
+        };
+      }),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -839,7 +1041,7 @@ dlHtml.addEventListener('click', () =>
     // Recompiled WITHOUT `fragment`, which is the whole difference: this is the
     // complete document — the stylesheet, the fit script, the presenter mode —
     // rather than the slide fragments the preview frame stacks.
-    const full = await compileHtml(source.value, { baseDir: '/deck' });
+    const full = await compileHtml(ed.text, { baseDir: '/deck' });
     offer(full.html, `${fileStem()}.html`, 'text/html;charset=utf-8');
     say('.html downloaded', 'ok');
   }),
@@ -865,15 +1067,6 @@ dlPptx.addEventListener('click', () =>
     reportExport(stats);
   }),
 );
-
-source.addEventListener('input', () => {
-  clearTimeout(timer);
-  timer = setTimeout(() => {
-    timer = null;
-    compile();
-    persistSource();
-  }, 250);
-});
 
 // ---------------------------------------------------------------------------
 // dropped images: hand the page the disk a local image needs
@@ -910,17 +1103,25 @@ function droppedName(file, taken) {
   return name;
 }
 
-/** Inserts `text` at the caret, on its own paragraph, and recompiles. */
+/** Inserts `text` at the caret, on its own paragraph. Through the editor's
+ *  own transaction, so the undo stack keeps it like any typed edit. */
 function insertAtCaret(text) {
-  const at = source.selectionStart ?? source.value.length;
-  const before = source.value.slice(0, at);
-  const after = source.value.slice(source.selectionEnd ?? at);
+  const { from, to } = cmView.state.selection.main;
+  const before = cmView.state.doc.sliceString(0, from);
   const glue =
     before === '' || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
-  source.value = `${before}${glue}${text}\n${after}`;
-  const caret = before.length + glue.length + text.length + 1;
-  source.setSelectionRange(caret, caret);
-  source.focus();
+  const insert = `${glue}${text}\n`;
+  programmaticEdit = true; // acceptDrop compiles and persists itself, just after
+  try {
+    cmView.dispatch({
+      changes: { from, to, insert },
+      selection: { anchor: from + insert.length },
+      scrollIntoView: true,
+    });
+  } finally {
+    programmaticEdit = false;
+  }
+  ed.focus();
 }
 
 /** Every dropped image goes into the virtual `/deck/`, which is the baseDir
@@ -958,14 +1159,21 @@ async function acceptDrop(files) {
 const editor = document.querySelector('.pg-editor');
 if (editor) {
   for (const type of ['dragover', 'dragleave', 'drop']) {
-    editor.addEventListener(type, (e) => {
-      // only for files — a text selection dragged within the textarea is the
-      // browser's business, not ours
-      if (![...(e.dataTransfer?.types ?? [])].includes('Files')) return;
-      e.preventDefault();
-      editor.classList.toggle('is-dropping', type === 'dragover');
-      if (type === 'drop') acceptDrop(e.dataTransfer.files);
-    });
+    editor.addEventListener(
+      type,
+      (e) => {
+        // only for files — a text selection dragged within the editor is
+        // CodeMirror's business, not ours
+        if (![...(e.dataTransfer?.types ?? [])].includes('Files')) return;
+        // capture phase + stopPropagation: CodeMirror has drop handling of its
+        // own, and a file that reached it would be pasted as text or a path
+        e.preventDefault();
+        e.stopPropagation();
+        editor.classList.toggle('is-dropping', type === 'dragover');
+        if (type === 'drop') acceptDrop(e.dataTransfer.files);
+      },
+      true,
+    );
   }
 }
 
@@ -974,7 +1182,7 @@ if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(frame
 
 for (const btn of document.querySelectorAll('[data-example]')) {
   btn.addEventListener('click', () => {
-    source.value = EXAMPLES[btn.dataset.example];
+    ed.text = EXAMPLES[btn.dataset.example];
     for (const b of document.querySelectorAll('[data-example]'))
       b.setAttribute('aria-pressed', String(b === btn));
     compile();
@@ -1019,7 +1227,7 @@ async function idbFiles(mode, run) {
 function persistSource() {
   if (IS_EMBED) return;
   try {
-    localStorage.setItem(STORE_SOURCE, source.value);
+    localStorage.setItem(STORE_SOURCE, ed.text);
     if (docName) localStorage.setItem(STORE_NAME, docName);
     else localStorage.removeItem(STORE_NAME);
   } catch {
@@ -1036,7 +1244,7 @@ async function persistImage(name, bytes) {
   }
 }
 
-/** Everything the last visit left: the source into the textarea, the images
+/** Everything the last visit left: the source into the editor, the images
  *  into the virtual /deck/ — BEFORE the first compile, so the restored deck
  *  compiles over its images rather than reporting them missing once. */
 async function restoreWorkspace() {
@@ -1059,7 +1267,7 @@ async function restoreWorkspace() {
   } catch {
     /* no images to restore is a working editor with fewer pictures */
   }
-  source.value = text;
+  ed.text = text;
   for (const b of document.querySelectorAll('[data-example]'))
     b.setAttribute('aria-pressed', 'false');
   return true;
@@ -1123,7 +1331,7 @@ async function openDeck() {
     name = picked.name;
     fileHandle = null;
   }
-  source.value = text;
+  ed.text = text;
   docName = cleanDocName(name);
   nameInput.value = docName ?? '';
   for (const b of document.querySelectorAll('[data-example]'))
@@ -1135,7 +1343,7 @@ async function openDeck() {
 async function saveDeck() {
   // the source as it stands, not as it last compiled: a save must never lose
   // the sentence typed since the debounce
-  const text = source.value;
+  const text = ed.text;
   if (fileHandle) {
     try {
       const w = await fileHandle.createWritable();
@@ -1174,11 +1382,11 @@ async function saveDeck() {
 
 async function newDeck() {
   if (
-    source.value.trim() &&
+    ed.text.trim() &&
     !window.confirm('Start a new deck? The current one is discarded, saved images included.')
   )
     return;
-  source.value = '# ';
+  ed.text = '# ';
   docName = null;
   fileHandle = null;
   nameInput.value = '';
@@ -1194,8 +1402,8 @@ async function newDeck() {
     /* same */
   }
   vfs.rmSync('/deck', { recursive: true, force: true });
-  source.focus();
-  source.setSelectionRange(source.value.length, source.value.length);
+  ed.setCaret(ed.text.length);
+  ed.focus();
   await compile();
 }
 
@@ -1205,17 +1413,9 @@ $('pg-save')?.addEventListener('click', saveDeck);
 
 // --- keys an editor owes its keyboard --------------------------------------
 
-source.addEventListener('keydown', (e) => {
-  // Tab indents rather than leaves — Escape then Tab is the standard way out,
-  // and stays available because only a bare Tab is claimed here.
-  if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    e.preventDefault();
-    // execCommand is deprecated and still the only insertion the undo stack
-    // keeps; setRangeText would make the indent the last undoable thing ever
-    if (!document.execCommand('insertText', false, '  '))
-      source.setRangeText('  ', source.selectionStart, source.selectionEnd, 'end');
-  }
-});
+// Tab, undo, list continuation: the editor's keymap owns them now
+// (indentWithTab, historyKeymap, markdownKeymap — see the extensions block).
+// What stays here is the one chord the PAGE owes, wherever focus is:
 
 addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
@@ -1229,15 +1429,11 @@ addEventListener('keydown', (e) => {
 // ---------------------------------------------------------------------------
 
 /** Puts the caret on `line` (1-based, as every diagnostic counts) and brings
- *  it into view — the textarea scrolls by arithmetic, having no scrollIntoView
- *  of its own. */
+ *  it into view. */
 function jumpToLine(line) {
-  const lines = source.value.split('\n');
-  const at = lines.slice(0, Math.max(0, line - 1)).join('\n').length + (line > 1 ? 1 : 0);
-  source.focus();
-  source.setSelectionRange(at, at);
-  const lineHeight = Number.parseFloat(getComputedStyle(source).lineHeight) || 20;
-  source.scrollTop = Math.max(0, (line - 3) * lineHeight);
+  const doc = cmView.state.doc;
+  ed.setCaret(doc.line(Math.max(1, Math.min(line, doc.lines))).from);
+  ed.focus();
   syncPreviewToCaret();
 }
 
@@ -1247,7 +1443,7 @@ function jumpToLine(line) {
 function sceneIndexAtCaret() {
   const scenes = last?.scenes;
   if (!scenes?.length) return -1;
-  const line = source.value.slice(0, source.selectionStart ?? 0).split('\n').length;
+  const line = ed.caretLine;
   let found = 0;
   scenes.forEach((s, i) => {
     if ((s.sourceLine ?? 1) <= line) found = i;
@@ -1264,16 +1460,18 @@ function syncPreviewToCaret() {
 }
 
 /** Caret moves that are not edits — clicks, arrows — still move the preview.
- *  rAF-throttled: selectionchange fires per caret step. */
+ *  rAF-throttled: the editor reports every selection step, and one frame's
+ *  worth of them moves the preview once. Fed by the updateListener in the
+ *  editor's extensions. */
 let syncQueued = false;
-document.addEventListener('selectionchange', () => {
-  if (document.activeElement !== source || syncQueued) return;
+function queueCaretSync() {
+  if (syncQueued) return;
   syncQueued = true;
   requestAnimationFrame(() => {
     syncQueued = false;
     syncPreviewToCaret();
   });
-});
+}
 
 /** And the other direction: clicking a slide puts the caret on the line that
  *  produced it. Delegated on the stack, which outlives every innerHTML swap. */
@@ -1290,6 +1488,6 @@ view.stack.addEventListener('click', (e) => {
 // boot: the last session if there was one, the first example if not
 // ---------------------------------------------------------------------------
 
-if (!(await restoreWorkspace())) source.value = EXAMPLES.funnel;
-source.disabled = false;
+if (!(await restoreWorkspace())) ed.text = EXAMPLES.funnel;
+ed.setLocked(false);
 await compile();
