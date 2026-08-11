@@ -15,7 +15,7 @@ import { buildScenes } from '../src/deck/layout.mjs';
 import { renderDeckHtml, compileHtml } from '../src/html/render.mjs';
 import { MERMAID_PNG_SCALE, mermaidConfig, renderMermaidCached } from '../src/deck/assets.mjs';
 import { presetFor } from '../src/deck/anim.mjs';
-import { PAGE } from '../src/deck/tokens.mjs';
+import { PAGE, SEMANTIC } from '../src/deck/tokens.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -30,6 +30,21 @@ test('full document: a single </body> (the lutrin preview contract)', async () =
   const { html } = await renderDeckHtml(buildScenes(deck), deck.meta, process.cwd());
   assert.equal(html.indexOf('</body>'), html.lastIndexOf('</body>'), 'duplicated </body> literal');
   assert.match(html, /present-hint/, 'presenter mode expected in the full document');
+});
+
+test('alerts: every semantic kind has its stylesheet rule — key included', async () => {
+  // The .pptx paints SEMANTIC[kind] generically, so a kind whose CSS rule is
+  // missing diverges silently: the page shows bare text where PowerPoint
+  // shows the tinted panel. `key` is the one that was forgotten.
+  const deck = parseDeck(SOURCE);
+  const { html } = await renderDeckHtml(buildScenes(deck), deck.meta, process.cwd());
+  for (const kind of ['info', 'success', 'warning', 'danger', 'key']) {
+    assert.match(
+      html,
+      new RegExp(`\\.alert-${kind}\\{background:#${SEMANTIC[kind].fill};color:#${SEMANTIC[kind].text}\\}`),
+      `.alert-${kind} must carry its fill and ink`,
+    );
+  }
 });
 
 test('accessibility: slides in named groups, never role="img" (weakness no. 9)', async () => {
