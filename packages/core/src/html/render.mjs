@@ -48,9 +48,12 @@ import {
   badgeLayout,
   blockFontSize,
   iconSize,
+  composite,
   panelRadius,
   panelStyle,
   progressLayout,
+  sectionAgendaLayout,
+  sourceLineBox,
 } from '../deck/tokens.mjs';
 import { ALERT_BLOCK_TYPES, parseDeck } from '../deck/parse.mjs';
 // The SVG sanitizer moved to deck/ when the .pptx started shipping vectors
@@ -546,7 +549,15 @@ function sectionHtml(scene, brand, ctx) {
   const bg = scene.image
     ? `${htmlImage(scene.image, { x: 0, y: 0, w: PAGE.width, h: PAGE.height }, ctx, { fullBleed: true })}\n<div class="section-scrim"></div>\n`
     : '';
-  return `${bg}<h2 class="section-title">${esc(scene.title ?? '')}</h2>\n${logoHtml(LOGOS.sectionSvg, CHROME.section.logoH, 'logo-section')}${brand ? `\n${brandHtml(brand, 'brand-section')}` : ''}`;
+  // chapter rail (frontmatter `agenda: true`): the deck's chapters under the
+  // title, the current one in the full section ink, the others dimmed — the
+  // line pitch comes from sectionAgendaLayout, shared with the .pptx
+  const rail = scene.agenda?.length
+    ? `\n<ol class="section-agenda" style="line-height:${sectionAgendaLayout(scene.agenda.length).lineH}px;font-size:${sectionAgendaLayout(scene.agenda.length).size}pt">${scene.agenda
+        .map((it) => `<li${it.current ? ' class="current"' : ''}>${esc(it.title)}</li>`)
+        .join('')}</ol>`
+    : '';
+  return `${bg}<h2 class="section-title">${esc(scene.title ?? '')}</h2>${rail}\n${logoHtml(LOGOS.sectionSvg, CHROME.section.logoH, 'logo-section')}${brand ? `\n${brandHtml(brand, 'brand-section')}` : ''}`;
 }
 
 /** The attribution. `aria-hidden` is NOT set: it is a statement about the
@@ -594,6 +605,10 @@ function contentHtml(scene, num, footerText, ctx, brand) {
     }
     parts.push(frag);
   }
+  // provenance line (<!-- source: … -->): drawn inside the band the layout
+  // reserved (sourceLineBox) — after the elements, so on a hero it rides
+  // above the full-frame image like the page number does
+  if (scene.source) parts.push(`<div class="source-line">${esc(scene.source)}</div>`);
   if (!hero) parts.push(`<div class="footer-text">${esc(footerText)}</div>`);
   parts.push(`<div class="footer-num">${num}</div>`);
   // written AFTER the image like the page number, for the same reason: on a hero
@@ -706,6 +721,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .title-rule{position:absolute;left:${PAGE.margin + CH.title.accentW}px;top:${PAGE.titleHeight + 1}px;width:${PAGE.width - 2 * PAGE.margin - CH.title.accentW}px;height:1px;background:#${A.rule}}
 .footer-text{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.footer.textW}px;height:${CH.footer.h}px;display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 .footer-num{position:absolute;left:${PAGE.width - PAGE.margin - CH.footer.numW}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.footer.numW}px;height:${CH.footer.h}px;display:flex;align-items:center;justify-content:flex-end;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
+.source-line{position:absolute;left:${sourceLineBox().x}px;top:${sourceLineBox().y}px;width:${sourceLineBox().w}px;height:${sourceLineBox().h}px;display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 
 /* Lutrin attribution — right-aligned, at the caption size and the secondary
    ink: present on every deck compiled without a licence, and deliberately quiet
@@ -729,6 +745,8 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 /* section (accent background) */
 .slide.master-section{background:#${S.sectionBg}}${coverBgCss}
 .section-scrim{position:absolute;left:0;top:0;width:100%;height:100%;background:#${S.sectionBg};opacity:${CH.section.scrimAlpha}}
+.section-agenda{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY + CH.section.titleH + SPACE.md}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;padding-left:1.4em;color:#${composite(S.sectionInk, S.sectionBg, 0.55)}}
+.section-agenda li.current{color:#${S.sectionInk};font-weight:700}
 .section-title{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.section.titleH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.sectionTitle}pt;font-weight:700;color:#${S.sectionInk};line-height:1.2;${DTF}}
 
 /* blocks */

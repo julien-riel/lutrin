@@ -772,3 +772,63 @@ test('capabilities() publishes the diagram layouts and their diagnostics', () =>
   assert.ok(caps.diagnostics.includes('SMARTART_NODES'));
   assert.ok(caps.diagnostics.includes('SMARTART_TEXT'));
 });
+
+test(':::key — the fifth tint parses as a callout and as a progress tint, and capabilities publishes it', () => {
+  const src =
+    '# S\n\n:::key\nThe one thing to remember.\n:::\n\n:::progress key\n62 %\nAdoption\n:::\n';
+  const diags = validateDeck(src);
+  assert.ok(
+    !diags.some((d) => d.code === 'UNKNOWN_DIRECTIVE' || d.code === 'UNKNOWN_PROGRESS_KIND'),
+    `key must be a known tint everywhere a tint is named — seen: ${JSON.stringify(diags)}`,
+  );
+  assert.ok(capabilities().directives.includes('key'));
+});
+
+test('<!-- source: … --> reserves its band, joins multiples, and warns on a divider', async () => {
+  const { parseDeck } = await import('../src/deck/parse.mjs');
+  const { buildScenes } = await import('../src/deck/layout.mjs');
+  const { contentArea, sourceLineBox } = await import('../src/deck/tokens.mjs');
+
+  const src =
+    '# Costs\n\n<!-- source: Finance DW, April extract -->\n<!-- source: HR headcount -->\n\nA paragraph.\n\n- salaries\n- licences\n';
+  const scenes = buildScenes(parseDeck(src));
+  assert.equal(scenes[0].source, 'Finance DW, April extract · HR headcount');
+  const para = scenes[0].elements.find((e) => e.block.type === 'para');
+  const band = sourceLineBox();
+  assert.ok(
+    para.region.y + para.region.h <= band.y,
+    'the flow stops above the reserved band — pagination never claims it',
+  );
+  const plain = buildScenes(parseDeck('# Costs\n\nA paragraph.\n\n- salaries\n- licences\n'));
+  assert.equal(plain[0].source, undefined, 'a deck that asked nothing gains no key');
+  assert.equal(
+    plain[0].elements[0].region.h > 0 && contentArea().h > 0,
+    true,
+    'sanity: geometry unchanged without the directive',
+  );
+
+  const onSection = validateDeck('# Chapter\n\n<!-- source: DW -->\n');
+  const d = onSection.find((x) => x.code === 'SOURCE_UNPLACED');
+  assert.ok(d, `SOURCE_UNPLACED expected — seen: ${JSON.stringify(onSection)}`);
+  assert.equal(d.line, 3, 'anchored on the directive line');
+
+  const orphan = validateDeck('# One\n\nText.\n\n---\n\n<!-- source: DW -->\n');
+  assert.ok(
+    orphan.some((x) => x.code === 'ORPHAN_DIRECTIVE' && /source/.test(x.message)),
+    'a source directive no slide follows is an orphan like any other',
+  );
+  assert.ok(capabilities().comments.includes('source'));
+});
+
+test('agenda: nothing to list, or a Marp deck → AGENDA_EMPTY on the frontmatter line', () => {
+  const bare = validateDeck('---\ntitle: T\nagenda: true\n---\n\n---\n\nText without any title.\n');
+  const d = bare.find((x) => x.code === 'AGENDA_EMPTY');
+  assert.ok(d, `AGENDA_EMPTY expected — seen: ${JSON.stringify(bare)}`);
+
+  const marp = validateDeck('---\nmarp: true\nagenda: true\n---\n\n# One\n\nText.\n');
+  assert.ok(marp.some((x) => x.code === 'AGENDA_EMPTY' && /Marp/.test(x.message)));
+
+  const fine = validateDeck('---\ntitle: T\nagenda: true\n---\n\n# One\n\nText.\n\n- a\n');
+  assert.ok(!fine.some((x) => x.code === 'AGENDA_EMPTY'));
+  assert.ok(capabilities().frontmatter.includes('agenda'));
+});

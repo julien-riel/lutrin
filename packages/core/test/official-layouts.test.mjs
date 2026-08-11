@@ -35,16 +35,20 @@ const scenesFor = (layout, body) =>
 const OFFICIALS = [
   'before-after',
   'risk-map',
+  'risk-map-3',
   'funnel',
   'roadmap',
   'priority-matrix',
   'key-message',
   'journey',
+  'kanban',
+  'okr',
   'portfolio',
   'pros-cons',
   'pyramid',
   'raid',
   'status-list',
+  'team',
 ];
 
 const FOUR_SECTIONS = '## One\n\n- a\n\n## Two\n\n- b\n\n## Three\n\n- c\n\n## Four\n\n- d\n';
@@ -116,6 +120,12 @@ test('every official layout compiles a demo deck (named scene, never a crash)', 
     'status-list':
       '## Delivery\n\n:::progress success\n100 %\nForm\n:::\n\n## Compliance\n\n:::status\nScope\n!Budget\n:::\n',
     raid: FOUR_SECTIONS,
+    kanban: '## To do\n\n- spec\n\n## Doing\n\n- build\n\n## Done\n\n- kickoff\n',
+    okr: '## Grow usage\n\n:::progress success\n80 %\nWeekly actives\n:::\n\n## Cut delays\n\n:::progress warning\n40 %\nMedian under 5 days\n:::\n',
+    team: '## Marie\n\nDelivery lead.\n\n## Karim\n\nPlatform.\n\n## Ana\n\nDesign.\n',
+    'risk-map-3': Array.from({ length: 9 }, (_, i) => `## Cell ${i + 1}\n\n- r${i + 1}\n`).join(
+      '\n',
+    ),
   };
   for (const name of OFFICIALS) {
     const scenes = scenesFor(name, BODIES[name]);
@@ -243,6 +253,27 @@ test('anti-drift: the settings of the official catalog are frozen', () => {
   assert.equal(defs['key-message'].base, 'focus');
   assert.deepEqual(defs.portfolio.params, { cols: 3, headed: true });
   assert.deepEqual(defs.portfolio.sections, { min: 2, max: 6 });
+  assert.deepEqual(defs.kanban.params, { cols: 4, headed: true, density: 'compact' });
+  assert.deepEqual(defs.kanban.sections, { min: 2, max: 4 });
+  assert.deepEqual(defs.okr.params, { cols: 2, headed: true, density: 'compact' });
+  assert.deepEqual(defs.team.params, { cols: 4, align: 'center', density: 'compact' });
+  assert.deepEqual(defs.team.sections, { min: 2, max: 8 });
+  assert.deepEqual(defs['risk-map-3'].sections, { min: 9, max: 9 });
+  assert.deepEqual(defs['risk-map-3'].params, {
+    cols: 3,
+    kinds: [
+      'success',
+      'success',
+      'warning',
+      'success',
+      'warning',
+      'danger',
+      'warning',
+      'danger',
+      'danger',
+    ],
+    density: 'dense',
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -285,6 +285,28 @@ export function validateDeck(
     );
   }
 
+  // `agenda:` asks buildScenes to synthesize the agenda slide from the
+  // deck's own titles. A deck with nothing to list — no section slide and no
+  // titled slide — generates nothing, and the author must hear that from
+  // here rather than count their slides twice. Same inertness rule as
+  // `notes:` below for a Marp deck, where no slide is synthesized at all.
+  {
+    const agendaVal = String(deck.meta.agenda ?? '').trim();
+    if (agendaVal && !/^(false|0|no|non|none|off)$/i.test(agendaVal)) {
+      const listable = deck.slides.some((s) => s.title);
+      if (marpDoc || !listable) {
+        push(
+          'warning',
+          'AGENDA_EMPTY',
+          marpDoc
+            ? 'Frontmatter `agenda:` generates no slide in a Marp deck: the agenda is built by the lutrin DSL. Remove the key, or drop `marp: true`.'
+            : 'Frontmatter `agenda:` has nothing to list: no slide in this deck carries a title. Title the slides (or the chapters), or remove the key.',
+          metaLine('agenda'),
+        );
+      }
+    }
+  }
+
   // `notes:` in the frontmatter is read by ONE thing: the cover buildScenes
   // generates from `title:`. With no such cover — no `title:`, or a Marp deck
   // where `title:` is HTML metadata — the line is inert, and saying so here is
@@ -520,6 +542,23 @@ export function validateDeck(
     // aliases included), the effective cap of the alias
     const nMetrics = [...walkBlocks(slide)].filter((b) => b.type === 'metric').length;
     const effLayout = slide.layout ?? inferLayout(slide, 1);
+    // `<!-- source: … -->` on a divider or a cover: those masters have no
+    // content area, so the provenance line has nowhere to land — say so
+    // instead of letting the directive vanish (the same honesty as
+    // ORPHAN_DIRECTIVE). The index passed to inferLayout mirrors
+    // buildScenes': 0 only for the deck's true first slide when no
+    // frontmatter cover precedes it — that is the one place `cover` infers.
+    const effSrc =
+      slide.layout ??
+      inferLayout(slide, deck.slides.indexOf(slide) === 0 && !deck.meta?.title ? 0 : 1);
+    if (slide.source?.length && ['section', 'cover'].includes(layoutDef(effSrc)?.base ?? effSrc)) {
+      push(
+        'warning',
+        'SOURCE_UNPLACED',
+        'The <!-- source: … --> directive has no room on a section or cover slide (no content area): the provenance line will not be drawn. Move it to a content slide.',
+        slide.sourceDirectiveLine ?? slide.line,
+      );
+    }
     if ((layoutDef(effLayout)?.base ?? effLayout) === 'metrics') {
       const maxCards = layoutParams(effLayout).max ?? 4;
       if (nMetrics > maxCards) {
@@ -698,6 +737,18 @@ export function validateDeck(
       // the engine's rule: rendering places, validation speaks.
       for (const d of chartDataDiagnostics(b))
         push(d.severity, d.code, d.message, d.line ?? b.line);
+      // dumbbell: exactly two states per category — a third series is dropped
+      // at render time, one alone draws a lone dot (no gap to read)
+      if (b.type === 'chart' && b.chartType === 'dumbbell' && b.series.length !== 2) {
+        push(
+          'warning',
+          'CHART_DATA_IGNORED',
+          b.series.length > 2
+            ? `Chart "dumbbell": ${b.series.length} series — only the first two ("${b.series[0].name}", "${b.series[1].name}") will be displayed; a dumbbell compares exactly two states.`
+            : 'Chart "dumbbell": a single series draws lone dots with no gap to read — add the second state, or use barh.',
+          b.line,
+        );
+      }
       // pie/doughnut: a single series of positive shares, truncated to the
       // number of categories — the rest of the data is dropped at render time,
       // with no trace other than this diagnostic (same windows as chart.mjs:
@@ -809,6 +860,15 @@ export function validateDeck(
     ) {
       layout = 'risk-map';
       why = 'a risk map (probability / severity)';
+    } else if (
+      heads.length >= 2 &&
+      heads.length <= 4 &&
+      has(/^(to.?do|backlog)\b/) &&
+      has(/^(doing|in progress|wip)\b/) &&
+      official('kanban')
+    ) {
+      layout = 'kanban';
+      why = 'a delivery board (to do / doing / done)';
     } else if (dated >= Math.max(2, heads.length - 1)) {
       layout = 'timeline';
       why = 'dated milestones';
@@ -1016,7 +1076,7 @@ export function capabilities() {
     // the size words of the same alt slot: `![neutral large](lucide:leaf)`
     iconSizes: [...ICON_SIZES],
     codeFences: ['mermaid', 'math', 'latex', 'tex', 'chart'],
-    comments: ['notes', 'layout', 'animate'],
+    comments: ['notes', 'layout', 'animate', 'source'],
     animatePresets: [...ANIM_PRESETS],
     frontmatter: [
       'title',
@@ -1027,6 +1087,10 @@ export function capabilities() {
       // presenter notes of the cover generated from `title:` — the one slide
       // no <!-- notes: --> can reach; inert without a title (COVER_NOTES_ORPHAN)
       'notes',
+      // `agenda: true` synthesizes the agenda slide after the cover from the
+      // deck's chapter titles (its section slides), and gives every chapter
+      // divider the "you are here" rail; a string value names the slide
+      'agenda',
       'animate',
       'kit',
       'assets',
@@ -1134,6 +1198,8 @@ export function capabilities() {
       'QUOTE_EMPTY',
       'LAYERS_SHADE_MISSING',
       'LAYOUT_IMAGE_UNUSED',
+      'SOURCE_UNPLACED',
+      'AGENDA_EMPTY',
       'THEME_NOT_FOUND',
       'THEME_INVALID',
       'THEME_UNKNOWN_KEY',

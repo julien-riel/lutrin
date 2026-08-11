@@ -225,7 +225,7 @@ number of sections does not fit).
 | `timeline` | 2 to 6 | numbered milestones on an arrowed axis — roadmap, phases (section title = date or phase name) |
 | `layers` | 2 to 5 | stacked architecture layers, from the base (dark shade) to the surface; **or** a single bullet list — one item per layer |
 | `swot` | exactly 4 | 2 × 2 matrix in semantic tints, in this order: Strengths, Weaknesses, Opportunities, Threats |
-| `grid` | 2 to 8 | R × C mosaic of panels — project portfolio, offerings, team, 2 × 2 matrices |
+| `grid` | 2 to 9 | R × C mosaic of panels — project portfolio, offerings, team, 2 × 2 or 3 × 3 matrices |
 | `steps` | 2 to 6 | sequential process: step panels joined by arrows — journeys, "how it works" |
 | `focus` | — | ONE message: the first paragraph becomes a large figure / key sentence, full frame, the rest is the context underneath |
 | `cycle` | 3 to 8 | discs on a closed loop joined by arrows — a process that returns to its start (a section's first paragraph becomes the node's second line) |

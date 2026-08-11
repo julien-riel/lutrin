@@ -1,0 +1,9 @@
+{
+  "name": "kanban",
+  "base": "grid",
+  "cols": 4,
+  "sections": { "min": 2, "max": 4 },
+  "headed": true,
+  "density": "compact",
+  "description": "A delivery board: To do, Doing, Done — one headed column per stage, as many columns as sections."
+}

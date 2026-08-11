@@ -71,6 +71,10 @@ export const CONTAINER_SNIPPETS = {
     detail: 'a red callout',
     template: 'danger\n${What is at risk, in a sentence.}\n:::\n',
   },
+  key: {
+    detail: 'the takeaway box, in the brand tint',
+    template: 'key\n${The one thing to remember from this slide.}\n:::\n',
+  },
   metric: {
     detail: 'a metric card — value, label, optional trend',
     template: 'metric\n${42 %}\n${What this number measures}\n${↑ +12 pts vs last year}\n:::\n',

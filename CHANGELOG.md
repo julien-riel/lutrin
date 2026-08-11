@@ -11,6 +11,61 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The generated agenda.** `agenda: true` in the frontmatter synthesizes
+  the agenda slide right after the cover, from the deck itself — which is
+  the point: an agenda typed by hand lies the day a chapter is renamed, one
+  the engine derives on every build cannot. It lists the deck's chapters
+  (its section slides) as a numbered list, falls back to the slide titles
+  in a deck without chapters, and paginates like any content flow. Every
+  section divider additionally receives the chapter rail — the full list
+  under the title, the current chapter in the section ink, the others
+  dimmed toward the surface ("you are here"), from one geometry function
+  both renderers read. `agenda: Sommaire` names the slide. A deck with
+  nothing to list, or a Marp deck, is told so by the new `AGENDA_EMPTY`.
+
+- **`<!-- source: … -->` — the provenance line.** The one line a data-heavy
+  slide owes its reader, and the one an author must not be able to typeset
+  by hand: a small caption at the foot of the content area, in the muted
+  ink. The engine reserves the band before placing anything, so pagination
+  and auto-fit never claim the room. Several directives join into one line
+  (` · `). An orphan is `ORPHAN_DIRECTIVE` like its siblings; on a section
+  or cover slide — no content area — the new `SOURCE_UNPLACED` says the
+  line is not drawn rather than letting the directive vanish. This is the
+  fork `docs/plans/widgets-next.md` designated when it rejected `:::source`
+  as a block.
+
+- **Three chart types for the delivery review.** `bullet` is the multi-KPI
+  board — one row per indicator, its value as a bar and ITS OWN target as a
+  rule on the track (`Availability: 99.1 % / 99.5 %`, the same
+  value-then-commitment order as `:::progress`); each row runs on its own
+  scale because eight KPIs share no unit, so the figures are drawn on every
+  row and are not optional. `dumbbell` draws what moved between two states —
+  a dot per state, the gap as a line, exactly two series on a shared axis
+  (the surplus is dropped and reported). And `gantt` learns milestones:
+  `^Q3` is a diamond at the center of its period, composable with spans on
+  one lane (`Build: Q1 - Q2, ^Q3`) — its own spelling because promoting a
+  single period silently would make the same source draw two different
+  pictures depending on how long the task is.
+
+- **`:::key` — the fifth semantic tint.** The four others judge (good, bad,
+  careful); `key` designates: the takeaway box of a busy slide, labelled
+  "Takeaway", set in the brand's own tint — the pale pair LAYER_SHADES
+  already validates, so a kit repainting its primary repaints the callout
+  for free. One list feeds every place an author names a tint, so
+  `:::progress key` works too, and the completion, the validator and the
+  contrast suite picked the new word up from the lists they already read.
+
+- **Four official layouts, one JSON file each.** `kanban` (a headed column
+  per stage — To do, Doing, Done), `team` (one centered card per person;
+  pairs with a kit layout adding the portraits through `images`), `okr`
+  (one headed panel per objective, key results as `:::progress` bars
+  inside), and `risk-map-3` — the 3 × 3 enterprise risk matrix, nine tinted
+  cells from green to red in the same reading order as `risk-map`. To make
+  the ninth cell representable, the `grid` base now accepts **2 to 9**
+  sections (was 8) — not silent for anyone: a 9-section grid used to get
+  LAYOUT_SECTIONS and lose its ninth cell, and now places it. Validation
+  suggests `kanban` when the headings read To do / Doing (LAYOUT_SUGGESTION).
+
 - **A layout can place a kit image the deck never writes.** Four bases take
   it in a `layouts/*.json`: `split` (`"image": "kit:<alias>"` — the visual
   beside the text, the existing `side` and `ratio` saying where and how

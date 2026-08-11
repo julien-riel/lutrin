@@ -648,3 +648,105 @@ test('heat: an undeclared scale falls back on the largest value AND says so', ()
   assert.notDeepEqual(cellFills(declared), cellFills(inferred));
   assert.equal(cellFills(inferred)[1], LAYER_SHADES[0].fill.toLowerCase());
 });
+
+// ---------------------------------------------------------------------------
+// bullet — the multi-KPI board, each row with its own target
+// ---------------------------------------------------------------------------
+
+test('bullet: value / target per row, per-row scale, figures always drawn', () => {
+  const deck = parseDeck(
+    '# KPI\n\n```chart\ntype: bullet\nAvailability: 99.1 % / 99.5 %\nSpend: 3612 / 3900\nAdoption: 62\n```\n',
+  );
+  const block = deck.slides[0].sections.flatMap((s) => s.blocks)[0];
+  assert.equal(block.chartType, 'bullet');
+  assert.deepEqual(
+    block.series.map((s) => [s.name, s.value, s.target ?? null, s.pct ?? false]),
+    [
+      ['Availability', 99.1, 99.5, true],
+      ['Spend', 3612, 3900, false],
+      ['Adoption', 62, null, false],
+    ],
+  );
+  // raw text kept for the no-rasterizer fallback, the gantt precedent
+  assert.deepEqual(block.series[0].values, ['99.1 % / 99.5 %']);
+
+  const svg = chartSvg(block, 700, 300);
+  const bars = [...svg.matchAll(new RegExp(`<path d="[^"]+" fill="#${COLORS.primary}"/>`, 'gi'))];
+  assert.equal(bars.length, 3, 'one measure bar per KPI row');
+  const ticks = [...svg.matchAll(new RegExp(`stroke="#${COLORS.neutralPrimary}"`, 'gi'))];
+  assert.equal(ticks.length, 2, 'a target rule only on the rows that declare one');
+  assert.match(svg, />99[.,]1\s?%\s\/\s99[.,]5\s?%</u, 'the row figures are drawn, % included');
+  assert.match(svg, />3\s?612\s\/\s3\s?900</u, 'plain figures without the % unit');
+});
+
+test('bullet: a value line that is not "v / t" invalidates the spec', () => {
+  const deck = parseDeck('# KPI\n\n```chart\ntype: bullet\nAvailability: 99.1 vs 99.5\n```\n');
+  const block = deck.slides[0].sections.flatMap((s) => s.blocks)[0];
+  assert.equal(block.type, 'code');
+  assert.equal(block.invalidChart, true);
+});
+
+// ---------------------------------------------------------------------------
+// dumbbell — two states per category, the gap drawn
+// ---------------------------------------------------------------------------
+
+test('dumbbell: two dots per category joined by a connector, on a shared scale', () => {
+  const deck = parseDeck(
+    '# Moves\n\n```chart\ntype: dumbbell\ncategories: Licences, Services, Support\n2024: 42, 31, 27\n2026: 55, 30, 22\n```\n',
+  );
+  const block = deck.slides[0].sections.flatMap((s) => s.blocks)[0];
+  assert.equal(block.chartType, 'dumbbell');
+  const svg = chartSvg(block, 700, 300);
+  const dots = [...svg.matchAll(/<circle[^>]+r="6"/g)];
+  assert.equal(dots.length, 6, 'two dots per category');
+  const a = [...svg.matchAll(new RegExp(`fill="#${CHART_COLORS[0]}"`, 'gi'))];
+  const b = [...svg.matchAll(new RegExp(`fill="#${CHART_COLORS[1]}"`, 'gi'))];
+  assert.ok(a.length >= 3 && b.length >= 3, 'each state keeps its identity hue (dots + legend)');
+  assert.ok(svg.includes('2024') && svg.includes('2026'), 'two identities: the legend is drawn');
+});
+
+test('dumbbell: series count other than two is reported, never silently drawn', async () => {
+  const { validateDeck } = await import('../src/deck/validate.mjs');
+  const three = validateDeck(
+    '# M\n\n```chart\ntype: dumbbell\ncategories: A, B\n2024: 1, 2\n2025: 2, 3\n2026: 3, 4\n```\n',
+  );
+  assert.ok(
+    three.some((d) => d.code === 'CHART_DATA_IGNORED' && /first two/.test(d.message)),
+    `surplus series reported — seen: ${JSON.stringify(three)}`,
+  );
+  const one = validateDeck('# M\n\n```chart\ntype: dumbbell\ncategories: A, B\n2024: 1, 2\n```\n');
+  assert.ok(one.some((d) => d.code === 'CHART_DATA_IGNORED' && /single series/.test(d.message)));
+});
+
+// ---------------------------------------------------------------------------
+// gantt milestones — ^Period, a diamond at the period's center
+// ---------------------------------------------------------------------------
+
+test('gantt: ^Q3 is a milestone diamond, composable with spans on one lane', () => {
+  const deck = parseDeck(
+    '# Plan\n\n```chart\ntype: gantt\ncategories: Q1, Q2, Q3, Q4\nBuild: Q1 - Q2, ^Q3\nGates: ^Q2, ^Q4\n```\n',
+  );
+  const block = deck.slides[0].sections.flatMap((s) => s.blocks)[0];
+  assert.deepEqual(block.series[0].spans, [
+    { from: 0, to: 1, raw: 'Q1 - Q2' },
+    { from: 2, to: 2, milestone: true, raw: '^Q3' },
+  ]);
+  assert.deepEqual(
+    block.series[0].values,
+    ['Q1 - Q2', '^Q3'],
+    'the caret survives in the no-rasterizer fallback',
+  );
+
+  const svg = chartSvg(block, 700, 300);
+  const diamonds = [...svg.matchAll(new RegExp(`fill="#${COLORS.primaryDarker}"`, 'gi'))];
+  assert.equal(diamonds.length, 3, 'one diamond per milestone, none for the span');
+  const bars = [...svg.matchAll(new RegExp(`<path d="[^"]+" fill="#${COLORS.primary}"/>`, 'gi'))];
+  assert.equal(bars.length, 1, 'the span still draws as a bar');
+});
+
+test('gantt: a milestone naming no declared period invalidates the spec', () => {
+  const deck = parseDeck('# Plan\n\n```chart\ntype: gantt\ncategories: Q1, Q2\nBuild: ^Q9\n```\n');
+  const block = deck.slides[0].sections.flatMap((s) => s.blocks)[0];
+  assert.equal(block.type, 'code');
+  assert.equal(block.invalidChart, true);
+});

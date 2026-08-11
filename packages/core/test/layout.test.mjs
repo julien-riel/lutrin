@@ -927,3 +927,58 @@ test('a diagram sets no parameter key when the deck asked for none', () => {
   const v = smartOf('# D\n\n<!-- layout: venn -->\n\n## A\n\n## B\n').block;
   assert.equal('overlap' in v, false);
 });
+
+// ---------------------------------------------------------------------------
+// Generated agenda (frontmatter agenda: true)
+// ---------------------------------------------------------------------------
+
+test('agenda: synthesized after the cover from the chapters, each divider gets the rail', async () => {
+  const { parseDeck } = await import('../src/deck/parse.mjs');
+  const { buildScenes } = await import('../src/deck/layout.mjs');
+  const src =
+    '---\ntitle: Review\nagenda: true\n---\n\n# Delivery\n\n# Slide A\n\nText.\n\n- a\n\n# Finances\n\n# Slide B\n\nText.\n\n- b\n';
+  const scenes = buildScenes(parseDeck(src));
+
+  assert.equal(scenes[0].master, 'cover');
+  assert.equal(scenes[1].layout, 'agenda', 'the agenda lands right after the cover');
+  assert.equal(scenes[1].title, 'Agenda');
+  const list = scenes[1].elements.find((e) => e.block.type === 'bullets');
+  assert.deepEqual(
+    list.block.items.map((i) => i.runs[0].text),
+    ['Delivery', 'Finances'],
+    'the chapters, in deck order',
+  );
+  const dividers = scenes.filter((s) => s.master === 'section');
+  assert.deepEqual(
+    dividers[0].agenda,
+    [
+      { title: 'Delivery', current: true },
+      { title: 'Finances', current: false },
+    ],
+    'the first divider marks itself current',
+  );
+  assert.equal(dividers[1].agenda[1].current, true);
+
+  // a string value names the slide; no chapters → the slide titles instead
+  const named = buildScenes(
+    parseDeck(
+      '---\ntitle: T\nagenda: Sommaire\n---\n\n# One\n\nText.\n\n- a\n\n# Two\n\nText.\n\n- b\n',
+    ),
+  );
+  assert.equal(named[1].title, 'Sommaire');
+  const items = named[1].elements.find((e) => e.block.type === 'bullets').block.items;
+  assert.deepEqual(
+    items.map((i) => i.runs[0].text),
+    ['One', 'Two'],
+    'no chapter: the slide titles are listed',
+  );
+  assert.ok(
+    named.filter((s) => s.master === 'section').length === 0,
+    'sanity: this deck has no divider to decorate',
+  );
+
+  // a deck that asked nothing gains nothing
+  const plain = buildScenes(parseDeck('---\ntitle: T\n---\n\n# One\n\nText.\n\n- a\n'));
+  assert.ok(!plain.some((s) => s.layout === 'agenda'));
+  assert.ok(plain.every((s) => s.agenda === undefined));
+});

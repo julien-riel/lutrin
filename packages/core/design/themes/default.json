@@ -167,6 +167,13 @@
       "solid": "D3310A",
       "solidText": "FFFFFF",
       "label": "Important"
+    },
+    "key": {
+      "fill": "EFF6FF",
+      "text": "1E3A8A",
+      "solid": "1D4ED8",
+      "solidText": "FFFFFF",
+      "label": "Takeaway"
     }
   },
   "surface": {
