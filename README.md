@@ -67,7 +67,8 @@ runs the real compiler in your browser — type on the left, download the
   [Marp](https://marp.app) deck as it is; anything without a Lutrin
   equivalent is reported, never silently lost. [Details →](docs/marp.md)
 - 🤖 **Built for agents.** Diagnostics as positioned JSON, an
-  [Agent Plugin](plugin/) with an MCP server and a `deck` skill — a
+  [Agent Plugin](plugin/) with an MCP server, a `deck` skill and a
+  `kit-from-site` skill (a brand kit derived from a website's URL) — a
   write → validate → fix → build loop your agent can actually close.
 
 ## Show me the file
@@ -140,7 +141,7 @@ behind it — depend on the latter to call the compiler from your own code.
                     │
       ┌─────────────┼──────────────────────────────┐
       ▼             ▼                              ▼
-  lutrin CLI    VS Code            agent skill (.claude/skills/deck)
+  lutrin CLI    VS Code            agent skills (.claude/skills/)
   build/preview extension          write → validate → fix → build,
   validate/…    preview, export    with a visual check
 ```
@@ -152,7 +153,8 @@ behind it — depend on the latter to call the compiler from your own code.
   quick-fixes, one-click `.pptx` export.
 - **Agent Plugin** — conforms to the
   [Agent Plugins Specification v1.0.0](https://agent-plugins.org): the `deck`
-  skill plus an MCP server ([`@lutrin/mcp`](packages/mcp/)) exposing
+  and `kit-from-site` skills plus an MCP server
+  ([`@lutrin/mcp`](packages/mcp/)) exposing
   `validate_deck`, `build_deck` and `suggest_layout` to any conformant agent
   client. [Details →](plugin/README.md)
 
@@ -235,7 +237,7 @@ packages/core/                 the compiler + CLI (bin: lutrin)
 packages/vscode-extension/     the VS Code extension (hosts the core's worker)
 packages/mcp/                  @lutrin/mcp — the MCP server
 plugin/                        the portable Agent Plugin (agent-plugins.org)
-.claude/skills/deck/           the agent skill
+.claude/skills/                the agent skills (deck, kit-from-site)
 examples/                      demo deck, example kits, example theme
 site/                          the landing page + in-browser playground
 docs/                          the DSL, CLI, kits, Marp compatibility…

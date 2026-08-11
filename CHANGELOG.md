@@ -11,6 +11,17 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **The `kit-from-site` skill.** A second agent skill, beside `deck`: given a
+  website's URL, it walks an agent through deriving the organization's brand
+  kit — harvest the design system (CSS custom properties, action color, type
+  families, logo, corner radii), distill it into a `theme.json` (one primary,
+  an explicit six-color chart palette, the right logo variant per surface),
+  validate against the engine's WCAG thresholds on a smoke deck, and package
+  with `lutrin kit create`. Authored once in
+  `packages/core/skills/kit-from-site/`, synced to `.claude/skills/` and
+  `plugin/skills/` by `scripts/sync-skill.mjs` — now multi-skill, with the
+  same byte-identity guard.
+
 - **The generated agenda.** `agenda: true` in the frontmatter synthesizes
   the agenda slide right after the cover, from the deck itself — which is
   the point: an agenda typed by hand lies the day a chapter is renamed, one

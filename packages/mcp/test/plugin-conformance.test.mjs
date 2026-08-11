@@ -196,12 +196,14 @@ test('mcp.json — the lutrin server launches via npx, no cwd', () => {
 // filesystem layout (§6.1 fixed discovery locations)
 // ---------------------------------------------------------------------------
 
-test('the skill lives at the spec discovery path skills/deck/SKILL.md (§6.1)', () => {
-  const skill = path.join(PLUGIN_DIR, 'skills', 'deck', 'SKILL.md');
-  assert.ok(
-    fs.existsSync(skill),
-    'plugin/skills/deck/SKILL.md missing — the client discovers it there',
-  );
+test('every skill lives at the spec discovery path skills/<name>/SKILL.md (§6.1)', () => {
+  for (const name of ['deck', 'kit-from-site']) {
+    const skill = path.join(PLUGIN_DIR, 'skills', name, 'SKILL.md');
+    assert.ok(
+      fs.existsSync(skill),
+      `plugin/skills/${name}/SKILL.md missing — the client discovers it there`,
+    );
+  }
 });
 
 test('the manifests sit at the plugin root (§4, §6.1)', () => {

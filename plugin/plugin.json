@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "lutrin",
   "version": "1.2.0",
-  "description": "Themable Markdown → PowerPoint / HTML presentation compiler, as a portable Agent Plugin: the `deck` skill plus an MCP server exposing validate/build as tools.",
+  "description": "Themable Markdown → PowerPoint / HTML presentation compiler, as a portable Agent Plugin: the `deck` and `kit-from-site` skills plus an MCP server exposing validate/build as tools.",
   "author": "Julien Riel",
   "homepage": "https://info.lutrin.app/",
   "repository": "https://github.com/julien-riel/lutrin",
