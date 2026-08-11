@@ -211,39 +211,6 @@
 
     <div class="pg-notes" id="pg-notes" aria-live="polite"></div>
 
-    <p class="aside">Both buttons hand you the real file, built here in this tab
-      and uploaded nowhere: the <code>.html</code> is the standalone page
-      <code>lutrin build --html</code> writes, presenter mode and all, and the
-      <code>.pptx</code> is a PowerPoint you can open and retouch. Mermaid
-      diagrams render right here, by the same Mermaid the command line runs —
-      the first one fetches its 3.5 MB, once per visit — and Lucide icons are
-      fetched from this site, never from a third party. LaTeX too: the first
-      equation fetches MathJax (2.3 MB), and it arrives in the
-      <code>.pptx</code> as a native PowerPoint equation you can click into and
-      edit, exactly as from the command line. A local image has no path inside
-      a page, so drop the file onto the editor instead — it is embedded from
-      this tab's memory and uploaded nowhere, like everything else. What the
-      page still cannot carry, it names rather than drops: a remote image URL
-      is fetched through a disk cache only the command line has. Charts and
-      diagrams do arrive as pictures: a <code>.pptx</code> wants them
-      rasterized, and your browser is a rasterizer — it draws them onto a
-      canvas here, where the command line uses its own. What that costs is
-      determinism rather than fidelity, since a canvas paints with the fonts
-      this machine resolves. The kit picker compiles your deck under any of
-      the example kits — fonts, logos and the kit's own layouts included,
-      resolved by the same code that resolves a kit on disk — or under your
-      own: upload a <code>.deckkit</code> and it is validated exactly as
-      <code>lutrin kit install</code> would, kept in this browser, and back
-      without re-uploading on your next visit. And this page is a workbench,
-      not a scratchpad:
-      your deck autosaves to this browser — never to a server — and is here
-      when you come back; it opens from and saves back to a real
-      <code>.md</code> file (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>); the
-      findings under the editor are the compiler's own validator, and clicking
-      one puts the cursor on the line; the preview follows the cursor, and
-      clicking a slide jumps to the line that produced it. For everything else,
-      there is the command below.</p>
-
     <div class="cmd" role="group" aria-label="Install command">
       <code>npx lutrin build deck.md -o deck.pptx</code>
       <button class="copy" data-copy="npx lutrin build deck.md -o deck.pptx" aria-live="polite">copy</button>
