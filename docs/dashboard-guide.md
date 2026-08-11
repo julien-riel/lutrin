@@ -584,8 +584,12 @@ There is no way to write them in a deck today.
 **The two new components are rigid on purpose.** A progress bar is 28 px tall
 (46 with a caption), its bar 20 px, its label column 34 % of the region; a
 badge is 26 px tall with 10 px of side padding. None of it is a parameter. A
-bar shows one value: no target marker, no threshold, no stacked segments, and
-no colour outside the four tints.
+bar shows one value and, since `62 % / 80 %` shipped, the target it is judged
+against — but still no threshold bands, no stacked segments, and no colour
+outside the five tints. For a whole board of indicators each judged against
+its own commitment, `type: bullet` is the chart that draws it — one row per
+KPI, value and target, mixed units on per-row scales
+([charts](dsl.md#charts)).
 
 **They also ignore the text scale**, as noted above — a bar's label and a
 badge's text stay at the theme's own sizes on a `dense` panel.

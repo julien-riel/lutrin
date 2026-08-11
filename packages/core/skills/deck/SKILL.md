@@ -180,8 +180,17 @@ author: Author name
 date: July 2026
 footer: Footer text            # default: title
 kit: my-kit                    # installed kit, JSON file, directory or none (see "Themes")
+agenda: true                   # generated agenda slide after the cover (see below)
 ---
 ```
+
+`agenda: true` synthesizes the **agenda slide** right after the cover, from
+the deck itself: it lists the chapters (the section slides) as a numbered
+list — or the slide titles when there are no chapters — and every section
+divider additionally gets the chapter rail, current chapter set apart ("you
+are here"). Derived on every build, so it cannot lie the way a hand-typed
+agenda does. Any other value names the slide (`agenda: Sommaire`); a deck
+with nothing to list gets `AGENDA_EMPTY`.
 
 ### Splitting
 
@@ -251,7 +260,7 @@ the HTML path.
 
 ### Official layouts (shipped catalog, pure data)
 
-Twelve named layouts, built on the bases above with parameters
+Sixteen named layouts, built on the bases above with parameters
 (`packages/core/design/layouts/*.json`), always available — ask for them with
 `<!-- layout: … -->` just like the built-in layouts. They document the bases
 by example:
@@ -270,10 +279,14 @@ by example:
 | `portfolio` | 3-column grid with headers | projects / services as a mosaic |
 | `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | 1-column grid, dense text | a status board: progress bars and badges, stacked |
+| `kanban` | headed grid | a delivery board — To do, Doing, Done, one column per stage |
+| `team` | centered grid | one card per person; a kit layout on the same base adds the portraits (`images`) |
+| `risk-map-3` | tinted 3 × 3 grid | the enterprise risk matrix — nine cells, green to red, same reading order as `risk-map` |
+| `okr` | headed grid | objectives and key results — one panel per objective, `:::progress` bars inside |
 
 Validation suggests them when the content betrays the intent ("Pros / Cons"
-headings → `pros-cons`, "Probability / Severity" → `risk-map`). List and
-definitions: `capabilities().officialLayouts`.
+headings → `pros-cons`, "Probability / Severity" → `risk-map`, "To do /
+Doing" → `kanban`). List and definitions: `capabilities().officialLayouts`.
 
 ### Kits and themes (styles without recompiling)
 
@@ -363,10 +376,17 @@ parameters (types, domains, defaults) in `capabilities().layoutParams` —
 consult them rather than inventing. Overview: `comparison.panels/pad`,
 `pillars.panels/accent`, `timeline.dot/arrow/numbered/orientation`,
 `layers.ratios/shades/shape` (stack, funnel, pyramid), `swot.kinds`,
-`split.ratio/side`, `metrics.max/cardHeight`,
-`grid.cols/panels/kinds/spans/headed` (`spans` = the columns each cell takes,
-cycling — six panels over a full-width band is `[1,1,1,1,1,1,3]` at `cols: 3`),
-`steps.connector/panels`, `focus.align/accent/scale`. Four parameters govern
+`split.ratio/side/image`, `hero.image`, `section.image`,
+`metrics.max/cardHeight`,
+`grid.cols/panels/kinds/spans/headed/images` (`spans` = the columns each cell
+takes, cycling — six panels over a full-width band is `[1,1,1,1,1,1,3]` at
+`cols: 3`), `steps.connector/panels`, `focus.align/accent/scale`. The `image`
+/ `images` parameters place a **kit image the deck never writes** — beside
+the text on `split`, full-page background on `hero`, branded divider under a
+scrim on `section`, a band at the head of each cell on `grid` (cycling like
+`panels`, the team page). Only `kit:<alias>` references, never a path or a
+URL: the kit owns its images. A slide (or a cell) that brings its own visual
+keeps it — `LAYOUT_IMAGE_UNUSED` says so. Four parameters govern
 how the text and the surfaces look, and they are the **only** sanctioned way
 to ask for any of it:
 
@@ -405,7 +425,12 @@ layouts, shipped in a kit).
 
 ```markdown
 :::warning
-Callout text (also: info, success, danger).
+Callout text (also: info, success, danger — and key).
+:::
+
+:::key
+The takeaway of a busy slide — the four other tints judge, `key` designates,
+in the brand's own tint. Also a :::progress tint.
 :::
 
 :::metric
@@ -452,7 +477,7 @@ figure out of range is clamped), optionally followed by the target it is judged
 against (`62 % / 80 %`, drawn as a rule on the track), then the label, then an
 optional caption; the
 word after the directive is the tint (`info` — the default — `success`,
-`warning` or `danger`). A first line that is no share at all is not guessed
+`warning`, `danger` or `key`). A first line that is no share at all is not guessed
 at: the card degrades to the paragraph written and `INVALID_PROGRESS` says so.
 `:::status` is a **row** of badges, one per comma: nothing = success, `!` =
 caution, `!!` = critical, `?` = information. The same badge exists inline —
@@ -548,7 +573,8 @@ Actual: 110, 155, 175, 190
 
 - `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
   `share-bar`, `share-barh` (each category normalised to 100 %), `line`,
-  `area`, `pie`, `doughnut`, `radar`, `waterfall`, `gantt`, `rating`, `heat`. Each
+  `area`, `pie`, `doughnut`, `radar`, `waterfall`, `gantt`, `rating`, `heat`,
+  `bullet`, `dumbbell`. Each
   `Name: v1, v2, …` line is a series (decimals with a **point**).
   `pie`/`doughnut`: a single series.
 - `target:` (or `cible:`) — the line a series is judged against (an SLA, a
@@ -566,8 +592,18 @@ Actual: 110, 155, 175, 190
   normalises on the largest value present, so one outlier repaints the grid —
   the figure labels the bound "(largest value)" when that happens.
 - `gantt` — lanes spanning periods: `Discovery: Q1 - Q2`, both ends included,
-  a comma for several bars on one lane, `now:` for the "we are here" rule. The
-  only way to draw a DURATION in this DSL.
+  a comma for several bars on one lane, `now:` for the "we are here" rule,
+  `^Q3` for a **milestone** (a diamond at the period's center, composable
+  with spans: `Build: Q1 - Q2, ^Q3`). The only way to draw a DURATION in
+  this DSL.
+- `bullet` — the multi-KPI board: one row per indicator, its value and ITS
+  OWN target (`Availability: 99.1 % / 99.5 %`, value first like
+  `:::progress`). Each row runs on its own scale — mixed units stay honest —
+  so the figures are drawn on every row. No categories; `target:` means
+  nothing here.
+- `dumbbell` — what moved between two states: exactly two series, one row per
+  category, a dot per state and the gap drawn as a line. The surplus series
+  is dropped and reported.
 - `CHART_COLORS` palette (tokens.mjs): tints of the active theme, adjusted
   and **validated** (color blindness, contrast); 6 series maximum — beyond
   that, group into "Other". Never pick the colors by hand.
@@ -629,7 +665,14 @@ slides are never animated; the title and the chrome stay visible throughout.
 > — Attribution
 
 <!-- notes: presenter notes, invisible on screen -->
+<!-- source: Finance DW, April extract — the slide's provenance line -->
 ```
+
+`<!-- source: … -->` draws the provenance as a small caption at the foot of
+the content area — the engine reserves the band, so content never collides
+with it. Several directives on one slide join into one line. On a section or
+cover slide there is no content area: `SOURCE_UNPLACED` says the line is not
+drawn there.
 
 ## What the engine guarantees (do not work around it)
 

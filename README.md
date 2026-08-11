@@ -78,7 +78,9 @@ own code.
 
 The DSL — inferred layouts, `:::metric` / `:::warning` directives, status
 boards (`:::progress`, `:::status`), ` ```chart ` charts, Mermaid, LaTeX,
-Lucide icons, animations, notes — is documented in [docs/dsl.md](docs/dsl.md).
+Lucide icons, animations, notes, the generated agenda (`agenda: true`) and
+per-slide provenance lines (`<!-- source: … -->`) — is documented in
+[docs/dsl.md](docs/dsl.md).
 For a status board or a dense one-pager — progress bars, badges, aligned
 figure columns, the text scale and what the engine fits by itself — start with
 the task-by-task guide in
