@@ -6,7 +6,7 @@
 
 ![CI](https://github.com/julien-riel/lutrin/actions/workflows/ci.yml/badge.svg)
 [![npm](https://img.shields.io/npm/v/lutrin?color=cb3837&label=npm)](https://www.npmjs.com/package/lutrin)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/lutrin.lutrin-vscode?label=VS%20Code&color=007acc)](https://marketplace.visualstudio.com/items?itemName=lutrin.lutrin-vscode)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-007acc)](https://marketplace.visualstudio.com/items?itemName=lutrin.lutrin-vscode)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [🌐 Website](https://info.lutrin.app/) ·
