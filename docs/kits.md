@@ -26,6 +26,13 @@ the whole contract. A palette that fails the WCAG thresholds is **reported,
 never silently adjusted**. Details:
 [docs/kit-editor.md](kit-editor.md).
 
+**An agent can derive a kit from a website.** The `kit-from-site` skill
+(`.claude/skills/kit-from-site/`, also shipped in the [Agent
+Plugin](../plugin/README.md)) walks an agent through it: harvest the site's
+design system (CSS tokens, action color, type, logo), distill it into a
+`theme.json`, validate it against the engine's WCAG thresholds and package the
+result with `lutrin kit create`.
+
 **`lutrin kit edit` opens a kit in a local web editor** — tokens with live
 WCAG contrast checks, embedded fonts, layouts, images, `.deckkit` export —
 with a preview compiled by the real engine, on 127.0.0.1 only. `--create`

@@ -43,6 +43,7 @@ const DOCS = [
   'docs/dsl.md',
   'packages/core/README.md',
   '.claude/skills/deck/SKILL.md',
+  '.claude/skills/kit-from-site/SKILL.md',
 ];
 
 // ---------------------------------------------------------------------------

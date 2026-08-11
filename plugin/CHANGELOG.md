@@ -9,6 +9,10 @@ server it pins.
 
 ### Added
 
+- The `kit-from-site` skill: derive an organization's brand kit from its
+  website's URL — harvest the design system, distill it into `theme.json`,
+  validate against the WCAG thresholds, package with `lutrin kit create`.
+  Synced from the canonical copy in `packages/core`, like `deck`.
 - Initial Agent Plugin (agent-plugins.org v1.0.0): `plugin.json` manifest,
   `mcp.json` launching the `lutrin` MCP server via `npx @lutrin/mcp`, and the
   `deck` skill synced from the canonical copy in `packages/core`.

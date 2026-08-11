@@ -2,7 +2,7 @@
 
 Lutrin packaged as a portable **Agent Plugin**
 ([agent-plugins.org](https://agent-plugins.org) v1.0.0), so any conformant
-agent client — not only Claude Code — can install it, run the `deck` skill, and
+agent client — not only Claude Code — can install it, run its skills, and
 drive the compiler through standard MCP tools.
 
 Lutrin is a themable presentation compiler: enriched Markdown (a DSL) →
@@ -17,6 +17,7 @@ both:
 | Component | Path | What it does |
 |---|---|---|
 | Skill `deck` | `skills/deck/SKILL.md` | Teaches the agent the DSL and the `write → validate → build` loop. |
+| Skill `kit-from-site` | `skills/kit-from-site/SKILL.md` | Derives a brand kit from a website URL: harvest the design system, distill it into `theme.json`, validate, package. |
 | MCP server `lutrin` | `mcp.json` | Exposes the compiler as tools: `validate_deck`, `build_deck`, `suggest_layout`. |
 
 ## Requirements — read before the first run
