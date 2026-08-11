@@ -224,8 +224,9 @@ defensible, and what keeps the project alive.
 
 ## Contributing
 
-`npm test` runs every workspace on the zero-dependency `node:test` harness;
-`npm run lint` (biome) is blocking in CI. What a contribution needs — and
+`npm test` runs every workspace on the zero-dependency `node:test` harness
+(`npm run test:core` for the engine alone); `npm run lint` (biome) is
+blocking in CI. What a contribution needs — and
 what will be refused — is in [CONTRIBUTING.md](CONTRIBUTING.md). Repository
 map:
 
