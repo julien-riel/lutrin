@@ -1,0 +1,9 @@
+{
+  "name": "faces",
+  "base": "grid",
+  "cols": 3,
+  "images": ["kit:face-noor", "kit:face-marco", "kit:face-iris"],
+  "density": "compact",
+  "sections": { "min": 2, "max": 6 },
+  "description": "One card per person: portrait, name as the heading, role below."
+}

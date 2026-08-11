@@ -1,0 +1,8 @@
+{
+  "name": "studio-amber",
+  "version": "1.0.0",
+  "description": "A design studio: burnt amber, its own imagery, and layouts that place it.",
+  "author": "Lutrin",
+  "homepage": "https://info.lutrin.app/gallery.html",
+  "theme": "./theme.json"
+}

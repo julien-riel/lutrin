@@ -1,0 +1,6 @@
+{
+  "name": "opening",
+  "base": "hero",
+  "image": "kit:skyline",
+  "description": "The skyline full frame under the title — a branded opening slide."
+}

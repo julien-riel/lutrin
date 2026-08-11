@@ -1,0 +1,53 @@
+{
+  "name": "Studio Amber",
+  "colors": {
+    "primary": "92400E",
+    "primaryLighter": "F0C48A",
+    "primaryDarker": "5F2A06",
+    "brand": "92400E",
+    "highlightLight": "FBF4EA",
+    "highlightStrong": "F3E2C8",
+    "underground1": "FAF6EF"
+  },
+  "fonts": {
+    "body": "Verdana",
+    "display": "Trebuchet MS"
+  },
+  "rounded": {
+    "sm": 6,
+    "md": 10,
+    "lg": 16
+  },
+  "surface": {
+    "pageBg": "FFFDF9",
+    "coverBg": "2E1B0E",
+    "coverInk": "FFFFFF",
+    "coverMutedInk": "E3C9A6",
+    "sectionBg": "2E1B0E",
+    "sectionInk": "FFFFFF"
+  },
+  "accent": {
+    "bar": "92400E",
+    "coverBar": "D97706",
+    "rule": "E7DCCB"
+  },
+  "logos": {
+    "coverSvg": "./logo-cover.svg",
+    "sectionSvg": "./logo-section.svg"
+  },
+  "images": {
+    "skyline": "./images/skyline.svg",
+    "weave": "./images/weave.svg",
+    "face-noor": "./images/face-noor.svg",
+    "face-marco": "./images/face-marco.svg",
+    "face-iris": "./images/face-iris.svg"
+  },
+  "chartColors": [
+    "8A5A00",
+    "0F766E",
+    "B45309",
+    "1B5E3A",
+    "1D4ED8",
+    "3F6212"
+  ]
+}

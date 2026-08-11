@@ -1,11 +1,11 @@
 # The gallery kits
 
-The eight kits behind [info.lutrin.app/gallery.html](https://info.lutrin.app/gallery.html),
+The nine kits behind [info.lutrin.app/gallery.html](https://info.lutrin.app/gallery.html),
 and `specimen.deck.md` — the one deck that is compiled into every one of them.
 
 ```
 examples/kits/
-├── specimen.deck.md      the same words in all eight, and the reason the gallery works
+├── specimen.deck.md      the same words in all nine, and the reason the gallery works
 ├── civic-forest/         a public body
 ├── ledger-oxblood/       a firm that bills by the hour
 ├── clinic-teal/          a care provider
@@ -13,7 +13,8 @@ examples/kits/
 ├── market-coral/         a consumer brand
 ├── signal-violet/        a software company
 ├── press-noir/           a newsroom
-└── campus-indigo/        a university
+├── campus-indigo/        a university
+└── studio-amber/         a design studio — the one kit that ships imagery
 ```
 
 Each is a kit directory in the ordinary sense — `kit.json` and `theme.json`,
@@ -30,8 +31,8 @@ this that is safe to publish.
 
 **The content is held constant.** The comparison is the whole point of the
 gallery, and it only means something if the words do not move. One specimen
-deck, eight kits: every difference on the page comes from the kit. A kit
-therefore must not carry a layout the specimen uses, or the other seven would
+deck, nine kits: every difference on the page comes from the kit. A kit
+therefore must not carry a layout the specimen uses, or the other eight would
 have to carry it too.
 
 **No kit ships font files, so every `fonts.body` names a family that is
@@ -59,5 +60,10 @@ and a card with no kit is a 404 in an install command.
 A kit can also carry **layouts**, **fonts** and **logos** — see
 [`examples/kit-slate/`](../kit-slate/) for one that carries layouts, and the
 [kit editor](https://info.lutrin.app/kit-editor.html) for the workbench that builds
-one. These eight vary the theme alone, because that is the axis a visitor can
-compare eight of at a glance.
+one. Most of these vary the theme alone, because that is the axis a visitor can
+compare at a glance. The one exception is deliberate: `studio-amber` declares
+**images** in its `theme.json` and ships **layouts** that place them (`split`,
+`hero` and `section` bases with the `image` parameter, a `grid` with `images`)
+— it is the kit behind the playground's "Slides with images" example, so the
+image layouts have somewhere honest to be demonstrated. Its layouts keep names
+the specimen never asks for, which is what keeps the comparison above intact.

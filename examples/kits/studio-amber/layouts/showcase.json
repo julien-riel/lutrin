@@ -1,0 +1,8 @@
+{
+  "name": "showcase",
+  "base": "split",
+  "side": "right",
+  "ratio": 0.5,
+  "image": "kit:skyline",
+  "description": "Text on the left, the studio's skyline photo on the right — the deck never names the file."
+}
