@@ -72,9 +72,10 @@ test('no document announces a stale Node version', () => {
 // ---------------------------------------------------------------------------
 
 /** The three documents that describe the `build` command to someone — a human
- *  (README) or an agent (SKILL.md). A fourth could join them; these three are
- *  the ones that lied. */
-const CLI_DOCS = ['README.md', 'packages/core/README.md', '.claude/skills/deck/SKILL.md'];
+ *  (docs/cli.md, where the storefront README rewrite moved the CLI semantics)
+ *  or an agent (SKILL.md). A fourth could join them; these are the ones that
+ *  lied. */
+const CLI_DOCS = ['docs/cli.md', 'packages/core/README.md', '.claude/skills/deck/SKILL.md'];
 
 test('every CLI doc mentions --force for build, not only for kit install', () => {
   for (const doc of CLI_DOCS) {
@@ -106,7 +107,9 @@ test('the implicit-kit nuance is documented where it plays out', () => {
   // (--kit or `kit:`). Documenting the refusal without that nuance would
   // suggest that a stale user default blocks every compilation.
   for (const doc of [
-    'README.md',
+    // kit precedence moved from the README to docs/kits.md with the
+    // storefront rewrite; the nuance must live where the levels are listed
+    'docs/kits.md',
     'packages/core/README.md',
     'docs/dsl.md',
     '.claude/skills/deck/SKILL.md',
