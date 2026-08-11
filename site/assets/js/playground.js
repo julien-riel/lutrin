@@ -725,7 +725,18 @@ async function fetchKit(name) {
   if (!files) throw new Error(`unknown kit "${name}"`);
   await Promise.all(
     files.map(async (f) => {
-      const res = await fetch(`kits/${name}/${f}`);
+      // One retry after a beat, because ONE dropped fetch out of the half
+      // dozen a kit needs was the difference between a kit and an opaque
+      // failure — the exact shape of a phone losing one connection of a
+      // parallel burst. `no-cache` revalidates (a cheap 304 against Pages):
+      // right after a deploy, a stale cached copy beside fresh ones is the
+      // other way a kit arrives half of one version and half of another.
+      const url = `kits/${name}/${f}`;
+      let res = await fetch(url, { cache: 'no-cache' }).catch(() => null);
+      if (!res?.ok) {
+        await new Promise((r) => setTimeout(r, 400));
+        res = await fetch(url, { cache: 'no-cache' });
+      }
       if (!res.ok) throw new Error(`${name}/${f}: HTTP ${res.status}`);
       vfs.writeFileSync(
         `/kits/${name}/${f}`,
@@ -820,8 +831,13 @@ async function useKit(name) {
     await fetchKit(name);
     kitPath = `/kits/${name}`;
     return true;
-  } catch {
+  } catch (e) {
+    // the cause travels with the verdict — "HTTP 404 on theme.json" and "the
+    // network dropped" call for different next moves, and a banner that
+    // swallows the difference sends the author nowhere (the upload path
+    // already says why; the fetch path owed the same)
     say(`the kit "${name}" could not be loaded`, 'bad');
+    note('pg-note pg-note-bad', String(e?.message ?? e));
     return false;
   }
 }
@@ -1901,7 +1917,10 @@ view.stack.addEventListener('click', (e) => {
 // unreachable index costs the picker its options and nothing else — the page
 // compiles under the default theme exactly as before kits existed here.
 try {
-  const res = await fetch('kits/index.json');
+  // revalidated for the same reason as the kit files: right after a deploy,
+  // a cached index naming one version beside files serving another is a
+  // mismatch no retry can fix
+  const res = await fetch('kits/index.json', { cache: 'no-cache' });
   if (res.ok) kitIndex = await res.json();
   for (const name of Object.keys(kitIndex).sort()) {
     const opt = document.createElement('option');
