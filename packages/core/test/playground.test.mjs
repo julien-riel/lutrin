@@ -642,6 +642,60 @@ test('every fence snippet parses to its own block type and validates clean', asy
   assert.ok(await mathSvg(tex), `math: MathJax refuses the template's equation "${tex}"`);
 });
 
+/**
+ * The example decks (deck-examples.mjs) hold the snippets' two promises at
+ * deck scale:
+ *
+ *  1. HONESTY — every example validates with ZERO diagnostics, under the kit
+ *     it names when it names one (that is exactly how the page compiles it:
+ *     clicking such an example switches the picker first). A deck the
+ *     validator then underlines would be the playground teaching a mistake.
+ *  2. COVERAGE — the buttons in playground.html and the module agree, in
+ *     both directions: an example with no button is invisible, a button with
+ *     no example is a dead click (`DECK_EXAMPLES[undefined].source` throws).
+ */
+test('every playground example validates clean, under the kit it names', async (t) => {
+  const { applyTheme } = await import('../src/deck/theme.mjs');
+  t.after(() => applyTheme(null));
+  const { DECK_EXAMPLES } = await import(
+    `file://${path.join(SITE, 'assets', 'js', 'deck-examples.mjs')}`
+  );
+  const { validateDeck } = await import('../src/deck/validate.mjs');
+  const kitsDir = path.join(REPO, 'examples', 'kits');
+
+  for (const [name, { source, kit }] of Object.entries(DECK_EXAMPLES)) {
+    assert.ok(source?.trim(), `${name}: an example without a source is a dead button`);
+    if (kit)
+      assert.ok(
+        fs.existsSync(path.join(kitsDir, kit, 'kit.json')),
+        `${name} is written against the kit "${kit}", which examples/kits/ does not hold — the page would open it on a wall of diagnostics`,
+      );
+    const diags = validateDeck(source, {
+      baseDir: kitsDir,
+      themePath: kit ? path.join(kitsDir, kit) : undefined,
+    });
+    assert.deepEqual(
+      diags,
+      [],
+      `${name}: the example draws ${diags.map((d) => `${d.severity} ${d.code} (line ${d.line})`).join(', ')} — the playground is teaching a mistake`,
+    );
+  }
+});
+
+test('the example buttons and deck-examples.mjs agree, in both directions', async () => {
+  const { DECK_EXAMPLES } = await import(
+    `file://${path.join(SITE, 'assets', 'js', 'deck-examples.mjs')}`
+  );
+  const html = fs.readFileSync(PLAYGROUND, 'utf8');
+  const buttons = [...html.matchAll(/data-example="([a-z-]+)"/g)].map((m) => m[1]);
+  assert.equal(new Set(buttons).size, buttons.length, 'two buttons load the same example');
+  assert.deepEqual(
+    [...buttons].sort(),
+    Object.keys(DECK_EXAMPLES).sort(),
+    'playground.html and DECK_EXAMPLES disagree — an example has no button, or a button clicks into nothing',
+  );
+});
+
 test('the layout catalog the playground preloads is the one the engine expects', () => {
   // The playground fetches a manifest CI writes from this directory, then
   // counts what registered. If the two ever disagree the page refuses to

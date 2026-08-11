@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" role="img" aria-label="An abstract portrait on amber">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3B96B"/>
+      <stop offset="1" stop-color="#C2621C"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="480" fill="url(#bg)"/>
+  <circle cx="240" cy="190" r="88" fill="#5F2A06"/>
+  <path d="M 80 480 C 80 360 150 310 240 310 C 330 310 400 360 400 480 Z" fill="#5F2A06"/>
+  <circle cx="240" cy="190" r="88" fill="#FDE9C8" opacity="0.15"/>
+</svg>

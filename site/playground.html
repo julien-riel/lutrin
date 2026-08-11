@@ -151,11 +151,19 @@
         <button type="button" data-example="funnel" aria-pressed="true">A funnel</button>
         <button type="button" data-example="metrics" aria-pressed="false">Three numbers</button>
         <button type="button" data-example="chart" aria-pressed="false">A chart</button>
-        <!-- The two heavy ones last: "An equation" fetches MathJax (2.3 MB),
-             "A diagram" fetches Mermaid (3.5 MB) — nobody pays for either
-             until they ask. -->
+        <!-- The multi-slide decks: two corporate shapes, and one written
+             against the Studio Amber kit (clicking it switches the picker —
+             the deck asks for that kit's layouts and images). -->
+        <button type="button" data-example="review" aria-pressed="false">A business review</button>
+        <button type="button" data-example="project" aria-pressed="false">A project update</button>
+        <button type="button" data-example="visual" aria-pressed="false">Slides with images</button>
+        <!-- The heavy ones last: "An equation" fetches MathJax (2.3 MB),
+             "A diagram" fetches Mermaid (3.5 MB), and the tour — every
+             layout and block the engine has — pays for both. Nobody pays
+             for any of it until they ask. -->
         <button type="button" data-example="math" aria-pressed="false">An equation</button>
         <button type="button" data-example="diagram" aria-pressed="false">A diagram</button>
+        <button type="button" data-example="tour" aria-pressed="false">The whole tour</button>
       </div>
       <!-- The kit the deck compiles under — the example kits, fetched into
            the page's virtual filesystem and resolved by the same code that

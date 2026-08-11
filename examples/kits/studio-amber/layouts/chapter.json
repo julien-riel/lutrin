@@ -1,0 +1,6 @@
+{
+  "name": "chapter",
+  "base": "section",
+  "image": "kit:weave",
+  "description": "A branded divider: the weave full-bleed under the section scrim."
+}

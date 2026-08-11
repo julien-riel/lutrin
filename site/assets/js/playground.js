@@ -97,6 +97,7 @@ import {
 import { tags } from '@lezer/highlight';
 
 import { CONTAINER_SNIPPETS, FENCE_SNIPPETS } from './deck-snippets.mjs';
+import { DECK_EXAMPLES } from './deck-examples.mjs';
 
 // Resolved from this file's own URL, so the page works at the site root or
 // under a path — and taken as `.pathname`, because that is the form the
@@ -481,83 +482,8 @@ window.lutrinEditorHooks = {
   uploadKit: (bytes) => uploadKitBytes(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)),
 };
 
-/** The three examples from the landing page: a reader arrives at something
- *  already recognised, and edits rather than invents. */
-const EXAMPLES = {
-  funnel: `# Request triage
-
-<!-- layout: funnel -->
-
-## 2,400 received
-All channels combined.
-
-## 1,100 eligible
-After checking the criteria.
-
-## 320 selected
-Funded this year.
-`,
-  metrics: `# Indicators
-
-:::metric
-33
-Layouts available
-↑ +2 this release
-:::
-
-:::metric
-15
-Chart types
-↑ +7 this release
-:::
-
-:::metric
-0
-Coordinates in this file
-→ by design
-:::
-`,
-  chart: `# Budget by quarter
-
-The chart is drawn by the engine, in the brand's colours, on a
-palette checked for contrast and colour blindness.
-
-\`\`\`chart
-type: bar
-categories: Q1, Q2, Q3, Q4
-Planned: 120, 150, 180, 210
-Actual: 110, 155, 175, 190
-target: 165
-\`\`\`
-`,
-  // The two heavy examples come last: clicking "An equation" is what fetches
-  // MathJax's 2.3 MB, clicking "A diagram" Mermaid's 3.5 MB. Nobody pays for
-  // either by merely arriving on the page.
-  math: `# The model
-
-The engine typesets LaTeX with MathJax, here and in the file you download.
-
-\`\`\`math
-\\frac{1}{2}\\sum_{i=1}^{n} (y_i - \\hat{y}_i)^2
-\`\`\`
-
-\`\`\`math
-e^{i\\pi} + 1 = 0
-\`\`\`
-`,
-  diagram: `# How a deck gets made
-
-The diagram is rendered right here, by the same Mermaid the
-command line uses, in the brand's colours.
-
-\`\`\`mermaid
-flowchart LR
-  md[Markdown] --> ast[AST] --> ir[IR]
-  ir --> pptx[.pptx]
-  ir --> html[HTML]
-\`\`\`
-`,
-};
+// The examples themselves live in deck-examples.mjs — an import-free module a
+// test can compile through the real validator, the deck-snippets.mjs pattern.
 
 const say = (text, kind) => {
   status.textContent = text;
@@ -1561,8 +1487,17 @@ addEventListener('resize', fit);
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(frame);
 
 for (const btn of document.querySelectorAll('[data-example]')) {
-  btn.addEventListener('click', () => {
-    ed.text = EXAMPLES[btn.dataset.example];
+  btn.addEventListener('click', async () => {
+    const example = DECK_EXAMPLES[btn.dataset.example];
+    // An example written against one of the example kits switches the picker
+    // to it first: the deck asks for layouts and images only that kit
+    // declares, and compiling it under another theme would open on a page of
+    // diagnostics about a mistake the visitor did not make. A kit that cannot
+    // be fetched is already reported by useKit — the text still loads, and
+    // the diagnostics then say honestly what is missing.
+    if (example.kit && kitName() !== example.kit && (await useKit(example.kit)))
+      kitSelect.value = example.kit;
+    ed.text = example.source;
     for (const b of document.querySelectorAll('[data-example]'))
       b.setAttribute('aria-pressed', String(b === btn));
     compile();
@@ -1961,6 +1896,6 @@ kitSelect.addEventListener('change', async () => {
 // boot: the last session if there was one, the first example if not
 // ---------------------------------------------------------------------------
 
-if (!(await restoreWorkspace())) ed.text = EXAMPLES.funnel;
+if (!(await restoreWorkspace())) ed.text = DECK_EXAMPLES.funnel.source;
 ed.setLocked(false);
 await compile();
