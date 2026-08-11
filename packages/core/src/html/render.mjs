@@ -771,6 +771,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .alert-success{background:#${SEMANTIC.success.fill};color:#${SEMANTIC.success.text}}
 .alert-warning{background:#${SEMANTIC.warning.fill};color:#${SEMANTIC.warning.text}}
 .alert-danger{background:#${SEMANTIC.danger.fill};color:#${SEMANTIC.danger.text}}
+.alert-key{background:#${SEMANTIC.key.fill};color:#${SEMANTIC.key.text}}
 .metric{background:#${C.ground};border:1px solid #${C.neutralStroke};border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:${SPACE.xs}px}
 .metric-value{font-size:${TYPE.metricValue}pt;font-weight:700;color:#${C.primary};line-height:1.05}
 .metric-label{font-size:${TYPE.metricLabel}pt;color:#${C.neutralSecondary};margin-top:6px}

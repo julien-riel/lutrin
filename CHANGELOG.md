@@ -842,6 +842,13 @@ stated otherwise, an entry describes the compiler.
 
 ### Fixed
 
+- **The `:::key` callout had no fill in the HTML.** The stylesheet emitted a
+  rule per semantic kind — info, success, warning, danger — and stopped one
+  short: `.alert-key` was never written, so the takeaway callout rendered as
+  bare text on the page background while the `.pptx` (which paints
+  `SEMANTIC[kind]` generically) gave the same block its tinted panel. One
+  rule closes the gap; both outputs now read `semantic.key.fill`/`.text`.
+
 - **A picture exported from the playground was the words `404 /tmp/…`.**
   pptxgenjs takes a different branch in a page: given a `path` it fetches the
   string instead of reading a file, and a compiler temp path answers 404 — so
