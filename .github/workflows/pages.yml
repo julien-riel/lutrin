@@ -164,7 +164,14 @@ jobs:
           # The example kits, for the playground's kit picker, with the
           # per-kit file manifest the page fetches a kit's assets by —
           # site-serve.mjs generates the same index per request.
-          cp -R examples/kits _site/kits
+          #
+          # `src/.` and not `src`: _site/kits ALREADY EXISTS by now (the
+          # gallery step put its .deckkit archives there), and `cp -R` into an
+          # existing directory copies the directory ITSELF — the kits landed
+          # at kits/kits/<name>, the index stayed right, and every kit fetch
+          # on the live site answered 404. The trailing /. merges contents.
+          mkdir -p _site/kits
+          cp -R examples/kits/. _site/kits/
           rm -f _site/kits/README.md _site/kits/specimen.deck.md
           node -e "
             const fs=require('node:fs');
@@ -191,6 +198,12 @@ jobs:
         run: |
           set -euo pipefail
           ! grep -rn "julien-riel.github.io" _site --include="*.html" --exclude=demo.html
+          # The playground fetches kits/<name>/<file> FLAT, from the index
+          # written beside them. Assert the shape the page actually fetches —
+          # a nested kits/kits/ (the cp -R trap above) once deployed an index
+          # whose every entry answered 404, with nothing red anywhere.
+          test -f _site/kits/campus-indigo/kit.json
+          test ! -e _site/kits/kits
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
