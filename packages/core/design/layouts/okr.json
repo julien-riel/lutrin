@@ -1,0 +1,9 @@
+{
+  "name": "okr",
+  "base": "grid",
+  "cols": 2,
+  "sections": { "min": 2, "max": 6 },
+  "headed": true,
+  "density": "compact",
+  "description": "Objectives and key results: one headed panel per objective, its key results as :::progress bars inside."
+}

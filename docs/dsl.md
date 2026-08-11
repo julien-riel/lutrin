@@ -61,6 +61,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `subtitle`, `author`, `date` | secondary lines of the cover |
 | `footer` | footer text, when it must differ from the title |
 | `notes` | presenter notes of the **cover generated from `title:`** — the one slide no `<!-- notes: -->` can reach, since there is no line in the source to hang the comment on. A flat one-line value like every key here (the frontmatter reader is a one-line-per-key scanner: there is no block form to write). With no generated cover — no `title:`, or a Marp deck — the line is inert and says so: `COVER_NOTES_ORPHAN` |
+| `agenda` | `true` synthesizes the **agenda slide** right after the cover; any other value (`agenda: Sommaire`) also names it. See below |
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
@@ -78,6 +79,17 @@ view. Rename the key if it was never meant to be spoken.
 
 `theme:` is still accepted as a **deprecated alias** of `kit:` and produces
 the `KIT_DEPRECATED_KEY` diagnostic.
+
+**The generated agenda** (`agenda: true`) is built from the deck itself, which
+is the point: an agenda typed by hand lies the day a chapter is renamed, one
+the engine derives on every build cannot. It lists the deck's **chapters** —
+its section slides — as a numbered list; a deck with no chapters gets its
+slide titles instead, and a long list paginates like any content flow. Every
+**section slide** additionally receives the chapter rail: the full list under
+the divider title, the current chapter in the full section ink, the others
+dimmed — "you are here", kept true by the engine. A deck with nothing to
+list, or a Marp deck (where no slide is synthesized), is told so by
+`AGENDA_EMPTY` rather than left counting its slides.
 
 ---
 
@@ -138,7 +150,7 @@ it in the same slide), it is the **previous** slide that it silently
 reconfigures. And a directive after which no slide opens — under the last
 `---` of the file, for example — governs nothing: it produces
 `ORPHAN_DIRECTIVE` and has no effect. The same rule holds for
-`<!-- notes: … -->` and `<!-- animate -->`.
+`<!-- notes: … -->`, `<!-- animate -->` and `<!-- source: … -->`.
 
 An unknown layout name produces `UNKNOWN_LAYOUT` with a "did you mean"
 suggestion. The living list is in `capabilities().layouts` — queried with the
@@ -162,7 +174,7 @@ quadrant, a step or a node.
 | `timeline` | 2 to 6 | numbered milestones on an arrowed axis (section title = date or phase) |
 | `layers` | 2 to 5 | layers stacked from the base to the surface; **or** a single bullet list, one item per layer |
 | `swot` | 4 | a 2 × 2 matrix in semantic tints, in the order Strengths, Weaknesses, Opportunities, Threats |
-| `grid` | 2 to 8 | a mosaic of panels — portfolio, offerings, 2 × 2 matrix |
+| `grid` | 2 to 9 | a mosaic of panels — portfolio, offerings, 2 × 2 or 3 × 3 matrix |
 | `steps` | 2 to 6 | steps joined by arrows — a journey, "how it works" |
 | `focus` | — | ONE message: the first paragraph becomes a large figure or a full-frame sentence, the rest serves as context |
 | `cycle` | 3 to 8 | discs on a closed loop, joined by arrows — a process that returns to its start |
@@ -188,7 +200,7 @@ will leave gaps).
 
 ## Official layouts
 
-Twelve layouts shipped with the compiler
+Sixteen layouts shipped with the compiler
 (`packages/core/design/layouts/*.json`). They are parameterized structured
 layouts — **data**, not code — and they are always available.
 
@@ -206,6 +218,10 @@ layouts — **data**, not code — and they are always available.
 | `portfolio` | grid, 3 columns with headers | projects or services as a mosaic |
 | `raid` | swot, compact | the RAID log: Risks, Assumptions, Issues, Dependencies |
 | `status-list` | grid, 1 column, dense | a status board: progress bars and badges, stacked |
+| `kanban` | grid, headed | a delivery board — To do, Doing, Done, one column per stage |
+| `team` | grid, centered | one card per person: name as the heading, role below — a kit layout on the same base adds the portraits (`images`) |
+| `risk-map-3` | grid 3 × 3, tinted | the enterprise risk matrix: nine cells from green to red, same reading order as `risk-map` |
+| `okr` | grid, headed | objectives and key results — one panel per objective, `:::progress` bars inside |
 
 Validation **suggests** them when the content betrays the intent: sections
 "Pros" / "Cons" propose `pros-cons`, headings "Probability" / "Severity"
@@ -434,11 +450,11 @@ starts with a dash becomes the source.
 
 ## Callouts, metrics, progress and status
 
-Seven directives, written as `:::` blocks:
+Eight directives, written as `:::` blocks:
 
 ```markdown
 :::info
-A neutral callout. Also: success, warning, danger.
+A neutral callout. Also: success, warning, danger — and key.
 :::
 ```
 
@@ -446,7 +462,20 @@ A callout only renders **paragraphs and bullet lists**. Any other block
 (image, table, code) would be ignored inside it: move it out of the callout —
 the compiler reports this with `ALERT_CONTENT_DROPPED`.
 
-The fifth directive is the metric card: first line the value, the rest the
+`key` is the odd tint out, deliberately: the four others judge (good, bad,
+careful), `key` **designates** — it is the takeaway box of a busy slide,
+labelled "Takeaway" and set in the brand's own tint rather than in a
+verdict's. A kit that repaints its primary repaints it for free. Like the
+four others it is also a `:::progress` tint.
+
+```markdown
+:::key
+The migration finishes in Q3 whatever option we pick — the decision is
+about cost, not about the date.
+:::
+```
+
+The next directive is the metric card: first line the value, the rest the
 label.
 
 ```markdown
@@ -785,7 +814,7 @@ Actual: 110, 155, 175, 190
 
 - `type`: `bar`, `barh` (horizontal bars), `stacked-bar`, `stacked-barh`,
   `share-bar`, `share-barh`, `line`, `area`, `pie`, `doughnut`, `radar`,
-  `waterfall`, `gantt`, `rating`, `heat`.
+  `waterfall`, `gantt`, `rating`, `heat`, `bullet`, `dumbbell`.
 - `categories` (or `catégories`): the x axis. Absent, they are numbered.
 - Every other line `Name: v1, v2, …` is a **series**; decimals use a
   **point**. A line starting with `#` is a comment.
@@ -860,6 +889,47 @@ A span is `from - to`, **both ends included**; the comma keeps the meaning it
 has everywhere else — a list — so a lane can carry several bars. `now:` draws
 the "we are here" rule at the start of that period. One period name that
 resolves to nothing invalidates the spec (`INVALID_CHART`).
+
+**`^Q3` is a milestone** — a diamond at the center of its period, on the
+lane it is written in, composable with spans (`Build: Q1 - Q2, ^Q3`) or
+alone (`Gates: ^Q2, ^Q4`). Its own spelling on purpose: a single period
+stays a one-period **bar**, because promoting it silently would make the
+same source draw two different pictures depending on how long the task is —
+the caret marks the difference the author meant. A milestone names one
+declared period, never a range.
+
+**`bullet`** — the multi-KPI board: one row per indicator, its value as a
+bar and **its own target** as a rule standing on the track — the same
+value-then-commitment order as `:::progress`, and the answer when one
+`target:` line for the whole chart is not enough. Each row runs on its own
+scale, because eight KPIs share no unit — 99.5 % availability beside
+3 612 k$ of spend — so the figures drawn on every row are what carries the
+comparison, and they are not optional. A `%` on the figures marks the row as
+percentages. There are no categories; `target:` means nothing here.
+
+````markdown
+```chart
+type: bullet
+Availability: 99.1 % / 99.5 %
+Cases under 5 days: 62 % / 80 %
+Spend (k$): 3612 / 3900
+```
+````
+
+**`dumbbell`** — what moved between two states: one row per category, a dot
+per state, the connector drawn between them. The question a grouped bar
+shows badly — the eye reads the **gap**, so the gap is a line rather than an
+inference. Exactly two series (the surplus is dropped and reported); unlike
+`bullet` the axis is shared, because here the rows do compare.
+
+````markdown
+```chart
+type: dumbbell
+categories: Licences, Services, Support
+2024: 42, 31, 27
+2026: 55, 30, 22
+```
+````
 
 Colors come from the theme's palette, adjusted and validated (color blindness,
 contrast ≥ 3:1). Six series at most stay readable; beyond that, group into
@@ -953,6 +1023,25 @@ slide.
 The generated cover takes its note from the frontmatter instead — `notes:`,
 see [Frontmatter](#frontmatter) — because no comment in the source can reach a
 slide the engine synthesized.
+
+### Provenance
+
+```markdown
+<!-- source: Finance DW, April extract — figures in k$ -->
+```
+
+The slide's provenance, drawn as a small caption at the **foot of the content
+area**, in the muted ink — the one line a data-heavy slide owes its reader,
+and the one an author must not be able to typeset by hand (writing small text
+is positioning; naming a source is content). The engine **reserves the band
+before placing anything**: pagination and auto-fit never claim the room, so
+the caption cannot collide with the content above it. Several `source`
+directives on one slide join into a single line, separated by `·`.
+
+It follows the same placement rule as `notes` and `layout`, and two
+situations are named rather than swallowed: a directive no slide follows is
+`ORPHAN_DIRECTIVE`, and one written on a **section or cover slide** — masters
+with no content area — is `SOURCE_UNPLACED` (the line is not drawn there).
 
 ---
 
@@ -1067,6 +1156,8 @@ The main ones:
 | `ALERT_CONTENT_DROPPED` | warning | block not rendered inside a callout |
 | `QUOTE_CONTENT_DROPPED` | warning | block not rendered inside a quotation |
 | `LAYOUT_IMAGE_UNUSED` | info | the slide (or a grid cell) brings its own visual: the kit image the layout declares is not placed there |
+| `SOURCE_UNPLACED` | warning | `<!-- source: … -->` on a section or cover slide, which has no content area to draw it in |
+| `AGENDA_EMPTY` | warning | `agenda:` with nothing to list — no titled slide, or a Marp deck |
 | `TABLE_CONTENT_DROPPED`, `LIST_CONTENT_DROPPED`, `HEADING_CONTENT_DROPPED` | warning | an image or icon written into a cell, a bullet or a heading, which render text only |
 | `UNKNOWN_ANIMATE` | warning | unknown animation effect |
 | `COVER_NOTES_ORPHAN` | warning | frontmatter `notes:` with no cover to carry it — no `title:`, or a Marp deck |

@@ -58,11 +58,14 @@ import {
   parseMarpComment,
 } from './marp.mjs';
 
-/** The four semantic tints an author can name — as a callout (`:::warning`),
+/** The five semantic tints an author can name — as a callout (`:::warning`),
  *  as the tint of a progress bar (`:::progress warning`) or as the severity of
  *  a badge. One list: a tint that exists for a callout and not for a bar would
- *  be a distinction the author has no way to guess. */
-export const SEMANTIC_KINDS = ['info', 'success', 'warning', 'danger'];
+ *  be a distinction the author has no way to guess. `key` is the odd one out
+ *  and deliberately so: the four others judge (good, bad, careful), `key`
+ *  designates — the takeaway of a busy slide, set in the brand's own tint
+ *  rather than in a verdict's. */
+export const SEMANTIC_KINDS = ['info', 'success', 'warning', 'danger', 'key'];
 
 export const CONTAINERS = [...SEMANTIC_KINDS, 'metric', 'progress', 'status'];
 
@@ -98,6 +101,8 @@ export const CHART_TYPES = new Set([
   'gantt',
   'rating',
   'heat',
+  'bullet',
+  'dumbbell',
 ]);
 
 /** Blocks a list item can carry and that a bullet cannot contain (a list's IR
@@ -480,6 +485,18 @@ function parseSpans(val, cats) {
   const spans = [];
   for (const part of val.split(',').map((s) => s.trim())) {
     if (!part) return null;
+    // `^Q3` — a MILESTONE at that period, drawn as a diamond rather than a
+    // bar. Its own spelling on purpose: a single period stays a one-period
+    // bar (promoting it silently would make the same source draw two
+    // different pictures depending on how long the task is), and the caret
+    // marks the difference the author MEANT. A milestone names one period,
+    // never a range.
+    if (part.startsWith('^')) {
+      const idx = at(part.slice(1));
+      if (idx < 0) return null;
+      spans.push({ from: idx, to: idx, milestone: true, raw: part });
+      continue;
+    }
     const dash = part.split(/\s+-\s+|\s+–\s+/);
     if (dash.length > 2) return null;
     const from = at(dash[0]);
@@ -567,6 +584,24 @@ function parseChartSpec(source) {
       const spans = parseSpans(val, spec.categories);
       if (!spans) return null;
       spec.series.push({ name: key, spans, values: spans.map((s) => s.raw) });
+    } else if (spec.chartType === 'bullet') {
+      // a KPI row: the value, then optionally the target IT is judged
+      // against — `275 / 300`, the same value-then-commitment order as the
+      // `:::progress` marker. A `%` on either figure marks the row as
+      // percentages (labels only: the geometry is unitless). Like a gantt
+      // lane, the raw text rides in `values` so the no-rasterizer fallback
+      // prints what the author wrote.
+      const bm = val.match(
+        /^([+-]?\d+(?:[.]\d+)?)\s*(%?)\s*(?:\/\s*([+-]?\d+(?:[.]\d+)?)\s*(%?))?$/,
+      );
+      if (!bm) return null;
+      spec.series.push({
+        name: key,
+        value: Number(bm[1]),
+        ...(bm[3] != null ? { target: Number(bm[3]) } : {}),
+        ...(bm[2] || bm[4] ? { pct: true } : {}),
+        values: [val],
+      });
     } else {
       // `Number('')` is 0: a series with no values ("Sales:"), a hole
       // ("12, , 18") or a trailing comma ("12, 18,") therefore read as silent
@@ -645,7 +680,7 @@ export function parseProgressValue(text) {
  *  a directive with the very same eyes as the parser, or the two would one day
  *  disagree on who owns a comment line. */
 export function parseComment(html) {
-  const m = html.match(/<!--\s*(notes|layout|animate)\s*(?::\s*([\s\S]*?))?\s*-->/);
+  const m = html.match(/<!--\s*(notes|layout|animate|source)\s*(?::\s*([\s\S]*?))?\s*-->/);
   return m ? { key: m[1], value: (m[2] ?? '').trim() } : null;
 }
 
@@ -765,7 +800,15 @@ export function parseDeck(source) {
   /** Applies a `<!-- key: value -->` directive to a slide. */
   function applyDirective(target, c) {
     if (c.key === 'notes') target.notes.push(c.value);
-    else if (c.key === 'layout') {
+    else if (c.key === 'source') {
+      // the slide's provenance line, drawn small at the foot of the content
+      // area. LAZY, unlike `notes`: a slide that asked nothing must not gain
+      // a key, or the IR golden of every existing deck moves. An array all
+      // the same — several directives join into one line (" · "), because a
+      // slide citing two systems has two provenances, not a second slide.
+      if (c.value) (target.source ??= []).push(c.value);
+      target.sourceDirectiveLine = c.line;
+    } else if (c.key === 'layout') {
       target.layout = c.value;
       target.layoutLine = c.line;
     } else if (c.key === 'animate') {

@@ -458,6 +458,17 @@ function gantt(block, W, H) {
     // in barh, so colour would carry nothing — and cycling CHART_COLORS would
     // cap a plan at six workstreams for no gain
     for (const span of s.spans ?? []) {
+      // `^Q3` — a milestone: a diamond at the CENTER of its period column
+      // (the period is the unit; an edge would claim a date the data does
+      // not carry). Darker than the bars so a gate reads against the work.
+      if (span.milestone) {
+        const mx = plot.x + colW * (span.from + 0.5);
+        const r = Math.min(barH * 0.62, 11);
+        p.push(
+          `<path d="M${mx},${cy - r} L${mx + r},${cy} L${mx},${cy + r} L${mx - r},${cy} z" fill="#${COLORS.primaryDarker}"/>`,
+        );
+        continue;
+      }
       const x = plot.x + colW * span.from + 3;
       const w = colW * (span.to - span.from + 1) - 6;
       p.push(roundedBar(x, cy - barH / 2, Math.max(w, 4), barH, 4, true, `#${COLORS.primary}`));
@@ -474,6 +485,112 @@ function gantt(block, W, H) {
       `<line x1="${x}" y1="${plot.y - 4}" x2="${x}" y2="${plot.y + plot.h}" stroke="#${COLORS.negative}" stroke-width="2"/>`,
     );
   }
+  return p.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Bullet: the multi-KPI board — one row per indicator, its value as a bar and
+// ITS OWN target as a rule standing on the track. Each row runs on its OWN
+// scale (0 to a nice bound over value and target): eight KPIs share no unit —
+// 99.5 % availability beside 3 612 k$ of spend — so a shared axis would be a
+// lie, and the figures drawn on every row are what carries the comparison.
+// The vocabulary is the one the reader already knows: the track and marker of
+// :::progress, the primary hue of gantt (identity rides on the row name).
+// ---------------------------------------------------------------------------
+
+function bullet(block, W, H, locale) {
+  const series = block.series;
+  const labelW = Math.min(W * 0.3, Math.max(...series.map((s) => textW(s.name, 11))) + 24);
+  const valueW = Math.max(...series.map((s) => textW(bulletLabel(s, locale), 11))) + 16;
+  const plot = { x: labelW + 8, y: 10, w: W - labelW - valueW - 28, h: H - 20 };
+  const rowH = plot.h / Math.max(series.length, 1);
+  const barH = Math.min(rowH * 0.42, 18);
+  const p = [];
+  series.forEach((s, si) => {
+    const cy = plot.y + rowH * (si + 0.5);
+    // per-row bound: value and target both inside their own frame, always —
+    // the same reason the cartesian `target:` enters niceScale
+    const { hi } = niceScale(0, Math.max(s.value, s.target ?? s.value, 1e-9), 4);
+    const xOf = (v) => plot.x + (Math.max(Math.min(v, hi), 0) / hi) * plot.w;
+    p.push(
+      `<text x="${plot.x - 12}" y="${cy + 4}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(s.name)}</text>`,
+      `<rect x="${plot.x}" y="${cy - barH / 2}" width="${plot.w}" height="${barH}" rx="4" fill="${grid()}"/>`,
+      roundedBar(
+        plot.x,
+        cy - barH / 2,
+        Math.max(xOf(s.value) - plot.x, 2),
+        barH,
+        4,
+        true,
+        `#${COLORS.primary}`,
+      ),
+    );
+    if (s.target != null) {
+      const tx = xOf(s.target);
+      p.push(
+        `<line x1="${tx}" y1="${cy - barH * 0.95}" x2="${tx}" y2="${cy + barH * 0.95}" stroke="#${COLORS.neutralPrimary}" stroke-width="2"/>`,
+      );
+    }
+    // the figures are drawn by the engine and are not optional: with each row
+    // on its own scale, a board without its numbers would be a shape
+    p.push(
+      `<text x="${plot.x + plot.w + 12}" y="${cy + 4}" font-family="${FONT()}" font-size="11" fill="#${COLORS.neutralPrimary}">${esc(bulletLabel(s, locale))}</text>`,
+    );
+  });
+  return p.join('\n');
+}
+
+/** "62 % / 80 %" — the row's figures, value first, exactly as written. */
+function bulletLabel(s, locale) {
+  const unit = s.pct ? ' %' : '';
+  const v = `${fmt(s.value, locale)}${unit}`;
+  return s.target != null ? `${v} / ${fmt(s.target, locale)}${unit}` : v;
+}
+
+// ---------------------------------------------------------------------------
+// Dumbbell: what moved between two states — one row per category, a dot per
+// state, a connector between them. The question the grouped bar shows badly:
+// the eye reads the GAP, and the gap is drawn instead of inferred. Exactly
+// two series; the axis is shared (unlike bullet, the rows compare).
+// ---------------------------------------------------------------------------
+
+function dumbbell(block, W, H, locale) {
+  const cats = block.categories;
+  const series = block.series.slice(0, 2);
+  const labelW = Math.min(W * 0.3, Math.max(...cats.map((c) => textW(c, 11))) + 24);
+  const plot = { x: labelW + 8, y: 26, w: W - labelW - 24, h: H - 26 - 30 };
+  const rowH = plot.h / Math.max(cats.length, 1);
+  const all = series.flatMap((s) => shownValues(s, cats));
+  const { lo, hi, ticks } = niceScale(Math.min(...all), Math.max(...all));
+  const xOf = (v) => plot.x + ((v - lo) / (hi - lo)) * plot.w;
+  const p = [legendRow(series, plot.x, 16, plot.w)];
+  for (const t of ticks) {
+    const x = xOf(t);
+    p.push(
+      `<line x1="${x}" y1="${plot.y}" x2="${x}" y2="${plot.y + plot.h}" stroke="${grid()}" stroke-width="1"/>`,
+      `<text x="${x}" y="${plot.y + plot.h + 16}" font-family="${FONT()}" font-size="10" fill="${ink()}" text-anchor="middle">${esc(fmt(t, locale))}</text>`,
+    );
+  }
+  cats.forEach((c, i) => {
+    const cy = plot.y + rowH * (i + 0.5);
+    p.push(
+      `<text x="${plot.x - 12}" y="${cy + 4}" font-family="${FONT()}" font-size="11" fill="${ink()}" text-anchor="end">${esc(c)}</text>`,
+    );
+    const a = shownValues(series[0], cats)[i];
+    const b = series[1] ? shownValues(series[1], cats)[i] : undefined;
+    if (a == null) return;
+    if (b != null)
+      p.push(
+        `<line x1="${xOf(a)}" y1="${cy}" x2="${xOf(b)}" y2="${cy}" stroke="${axis()}" stroke-width="2"/>`,
+      );
+    p.push(
+      `<circle cx="${xOf(a)}" cy="${cy}" r="6" fill="${color(0)}" stroke="${bg()}" stroke-width="2"/>`,
+    );
+    if (b != null)
+      p.push(
+        `<circle cx="${xOf(b)}" cy="${cy}" r="6" fill="${color(1)}" stroke="${bg()}" stroke-width="2"/>`,
+      );
+  });
   return p.join('\n');
 }
 
@@ -761,7 +878,11 @@ export function chartSvg(block, W, H, { locale = DEFAULT_LOCALE } = {}) {
               ? rating(block, W, H, locale)
               : block.chartType === 'heat'
                 ? heat(block, W, H, locale)
-                : cartesian(block, W, H, locale);
+                : block.chartType === 'bullet'
+                  ? bullet(block, W, H, locale)
+                  : block.chartType === 'dumbbell'
+                    ? dumbbell(block, W, H, locale)
+                    : cartesian(block, W, H, locale);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <rect width="${W}" height="${H}" fill="${bg()}"/>
 ${body}

@@ -79,15 +79,20 @@ const OFFICIALS = [
   'before-after',
   'funnel',
   'journey',
+  'kanban',
   'key-message',
+  'okr',
   'portfolio',
   'priority-matrix',
   'pros-cons',
   'pyramid',
   'raid',
+  // risk-map-3.json sorts BEFORE risk-map.json: '-' < '.' in the filename sort
+  'risk-map-3',
   'risk-map',
   'roadmap',
   'status-list',
+  'team',
 ];
 
 test('the live views LAYOUTS / LAYOUT_SECTIONS reflect built-ins + officials by default', () => {
@@ -95,7 +100,7 @@ test('the live views LAYOUTS / LAYOUT_SECTIONS reflect built-ins + officials by 
   assert.deepEqual([...LAYOUTS], [...BUILTINS, ...OFFICIALS]);
   assert.deepEqual(LAYOUT_SECTIONS.swot, { min: 4, max: 4 });
   assert.deepEqual(LAYOUT_SECTIONS.pillars, { min: 2, max: 4 });
-  assert.deepEqual(LAYOUT_SECTIONS.grid, { min: 2, max: 8 });
+  assert.deepEqual(LAYOUT_SECTIONS.grid, { min: 2, max: 9 });
 });
 
 test('registerLayout + resetUserLayouts: the alias appears in the live views, then disappears', (t) => {

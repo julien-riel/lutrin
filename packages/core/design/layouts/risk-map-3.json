@@ -1,0 +1,13 @@
+{
+  "name": "risk-map-3",
+  "base": "grid",
+  "cols": 3,
+  "sections": { "min": 9, "max": 9 },
+  "kinds": [
+    "success", "success", "warning",
+    "success", "warning", "danger",
+    "warning", "danger", "danger"
+  ],
+  "density": "dense",
+  "description": "The 3 × 3 risk matrix: probability / severity, nine tinted cells from green (top left) to red (bottom right) — same reading order as risk-map."
+}

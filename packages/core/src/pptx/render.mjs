@@ -35,7 +35,10 @@ import {
   iconSize,
   panelRadius,
   panelStyle,
+  composite,
   progressLayout,
+  sectionAgendaLayout,
+  sourceLineBox,
   px,
   LINE_HEIGHT,
 } from '../deck/tokens.mjs';
@@ -1512,6 +1515,27 @@ function renderSection(pptx, scene, ctx, brand) {
     align: 'left', // same inheritance trap as the cover title
     valign: 'middle',
   });
+  // chapter rail (frontmatter `agenda: true`): the deck's chapters under the
+  // title, the current one in the full section ink, the others dimmed toward
+  // the surface — geometry from sectionAgendaLayout, shared with the HTML
+  if (scene.agenda?.length) {
+    const g = sectionAgendaLayout(scene.agenda.length);
+    const dim = composite(SURFACE.sectionInk, SURFACE.sectionBg, 0.55);
+    scene.agenda.forEach((it, i) => {
+      s.addText(`${i + 1}.  ${it.title}`, {
+        x: px(g.x),
+        y: px(g.top + i * g.lineH),
+        w: px(g.w),
+        h: px(g.lineH),
+        fontSize: g.size,
+        fontFace: FONTS.body,
+        color: it.current ? SURFACE.sectionInk : dim,
+        bold: it.current,
+        align: 'left',
+        valign: 'middle',
+      });
+    });
+  }
   if (LOGOS.section && fs.existsSync(LOGOS.section)) {
     const img = logoImage(LOGOS.section, c.logoH, PAGE.margin, PAGE.height - PAGE.margin - c.logoH);
     if (img) s.addImage(img);
@@ -2038,6 +2062,25 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
         shapeLabel = SHAPE_LABELS[el.block.type] ?? 'Content';
         const fn = BLOCK_RENDERERS[el.block.type];
         if (fn) fn(target, el.block, el.region, ctx);
+      }
+      // provenance line (<!-- source: … -->): chrome, never a step — `cur`
+      // is reset first, or the shape would ride the LAST element's animation
+      // and anim.mjs would pair it with a step the scene never declared
+      if (scene.source) {
+        cur = null;
+        shapeLabel = 'Source';
+        const b = sourceLineBox();
+        target.addText(scene.source, {
+          x: px(b.x),
+          y: px(b.y),
+          w: px(b.w),
+          h: px(b.h),
+          fontSize: TYPE.caption,
+          fontFace: FONTS.body,
+          color: COLORS.neutralSecondary,
+          align: 'left',
+          valign: 'middle',
+        });
       }
       if (rec?.some(Boolean))
         slideAnims.set(sceneIdx + 1, { entries: rec, preset: scene.animPreset ?? null });

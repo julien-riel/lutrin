@@ -37,6 +37,7 @@ import {
   panelStyle,
   progressLayout,
   scaleTextToken,
+  sourceLineBox,
 } from './tokens.mjs';
 import { isMarpDeck } from './marp.mjs';
 import { ALERT_BLOCK_TYPES, animateFlag, animatePreset, runsToText } from './parse.mjs';
@@ -808,8 +809,12 @@ export function registerLayout(def) {
   },
   {
     name: 'grid',
+    // max 9, not 8: the 3 × 3 risk matrix (official layout risk-map-3) needs
+    // nine cells, and a child definition cannot widen its base's bounds. The
+    // widening is not silent for anyone: a 9-section grid used to get
+    // LAYOUT_SECTIONS and lose its ninth cell — now it places it.
     description: 'a mosaic of cells over a configurable number of columns',
-    sections: { min: 2, max: 8 },
+    sections: { min: 2, max: 9 },
     paramSchema: {
       cols: {
         type: 'number',
@@ -1466,6 +1471,12 @@ export function buildScenes(deck) {
     // overridden by the def (official or user) — phase A of §3.3
     const P = layoutParams(layout);
     const area = contentArea();
+    // `<!-- source: … -->` — the provenance line RESERVES its band before any
+    // placement: pagination and auto-fit must never claim room the caption is
+    // about to occupy. The scene carries the joined text; both renderers draw
+    // it inside sourceLineBox(), which the shrunken area stops just above.
+    const sourceText = slide.source?.length ? slide.source.join(' · ') : null;
+    if (sourceText) area.h -= sourceLineBox().h + SPACE.xs;
     const blocks = flat(slide);
     const base = {
       layout,
@@ -1473,6 +1484,7 @@ export function buildScenes(deck) {
       titleRuns: slide.titleRuns,
       notes: slide.notes,
       sourceLine: slide.line,
+      ...(sourceText ? { source: sourceText } : {}),
     };
     const animate = slide.animate ?? deckAnimate;
     // effect imposed for the slide (otherwise anim.mjs picks by block type)
@@ -2298,6 +2310,55 @@ export function buildScenes(deck) {
       }
     }
   });
+
+  // -------------------------------------------------------------------------
+  // Generated agenda (frontmatter `agenda: true`) — synthesized AFTER the
+  // pass, like the cover is synthesized before it, so inference never sees
+  // it. The slide lists the deck's CHAPTERS (its section slides) when there
+  // are at least two; a deck without chapters gets its slide titles instead,
+  // and a long list paginates exactly as any content flow does. The chapters
+  // additionally each receive the rail: the full list, their own entry set
+  // apart — "you are here", kept true by the engine because it is derived
+  // from the deck itself on every build.
+  // -------------------------------------------------------------------------
+  const agendaVal = String(meta.agenda ?? '').trim();
+  if (agendaVal && !/^(false|0|no|non|none|off)$/i.test(agendaVal) && !isMarpDeck(meta)) {
+    const chapters = scenes.filter((s) => s.master === 'section');
+    const items =
+      chapters.length >= 2
+        ? chapters.map((s) => s.title)
+        : scenes.filter((s) => s.master !== 'cover' && s.title && !s.continued).map((s) => s.title);
+    if (items.length) {
+      // `agenda: Sommaire` names the slide; the bare flag keeps "Agenda",
+      // which reads in both of the engine's languages
+      const title = /^(true|1|yes|oui|on)$/i.test(agendaVal) ? 'Agenda' : agendaVal;
+      const list = {
+        type: 'bullets',
+        ordered: true,
+        items: items.map((t) => ({ runs: [{ text: t }], level: 0 })),
+      };
+      const at = Math.max(
+        scenes.findIndex((s) => s.master !== 'cover'),
+        0,
+      );
+      flowBlocks([list], contentArea(), {}).forEach((elements, p) => {
+        scenes.splice(at + p, 0, {
+          master: 'content',
+          layout: 'agenda',
+          title: p === 0 ? title : `${title} (cont.)`,
+          notes: [],
+          elements,
+          continued: p > 0 || undefined,
+          titleKey: (p > 0 && title) || undefined,
+          sourceLine: 1,
+        });
+      });
+      if (chapters.length >= 2)
+        chapters.forEach((s, i) => {
+          s.agenda = chapters.map((c, j) => ({ title: c.title, current: i === j }));
+        });
+    }
+  }
 
   return scenes;
 }

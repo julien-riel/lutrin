@@ -322,6 +322,41 @@ export function contentArea() {
 }
 
 /**
+ * The chapter rail of a section divider (frontmatter `agenda: true`): the
+ * deck's chapters listed under the section title, the current one set in the
+ * full section ink, the others dimmed toward the surface. One function for
+ * both renderers — the line pitch shrinks before the text does, and the text
+ * only when the pitch could no longer hold it.
+ */
+export function sectionAgendaLayout(n) {
+  const top = CHROME.section.titleY + CHROME.section.titleH + SPACE.md;
+  // stop above the logo zone at the foot of the divider
+  const avail = PAGE.height - top - (PAGE.margin + CHROME.section.logoH + SPACE.md);
+  const lineH = Math.min(30, avail / Math.max(n, 1));
+  return {
+    x: PAGE.margin,
+    top,
+    w: PAGE.width - 2 * PAGE.margin,
+    lineH,
+    size: lineH >= 24 ? TYPE.body : TYPE.small,
+  };
+}
+
+/**
+ * The provenance band a `<!-- source: … -->` directive reserves at the FOOT
+ * of the content area — the last 20 px of the untouched area. One function
+ * for three consumers, which is what keeps them honest with one another: the
+ * layout engine shrinks the slide's working area by `h` (plus a breathing
+ * gap) so pagination and auto-fit never claim the room, and both renderers
+ * draw the caption inside the band the layout stayed out of.
+ */
+export function sourceLineBox() {
+  const area = contentArea();
+  const h = 20;
+  return { x: area.x, y: area.y + area.h - h, w: area.w, h };
+}
+
+/**
  * Categorical chart palette — six neutral hues (teal, ochre, blue, red,
  * dark blue, brown), lightness and chroma tuned to pass the six dataviz
  * accessibility checks (OKLCH band 0.43–0.77, chroma ≥ 0.10, adjacent CVD
@@ -537,6 +572,17 @@ export function deriveTokens() {
       solid: COLORS.negative,
       solidText: solidInk(COLORS.negative, COLORS.negativeDark),
       label: 'Important',
+    },
+    // The fifth tint judges nothing: it designates. The takeaway box of a
+    // busy slide, in the brand's own hue — the pale pair is the one
+    // LAYER_SHADES already validates (highlight surface, dark primary ink),
+    // so a kit repainting its primary repaints the callout for free.
+    key: {
+      fill: COLORS.highlightLight,
+      text: COLORS.primaryDarker,
+      solid: COLORS.primary,
+      solidText: solidInk(COLORS.primary, COLORS.primaryDarker),
+      label: 'Takeaway',
     },
   });
 }

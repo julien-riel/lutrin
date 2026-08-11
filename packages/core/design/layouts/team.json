@@ -1,0 +1,9 @@
+{
+  "name": "team",
+  "base": "grid",
+  "cols": 4,
+  "sections": { "min": 2, "max": 8 },
+  "align": "center",
+  "density": "compact",
+  "description": "One card per person — name as the heading, role and context below, centered. A kit layout on the same base can add the portraits (images parameter)."
+}

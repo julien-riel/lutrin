@@ -96,7 +96,7 @@ test('badges and progress bars: the ink they EMIT clears 4.5:1 on the fill they 
     pairs.push([`progress ${kind}`, pct.o.color, shapes[1].fill.color]);
   }
 
-  assert.equal(pairs.length, 8, 'four tints, two components');
+  assert.equal(pairs.length, 10, 'five tints, two components');
   for (const [what, ink, fill] of pairs) {
     const r = contrast(ink, fill);
     assert.ok(r >= 4.5, `${what}: ink #${ink} on #${fill} — ${r.toFixed(2)}:1 < 4.5:1`);
