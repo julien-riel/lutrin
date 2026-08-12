@@ -116,6 +116,7 @@ const dlHtml = $('pg-dl-html');
 const dlPptx = $('pg-dl-pptx');
 const nameInput = $('pg-name');
 const kitSelect = $('pg-kit');
+const kitFileInput = $('pg-kit-file');
 
 /** The landing page's card (?embed=1) is a taster, not a workspace: nothing
  *  is restored into it and nothing typed there is kept. */
@@ -697,8 +698,7 @@ async function mountKitArchive(bytes) {
   if (!opt) {
     opt = document.createElement('option');
     opt.value = USER_KIT;
-    const upload = [...kitSelect.options].find((o) => o.value === '@upload');
-    kitSelect.insertBefore(opt, upload ?? null);
+    kitSelect.appendChild(opt); // last, after the examples: the visitor's own
   }
   opt.textContent = `${manifest.name} (uploaded)`;
   return manifest;
@@ -726,18 +726,6 @@ async function uploadKitBytes(bytes) {
     note('pg-note pg-note-bad', String(e?.message ?? e));
     return false;
   }
-}
-
-/** The file picker behind the "Upload a kit…" entry. */
-function pickKitFile() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.deckkit,application/zip';
-  input.addEventListener('change', async () => {
-    const file = input.files?.[0];
-    if (file) uploadKitBytes(new Uint8Array(await file.arrayBuffer()));
-  });
-  input.click();
 }
 
 /** Applies a kit by name ('' = default), fetching it first if needed.
@@ -1866,30 +1854,27 @@ try {
 } catch {
   kitIndex = {};
 }
-// last, after the examples: the visitor's own brand, as a .deckkit — the
-// same archive `lutrin kit install` takes
-{
-  const opt = document.createElement('option');
-  opt.value = '@upload';
-  opt.textContent = 'Upload a kit (.deckkit)…';
-  kitSelect.appendChild(opt);
-}
-
 kitSelect.addEventListener('change', async () => {
   const wanted = kitSelect.value;
-  if (wanted === '@upload') {
-    // the entry is a VERB: put the picker back on the active kit while the
-    // file dialog is open, so a cancel changes nothing
-    kitSelect.value = kitName();
-    pickKitFile();
-    return;
-  }
   if (await useKit(wanted)) {
     await compile();
     persistSource();
   } else {
     kitSelect.value = kitName(); // the fetch failed: the picker must not lie
   }
+});
+
+/** The visitor's own brand, as a .deckkit — the same archive
+ *  `lutrin kit install` takes. The label beside the picker activates this
+ *  input and the browser opens the dialog itself, so no gesture of ours has
+ *  to survive the seconds a phone's modal picker is up (see the note in
+ *  playground.html). The value is cleared after each pick: re-uploading the
+ *  SAME file — the natural move after fixing whatever it was refused for —
+ *  is not a change to an input still holding that file, and fires nothing. */
+kitFileInput.addEventListener('change', async () => {
+  const file = kitFileInput.files?.[0];
+  kitFileInput.value = '';
+  if (file) await uploadKitBytes(new Uint8Array(await file.arrayBuffer()));
 });
 
 // ---------------------------------------------------------------------------
