@@ -165,13 +165,36 @@
         <button type="button" data-example="diagram" aria-pressed="false">A diagram</button>
         <button type="button" data-example="tour" aria-pressed="false">The whole tour</button>
       </div>
-      <!-- The kit the deck compiles under — the example kits, fetched into
-           the page's virtual filesystem and resolved by the same code that
-           resolves a kit directory on disk. Populated by playground.js from
-           /kits/index.json; hidden in the embedded card like the file verbs. -->
-      <label class="pg-kit-label" for="pg-kit"><span class="sr-only">Kit</span>
-        <select id="pg-kit"><option value="">Default kit</option></select>
-      </label>
+      <!-- The kit the deck compiles under, and the way to bring your own: one
+           group, because they are one decision. Hidden in the embedded card
+           like the file verbs. -->
+      <div class="pg-kit" role="group" aria-label="Kit">
+        <!-- The example kits, fetched into the page's virtual filesystem and
+             resolved by the same code that resolves a kit directory on disk.
+             Populated by playground.js from /kits/index.json. -->
+        <label class="pg-kit-label" for="pg-kit"><span class="sr-only">Kit</span>
+          <select id="pg-kit"><option value="">Default kit</option></select>
+        </label>
+        <!-- The visitor's own brand, as a .deckkit — the same archive
+             `lutrin kit install` takes. A real <input type=file> with a <label>
+             over it, NOT an entry in the picker beside it: a <select>'s
+             `change` is not an activation-triggering event, so the only reason
+             opening the dialog from one ever worked is that the click which
+             opened the dropdown was still inside its five-second activation
+             window. On a phone the dropdown is a modal the visitor scrolls and
+             dismisses, and that window is long gone by the time `change` fires
+             — the dialog never opens and the tap reads as broken. A label
+             activating an input in the document asks the browser for no
+             gesture of ours.
+             `accept` ends in the catch-all on purpose: iOS matches a picker
+             against the file's UTI, and a `.deckkit` that arrived by AirDrop or
+             download carries whatever type the sender gave it — filtered to the
+             extension alone, the visitor's own kit shows up greyed out, which
+             is the same dead end one dialog later. -->
+        <input type="file" id="pg-kit-file" class="sr-only"
+               accept=".deckkit,application/zip,application/octet-stream">
+        <label class="pg-kit-upload" for="pg-kit-file">Upload a kit…</label>
+      </div>
       <!-- The deck as a FILE: new, open from disk, save back to disk. Hidden
            in the embedded card (?embed=1), where there is no workspace to
            manage — the landing page's card is a taster, not an editor. -->
