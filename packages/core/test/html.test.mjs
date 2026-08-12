@@ -41,7 +41,9 @@ test('alerts: every semantic kind has its stylesheet rule — key included', asy
   for (const kind of ['info', 'success', 'warning', 'danger', 'key']) {
     assert.match(
       html,
-      new RegExp(`\\.alert-${kind}\\{background:#${SEMANTIC[kind].fill};color:#${SEMANTIC[kind].text}\\}`),
+      new RegExp(
+        `\\.alert-${kind}\\{background:#${SEMANTIC[kind].fill};color:#${SEMANTIC[kind].text}\\}`,
+      ),
       `.alert-${kind} must carry its fill and ink`,
     );
   }
