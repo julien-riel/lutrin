@@ -1,0 +1,77 @@
+{
+  "name": "Desjardins",
+  "colors": {
+    "primary": "00874E",
+    "primaryLighter": "00AC62",
+    "primaryDarker": "006B3D",
+    "brand": "00874E",
+    "brandBlack": "2F2F2F",
+    "neutralPrimary": "2F2F2F",
+    "neutralSecondary": "6C6C6C",
+    "neutralTertiary": "B3B5B7",
+    "neutralStroke": "C7C9CC",
+    "underground1": "F1F2F3",
+    "underground2": "E6E7E8",
+    "ground": "FFFFFF",
+    "highlightLight": "ECF5F0",
+    "highlightStrong": "CCE7D7",
+    "informative": "025ABA",
+    "informativeDark": "1C3A52",
+    "informativeLight": "DBEAF6",
+    "positive": "00874E",
+    "positiveDark": "053E26",
+    "positiveLight": "D9F0E3",
+    "warningDark": "443507",
+    "warningLight": "FFF3CA",
+    "negative": "CA241A",
+    "negativeDark": "960E02",
+    "negativeLight": "FDD8D8"
+  },
+  "fonts": {
+    "body": "Arial"
+  },
+  "rounded": {
+    "sm": 4,
+    "md": 8,
+    "lg": 16
+  },
+  "chartColors": [
+    "00874E",
+    "025ABA",
+    "CA241A",
+    "6E5405",
+    "663E7B",
+    "00727E"
+  ],
+  "layerShades": [
+    { "fill": "053E26", "ink": "FFFFFF" },
+    { "fill": "00874E", "ink": "FFFFFF" },
+    { "fill": "9BD3B2", "ink": "053E26" },
+    { "fill": "CCE7D7", "ink": "053E26" },
+    { "fill": "ECF5F0", "ink": "053E26" }
+  ],
+  "trendInk": {
+    "positive": "053E26",
+    "negative": "960E02",
+    "neutral": "6C6C6C"
+  },
+  "surface": {
+    "pageBg": "FFFFFF",
+    "coverBg": "FFFFFF",
+    "coverInk": "2F2F2F",
+    "coverMutedInk": "6C6C6C",
+    "sectionBg": "00874E",
+    "sectionInk": "FFFFFF"
+  },
+  "accent": {
+    "bar": "00874E",
+    "coverBar": "00874E",
+    "rule": "C7C9CC"
+  },
+  "logos": {
+    "cover": "./logo-cover.png",
+    "section": "./logo-section.png",
+    "coverSvg": "./logo-cover.svg",
+    "sectionSvg": "./logo-section.svg"
+  }
+}

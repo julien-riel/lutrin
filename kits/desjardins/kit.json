@@ -1,0 +1,6 @@
+{
+  "name": "desjardins",
+  "version": "1.0.0",
+  "description": "Desjardins brand, derived from https://www.desjardins.com (2026-08).",
+  "theme": "./theme.json"
+}
