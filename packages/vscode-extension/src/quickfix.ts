@@ -77,6 +77,10 @@ export class DeckQuickFixes implements vscode.CodeActionProvider {
         // only offer the replacement for a directive name
         if (raw.suggestion.startsWith('`')) return null;
         return replaceToken(/(:{3,}\s*)([A-Za-z][\w-]*)/, `Replace with "${raw.suggestion}"`);
+      // LAYOUT_RULES_CHANGED carries the PREVIOUS layout as its suggestion:
+      // the fix is to keep this slide the way it used to render, which is the
+      // same edit — a `<!-- layout: … -->` comment opening the slide.
+      case 'LAYOUT_RULES_CHANGED':
       case 'LAYOUT_SUGGESTION': {
         // titled slide: insert the layout comment under the "#";
         // slide opened by "---": the line the diagnostic points at is already

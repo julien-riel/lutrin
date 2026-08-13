@@ -301,8 +301,25 @@ test('doctor: SWOT headings without a layout → swot suggestion', () => {
 test('doctor: Before/After → comparison suggestion; dated headings → timeline', () => {
   const before = validateDeck('# Migration\n\n## Before\n\n- a\n\n## After\n\n- b\n');
   assert.equal(before.find((x) => x.code === 'LAYOUT_SUGGESTION')?.suggestion, 'comparison');
-  const dates = validateDeck('# Plan\n\n## 2024\n\n- a\n\n## 2025\n\n- b\n\n## 2026\n\n- c\n');
-  assert.equal(dates.find((x) => x.code === 'LAYOUT_SUGGESTION')?.suggestion, 'timeline');
+  // TWO dated sections stay a suggestion: the promotion to an inference rule
+  // (proposal §2.6) only fires where the case is clear-cut — three sections
+  // or more, all of them dated
+  const two = validateDeck('# Plan\n\n## 2024\n\n- a\n\n## 2025\n\n- b\n');
+  assert.equal(two.find((x) => x.code === 'LAYOUT_SUGGESTION')?.suggestion, 'timeline');
+});
+
+test('doctor: three dated headings are INFERRED as timeline, and no longer merely suggested', () => {
+  const diags = validateDeck('# Plan\n\n## 2024\n\n- a\n\n## 2025\n\n- b\n\n## 2026\n\n- c\n');
+  const changed = diags.find((x) => x.code === 'LAYOUT_RULES_CHANGED');
+  assert.ok(changed, 'LAYOUT_RULES_CHANGED expected: the rule set moved this slide');
+  assert.match(changed.message, /three-columns → timeline/);
+  // and the advice the engine has already acted on is GONE: a suggestion to
+  // write a directive that would change nothing sends the author looking for
+  // a difference there is none of
+  assert.equal(
+    diags.find((x) => x.code === 'LAYOUT_SUGGESTION'),
+    undefined,
+  );
 });
 
 test('doctor: Pros/Cons → pros-cons suggestion', () => {

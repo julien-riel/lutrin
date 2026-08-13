@@ -297,6 +297,18 @@ Scope, Schedule, Quality
 
 Each commitment carries an ==Owner==; one that slips is tagged ==!At risk==.
 
+# Two teams out of five have switched
+
+<!-- layout: pictogram -->
+
+:::progress
+38 %
+Teams on the new pipeline
+:::
+
+Every dot is one team. No scale to read, no axis to follow — the picture is the
+number.
+
 # The project at a glance
 
 <!-- layout: swot -->

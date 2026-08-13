@@ -1,0 +1,8 @@
+{
+  "name": "pricing",
+  "base": "table",
+  "zebra": true,
+  "emphasis": "both",
+  "density": "compact",
+  "description": "A tariff or feature grid: zebra rows, the stub column set apart."
+}

@@ -490,6 +490,8 @@ Two equal columns, styled by the theme. Three headings give three.
 
 # Three columns, icon-led
 
+<!-- layout: three-columns -->
+
 ## Write
 
 ![](lucide:pen-line)
@@ -1117,6 +1119,8 @@ Scope, Schedule, Quality
 :::
 
 # Icons, in the theme's inks
+
+<!-- layout: three-columns -->
 
 ## Primary
 

@@ -36,6 +36,7 @@ import {
   panelRadius,
   panelStyle,
   composite,
+  pictogramGeometry,
   progressLayout,
   sectionAgendaLayout,
   sourceLineBox,
@@ -321,6 +322,14 @@ function addBullets(slide, block, r) {
         options: { fontFace: FONTS.body, color: block.color ?? COLORS.neutralPrimary },
       });
     }
+    // a ticked line steps back into the secondary ink, exactly as the HTML
+    // does — done is context, not the point of the slide. Never over a colour
+    // the layout imposed: on a repainted panel that ink was measured.
+    if (it.checked && !block.color) {
+      itemRuns.forEach((run) => {
+        run.options.color = COLORS.neutralSecondary;
+      });
+    }
     if (it.level) {
       // nested items: same size and pitch as the HTML (.bullets ul ul)
       itemRuns.forEach((run) => {
@@ -332,13 +341,20 @@ function addBullets(slide, block, r) {
       ...itemRuns[0],
       options: {
         ...itemRuns[0].options,
-        bullet: block.ordered
-          ? {
-              type: 'number',
-              indent: 16,
-              ...(rankToPlace && !it.level ? { startAt: rankToPlace } : {}),
-            }
-          : { code: '2022', indent: 16 },
+        // a task item takes a BOX for a marker — U+2610 ☐ / U+2611 ☑, the
+        // characters PowerPoint already has, so the box stays a bullet
+        // (editable, re-indentable) rather than a shape floating beside the
+        // text it belongs to
+        bullet:
+          it.checked != null
+            ? { code: it.checked ? '2611' : '2610', indent: 16 }
+            : block.ordered
+              ? {
+                  type: 'number',
+                  indent: 16,
+                  ...(rankToPlace && !it.level ? { startAt: rankToPlace } : {}),
+                }
+              : { code: '2022', indent: 16 },
         indentLevel: it.level,
         breakLine: false,
       },
@@ -427,21 +443,45 @@ function addTable(slide, block, r) {
   // the under-AA contrast the repaint exists to fix — and both rows take the
   // panel's ink rather than the deck's.
   const ink = block.color ?? COLORS.neutralPrimary;
+  // `zebra` / `emphasis`: the `table` base's parameters, read off the block
+  // the layout stamped. `header` is the historical emphasis and stays the
+  // default, so a deck that asked for nothing exports byte for byte as before.
+  const em = block.emphasis ?? 'header';
+  const stub = em === 'first-column' || em === 'both';
+  const headFill = em === 'first-column' || em === 'none' ? null : COLORS.underground1;
   const headerRow = block.header.map((cell, k) => ({
     text: toRuns(cell, { bold: true, color: block.color }),
     options: {
       bold: true,
-      ...(block.color ? {} : { fill: { color: COLORS.underground1 } }),
+      ...(block.color || !headFill ? {} : { fill: { color: headFill } }),
       border,
       color: ink,
       ...align(k),
     },
   }));
-  const bodyRows = block.rows.map((row) =>
-    row.map((cell, k) => ({
-      text: toRuns(cell, { color: block.color }),
-      options: { border, color: ink, ...align(k) },
-    })),
+  const bodyRows = block.rows.map((row, ri) =>
+    row.map((cell, k) => {
+      const isStub = stub && k === 0;
+      // the stub keeps its own tint over the zebra: it is the band that
+      // carries the reading, and a row that swallowed it would lose the spine
+      const fill = isStub
+        ? block.zebra
+          ? COLORS.underground2
+          : COLORS.underground1
+        : block.zebra && ri % 2 === 1
+          ? COLORS.underground1
+          : null;
+      return {
+        text: toRuns(cell, { bold: isStub, color: block.color }),
+        options: {
+          border,
+          color: ink,
+          ...(isStub ? { bold: true } : {}),
+          ...(fill && !block.color ? { fill: { color: fill } } : {}),
+          ...align(k),
+        },
+      };
+    }),
   );
   slide.addTable([...(headerRow.length ? [headerRow] : []), ...bodyRows], {
     x: px(r.x),
@@ -732,15 +772,41 @@ function addPanel(slide, block, r) {
 }
 
 function addTimelineAxis(slide, block, r) {
-  const arrow = block.arrow !== false;
+  const arrow = block.arrow !== false && !block.hairline;
+  // a HAIRLINE separates instead of directing — the rule under a checklist
+  // line, a column gutter, the leader of a callout: same object, lighter ink
+  const color = block.hairline ? COLORS.neutralTertiary : COLORS.neutralStroke;
   if (block.vertical) {
+    if (block.up) {
+      // the vertical axis of a matrix points UP: on a matrix "more" is at the
+      // top, and an arrowhead sinking towards the origin would say so backwards
+      slide.addShape('rect', {
+        x: px(r.x),
+        y: px(r.y + (arrow ? 14 : 0)),
+        w: px(r.w),
+        h: px(r.h - (arrow ? 14 : 0)),
+        fill: { color },
+        line: { type: 'none' },
+      });
+      if (arrow) {
+        slide.addShape('triangle', {
+          x: px(r.x + r.w / 2 - 7),
+          y: px(r.y),
+          w: px(14),
+          h: px(14),
+          fill: { color },
+          line: { type: 'none' },
+        });
+      }
+      return;
+    }
     // vertical axis (roadmap in a column): time runs downwards
     slide.addShape('rect', {
       x: px(r.x),
       y: px(r.y),
       w: px(r.w),
       h: px(r.h - (arrow ? 14 : 0)),
-      fill: { color: COLORS.neutralStroke },
+      fill: { color },
       line: { type: 'none' },
     });
     if (arrow) {
@@ -749,7 +815,7 @@ function addTimelineAxis(slide, block, r) {
         y: px(r.y + r.h - 14),
         w: px(14),
         h: px(14),
-        fill: { color: COLORS.neutralStroke },
+        fill: { color },
         line: { type: 'none' },
         rotate: 180,
       });
@@ -761,7 +827,7 @@ function addTimelineAxis(slide, block, r) {
     y: px(r.y),
     w: px(r.w - (arrow ? 14 : 0)),
     h: px(r.h),
-    fill: { color: COLORS.neutralStroke },
+    fill: { color },
     line: { type: 'none' },
   });
   if (arrow) {
@@ -771,7 +837,7 @@ function addTimelineAxis(slide, block, r) {
       y: px(r.y + r.h / 2 - 7),
       w: px(14),
       h: px(14),
-      fill: { color: COLORS.neutralStroke },
+      fill: { color },
       line: { type: 'none' },
       rotate: 90,
     });
@@ -788,7 +854,8 @@ function addTimelineDot(slide, block, r) {
     line: { color: COLORS.ground, width: 2 },
   });
   if (block.numbered === false) return; // solid dot, with no number
-  slide.addText(String(block.index), {
+  // `label`: a callout marker showing a letter rather than its rank
+  slide.addText(String(block.label ?? block.index), {
     x: px(r.x),
     y: px(r.y),
     w: px(r.w),
@@ -800,6 +867,32 @@ function addTimelineDot(slide, block, r) {
     align: 'center',
     valign: 'middle',
   });
+}
+
+/**
+ * An isotype chart, drawn as NATIVE editable shapes — one disc (or one square)
+ * per unit, the same discs the HTML twin puts in its SVG, because the geometry
+ * comes from the same function.
+ *
+ * A grouped picture would have been cheaper, and wrong for the same reason
+ * every other block here is native: a presenter must be able to click one dot
+ * and recolour it when the number moves before the meeting.
+ */
+function addPictogram(slide, block, r) {
+  const { units } = pictogramGeometry(block, r.w, r.h);
+  const on = SEMANTIC[block.kind]?.solid ?? COLORS.primary;
+  const off = COLORS.underground2;
+  for (const u of units) {
+    slide.addShape(block.shape === 'square' ? 'roundRect' : 'ellipse', {
+      x: px(r.x + u.x),
+      y: px(r.y + u.y),
+      w: px(u.d),
+      h: px(u.d),
+      fill: { color: u.on ? on : off },
+      line: { type: 'none' },
+      ...(block.shape === 'square' ? { rectRadius: px(u.d * 0.16) } : {}),
+    });
+  }
 }
 
 /** Alt text of a diagram: the family and the labels, in reading order — the
@@ -1155,6 +1248,7 @@ const SHAPE_LABELS = {
   'timeline-axis': 'Timeline axis',
   'timeline-dot': 'Milestone',
   smartart: 'Diagram',
+  pictogram: 'Pictogram chart',
 };
 
 /**
@@ -1242,6 +1336,7 @@ export const BLOCK_RENDERERS = {
   'timeline-axis': addTimelineAxis,
   'timeline-dot': addTimelineDot,
   smartart: addSmartArt,
+  pictogram: addPictogram,
 };
 
 // ---------------------------------------------------------------------------

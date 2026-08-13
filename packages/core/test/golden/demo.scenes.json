@@ -2139,6 +2139,85 @@
   },
   {
     "master": "content",
+    "layout": "pictogram",
+    "title": "Two teams out of five have switched",
+    "titleRuns": [
+      {
+        "text": "Two teams out of five have switched"
+      }
+    ],
+    "notes": [],
+    "sourceLine": 300,
+    "elements": [
+      {
+        "block": {
+          "type": "pictogram",
+          "total": 100,
+          "filled": 38,
+          "cols": 10,
+          "shape": "disc",
+          "kind": "brand",
+          "label": "Teams on the new pipeline"
+        },
+        "region": {
+          "x": 48,
+          "y": 112,
+          "w": 1184,
+          "h": 347
+        }
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "38 %",
+              "bold": true
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "Teams on the new pipeline"
+            }
+          ],
+          "align": "center"
+        },
+        "region": {
+          "x": 48,
+          "y": 483,
+          "w": 1184,
+          "h": 34.133333333333326
+        }
+      },
+      {
+        "block": {
+          "type": "para",
+          "runs": [
+            {
+              "text": "Every dot is one team. No scale to read, no axis to follow — the picture is the"
+            },
+            {
+              "text": " ",
+              "soft": true
+            },
+            {
+              "text": "number."
+            }
+          ],
+          "line": 309
+        },
+        "region": {
+          "x": 48,
+          "y": 533.1333333333333,
+          "w": 1184,
+          "h": 34.133333333333326
+        }
+      }
+    ]
+  },
+  {
+    "master": "content",
     "layout": "swot",
     "title": "The project at a glance",
     "titleRuns": [
@@ -2147,7 +2226,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 300,
+    "sourceLine": 312,
     "elements": [
       {
         "block": {
@@ -2204,7 +2283,7 @@
               "level": 0
             }
           ],
-          "line": 306
+          "line": 318
         },
         "region": {
           "x": 64,
@@ -2269,7 +2348,7 @@
               "level": 0
             }
           ],
-          "line": 311
+          "line": 323
         },
         "region": {
           "x": 668,
@@ -2334,7 +2413,7 @@
               "level": 0
             }
           ],
-          "line": 316
+          "line": 328
         },
         "region": {
           "x": 64,
@@ -2399,7 +2478,7 @@
               "level": 0
             }
           ],
-          "line": 321
+          "line": 333
         },
         "region": {
           "x": 668,
@@ -2421,7 +2500,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 324,
+    "sourceLine": 336,
     "elements": [
       {
         "block": {
@@ -2464,7 +2543,7 @@
               "text": "Recruitment slipping into the next quarter."
             }
           ],
-          "line": 330,
+          "line": 342,
           "size": 11
         },
         "region": {
@@ -2516,7 +2595,7 @@
               "text": "The kit is ready before the pilot starts."
             }
           ],
-          "line": 334,
+          "line": 346,
           "size": 11
         },
         "region": {
@@ -2568,7 +2647,7 @@
               "text": "Two source systems still disagree on totals."
             }
           ],
-          "line": 338,
+          "line": 350,
           "size": 11
         },
         "region": {
@@ -2620,7 +2699,7 @@
               "text": "The identity service, delivered by another team."
             }
           ],
-          "line": 342,
+          "line": 354,
           "size": 11
         },
         "region": {
@@ -2643,7 +2722,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 344,
+    "sourceLine": 356,
     "elements": [
       {
         "block": {
@@ -2684,7 +2763,7 @@
               "text": "Automated build in CI."
             }
           ],
-          "line": 350
+          "line": 362
         },
         "region": {
           "x": 64,
@@ -2733,7 +2812,7 @@
               "text": "Kit for the whole organization."
             }
           ],
-          "line": 354
+          "line": 366
         },
         "region": {
           "x": 668,
@@ -2782,7 +2861,7 @@
               "text": "Diagnostics in the editor."
             }
           ],
-          "line": 358
+          "line": 370
         },
         "region": {
           "x": 64,
@@ -2831,7 +2910,7 @@
               "text": "Extra export formats."
             }
           ],
-          "line": 362
+          "line": 374
         },
         "region": {
           "x": 668,
@@ -2853,7 +2932,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 364,
+    "sourceLine": 376,
     "elements": [
       {
         "block": {
@@ -2896,7 +2975,7 @@
               "text": "All channels combined."
             }
           ],
-          "line": 370,
+          "line": 382,
           "color": "FFFFFF"
         },
         "region": {
@@ -2948,7 +3027,7 @@
               "text": "After checking the criteria."
             }
           ],
-          "line": 374,
+          "line": 386,
           "color": "212529"
         },
         "region": {
@@ -3000,7 +3079,7 @@
               "text": "Funded this year."
             }
           ],
-          "line": 378,
+          "line": 390,
           "color": "1E3A8A"
         },
         "region": {
@@ -3023,7 +3102,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 380,
+    "sourceLine": 392,
     "elements": [
       {
         "block": {
@@ -3066,7 +3145,7 @@
               "text": "What the audience sees."
             }
           ],
-          "line": 386,
+          "line": 398,
           "color": "FFFFFF"
         },
         "region": {
@@ -3118,7 +3197,7 @@
               "text": "Chosen by the engine, owned by the organization."
             }
           ],
-          "line": 390,
+          "line": 402,
           "color": "212529"
         },
         "region": {
@@ -3170,7 +3249,7 @@
               "text": "Computed once, rendered twice."
             }
           ],
-          "line": 394,
+          "line": 406,
           "color": "1E3A8A"
         },
         "region": {
@@ -3193,7 +3272,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 396,
+    "sourceLine": 408,
     "elements": [
       {
         "block": {
@@ -3247,7 +3326,7 @@
               "text": "Widgets for status boards and scorecards."
             }
           ],
-          "line": 402
+          "line": 414
         },
         "region": {
           "x": 100,
@@ -3297,7 +3376,7 @@
               "text": "Kit editor, and images addressed by name."
             }
           ],
-          "line": 406
+          "line": 418
         },
         "region": {
           "x": 100,
@@ -3347,7 +3426,7 @@
               "text": "Incremental builds and a visual regression suite."
             }
           ],
-          "line": 410
+          "line": 422
         },
         "region": {
           "x": 100,
@@ -3369,7 +3448,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 412,
+    "sourceLine": 424,
     "elements": [
       {
         "block": {
@@ -3408,7 +3487,7 @@
           "name": "zap",
           "color": "primary",
           "size": "medium",
-          "line": 418
+          "line": 430
         },
         "region": {
           "x": 64,
@@ -3426,7 +3505,7 @@
               "text": "A deck is a file. Change a figure, rebuild, hand it over."
             }
           ],
-          "line": 420
+          "line": 432
         },
         "region": {
           "x": 64,
@@ -3473,7 +3552,7 @@
           "name": "shield-check",
           "color": "primary",
           "size": "medium",
-          "line": 424
+          "line": 436
         },
         "region": {
           "x": 466.6666666666667,
@@ -3491,7 +3570,7 @@
               "text": "The brand is in the kit, not in your muscle memory."
             }
           ],
-          "line": 426
+          "line": 438
         },
         "region": {
           "x": 466.6666666666667,
@@ -3538,7 +3617,7 @@
           "name": "git-branch",
           "color": "primary",
           "size": "medium",
-          "line": 430
+          "line": 442
         },
         "region": {
           "x": 869.3333333333334,
@@ -3556,7 +3635,7 @@
               "text": "Diffable, reviewable, and rebuilt by CI like any other artefact."
             }
           ],
-          "line": 432
+          "line": 444
         },
         "region": {
           "x": 869.3333333333334,
@@ -3578,7 +3657,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 434,
+    "sourceLine": 446,
     "elements": [
       {
         "block": {
@@ -3627,7 +3706,7 @@
               "level": 0
             }
           ],
-          "line": 438
+          "line": 450
         },
         "region": {
           "x": 48,
@@ -3644,7 +3723,7 @@
               "text": "Photo © Luca Galuzzi — Wikimedia Commons, CC BY-SA 2.5"
             }
           ],
-          "line": 445
+          "line": 457
         },
         "region": {
           "x": 48,
@@ -3659,7 +3738,7 @@
           "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
           "role": "right",
           "alt": "",
-          "line": 443
+          "line": 455
         },
         "region": {
           "x": 559,
@@ -3680,13 +3759,13 @@
       }
     ],
     "notes": [],
-    "sourceLine": 447,
+    "sourceLine": 459,
     "image": {
       "type": "image",
       "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg",
       "role": "background",
       "alt": "",
-      "line": 449
+      "line": 461
     },
     "elements": [
       {
@@ -3697,7 +3776,7 @@
               "text": "Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0"
             }
           ],
-          "line": 451
+          "line": 463
         },
         "region": {
           "x": 48,
@@ -3718,7 +3797,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 453,
+    "sourceLine": 465,
     "elements": [
       {
         "block": {
@@ -3728,7 +3807,7 @@
               "text": "The budget allocated to each team is computed as follows:"
             }
           ],
-          "line": 455
+          "line": 467
         },
         "region": {
           "x": 48,
@@ -3741,7 +3820,7 @@
         "block": {
           "type": "math",
           "source": "B_e = \\frac{\\sum_{i=1}^{n} p_i \\cdot c_i}{N} \\times (1 + \\tau)",
-          "line": 457
+          "line": 469
         },
         "region": {
           "x": 48,
@@ -3792,7 +3871,7 @@
               "text": "indexation rate."
             }
           ],
-          "line": 461
+          "line": 473
         },
         "region": {
           "x": 48,
@@ -3813,14 +3892,14 @@
       }
     ],
     "notes": [],
-    "sourceLine": 464,
+    "sourceLine": 476,
     "elements": [
       {
         "block": {
           "type": "code",
           "lang": "ts",
           "source": "export function pickLayout(slide: Slide): LayoutName {\n  if (slide.blocks.every(isMetric)) return 'metrics';\n  if (slide.sections.length === 4) return 'swot';\n  if (slide.blocks.some(isChart)) return 'chart';\n  return 'content';\n}",
-          "line": 468
+          "line": 480
         },
         "region": {
           "x": 48,
@@ -3841,14 +3920,14 @@
       }
     ],
     "notes": [],
-    "sourceLine": 477,
+    "sourceLine": 489,
     "elements": [
       {
         "block": {
           "type": "code",
           "lang": "json",
           "source": "{\n  \"name\": \"acme\",\n  \"colors\": { \"primary\": \"#0F766E\", \"accent\": \"#B45309\" },\n  \"fonts\": { \"heading\": \"Acme Grotesk\", \"body\": \"Acme Text\" },\n  \"logo\": \"./logo/acme.svg\"\n}",
-          "line": 481
+          "line": 493
         },
         "region": {
           "x": 48,
@@ -3871,7 +3950,7 @@
     "notes": [
       "This slide is deliberately empty until the first click. That is what `<!-- animate"
     ],
-    "sourceLine": 490,
+    "sourceLine": 502,
     "elements": [
       {
         "block": {
@@ -3929,7 +4008,7 @@
               "level": 0
             }
           ],
-          "line": 496
+          "line": 508
         },
         "region": {
           "x": 48,
@@ -3955,7 +4034,7 @@
     "notes": [
       "These four slides are the diagram families. Ask for `--smartart` and they leave as real, editable SmartArt in PowerPoint."
     ],
-    "sourceLine": 501,
+    "sourceLine": 513,
     "elements": [
       {
         "block": {
@@ -3998,7 +4077,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 521,
+    "sourceLine": 533,
     "elements": [
       {
         "block": {
@@ -4052,7 +4131,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 532,
+    "sourceLine": 544,
     "elements": [
       {
         "block": {
@@ -4089,7 +4168,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 542,
+    "sourceLine": 554,
     "elements": [
       {
         "block": {
@@ -4130,7 +4209,7 @@
       }
     ],
     "notes": [],
-    "sourceLine": 556,
+    "sourceLine": 568,
     "elements": [
       {
         "block": {
@@ -4148,7 +4227,7 @@
             }
           ],
           "cite": "A programme lead, after the third rebuild in one week",
-          "line": 560
+          "line": 572
         },
         "region": {
           "x": 48,
@@ -4171,7 +4250,7 @@
     "notes": [
       "Hand out the URL here. The .pptx of this very deck is on the site."
     ],
-    "sourceLine": 565,
+    "sourceLine": 577,
     "elements": [
       {
         "block": {
@@ -4217,7 +4296,7 @@
               "text": "Node 22 or later. Nothing else to install. MIT."
             }
           ],
-          "line": 571
+          "line": 583
         },
         "region": {
           "x": 48,

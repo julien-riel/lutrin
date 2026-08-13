@@ -1503,6 +1503,48 @@
       "layoutLine": 274
     },
     {
+      "title": "Two teams out of five have switched",
+      "titleRuns": [
+        {
+          "text": "Two teams out of five have switched"
+        }
+      ],
+      "layout": "pictogram",
+      "animate": null,
+      "notes": [],
+      "sections": [
+        {
+          "heading": null,
+          "blocks": [
+            {
+              "type": "progress",
+              "value": 0.38,
+              "label": "Teams on the new pipeline",
+              "line": 304
+            },
+            {
+              "type": "para",
+              "runs": [
+                {
+                  "text": "Every dot is one team. No scale to read, no axis to follow — the picture is the"
+                },
+                {
+                  "text": " ",
+                  "soft": true
+                },
+                {
+                  "text": "number."
+                }
+              ],
+              "line": 309
+            }
+          ]
+        }
+      ],
+      "line": 300,
+      "layoutLine": 302
+    },
+    {
       "title": "The project at a glance",
       "titleRuns": [
         {
@@ -1541,7 +1583,7 @@
                   "level": 0
                 }
               ],
-              "line": 306
+              "line": 318
             }
           ]
         },
@@ -1573,7 +1615,7 @@
                   "level": 0
                 }
               ],
-              "line": 311
+              "line": 323
             }
           ]
         },
@@ -1605,7 +1647,7 @@
                   "level": 0
                 }
               ],
-              "line": 316
+              "line": 328
             }
           ]
         },
@@ -1637,13 +1679,13 @@
                   "level": 0
                 }
               ],
-              "line": 321
+              "line": 333
             }
           ]
         }
       ],
-      "line": 300,
-      "layoutLine": 302
+      "line": 312,
+      "layoutLine": 314
     },
     {
       "title": "Programme log",
@@ -1670,7 +1712,7 @@
                   "text": "Recruitment slipping into the next quarter."
                 }
               ],
-              "line": 330
+              "line": 342
             }
           ]
         },
@@ -1688,7 +1730,7 @@
                   "text": "The kit is ready before the pilot starts."
                 }
               ],
-              "line": 334
+              "line": 346
             }
           ]
         },
@@ -1706,7 +1748,7 @@
                   "text": "Two source systems still disagree on totals."
                 }
               ],
-              "line": 338
+              "line": 350
             }
           ]
         },
@@ -1724,13 +1766,13 @@
                   "text": "The identity service, delivered by another team."
                 }
               ],
-              "line": 342
+              "line": 354
             }
           ]
         }
       ],
-      "line": 324,
-      "layoutLine": 326
+      "line": 336,
+      "layoutLine": 338
     },
     {
       "title": "Effort and impact",
@@ -1757,7 +1799,7 @@
                   "text": "Automated build in CI."
                 }
               ],
-              "line": 350
+              "line": 362
             }
           ]
         },
@@ -1775,7 +1817,7 @@
                   "text": "Kit for the whole organization."
                 }
               ],
-              "line": 354
+              "line": 366
             }
           ]
         },
@@ -1793,7 +1835,7 @@
                   "text": "Diagnostics in the editor."
                 }
               ],
-              "line": 358
+              "line": 370
             }
           ]
         },
@@ -1811,13 +1853,13 @@
                   "text": "Extra export formats."
                 }
               ],
-              "line": 362
+              "line": 374
             }
           ]
         }
       ],
-      "line": 344,
-      "layoutLine": 346
+      "line": 356,
+      "layoutLine": 358
     },
     {
       "title": "Request triage",
@@ -1844,7 +1886,7 @@
                   "text": "All channels combined."
                 }
               ],
-              "line": 370
+              "line": 382
             }
           ]
         },
@@ -1862,7 +1904,7 @@
                   "text": "After checking the criteria."
                 }
               ],
-              "line": 374
+              "line": 386
             }
           ]
         },
@@ -1880,13 +1922,13 @@
                   "text": "Funded this year."
                 }
               ],
-              "line": 378
+              "line": 390
             }
           ]
         }
       ],
-      "line": 364,
-      "layoutLine": 366
+      "line": 376,
+      "layoutLine": 378
     },
     {
       "title": "What holds it up",
@@ -1913,7 +1955,7 @@
                   "text": "What the audience sees."
                 }
               ],
-              "line": 386
+              "line": 398
             }
           ]
         },
@@ -1931,7 +1973,7 @@
                   "text": "Chosen by the engine, owned by the organization."
                 }
               ],
-              "line": 390
+              "line": 402
             }
           ]
         },
@@ -1949,13 +1991,13 @@
                   "text": "Computed once, rendered twice."
                 }
               ],
-              "line": 394
+              "line": 406
             }
           ]
         }
       ],
-      "line": 380,
-      "layoutLine": 382
+      "line": 392,
+      "layoutLine": 394
     },
     {
       "title": "Roadmap",
@@ -1982,7 +2024,7 @@
                   "text": "Widgets for status boards and scorecards."
                 }
               ],
-              "line": 402
+              "line": 414
             }
           ]
         },
@@ -2000,7 +2042,7 @@
                   "text": "Kit editor, and images addressed by name."
                 }
               ],
-              "line": 406
+              "line": 418
             }
           ]
         },
@@ -2018,13 +2060,13 @@
                   "text": "Incremental builds and a visual regression suite."
                 }
               ],
-              "line": 410
+              "line": 422
             }
           ]
         }
       ],
-      "line": 396,
-      "layoutLine": 398
+      "line": 408,
+      "layoutLine": 410
     },
     {
       "title": "Three reasons it holds",
@@ -2049,7 +2091,7 @@
               "name": "zap",
               "color": "primary",
               "size": "medium",
-              "line": 418
+              "line": 430
             },
             {
               "type": "para",
@@ -2058,7 +2100,7 @@
                   "text": "A deck is a file. Change a figure, rebuild, hand it over."
                 }
               ],
-              "line": 420
+              "line": 432
             }
           ]
         },
@@ -2074,7 +2116,7 @@
               "name": "shield-check",
               "color": "primary",
               "size": "medium",
-              "line": 424
+              "line": 436
             },
             {
               "type": "para",
@@ -2083,7 +2125,7 @@
                   "text": "The brand is in the kit, not in your muscle memory."
                 }
               ],
-              "line": 426
+              "line": 438
             }
           ]
         },
@@ -2099,7 +2141,7 @@
               "name": "git-branch",
               "color": "primary",
               "size": "medium",
-              "line": 430
+              "line": 442
             },
             {
               "type": "para",
@@ -2108,13 +2150,13 @@
                   "text": "Diffable, reviewable, and rebuilt by CI like any other artefact."
                 }
               ],
-              "line": 432
+              "line": 444
             }
           ]
         }
       ],
-      "line": 412,
-      "layoutLine": 414
+      "line": 424,
+      "layoutLine": 426
     },
     {
       "title": "On images",
@@ -2176,14 +2218,14 @@
                   "level": 0
                 }
               ],
-              "line": 438
+              "line": 450
             },
             {
               "type": "image",
               "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/1920px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
               "role": "right",
               "alt": "",
-              "line": 443
+              "line": 455
             },
             {
               "type": "para",
@@ -2192,13 +2234,13 @@
                   "text": "Photo © Luca Galuzzi — Wikimedia Commons, CC BY-SA 2.5"
                 }
               ],
-              "line": 445
+              "line": 457
             }
           ]
         }
       ],
-      "line": 434,
-      "layoutLine": 436
+      "line": 446,
+      "layoutLine": 448
     },
     {
       "title": "A photograph fills the frame",
@@ -2219,7 +2261,7 @@
               "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1920px-Fronalpstock_big.jpg",
               "role": "background",
               "alt": "",
-              "line": 449
+              "line": 461
             },
             {
               "type": "para",
@@ -2228,12 +2270,12 @@
                   "text": "Photo © Hannes Röst — Wikimedia Commons, CC BY-SA 3.0"
                 }
               ],
-              "line": 451
+              "line": 463
             }
           ]
         }
       ],
-      "line": 447
+      "line": 459
     },
     {
       "title": "The allocation formula",
@@ -2256,12 +2298,12 @@
                   "text": "The budget allocated to each team is computed as follows:"
                 }
               ],
-              "line": 455
+              "line": 467
             },
             {
               "type": "math",
               "source": "B_e = \\frac{\\sum_{i=1}^{n} p_i \\cdot c_i}{N} \\times (1 + \\tau)",
-              "line": 457
+              "line": 469
             },
             {
               "type": "para",
@@ -2304,12 +2346,12 @@
                   "text": "indexation rate."
                 }
               ],
-              "line": 461
+              "line": 473
             }
           ]
         }
       ],
-      "line": 453
+      "line": 465
     },
     {
       "title": "The code stays readable",
@@ -2329,13 +2371,13 @@
               "type": "code",
               "lang": "ts",
               "source": "export function pickLayout(slide: Slide): LayoutName {\n  if (slide.blocks.every(isMetric)) return 'metrics';\n  if (slide.sections.length === 4) return 'swot';\n  if (slide.blocks.some(isChart)) return 'chart';\n  return 'content';\n}",
-              "line": 468
+              "line": 480
             }
           ]
         }
       ],
-      "line": 464,
-      "layoutLine": 466
+      "line": 476,
+      "layoutLine": 478
     },
     {
       "title": "A brand fits in a manifest",
@@ -2355,13 +2397,13 @@
               "type": "code",
               "lang": "json",
               "source": "{\n  \"name\": \"acme\",\n  \"colors\": { \"primary\": \"#0F766E\", \"accent\": \"#B45309\" },\n  \"fonts\": { \"heading\": \"Acme Grotesk\", \"body\": \"Acme Text\" },\n  \"logo\": \"./logo/acme.svg\"\n}",
-              "line": 481
+              "line": 493
             }
           ]
         }
       ],
-      "line": 477,
-      "layoutLine": 479
+      "line": 489,
+      "layoutLine": 491
     },
     {
       "title": "One point at a time — press → to reveal",
@@ -2434,12 +2476,12 @@
                   "level": 0
                 }
               ],
-              "line": 496
+              "line": 508
             }
           ]
         }
       ],
-      "line": 490
+      "line": 502
     },
     {
       "title": "Four shapes an outline cannot make",
@@ -2468,7 +2510,7 @@
                   "text": "Scope agreed with the sponsors."
                 }
               ],
-              "line": 509
+              "line": 521
             }
           ]
         },
@@ -2486,7 +2528,7 @@
                   "text": "Two-week iterations."
                 }
               ],
-              "line": 513
+              "line": 525
             }
           ]
         },
@@ -2504,7 +2546,7 @@
                   "text": "Adoption dashboard."
                 }
               ],
-              "line": 517
+              "line": 529
             }
           ]
         },
@@ -2517,8 +2559,8 @@
           "blocks": []
         }
       ],
-      "line": 501,
-      "layoutLine": 503
+      "line": 513,
+      "layoutLine": 515
     },
     {
       "title": "Who reports to whom",
@@ -2587,13 +2629,13 @@
                   "level": 1
                 }
               ],
-              "line": 525
+              "line": 537
             }
           ]
         }
       ],
-      "line": 521,
-      "layoutLine": 523
+      "line": 533,
+      "layoutLine": 535
     },
     {
       "title": "Where the three overlap",
@@ -2631,8 +2673,8 @@
           "blocks": []
         }
       ],
-      "line": 532,
-      "layoutLine": 534
+      "line": 544,
+      "layoutLine": 546
     },
     {
       "title": "The compiler and what leans on it",
@@ -2655,7 +2697,7 @@
                   "text": "Compiler core"
                 }
               ],
-              "line": 546
+              "line": 558
             }
           ]
         },
@@ -2692,8 +2734,8 @@
           "blocks": []
         }
       ],
-      "line": 542,
-      "layoutLine": 544
+      "line": 554,
+      "layoutLine": 556
     },
     {
       "title": "A word from the people who use it",
@@ -2724,13 +2766,13 @@
                 }
               ],
               "cite": "A programme lead, after the third rebuild in one week",
-              "line": 560
+              "line": 572
             }
           ]
         }
       ],
-      "line": 556,
-      "layoutLine": 558
+      "line": 568,
+      "layoutLine": 570
     },
     {
       "title": "Start in one line",
@@ -2758,7 +2800,7 @@
                   "italic": false
                 }
               ],
-              "line": 569
+              "line": 581
             },
             {
               "type": "para",
@@ -2767,13 +2809,13 @@
                   "text": "Node 22 or later. Nothing else to install. MIT."
                 }
               ],
-              "line": 571
+              "line": 583
             }
           ]
         }
       ],
-      "line": 565,
-      "layoutLine": 567
+      "line": 577,
+      "layoutLine": 579
     }
   ]
 }

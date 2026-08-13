@@ -49,6 +49,15 @@ const OFFICIALS = [
   'raid',
   'status-list',
   'team',
+  // built on the bases the layouts proposal adds (§4) — data only, no code
+  'eisenhower',
+  'gartner-quadrant',
+  'effort-impact',
+  'product-tour',
+  'architecture',
+  'glossary',
+  'share-of',
+  'pricing',
 ];
 
 const FOUR_SECTIONS = '## One\n\n- a\n\n## Two\n\n- b\n\n## Three\n\n- c\n\n## Four\n\n- d\n';
@@ -126,6 +135,16 @@ test('every official layout compiles a demo deck (named scene, never a crash)', 
     'risk-map-3': Array.from({ length: 9 }, (_, i) => `## Cell ${i + 1}\n\n- r${i + 1}\n`).join(
       '\n',
     ),
+    eisenhower: FOUR_SECTIONS,
+    'gartner-quadrant': FOUR_SECTIONS,
+    'effort-impact': FOUR_SECTIONS,
+    'product-tour':
+      '![The console](shot.png)\n\n1. The search bar\n2. The result list\n3. The filters\n',
+    architecture: '![The stack](stack.png)\n\n1. Ingress\n2. Workers\n3. Store\n',
+    glossary:
+      '- **Deck** — the source file\n- **Kit** — a brand, as data\n- **Base** — a layout that is code\n',
+    'share-of': ':::progress\n38 %\nTeams migrated\n:::\n',
+    pricing: '| Plan | Price |\n| --- | --- |\n| Free | 0 |\n| Team | 12 |\n',
   };
   for (const name of OFFICIALS) {
     const scenes = scenesFor(name, BODIES[name]);

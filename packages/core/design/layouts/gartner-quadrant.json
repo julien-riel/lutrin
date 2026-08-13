@@ -1,0 +1,11 @@
+{
+  "name": "gartner-quadrant",
+  "base": "matrix",
+  "sections": { "min": 4, "max": 4 },
+  "cols": 2,
+  "xLabel": "Completeness of vision",
+  "yLabel": "Ability to execute",
+  "xEnds": ["Narrow", "Complete"],
+  "yEnds": ["Limited", "Strong"],
+  "description": "A four-quadrant positioning map: execution against vision."
+}

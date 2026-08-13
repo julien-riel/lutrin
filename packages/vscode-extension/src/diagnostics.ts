@@ -23,10 +23,11 @@ export class DeckDiagnostics implements vscode.Disposable {
       diags.map((d) => {
         const line = Math.max(0, Math.min(d.line - 1, doc.lineCount - 1));
         const range = doc.lineAt(line).range;
-        // LAYOUT_SUGGESTION: the suggestion is a recommendation already
-        // stated in the message, not the correction of a typo
+        // LAYOUT_SUGGESTION / LAYOUT_RULES_CHANGED: the suggestion is a
+        // LAYOUT NAME the message already spells out, not the correction of a
+        // typo
         const message =
-          d.suggestion && d.code !== 'LAYOUT_SUGGESTION'
+          d.suggestion && d.code !== 'LAYOUT_SUGGESTION' && d.code !== 'LAYOUT_RULES_CHANGED'
             ? `${d.message} Did you mean "${d.suggestion}"?`
             : d.message;
         const diag = new vscode.Diagnostic(range, message, SEVERITY[d.severity]);

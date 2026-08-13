@@ -133,3 +133,12 @@ The first stage of the fixture cycle.
 ## A & B <c> "d"
 
 ## Third stage
+
+# Pictogram
+
+<!-- layout: pictogram -->
+
+:::progress
+38 %
+Share of the fixture population
+:::

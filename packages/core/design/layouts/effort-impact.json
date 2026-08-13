@@ -1,0 +1,11 @@
+{
+  "name": "effort-impact",
+  "base": "matrix",
+  "sections": { "min": 4, "max": 4 },
+  "cols": 2,
+  "xLabel": "Effort",
+  "yLabel": "Impact",
+  "xEnds": ["Low", "High"],
+  "yEnds": ["Low", "High"],
+  "description": "Effort against impact, with the axes actually written — the pick-your-battles grid."
+}

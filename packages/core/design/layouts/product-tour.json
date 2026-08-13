@@ -1,0 +1,8 @@
+{
+  "name": "product-tour",
+  "base": "annotated",
+  "markers": "numbers",
+  "side": "both",
+  "leader": "line",
+  "description": "A screen or a product shot with numbered callouts dealt around it."
+}

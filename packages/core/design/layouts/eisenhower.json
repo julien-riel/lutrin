@@ -1,0 +1,12 @@
+{
+  "name": "eisenhower",
+  "base": "matrix",
+  "sections": { "min": 4, "max": 4 },
+  "cols": 2,
+  "xLabel": "Urgency",
+  "yLabel": "Importance",
+  "xEnds": ["Later", "Now"],
+  "yEnds": ["Low", "High"],
+  "kinds": ["danger", "warning", "info", "success"],
+  "description": "The Eisenhower box: urgency against importance, the axes named by the layout."
+}
