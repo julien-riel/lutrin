@@ -212,14 +212,33 @@ with nothing to list gets `AGENDA_EMPTY`.
 | code block alone | `code` |
 | Mermaid diagram alone | `diagram` (full area) |
 | chart alone | `chart` (full area) |
+| task list alone (`- [ ]`, `- [x]`) | `checklist` |
+| numbered list alone, 3–6 short items | `steps` |
+| nested bullet list alone, one root | `hierarchy` |
+| ≥ 3 `##` sections, **all dated** ("2026", "Q3", "Phase 2") | `timeline` |
+| ≥ 3 `##` sections repeating the **same internal shape** | `grid` (cards) |
 | 2 or 3 `##` sections | `two-columns` / `three-columns` |
+| 4 `##` sections | `grid` 2 × 2 |
+| 5–6 / 7–9 `##` sections | `grid` 3 columns / 3 columns compact |
 | everything else | `content` (paginated vertical flow) |
 
 Force a layout: `<!-- layout: split -->` in the slide.
 
+**Rule sets.** Those inference rules are versioned. Compiling a deck written
+before them lists the slides that moved (`LAYOUT_RULES_CHANGED`, info);
+`inference: "1.0"` in the frontmatter freezes the old set, and
+`lutrin migrate deck.md` writes that pin and names the slides it protects. For
+one slide, `<!-- layout: … -->` is still the answer.
+
+**Optional bands.** A paragraph **before** the first `##` becomes a band above
+the columns; a `:::key` **closing** the last section becomes a band below.
+Works on `two-columns`, `three-columns`, `comparison`, `pillars`, `grid`,
+`matrix` and `steps` — no directive, just where you write it. Keep the band to
+one or two blocks.
+
 ### Structured layouts (always on request, never inferred)
 
-Twelve layouts express an **intent** (compare, set milestones, stack, loop…)
+Eighteen layouts express an **intent** (compare, set milestones, stack, loop…)
 that the content alone does not reveal: ask for them with
 `<!-- layout: … -->`. In all of them each `## H2` section becomes a panel /
 milestone / layer / quadrant / cell / step / node, and `<!-- animate -->`
@@ -242,6 +261,11 @@ number of sections does not fit).
 | `venn` | 2 to 4 | overlapping translucent discs; the intersection is the argument |
 | `radial` | 2 to 8 | a hub and its satellites — the **lead paragraph** (before the first `##`) is the hub, each `##` a spoke |
 | `apex` | 2 to 6 | levels stacked into a triangle, the apex first — proportions, priorities. NOT `pyramid`, which is the official layout of bands carrying a heading *and* its paragraph |
+| `matrix` | 2 to 9 | the `grid` mosaic with **real named axes** — `xLabel`, `yLabel`, `xEnds`, `yEnds` live in the layout definition, never in the deck |
+| `columns` | — | the `content` flow **balanced over 2 or 3 columns** — agenda, glossary, appendix. The one structured layout that still paginates |
+| `checklist` | — | a task list as ruled, ticked lines, 1 or 2 columns (also inferred) |
+| `pictogram` | — | isotype chart: `total` units, the share filled in — reads a `:::progress` or a percentage in a paragraph |
+| `annotated` | — | a visual with **numbered callouts** around it, joined by leaders: the image (or chart/mermaid) plus a numbered list, item *n* = callout *n* |
 
 The last five are **diagrams**. Their labels are plain text: bold, italic,
 code, links and badges inside a node are dropped (`SMARTART_TEXT` says so).
@@ -260,7 +284,7 @@ the HTML path.
 
 ### Official layouts (shipped catalog, pure data)
 
-Sixteen named layouts, built on the bases above with parameters
+Twenty-four named layouts, built on the bases above with parameters
 (`packages/core/design/layouts/*.json`), always available — ask for them with
 `<!-- layout: … -->` just like the built-in layouts. They document the bases
 by example:
@@ -283,6 +307,14 @@ by example:
 | `team` | centered grid | one card per person; a kit layout on the same base adds the portraits (`images`) |
 | `risk-map-3` | tinted 3 × 3 grid | the enterprise risk matrix — nine cells, green to red, same reading order as `risk-map` |
 | `okr` | headed grid | objectives and key results — one panel per objective, `:::progress` bars inside |
+| `eisenhower` | matrix 2 × 2 | urgency against importance, axes written out |
+| `effort-impact` | matrix 2 × 2 | effort against impact — pick your battles |
+| `gartner-quadrant` | matrix 2 × 2 | execution against vision — a positioning map |
+| `product-tour` | annotated | a screen or product shot with numbered callouts |
+| `architecture` | annotated, lettered | a diagram called out down one side |
+| `glossary` | columns 2, ruled | a long list balanced over two columns |
+| `share-of` | pictogram | a proportion as filled units, no scale to read |
+| `pricing` | table, zebra | a tariff or feature grid, stub column set apart |
 
 Validation suggests them when the content betrays the intent ("Pros / Cons"
 headings → `pros-cons`, "Probability / Severity" → `risk-map`, "To do /

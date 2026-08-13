@@ -67,6 +67,13 @@ const BUILTINS = [
   'apex',
   'focus',
   'table',
+  // the structured bases of the layouts proposal (§4): never inferred except
+  // where the proposal says so — `checklist` is
+  'checklist',
+  'columns',
+  'matrix',
+  'pictogram',
+  'annotated',
   'code',
   'diagram',
   'chart',
@@ -76,14 +83,21 @@ const BUILTINS = [
 /** Official catalog (design/layouts/*.json), loaded after the built-ins,
  *  in alphabetical order of the files. */
 const OFFICIALS = [
+  'architecture',
   'before-after',
+  'effort-impact',
+  'eisenhower',
   'funnel',
+  'gartner-quadrant',
+  'glossary',
   'journey',
   'kanban',
   'key-message',
   'okr',
   'portfolio',
+  'pricing',
   'priority-matrix',
+  'product-tour',
   'pros-cons',
   'pyramid',
   'raid',
@@ -91,6 +105,7 @@ const OFFICIALS = [
   'risk-map-3',
   'risk-map',
   'roadmap',
+  'share-of',
   'status-list',
   'team',
 ];

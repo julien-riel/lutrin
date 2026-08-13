@@ -339,6 +339,30 @@ function runsWithLosses(token, into) {
   return trimEdgeRuns(runs);
 }
 
+/**
+ * A GitHub task-list marker at the head of a list item: `- [ ] …` or
+ * `- [x] …`. markdown-it emits it as ordinary text, so the marker is read here
+ * and LIFTED OUT of the runs — the box is a state, not three characters of
+ * prose, and leaving it in the text would make every renderer draw "[x] Done".
+ *
+ * Returns the item's runs stripped of the marker plus `checked`, or null when
+ * the item carries no marker. The first run is the only place the marker can
+ * be: anything else (`**[x]** done`, a link, an italic) is a sentence someone
+ * wrote, and reading a state out of it would invent a directive.
+ */
+function taskItem(runs) {
+  const first = runs[0];
+  if (!first || typeof first.text !== 'string' || first.bold || first.italic || first.link)
+    return null;
+  const m = first.text.match(/^\[([ xX])\]\s+/);
+  if (!m) return null;
+  const rest = { ...first, text: first.text.slice(m[0].length) };
+  return {
+    checked: m[1] !== ' ',
+    runs: rest.text ? [rest, ...runs.slice(1)] : runs.slice(1),
+  };
+}
+
 /** The intent an icon's alt slot carries — an ink (`neutral`) and a size
  *  (`large`), in any order.
  *
@@ -1054,7 +1078,15 @@ export function parseDeck(source) {
         if (u.type === 'inline' && para > 0) {
           // nesting level: roughly (token level - base level) / 2
           const lvl = Math.max(0, Math.floor((u.level - t.level - 2) / 2));
-          items.push({ runs: runsWithLosses(u, dropped), level: Math.min(lvl, 2) });
+          const itemRuns = runsWithLosses(u, dropped);
+          const task = taskItem(itemRuns);
+          items.push({
+            runs: task ? task.runs : itemRuns,
+            level: Math.min(lvl, 2),
+            // omitted when there is no marker: a deck that wrote none must not
+            // gain a key, and every golden reads the IR
+            ...(task ? { checked: task.checked } : {}),
+          });
           itemsLine ??= lineOf(u);
         }
         i++;

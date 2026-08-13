@@ -123,13 +123,34 @@ evaluated in this order, and the first one that applies wins:
 | at least 2 `:::metric` blocks, and little else | `metrics` — cards |
 | a lone quote | `quote` |
 | text **and** a visual (image, `chart`, `mermaid`) | `split` — text 42 %, visual 58 % |
+| a lone **task list** (`- [ ]`, `- [x]`) | `checklist` — ticked lines |
+| a lone **numbered list**, 3 to 6 short items | `steps` — a sequence |
+| a lone **nested bullet list** with one root | `hierarchy` — a tree |
+| at least 3 `##` sections, **all dated** ("2026", "Q3", "Phase 2") | `timeline` |
+| at least 3 `##` sections that repeat **the same internal shape** | `grid`, cards |
 | a table (with at most one other block) | `table` |
 | exactly 2 titled `##` sections | `two-columns` |
 | exactly 3 titled `##` sections | `three-columns` |
+| 4 titled `##` sections | `grid`, 2 × 2 |
+| 5 or 6 titled `##` sections | `grid`, 3 columns |
+| 7 to 9 titled `##` sections | `grid`, 3 columns, compact |
 | a lone code block | `code` |
 | a lone Mermaid diagram | `diagram` |
 | a lone chart | `chart` — full area |
 | everything else | `content` — **paginated** vertical flow |
+
+Every one of those signals is something you already write to mean something: a
+checkbox, a numbered list, a date in a heading, the same shape repeated four
+times. No new syntax was added for any of them — the engine reads what is
+written, it does not invent a directive.
+
+**The bounds matter, and they are deliberate.** A numbered list past 6 items,
+or with an item longer than about 12 words, is content and stays a flow. A
+nested list with two roots is two trees side by side — a different intent — and
+stays a flow. A task list wins over the numbered-list rule when both forms are
+on the slide. "The same internal shape" means at least two blocks repeated
+identically block type by block type: three sections of one paragraph each are
+just three columns.
 
 Forcing a layout, when inference does not guess the intent:
 
@@ -158,14 +179,55 @@ deck (`lutrin capabilities <deck.md>`), failing which the kit's layouts and
 those of the neighbouring `layouts/` directory are absent from it even though
 validation does accept them.
 
+### Rule sets, and decks written before them
+
+Promoting an inference rule changes how decks **already written** come out.
+Four things keep that honest, in this order of importance.
+
+**1. The diagnostic.** Every compilation names the slides whose layout would
+have differed under the previous rules:
+
+```
+info  slide 7 — inferred layout: content → grid (rule set 1.1)
+```
+
+That is the real safety net. The rest is the undo button.
+
+**2. The pin.** A deck can freeze the rules it was written against:
+
+```yaml
+---
+inference: "1.0"
+---
+```
+
+What is versioned is the **rule set**, never the engine: a `lutrin:` pin would
+freeze the rendering fixes and the new blocks too, and nobody would ever
+update. A deck that pins nothing gets the latest set — otherwise new decks
+would be born stale. Three sets are maintained (the latest and its two
+predecessors); past that the deck is told so, rather than failing or, worse,
+staying silent.
+
+**3. `lutrin migrate`.** Writes the pin into an existing deck and lists the
+slides it protects:
+
+```bash
+lutrin migrate deck.md            # pin the previous set
+lutrin migrate deck.md --to 1.0   # pin a named set
+lutrin migrate deck.md --dry-run  # print, do not write
+```
+
+**4. The directive.** `<!-- layout: content -->` remains the answer to the
+isolated case. The pin is for volume; the directive is for the exception.
+
 ---
 
 ## Structured layouts (on request)
 
-Thirteen layouts express an **intent** that content alone does not reveal. They
-are **never inferred**: they must be asked for with `<!-- layout: … -->`. In
-all of them, each `## H2` section becomes a panel, a milestone, a layer, a
-quadrant, a step or a node.
+Eighteen layouts express an **intent** that content alone does not reveal. All
+but `checklist` are **never inferred**: they must be asked for with
+`<!-- layout: … -->`. In most of them, each `## H2` section becomes a panel, a
+milestone, a layer, a quadrant, a step or a node.
 
 | Layout | `##` sections | Rendering |
 |---|---|---|
@@ -182,6 +244,11 @@ quadrant, a step or a node.
 | `venn` | 2 to 4 | overlapping translucent discs; the intersection is the argument |
 | `radial` | 2 to 8 | a hub and its satellites — the **lead paragraph** is the hub, each `##` a spoke |
 | `apex` | 2 to 6 | levels stacked into a triangle, the apex first — proportions, priorities |
+| `matrix` | 2 to 9 | the mosaic of `grid`, plus **real named axes** — the labels belong to the layout, not to the deck |
+| `columns` | — | the `content` flow **balanced over 2 or 3 columns** — an agenda, a glossary, an appendix |
+| `checklist` | — | a task list as ticked-off lines, one or two ruled columns (the one structured layout that *is* inferred) |
+| `pictogram` | — | an isotype chart: a hundred units, the share that counts filled in — fed by a `:::progress` or a percentage in a paragraph |
+| `annotated` | — | a visual with **numbered callouts** around it, joined by leaders — the numbered list is the callouts |
 
 The last five are the **diagram layouts**; they have a section of their own
 [below](#diagrams-cycle-hierarchy-venn-radial-apex).
@@ -192,15 +259,60 @@ paragraph. `apex` holds labels alone, so the two are not interchangeable, and
 sharing a name would only hide that. Reach for `pyramid` when each level has
 something to say, `apex` when the levels *are* what you are saying.
 
-Their content is **not paginated**: keep it short. A section count outside the
+Their content is **not paginated**: keep it short. `columns` is the exception,
+and deliberately so — it is a **third overflow behaviour**, between pagination
+and densification: the flow balances over its columns, and what still does not
+fit goes to a "(cont.)" slide as any flow does. A section count outside the
 bounds produces `LAYOUT_SECTIONS` (the surplus will be ignored, a shortfall
 will leave gaps).
+
+### Optional regions: a lead band and a takeaway band
+
+A line of text above two or three columns is **not a layout of its own**:
+`two-columns` with a hat is still `two-columns`. It is a **region**, defined
+once and composed with every layout that deals sections side by side —
+`two-columns`, `three-columns`, `comparison`, `pillars`, `grid`, `matrix` and
+`steps`.
+
+Nothing new to write: the position comes from where you already put it.
+
+| Written in the deck | Rendered |
+|---|---|
+| a paragraph **before** the first `##` | a band **above** — the hat, the framing |
+| a `:::key` **closing** the last section | a band **below** — the block is already called "Takeaway" |
+| both | a sandwich (allowed; not encouraged) |
+
+```markdown
+# Where the money goes
+
+The three figures below are the whole quarter.
+
+## Delivery
+
+Two teams, one pipeline.
+
+## Platform
+
+The compiler, the kits, the tooling.
+
+:::key
+Two thirds buys capacity we keep; the last third buys a promise.
+:::
+```
+
+**Bounds.** One band of at most two blocks, capped at `leadRatio` of the height
+(20 % by default). Three paragraphs are no longer a hat but content: such a
+lead keeps its full unbounded flow and it is the columns that give way.
+Auto-fit applies to a band like to any bounded region, `SLIDE_DENSIFIED`
+included. Kits tune the look with `leadPanel`, `leadRatio` and `leadAlign` —
+enough to derive a briefing, a finding or an executive-summary layout without
+a line of code.
 
 ---
 
 ## Official layouts
 
-Sixteen layouts shipped with the compiler
+Twenty-four layouts shipped with the compiler
 (`packages/core/design/layouts/*.json`). They are parameterized structured
 layouts — **data**, not code — and they are always available.
 
@@ -222,12 +334,23 @@ layouts — **data**, not code — and they are always available.
 | `team` | grid, centered | one card per person: name as the heading, role below — a kit layout on the same base adds the portraits (`images`) |
 | `risk-map-3` | grid 3 × 3, tinted | the enterprise risk matrix: nine cells from green to red, same reading order as `risk-map` |
 | `okr` | grid, headed | objectives and key results — one panel per objective, `:::progress` bars inside |
+| `eisenhower` | matrix 2 × 2 | urgency against importance, the axes written out |
+| `effort-impact` | matrix 2 × 2 | effort against impact — the pick-your-battles grid |
+| `gartner-quadrant` | matrix 2 × 2 | execution against vision, a positioning map |
+| `product-tour` | annotated | a screen or product shot with numbered callouts around it |
+| `architecture` | annotated, lettered | a diagram with its parts called out down one side |
+| `glossary` | columns 2, ruled | a long list balanced over two columns |
+| `share-of` | pictogram | a proportion drawn as filled units, no scale to read |
+| `pricing` | table, zebra | a tariff or feature grid, the stub column set apart |
 
 Validation **suggests** them when the content betrays the intent: sections
 "Pros" / "Cons" propose `pros-cons`, headings "Probability" / "Severity"
-ordered from benign to critical propose `risk-map`, four sections in the
-canonical order propose `swot`, and titles starting with a date or "Phase 2"
-propose `timeline` (the `LAYOUT_SUGGESTION` diagnostic).
+ordered from benign to critical propose `risk-map`, and four sections in the
+canonical order propose `swot` (the `LAYOUT_SUGGESTION` diagnostic). A
+suggestion the engine has already acted on is not repeated: three dated
+headings are *inferred* as `timeline` since rule set 1.1, so they draw
+`LAYOUT_RULES_CHANGED` rather than advice to write a directive that would
+change nothing.
 
 Exact definitions: `capabilities().officialLayouts`.
 
@@ -270,17 +393,34 @@ Parameters published by the bases (exact types, domains and defaults in
 | `hero` | `image` (`kit:<alias>`) |
 | `section` | `image` (`kit:<alias>`) |
 | `metrics` | `max` (1–6, default 4), `cardHeight` (120–320 px, default 176), `align` |
-| `comparison` | `panels` (list of variants), `pad` (0–48 px), `density`, `radius` |
-| `pillars` | `panels`, `accent` (boolean), `density`, `radius` |
+| `comparison` | `panels` (list of variants), `pad` (0–48 px), `density`, `radius`, the band parameters |
+| `pillars` | `panels`, `accent` (boolean), `density`, `radius`, the band parameters |
 | `timeline` | `dot` (20–48 px), `arrow`, `numbered`, `orientation` (`horizontal`/`vertical`) |
 | `layers` | `ratios`, `shades`, `shape` (`stack`/`funnel`/`pyramid`), `density` |
 | `swot` | `kinds` (tint per quadrant), `density` |
-| `grid` | `cols` (1–4), `panels`, `kinds`, `spans`, `headed`, `images` (`kit:<alias>` list), `density`, `radius`, `align` |
-| `steps` | `connector` (`arrow`/`line`/`none`), `panels`, `density`, `radius` |
+| `grid` | `cols` (1–4), `panels`, `kinds`, `spans`, `headed`, `images` (`kit:<alias>` list), `density`, `radius`, `align`, the band parameters |
+| `steps` | `connector` (`arrow`/`line`/`none`), `panels`, `density`, `radius`, the band parameters |
+| `two-columns`, `three-columns` | the band parameters only |
 | `content` | `density`, `align` |
+| `table` | `zebra` (boolean), `emphasis` (`header`/`first-column`/`both`/`none`), `density` |
+| `matrix` | `cols` (2–3), `xLabel`, `yLabel`, `xEnds`, `yEnds`, `axes` (`arrows`/`rules`/`none`), `panels`, `kinds`, `density`, `radius` |
+| `columns` | `cols` (2–3), `balance` (`balanced`/`sequential`), `rule`, `density` |
+| `checklist` | `cols` (1–2), `rule` (boolean), `density` |
+| `pictogram` | `total` (4–400), `cols` (2–40), `shape` (`disc`/`square`), `kind` |
+| `annotated` | `markers` (`numbers`/`letters`/`dots`), `side` (`both`/`left`/`right`), `leader`, `ratio` (0.3–0.7), `density` |
 | `focus` | `align` (default `center`), `accent`, `scale` (0.5–2.5) |
 | `cycle` | `numbered` (boolean, default `true`) |
 | `venn` | `overlap` (0–0.6, default 0.32 — the share of a disc its neighbour covers) |
+
+"The band parameters" are `leadPanel`, `leadRatio` and `leadAlign` — the
+optional regions described [above](#optional-regions-a-lead-band-and-a-takeaway-band).
+They ride on every base that deals sections side by side, so a hat or a
+takeaway is defined once and composes, instead of being duplicated as one
+layout per combination.
+
+The axis labels of `matrix` belong to the **layout definition**, never to the
+deck. The intent of an Eisenhower box *is* urgency × importance, exactly as it
+is a colour the deck does not write either.
 
 `hierarchy` and `radial` publish no parameter: a tree and a wheel have nothing
 to configure that is not already in the content. Nor do any of the four take
@@ -431,6 +571,20 @@ properties carry no OpenType feature switch, and the only OOXML mechanism that
 would do it — a decimal tab stop — means writing tab characters into the cells.
 The default body face (Arial) has tabular figures anyway, so the two outputs
 agree unless a kit ships a font with proportional digits.
+
+A list item that opens with a checkbox is a **task**: the box is a state, not
+three characters of prose, and it replaces the bullet marker in both outputs
+(a real `☐`/`☑` bullet in the `.pptx`, so it stays editable). A ticked line
+steps back into the secondary ink — done is context, not the point of the
+slide. A task list alone on a slide is inferred as `checklist`.
+
+```markdown
+- [x] Read the checkbox in the parser
+- [ ] Document the rule
+```
+
+Only the head of an item is read this way. `**[x]** done` is a sentence
+somebody wrote, and reading a state out of it would invent a directive.
 
 Inside a sentence, `==Action==` marks a **badge** — a status word set off from
 the prose, tinted by an optional prefix (`==!At risk==`). See
@@ -1163,7 +1317,10 @@ The main ones:
 | `COVER_NOTES_ORPHAN` | warning | frontmatter `notes:` with no cover to carry it — no `title:`, or a Marp deck |
 | `KIT_*`, `THEME_*` | error/warning | kit not found or invalid theme entry |
 | `THEME_CONTRAST` | warning | WCAG threshold not met by the applied theme |
-| `LAYOUT_SUGGESTION` | info | the content betrays a structured intent |
+| `LAYOUT_SUGGESTION` | info | the content betrays a structured intent the engine has not already acted on |
+| `LAYOUT_RULES_CHANGED` | info | this slide's inferred layout differs from what the previous rule set would have given |
+| `INFERENCE_RULES_RETIRED` | warning | the pinned rule set is no longer maintained — the oldest maintained one applies |
+| `INFERENCE_RULES_UNKNOWN` | warning | `inference:` names a set that does not exist — the latest applies |
 | `SLIDE_PAGINATED` | info | the slide is split into "(cont.)" |
 | `SLIDE_DENSIFIED` | info | a region was re-flowed a step down the text scale to fit |
 | `IMAGE_UPSCALED` | info | local image stretched beyond its native size |

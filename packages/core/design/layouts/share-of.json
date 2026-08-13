@@ -1,0 +1,8 @@
+{
+  "name": "share-of",
+  "base": "pictogram",
+  "total": 100,
+  "cols": 10,
+  "shape": "disc",
+  "description": "A hundred units, the share of them that counts filled in — a proportion with no scale to read."
+}

@@ -1,0 +1,9 @@
+{
+  "name": "glossary",
+  "base": "columns",
+  "cols": 2,
+  "balance": "balanced",
+  "rule": true,
+  "density": "compact",
+  "description": "A long list balanced over two ruled columns — a glossary, an index, an appendix."
+}

@@ -9,6 +9,7 @@
  *   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
  *   lutrin edit [directory] [--port 4323]
  *   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
+  lutrin migrate <input.md> [--to <rule-set>] [--dry-run]
  *   lutrin inspect <input.md> [-o output.json] [--kit <kit|file.json|directory>]
  *   lutrin vendor <input.md> [--kit <kit|file.json|directory>]
  *   lutrin config [--kit <kit|file.json|none>] [--unset]
@@ -53,7 +54,12 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDeck } from './deck/parse.mjs';
-import { buildScenes } from './deck/layout.mjs';
+import {
+  buildScenes,
+  LATEST_INFERENCE,
+  maintainedInferenceRules,
+  previousInferenceRules,
+} from './deck/layout.mjs';
 import { prepareDeckContext } from './deck/context.mjs';
 import { FONTS } from './deck/tokens.mjs';
 import { closest } from './deck/suggest.mjs';
@@ -93,6 +99,7 @@ const COMMANDS = [
   'preview',
   'edit',
   'validate',
+  'migrate',
   'inspect',
   'capabilities',
   'config',
@@ -108,6 +115,7 @@ const USAGE = `Usage:
   lutrin preview <input.md> [--port 4321] [--kit <kit|file.json|directory>]
   lutrin edit [directory] [--port 4323]
   lutrin validate <input.md> [--json] [--kit <kit|file.json|directory>]
+  lutrin migrate <input.md> [--to <rule-set>] [--dry-run]
   lutrin inspect <input.md> [-o output.json] [--kit <kit|file.json|directory>]
   lutrin vendor <input.md> [--kit <kit|file.json|directory>]
   lutrin config [--kit <kit|file.json|none>] [--unset]
@@ -161,6 +169,10 @@ function printVersion() {
  * understood is said.
  */
 const FLAGS_KIT = { kit: 'value', theme: 'value' }; // `--theme`: deprecated alias
+/** Codes whose `suggestion` is a LAYOUT NAME the message already spells out —
+ *  a quick-fix target for the editor, never a "did you mean" for a reader. */
+const LAYOUT_HINT_CODES = new Set(['LAYOUT_SUGGESTION', 'LAYOUT_RULES_CHANGED']);
+
 const FLAG_SPECS = {
   // `--force` overwrites an existing deck — same word, same meaning as on
   // `build` and `kit install`
@@ -184,6 +196,10 @@ const FLAG_SPECS = {
   // its own kit from its frontmatter and surroundings, like a build would
   edit: { port: 'value' },
   validate: { ...FLAGS_KIT, json: 'boolean' },
+  // `migrate` writes the `inference:` pin into a deck: no kit flags — the
+  // rule set is a property of the DECK, and the kit it is rendered with has
+  // nothing to say about which layouts get inferred
+  migrate: { to: 'value', 'dry-run': 'boolean' },
   // no `ir` here: on `inspect`, the flag never did anything — the command IS
   // the dump. It is kept only on `build` (compatibility with the old `--ir`,
   // removed from argv before delegating); elsewhere the strict parser refuses
@@ -393,7 +409,7 @@ const prepareOutputDir = (output) =>
 /** A deck's diagnostics, printed in the shape `validate` uses. */
 const printDiagnostic = (input, d) => {
   const hint =
-    d.suggestion && d.code !== 'LAYOUT_SUGGESTION' ? ` (did you mean "${d.suggestion}"?)` : '';
+    d.suggestion && !LAYOUT_HINT_CODES.has(d.code) ? ` (did you mean "${d.suggestion}"?)` : '';
   // a RENDER diagnostic attaches to no line of the source: the file name alone
   // is better than "deck.md:undefined"
   const where = d.line == null ? input : `${input}:${d.line}`;
@@ -685,10 +701,10 @@ function cmdValidate(argv) {
     console.log(`✓ ${input} — no diagnostics`);
   } else {
     for (const d of diagnostics) {
-      // LAYOUT_SUGGESTION: the suggestion is a recommendation already stated in
-      // the message, not the correction of a typo
+      // LAYOUT_SUGGESTION / LAYOUT_RULES_CHANGED: the suggestion is a LAYOUT
+      // NAME the message already spells out, not the correction of a typo
       const hint =
-        d.suggestion && d.code !== 'LAYOUT_SUGGESTION' ? ` (did you mean "${d.suggestion}"?)` : '';
+        d.suggestion && !LAYOUT_HINT_CODES.has(d.code) ? ` (did you mean "${d.suggestion}"?)` : '';
       console.log(
         `${input}:${d.line} ${SEVERITY_ICON[d.severity]} ${d.severity} ${d.code}\n  ${d.message}${hint}`,
       );
@@ -699,6 +715,71 @@ function cmdValidate(argv) {
     );
   }
   process.exit(errors ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
+// migrate — pin an existing deck to a rule set (proposal §5.3)
+//
+// The escape hatch has to fit in one command. `lutrin migrate deck.md` writes
+// `inference: "<previous set>"` into the frontmatter and names the slides that
+// would have moved without it: the deck goes on rendering exactly as it did,
+// and the author has the list of what to look at when they are ready.
+//
+// What is pinned is the RULE SET, never the engine: `lutrin: "1.2"` would
+// freeze the rendering fixes and the new blocks too, and nobody would update.
+// ---------------------------------------------------------------------------
+
+function cmdMigrate(argv) {
+  const args = parseArgs(argv, FLAG_SPECS.migrate);
+  const input = requireInput(args);
+  const source = readSource(input);
+  const kept = maintainedInferenceRules();
+  const to = args.to ?? previousInferenceRules(LATEST_INFERENCE) ?? LATEST_INFERENCE;
+  if (!kept.includes(to))
+    fail(`unknown or retired rule set "${to}" — maintained sets: ${kept.join(', ')}`);
+
+  const deck = parseDeck(source);
+  if (deck.meta.inference != null)
+    fail(
+      `${input} already pins inference: "${deck.meta.inference}" — edit the frontmatter line to change it.`,
+    );
+
+  // what the pin is FOR: the slides the latest set would have laid out
+  // differently. Read from the validator so the CLI and the editor name the
+  // same slides, from one rule.
+  const moved = validateDeck(source, { baseDir: baseDirOf(input) }).filter(
+    (d) => d.code === 'LAYOUT_RULES_CHANGED',
+  );
+
+  // frontmatter first, or a frontmatter created for the occasion — a deck
+  // whose whole content is a `# heading` has nowhere to write the key yet
+  const eol = source.includes('\r\n') ? '\r\n' : '\n';
+  const fm = source.match(/^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/);
+  const line = `inference: "${to}"`;
+  // the key goes in just above the closing `---`, so the deck's own keys keep
+  // the order their author gave them
+  const head = fm ? source.slice(0, fm[0].length - fm[2].length - 3) : '';
+  const next = fm
+    ? `${head}${line}${eol}---${fm[2]}${source.slice(fm[0].length)}`
+    : `---${eol}${line}${eol}---${eol}${eol}${source}`;
+
+  if (args['dry-run']) {
+    console.log(next);
+  } else {
+    fs.writeFileSync(input, next);
+    console.log(`✓ ${input} — pinned to inference rule set "${to}"`);
+  }
+  if (!moved.length) {
+    console.log('  no slide would have changed layout under the latest rules.');
+    return;
+  }
+  console.log(
+    `  ${moved.length} slide${moved.length !== 1 ? 's' : ''} would have changed layout without the pin:`,
+  );
+  // the headline of the diagnostic, without its remedy: the remedy is the
+  // command the author just ran
+  for (const d of moved)
+    console.log(`  ${input}:${d.line} ${d.message.replace(/\. Pin the[\s\S]*$/, '')}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1706,6 +1787,9 @@ try {
       break;
     case 'validate':
       cmdValidate(rest2);
+      break;
+    case 'migrate':
+      cmdMigrate(rest2);
       break;
     case 'inspect':
       cmdInspect(rest2);

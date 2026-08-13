@@ -25,6 +25,11 @@ import {
   buildScenes,
   blockHeight,
   inferLayout,
+  inferenceRuleSet,
+  previousInferenceRules,
+  maintainedInferenceRules,
+  INFERENCE_RULES,
+  LATEST_INFERENCE,
   LAYOUTS,
   LAYOUT_SECTIONS,
   OVERFLOW_TOLERANCE,
@@ -283,6 +288,38 @@ export function validateDeck(
       metaLine('animate'),
       closest(String(deck.meta.animate), ANIM_CANDIDATES) ?? undefined,
     );
+  }
+
+  // ------ inference rule set (proposal §5) ----------------------------------
+  //
+  // Promoting an inference rule silently changes the rendering of decks
+  // already written, and THE DIAGNOSTIC IS THE REAL SAFETY NET — the pin is
+  // only the undo button. Every slide whose layout would have differed under
+  // the previous rule set is named here, at info level: the author sees what
+  // moved, on the line it moved on, and decides.
+  const { rules: activeRules, diag: rulesDiag } = inferenceRuleSet(deck.meta);
+  if (rulesDiag) push('warning', rulesDiag.code, rulesDiag.message, metaLine('inference'));
+  {
+    const before = previousInferenceRules(activeRules);
+    if (before) {
+      for (const slide of deck.slides) {
+        if (slide.layout) continue; // an explicit directive never moved
+        const at = deck.slides.indexOf(slide) === 0 && !deck.meta?.title ? 0 : 1;
+        const now = inferLayout(slide, at, activeRules);
+        const was = inferLayout(slide, at, before);
+        if (now === was) continue;
+        push(
+          'info',
+          'LAYOUT_RULES_CHANGED',
+          `Inferred layout: ${was} → ${now} (rule set ${activeRules}). Pin the previous set with \`inference: "${before}"\` in the frontmatter to keep the old rendering, or \`<!-- layout: ${was} -->\` on this slide alone.`,
+          slide.line,
+          // the suggestion is the OLD layout, because that is the actionable
+          // fix: a quick-fix inserting the layout the engine already picked
+          // would write a directive that changes nothing
+          was,
+        );
+      }
+    }
   }
 
   // `agenda:` asks buildScenes to synthesize the agenda slide from the
@@ -873,7 +910,11 @@ export function validateDeck(
       layout = 'timeline';
       why = 'dated milestones';
     }
-    if (layout) {
+    // A suggestion the engine has already acted on is noise: since rule set
+    // 1.1, dated headings are INFERRED as `timeline` (proposal §2.6), and
+    // advising a directive that would change nothing sends the author to look
+    // for a difference there is none of.
+    if (layout && layout !== inferLayout(slide, 1, activeRules)) {
       push(
         'info',
         'LAYOUT_SUGGESTION',
@@ -1092,10 +1133,21 @@ export function capabilities() {
       // divider the "you are here" rail; a string value names the slide
       'agenda',
       'animate',
+      // `inference: "1.0"` freezes the INFERENCE RULE SET the deck was written
+      // against — never the engine, so the rendering fixes and the new blocks
+      // keep arriving. Absent = the latest set.
+      'inference',
       'kit',
       'assets',
       'marp',
     ],
+    // the versioned inference rule sets: what `inference:` may name, which of
+    // them are still honoured, and which one an unpinned deck gets
+    inferenceRules: {
+      all: [...INFERENCE_RULES],
+      maintained: maintainedInferenceRules(),
+      latest: LATEST_INFERENCE,
+    },
     outputs: ['pptx', 'html'],
     marp:
       '`marp: true` (frontmatter) reads the deck as Marp Markdown (Marpit + Marp Core): slides split on ' +
@@ -1186,6 +1238,9 @@ export function capabilities() {
       'SLIDE_DENSIFIED',
       'BLOCK_OVERFLOW',
       'LAYOUT_SUGGESTION',
+      'LAYOUT_RULES_CHANGED',
+      'INFERENCE_RULES_RETIRED',
+      'INFERENCE_RULES_UNKNOWN',
       'IMAGE_UPSCALED',
       'ALERT_CONTENT_DROPPED',
       // both were pushed by the validator and listed nowhere: an agent reading

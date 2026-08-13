@@ -51,6 +51,7 @@ import {
   composite,
   panelRadius,
   panelStyle,
+  pictogramGeometry,
   progressLayout,
   sectionAgendaLayout,
   sourceLineBox,
@@ -222,7 +223,9 @@ function htmlBullets(block, r) {
       out += `</${tag}>`;
       level--;
     }
-    out += `<li>${runsHtml(it.runs)}</li>`;
+    // a task item drops the bullet marker for a box: the state IS the marker
+    const task = it.checked == null ? '' : ` class="task${it.checked ? ' done' : ''}"`;
+    out += `<li${task}>${runsHtml(it.runs)}</li>`;
   }
   while (level >= 0) {
     out += `</${tag}>`;
@@ -268,13 +271,23 @@ function cellStyle(block, k, isHeader = false) {
 }
 
 function htmlTable(block, r) {
+  // `emphasis` (the `table` base's parameter): which band of the table is set
+  // apart. `header` is the historical behaviour and stays the default, so a
+  // deck that asked for nothing renders exactly as it did.
+  const em = block.emphasis ?? 'header';
+  const stub = em === 'first-column' || em === 'both';
+  const noHead = em === 'first-column' || em === 'none';
   const row = (cells, tag) =>
     `<tr>${cells
-      .map((c, k) => `<${tag}${cellStyle(block, k, tag === 'th')}>${runsHtml(c)}</${tag}>`)
+      .map(
+        (c, k) =>
+          `<${tag}${stub && k === 0 && tag === 'td' ? ' class="stub"' : ''}${cellStyle(block, k, tag === 'th')}>${runsHtml(c)}</${tag}>`,
+      )
       .join('')}</tr>`;
   const head = block.header.length ? `<thead>${row(block.header, 'th')}</thead>` : '';
   const body = block.rows.map((cells) => row(cells, 'td')).join('');
-  return `<table class="table el" style="${at(r)}${sizeCss(block)}${ink(block)}">${head}<tbody>${body}</tbody></table>`;
+  const cls = `table el${block.zebra ? ' zebra' : ''}${noHead ? ' flat-head' : ''}`;
+  return `<table class="${cls}" style="${at(r)}${sizeCss(block)}${ink(block)}">${head}<tbody>${body}</tbody></table>`;
 }
 
 function htmlAlert(block, r) {
@@ -391,13 +404,34 @@ function htmlPanel(block, r) {
 
 function htmlTimelineAxis(block, r) {
   const arrow = block.arrow !== false;
-  const cls = `${block.vertical ? 'tl-axis-v' : 'tl-axis'}${arrow ? '' : ' tl-no-arrow'}`;
+  // `hairline`: the separating rule of a checklist line, of a column gutter,
+  // the leader of a callout — the same 1 px object, drawn in the stroke ink
+  // rather than in the axis's, because it separates instead of directing
+  const cls =
+    `${block.vertical ? 'tl-axis-v' : 'tl-axis'}${arrow ? '' : ' tl-no-arrow'}` +
+    `${block.hairline ? ' tl-hairline' : ''}${block.up ? ' tl-up' : ''}`;
   const head = arrow ? `<div class="${block.vertical ? 'tl-arrow-v' : 'tl-arrow'}"></div>` : '';
   return `<div class="${cls} el" style="${at(r, true)}">${head}</div>`;
 }
 
 function htmlTimelineDot(block, r) {
-  return `<div class="tl-dot el" style="${at(r, true)}">${block.numbered === false ? '' : block.index}</div>`;
+  // `label`: a callout marker showing a letter rather than its rank
+  const text = block.numbered === false ? '' : esc(String(block.label ?? block.index));
+  return `<div class="tl-dot el" style="${at(r, true)}">${text}</div>`;
+}
+
+function htmlPictogram(block, r) {
+  const g = pictogramGeometry(block, r.w, r.h);
+  const on = SEMANTIC[block.kind]?.solid ?? COLORS.primary;
+  const off = COLORS.underground2;
+  const shapes = g.units
+    .map((u) =>
+      block.shape === 'square'
+        ? `<rect x="${u.x.toFixed(1)}" y="${u.y.toFixed(1)}" width="${u.d.toFixed(1)}" height="${u.d.toFixed(1)}" rx="${(u.d * 0.16).toFixed(1)}" fill="#${u.on ? on : off}"/>`
+        : `<circle cx="${(u.x + u.d / 2).toFixed(1)}" cy="${(u.y + u.d / 2).toFixed(1)}" r="${(u.d / 2).toFixed(1)}" fill="#${u.on ? on : off}"/>`,
+    )
+    .join('');
+  return `<div class="figure el" style="${at(r, true)}"><svg width="${Math.round(r.w)}" height="${Math.round(r.h)}" viewBox="0 0 ${Math.round(r.w)} ${Math.round(r.h)}" role="img" aria-label="${esc(`${block.filled} out of ${block.total}${block.label ? ` — ${block.label}` : ''}`)}">${shapes}</svg></div>`;
 }
 
 /** A diagram: one inline SVG at the region's EXACT size, in one top-level
@@ -501,6 +535,7 @@ export const BLOCK_RENDERERS = {
   'timeline-axis': htmlTimelineAxis,
   'timeline-dot': htmlTimelineDot,
   smartart: htmlSmartArt,
+  pictogram: htmlPictogram,
 };
 
 // ---------------------------------------------------------------------------
@@ -756,6 +791,13 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .bullets ul ul,.bullets ol ol,.bullets ul ol,.bullets ol ul{font-size:${TYPE.bulletNested}pt;margin-top:6px}
 .bullets li{margin-bottom:6px}
 .bullets li::marker{color:#${C.neutralSecondary}}
+/* task list: the box replaces the marker, and a ticked line
+   is set in the secondary ink — done is context, not the point of the slide */
+.bullets li.task{list-style:none;position:relative}
+.bullets li.task::before{content:"";position:absolute;left:-24px;top:0.15em;width:0.85em;height:0.85em;border:2px solid #${C.neutralTertiary};border-radius:${ROUNDED.sm}px;box-sizing:border-box}
+.bullets li.task.done::before{background:#${C.primary};border-color:#${C.primary}}
+.bullets li.task.done::after{content:"";position:absolute;left:-21px;top:0.3em;width:0.28em;height:0.55em;border:solid #${C.ground};border-width:0 2px 2px 0;transform:rotate(42deg)}
+.bullets li.task.done{color:#${C.neutralSecondary}}
 .code{background:#${C.underground1};border:1px solid #${C.neutralStroke};border-radius:8px;padding:${SPACE.xs}px ${SPACE.sm}px;font-family:"${FONTS.mono}",monospace;font-size:${TYPE.code}pt;line-height:1.3;color:#${C.neutralPrimary};overflow:hidden;white-space:pre}
 .hl-kw{color:#${C.primaryDarker};font-weight:700}
 .hl-str{color:#${C.positiveDark}}
@@ -763,6 +805,12 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .table{border-collapse:collapse;font-size:${TYPE.tableBody}pt}
 .table th{background:#${C.underground1};font-weight:700;text-align:left}
 .table th,.table td{border-bottom:1px solid #${C.neutralStroke};padding:7px 8px;vertical-align:middle}
+/* the table base's parameters — the whole table family without a second
+   placement engine: zebra rows, a stub column set apart, a flat header */
+.table.zebra tbody tr:nth-child(even) td{background:#${C.underground1}}
+.table.flat-head th{background:transparent}
+.table td.stub{font-weight:700;background:#${C.underground1}}
+.table.zebra td.stub{background:#${C.underground2}}
 .alert{border-radius:4px;padding:${SPACE.xs}px ${SPACE.sm}px;font-size:${TYPE.body}pt;line-height:1.3;overflow:hidden}
 .alert-label{font-size:${TYPE.small}pt;font-weight:700;margin-bottom:2px}
 .alert p{margin:0}
@@ -815,6 +863,13 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .tl-axis-v.tl-no-arrow{background-size:2px 100%}
 .tl-arrow-v{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:0;border-top:14px solid #${C.neutralStroke};border-left:7px solid transparent;border-right:7px solid transparent}
 .tl-dot{display:flex;align-items:center;justify-content:center;background:#${C.primary};color:#${C.ground};border:2px solid #${C.ground};border-radius:50%;font-size:${TYPE.metricLabel}pt;font-weight:700;box-sizing:border-box}
+/* the vertical axis of a matrix points UP: on a matrix "more" is at the top */
+.tl-axis-v.tl-up{background-position:50% 100%}
+.tl-axis-v.tl-up .tl-arrow-v{bottom:auto;top:0;border-top:none;border-bottom:14px solid #${C.neutralStroke}}
+/* a HAIRLINE separates instead of directing: the rule under a checklist line,
+   a column gutter, the leader of a callout */
+.tl-hairline{background:#${C.neutralStroke}!important;opacity:.7}
+.tl-hairline .tl-arrow,.tl-hairline .tl-arrow-v{display:none}
 /* same host-default hazard as "code" above: the webview paints blockquote
    with --vscode-textBlockQuote-background and a left border — neutralized
    explicitly */

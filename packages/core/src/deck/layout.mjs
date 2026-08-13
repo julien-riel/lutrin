@@ -235,6 +235,38 @@ const densityParam = () => ({
   description: 'text scale of the blocks placed in the regions: comfortable, compact or dense',
 });
 
+/**
+ * OPTIONAL REGIONS (proposal §3) — the transversal brick.
+ *
+ * A line of text above two or three columns is NOT a layout of its own:
+ * `two-columns` with a lead is still `two-columns`. The band is defined ONCE,
+ * here, and composes with every generator that places sections side by side —
+ * two-columns, three-columns, grid, pillars, steps, comparison, columns,
+ * matrix. One family gained instead of one layout per combination.
+ *
+ * Its POSITION comes from the source, never from a parameter: a paragraph
+ * before the first `##` is a lead band on top, a `:::key` closing the last
+ * section is a takeaway band underneath (the block is already called
+ * "Takeaway"). These parameters only decide how the band LOOKS — which is a
+ * kit's business, exactly like a panel variant.
+ */
+const leadParams = () => ({
+  leadPanel: {
+    type: 'enum',
+    values: ['none', ...PANEL_VARIANTS],
+    default: 'none',
+    description: 'panel drawn behind the lead / takeaway band (default: no surface)',
+  },
+  leadRatio: {
+    type: 'number',
+    min: 0.08,
+    max: 0.32,
+    default: 0.2,
+    description: 'cap on the share of the height a band may take — past it the columns densify',
+  },
+  leadAlign: alignParam('the text of the lead / takeaway band'),
+});
+
 /** A kit image placed by the LAYOUT rather than written in the deck — the
  *  branded visual of a split, the background of a hero. The value designates
  *  an alias of the active kit (`kit:<alias>`, checkParam refuses any other
@@ -395,6 +427,22 @@ function checkParam(layoutName, key, spec, value) {
       if (value < spec.min || value > spec.max)
         fail(`${value} outside the domain ${spec.min}–${spec.max}`);
       return value;
+    case 'text': {
+      // A LABEL the layout owns — an axis name, never prose. Bounded and
+      // stripped of markup on purpose: a definition file is data, and a
+      // parameter that could carry a paragraph would be a second content
+      // channel beside the deck, which the DSL deliberately does not have.
+      if (typeof value !== 'string') fail('text expected');
+      const t = value.trim().replace(/\s+/g, ' ');
+      if (t.length > 48) fail('text too long (48 characters maximum)');
+      return t;
+    }
+    case 'text-list': {
+      if (!Array.isArray(value)) fail('list of texts expected');
+      if (spec.items && value.length !== spec.items) fail(`exactly ${spec.items} values expected`);
+      if (value.length > 16) fail('list too long (16 values maximum)');
+      return value.map((v) => checkParam(layoutName, key, { type: 'text' }, v));
+    }
     case 'enum': {
       if (typeof value !== 'string' || !spec.values.includes(value)) {
         const hint = typeof value === 'string' ? closest(value, spec.values) : null;
@@ -700,11 +748,13 @@ export function registerLayout(def) {
     name: 'two-columns',
     description: 'two equal columns, one ## section each',
     sections: { min: 2, max: 2 },
+    paramSchema: leadParams(),
   },
   {
     name: 'three-columns',
     description: 'three equal columns, one ## section each',
     sections: { min: 3, max: 3 },
+    paramSchema: leadParams(),
   },
   {
     name: 'comparison',
@@ -722,6 +772,7 @@ export function registerLayout(def) {
       },
       density: densityParam(),
       radius: radiusParam(),
+      ...leadParams(),
     },
   },
   {
@@ -733,6 +784,7 @@ export function registerLayout(def) {
       accent: { type: 'boolean', default: true, description: 'accent bar at the top of pillars' },
       density: densityParam(),
       radius: radiusParam(),
+      ...leadParams(),
     },
   },
   {
@@ -854,6 +906,7 @@ export function registerLayout(def) {
       density: densityParam(),
       radius: radiusParam(),
       align: alignParam('the text inside the cells'),
+      ...leadParams(),
     },
   },
   {
@@ -870,6 +923,7 @@ export function registerLayout(def) {
       panels: panelsParam(['muted'], 'step'),
       density: densityParam(),
       radius: radiusParam(),
+      ...leadParams(),
     },
   },
   // ---- Diagram layouts -----------------------------------------------------
@@ -953,7 +1007,214 @@ export function registerLayout(def) {
       },
     },
   },
-  { name: 'table', description: 'a slide-wide table from the markdown table' },
+  {
+    // A base with parameters, not a new placement engine (proposal §4): the
+    // whole table family a kit could want — zebra rows, a stub column set
+    // apart, a dense pricing grid — comes out of three settings stamped on the
+    // block the Markdown already produced.
+    name: 'table',
+    description: 'a slide-wide table from the markdown table',
+    paramSchema: {
+      zebra: {
+        type: 'boolean',
+        default: false,
+        description: 'tint every other row',
+      },
+      emphasis: {
+        type: 'enum',
+        values: ['header', 'first-column', 'both', 'none'],
+        default: 'header',
+        description: 'which band of the table is set apart: the header row, the stub column, both',
+      },
+      density: densityParam(),
+    },
+  },
+  // ---- Structured bases (proposal §4) --------------------------------------
+  //
+  // Never inferred except where the proposal says so: a base expresses an
+  // intent — to check off, to place on two axes, to point AT something in a
+  // picture — that the content alone does not reveal.
+  {
+    name: 'checklist',
+    description: 'a task list as ticked-off lines, one or two columns',
+    paramSchema: {
+      cols: {
+        type: 'number',
+        min: 1,
+        max: 2,
+        integer: true,
+        default: 1,
+        description: 'number of columns the items are dealt into',
+      },
+      rule: {
+        type: 'boolean',
+        default: true,
+        description: 'hairline under each line',
+      },
+      density: densityParam(),
+    },
+  },
+  {
+    // The THIRD overflow behaviour (proposal §4): between pagination and
+    // densification, the same vertical flow balanced over 2 or 3 columns. It
+    // paginates like `content` when even the columns overflow — an agenda, a
+    // glossary, an appendix is a flow, and a flow always has somewhere to go.
+    name: 'columns',
+    description: 'the content flow balanced over two or three columns',
+    paramSchema: {
+      cols: {
+        type: 'number',
+        min: 2,
+        max: 3,
+        integer: true,
+        default: 2,
+        description: 'number of columns the flow is balanced over',
+      },
+      balance: {
+        type: 'enum',
+        values: ['balanced', 'sequential'],
+        default: 'balanced',
+        description:
+          'balanced (equal heights, newspaper) or sequential (fill a column, then the next)',
+      },
+      rule: {
+        type: 'boolean',
+        default: false,
+        description: 'hairline between the columns',
+      },
+      density: densityParam(),
+    },
+  },
+  {
+    // `priority-matrix` and `risk-map` draw the cells and never write "effort"
+    // or "impact" anywhere. The axis labels belong to the LAYOUT, not to the
+    // deck: the intent IS effort/impact, exactly as it is a colour the deck
+    // does not write either.
+    name: 'matrix',
+    description: 'a 2 × 2 (or 3 × 3) grid with named axes',
+    sections: { min: 2, max: 9 },
+    paramSchema: {
+      cols: {
+        type: 'number',
+        min: 2,
+        max: 3,
+        integer: true,
+        default: 2,
+        description: 'columns of the matrix (2 × 2 or 3 × 3)',
+      },
+      xLabel: {
+        type: 'text',
+        default: '',
+        description: 'name of the horizontal axis (e.g. "Effort")',
+      },
+      yLabel: {
+        type: 'text',
+        default: '',
+        description: 'name of the vertical axis (e.g. "Impact")',
+      },
+      xEnds: {
+        type: 'text-list',
+        items: 2,
+        default: null,
+        description: 'the two ends of the horizontal axis, low then high',
+      },
+      yEnds: {
+        type: 'text-list',
+        items: 2,
+        default: null,
+        description: 'the two ends of the vertical axis, low then high',
+      },
+      axes: {
+        type: 'enum',
+        values: ['arrows', 'rules', 'none'],
+        default: 'arrows',
+        description: 'how the axes are drawn: arrows, plain rules or nothing',
+      },
+      panels: panelsParam(['muted'], 'cell'),
+      kinds: {
+        type: 'enum-list',
+        values: SEMANTIC_KINDS,
+        default: null,
+        description: 'semantic tints per cell, cycling (takes precedence over panels)',
+      },
+      density: densityParam(),
+      radius: radiusParam(),
+    },
+  },
+  {
+    // A hundred dots, thirty-eight of them filled. The most efficient picture
+    // of a proportion for a non-technical audience: no scale to read.
+    // Deliberately NOT `progress`: "how far along" and "what share of a
+    // population" are not the same statement and must not share a name.
+    name: 'pictogram',
+    description: 'an isotype chart: a share of a population, drawn as filled units',
+    paramSchema: {
+      total: {
+        type: 'number',
+        min: 4,
+        max: 400,
+        integer: true,
+        default: 100,
+        description: 'number of units drawn',
+      },
+      cols: {
+        type: 'number',
+        min: 2,
+        max: 40,
+        integer: true,
+        default: 10,
+        description: 'units per row',
+      },
+      shape: {
+        type: 'enum',
+        values: ['disc', 'square'],
+        default: 'disc',
+        description: 'shape of one unit',
+      },
+      kind: {
+        type: 'enum',
+        values: ['brand', ...SEMANTIC_KINDS],
+        default: 'brand',
+        description: 'tint of the filled units',
+      },
+    },
+  },
+  {
+    // Priority n° 1 of the proposal: a product tour, an explained
+    // architecture, a commented screenshot — omnipresent, and nothing in the
+    // catalogue expresses it. The visual takes the middle, the numbered list
+    // becomes the callouts around it, joined by leaders.
+    name: 'annotated',
+    description: 'a visual with numbered callouts placed around it, joined by leaders',
+    paramSchema: {
+      markers: {
+        type: 'enum',
+        values: ['numbers', 'letters', 'dots'],
+        default: 'numbers',
+        description: 'what the callout markers show',
+      },
+      side: {
+        type: 'enum',
+        values: ['both', 'left', 'right'],
+        default: 'both',
+        description: 'where the callouts are dealt: split on both sides, or all on one',
+      },
+      leader: {
+        type: 'enum',
+        values: ['line', 'none'],
+        default: 'line',
+        description: 'hairline joining a callout to the visual',
+      },
+      ratio: {
+        type: 'number',
+        min: 0.3,
+        max: 0.7,
+        default: 0.46,
+        description: 'share of the width taken by the visual',
+      },
+      density: densityParam(),
+    },
+  },
   { name: 'code', description: 'a syntax-highlighted code block on its own slide' },
   { name: 'diagram', description: 'a mermaid diagram rendered slide-wide' },
   { name: 'chart', description: 'a chart block rendered slide-wide' },
@@ -1196,17 +1457,176 @@ export function loadThemeLayoutDefs(defs, kitName) {
   return diags;
 }
 
-export function inferLayout(slide, index) {
-  if (slide.layout) return slide.layout;
+// ---------------------------------------------------------------------------
+// Inference RULE SETS (proposal §5.2)
+//
+// Promoting an inference rule silently changes the rendering of decks already
+// written. What is versioned is therefore the RULE SET — not the engine: a
+// `lutrin: "1.2"` pin would freeze the rendering fixes and the new blocks too,
+// and nobody would ever update. A deck pins with
+//
+//     ---
+//     inference: "1.0"
+//     ---
+//
+// and a deck that pins NOTHING gets the latest set, or new decks would be born
+// stale. N-2 sets are maintained; past that the deck is told so explicitly
+// rather than failing or, worse, staying silent.
+// ---------------------------------------------------------------------------
+
+/** Rule sets, oldest first. The last one is what an unpinned deck gets. */
+export const INFERENCE_RULES = ['1.0', '1.1'];
+
+/** Rule sets still honoured — the last N_MAINTAINED of them. */
+const N_MAINTAINED = 3; // the latest and its two predecessors (N-2)
+
+export const LATEST_INFERENCE = INFERENCE_RULES[INFERENCE_RULES.length - 1];
+
+/** Rule sets still maintained, oldest first. */
+export const maintainedInferenceRules = () => INFERENCE_RULES.slice(-N_MAINTAINED);
+
+/** The set that PRECEDES `rules` (null for the oldest) — what
+ *  LAYOUT_RULES_CHANGED compares against. */
+export function previousInferenceRules(rules = LATEST_INFERENCE) {
+  const at = INFERENCE_RULES.indexOf(rules);
+  return at > 0 ? INFERENCE_RULES[at - 1] : null;
+}
+
+/**
+ * Reads the deck's `inference:` pin.
+ *
+ * @returns {{rules: string, diag: {code: string, message: string}|null}}
+ */
+export function inferenceRuleSet(meta = {}) {
+  const asked = meta.inference == null ? null : String(meta.inference).trim();
+  if (!asked) return { rules: LATEST_INFERENCE, diag: null };
+  const kept = maintainedInferenceRules();
+  if (kept.includes(asked)) return { rules: asked, diag: null };
+  if (INFERENCE_RULES.includes(asked))
+    return {
+      rules: kept[0],
+      diag: {
+        code: 'INFERENCE_RULES_RETIRED',
+        message: `Inference rule set "${asked}" is no longer maintained (kept: ${kept.join(', ')}) — the deck is laid out with "${kept[0]}". Remove the pin to follow the latest set, or fix the slides the diagnostics name.`,
+      },
+    };
+  return {
+    rules: LATEST_INFERENCE,
+    diag: {
+      code: 'INFERENCE_RULES_UNKNOWN',
+      message: `Unknown inference rule set "${asked}" (known: ${INFERENCE_RULES.join(', ')}) — the deck is laid out with the latest one, "${LATEST_INFERENCE}".`,
+    },
+  };
+}
+
+/** Is `rules` at least `min`? The sets are dotted numbers, compared as such. */
+function atLeast(rules, min) {
+  const a = String(rules).split('.').map(Number);
+  const b = String(min).split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] ?? 0) - (b[i] ?? 0);
+    if (d) return d > 0;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// The signals rule set 1.1 reads. Each one is something the AUTHOR ALREADY
+// WROTE — a checkbox, a numbered list, a repeated shape, a date in a heading.
+// No new syntax anywhere: we read what is written, we do not invent a
+// directive.
+// ---------------------------------------------------------------------------
+
+/** The single list a slide is made of, or null — the shape all three list
+ *  rules below start from: ONE list block and nothing else that carries ink. */
+function loneList(slide) {
+  const blocks = flat(slide);
+  if (blocks.length !== 1 || blocks[0].type !== 'bullets') return null;
+  if (slide.sections.some((s) => s.heading)) return null;
+  return blocks[0].items.length ? blocks[0] : null;
+}
+
+const wordCount = (runs) => runsToText(runs).trim().split(/\s+/).filter(Boolean).length;
+
+/** Bounds of the "numbered list = a sequence" rule (proposal §2.2): past 6
+ *  items, or with an item longer than a caption, the list stopped being the
+ *  spine of a slide and became its content. */
+const STEPS_MAX_ITEMS = 6;
+const STEPS_MAX_WORDS = 12;
+
+/** A tree has ONE root. Two roots side by side are a different intent
+ *  (`stack-compare`), so they stay a flow. */
+function isSingleRootedTree(list) {
+  if (list.ordered) return false;
+  if (!list.items.some((it) => it.level > 0)) return false;
+  return list.items.filter((it) => !it.level).length === 1;
+}
+
+/** Headings that name a moment: a year, a quarter, a phase, a step, a week.
+ *  The very predicate LAYOUT_SUGGESTION has been shipping — promoted to a rule
+ *  here rather than re-detected (proposal §2.6). */
+export const DATED_HEADING_RE =
+  /^((19|20)\d{2}\b|[tq][1-4]\b|phase\s*\d|step\s*\d|milestone|week\s*\d|quarter\s*\d)/;
+
+/**
+ * Do all the `##` sections share ONE internal shape? (proposal §2.3)
+ *
+ * Regularity IS the intent: title + image + paragraph repeated four times is a
+ * mosaic of cards, not a flow. Compared at the BLOCK TYPE, which is the level
+ * an author controls without thinking about it.
+ *
+ * The sequence must be at least two blocks long: three sections of one
+ * paragraph each are just three columns, and calling that a mosaic would
+ * re-lay out half the decks in the world to say nothing new.
+ */
+function sameShapedSections(sections) {
+  const titled = sections.filter((s) => s.heading);
+  if (titled.length < 3 || titled.length !== sections.length) return false;
+  const shape = (s) => s.blocks.map((b) => b.type).join('|');
+  const first = shape(titled[0]);
+  if (titled[0].blocks.length < 2) return false;
+  return titled.every((s) => shape(s) === first);
+}
+
+/**
+ * Columns of the mosaic a count of sections asks for (proposal §2.1).
+ *
+ * Four titled sections are a 2 × 2, five to six a row of three, seven to nine
+ * a compact three — and none of them a paginated vertical flow, which is what
+ * they all used to fall back to.
+ */
+function gridShape(n, extra = {}) {
+  return {
+    cols: n === 4 ? 2 : 3,
+    ...(n >= 7 ? { density: 'compact' } : {}),
+    ...extra,
+  };
+}
+
+/**
+ * Infers a slide's layout AND the parameters that go with it.
+ *
+ * The parameters are the reason this exists beside `inferLayout`: "four
+ * sections are a 2 × 2 mosaic" is not expressible as a layout NAME — the name
+ * is `grid`, and the two columns are a setting. They are applied UNDER the
+ * layout definition's own, so an explicit `<!-- layout: grid -->` or a kit's
+ * `cols` always wins.
+ *
+ * @returns {{layout: string, params: object}}
+ */
+export function inferLayoutFull(slide, index, rules = LATEST_INFERENCE) {
+  if (slide.layout) return { layout: slide.layout, params: {} };
   const blocks = flat(slide);
   const visuals = blocks.filter(
     (b) =>
       b.type === 'mermaid' || b.type === 'chart' || (b.type === 'image' && b.role !== 'background'),
   );
   const textual = blocks.filter((b) => ['bullets', 'para'].includes(b.type));
+  const v11 = atLeast(rules, '1.1');
+  const out = (layout, params = {}) => ({ layout, params });
 
   if (blocks.some((b) => b.type === 'image' && (b.role === 'cover' || b.role === 'background')))
-    return 'hero';
+    return out('hero');
   // cover/section with no content — but NOT when the slide sketches an outline
   // in columns: two (or three) `##` headings without a body are content that
   // the early return silently threw away (elements=0). We now let it fall
@@ -1214,26 +1634,93 @@ export function inferLayout(slide, index) {
   // single heading under a cover stays a cover (the section subtitle is
   // decorative there).
   if (!blocks.length && slide.sections.filter((s) => s.heading).length < 2)
-    return index === 0 ? 'cover' : 'section';
+    return out(index === 0 ? 'cover' : 'section');
   if (
     index === 0 &&
     !slide.sections.some((s) => s.heading) &&
     blocks.every((b) => b.type === 'para') &&
     blocks.length <= 2
   )
-    return 'cover';
+    return out('cover');
   if (count(blocks, 'metric') >= 2 && count(blocks, 'metric') >= blocks.length - 1)
-    return 'metrics';
-  if (blocks.length === 1 && blocks[0].type === 'quote') return 'quote';
+    return out('metrics');
+  if (blocks.length === 1 && blocks[0].type === 'quote') return out('quote');
   const sections = slide.sections.filter((s) => s.heading || s.blocks.length);
-  if (visuals.length && textual.length) return 'split';
-  if (count(blocks, 'table') && blocks.length <= 2) return 'table';
-  if (sections.filter((s) => s.heading).length === 2) return 'two-columns';
-  if (sections.filter((s) => s.heading).length === 3) return 'three-columns';
-  if (blocks.length === 1 && blocks[0].type === 'code') return 'code';
-  if (blocks.length === 1 && blocks[0].type === 'mermaid') return 'diagram';
-  if (blocks.length === 1 && blocks[0].type === 'chart') return 'chart';
-  return 'content';
+  const heads = sections.filter((s) => s.heading);
+  const nHeads = heads.length;
+
+  if (v11) {
+    // ---- the explicit signals of Markdown (proposal §2.2) -------------------
+    //
+    // A task list wins over the numbered-list rule when both forms are on the
+    // slide: the box is the most explicit mark the syntax has, and a checked
+    // box is never "step 3 of 5".
+    const list = loneList(slide);
+    if (list) {
+      if (list.items.some((it) => it.checked != null)) return out('checklist');
+      if (
+        list.ordered &&
+        list.items.length >= 3 &&
+        list.items.length <= STEPS_MAX_ITEMS &&
+        list.items.every((it) => !it.level && wordCount(it.runs) <= STEPS_MAX_WORDS)
+      )
+        return out('steps');
+      if (isSingleRootedTree(list)) return out('hierarchy');
+    }
+
+    // ---- dates in the headings (proposal §2.6) ------------------------------
+    //
+    // Detection already written, already tested, already shipped as a
+    // suggestion — only the promotion was missing, and only when the case is
+    // clear-cut: three sections or more, ALL of them dated.
+    if (
+      nHeads >= 3 &&
+      nHeads === sections.length &&
+      nHeads <= (LAYOUT_SECTIONS.timeline?.max ?? 6) &&
+      heads.every((s) => DATED_HEADING_RE.test(runsToText(s.heading).trim().toLowerCase()))
+    )
+      return out('timeline');
+
+    // ---- regularity of shape (proposal §2.3) -------------------------------
+    //
+    // COMBINES with the count rather than replacing it: the repeated shape is
+    // what makes it a mosaic of cards, the count is what decides the columns.
+    if (sameShapedSections(sections)) return out('grid', gridShape(nHeads, { headed: true }));
+  }
+
+  // These three come AFTER the 1.1 signals on purpose. Three sections each
+  // holding a picture and a line are a mosaic of cards, not one text column
+  // beside one visual — `split` would place the first image and flow the rest
+  // as text. Same for three dated sections: the dates are the intent, whatever
+  // else the sections carry.
+  if (visuals.length && textual.length) return out('split');
+  if (count(blocks, 'table') && blocks.length <= 2) return out('table');
+
+  if (nHeads === 2) return out('two-columns');
+  if (nHeads === 3) return out('three-columns');
+
+  // ---- the hole in the table (proposal §2.1) --------------------------------
+  //
+  // Four titled sections used to fall through to `content` — a paginated
+  // vertical flow — when four titled sections are a mosaic in nearly every
+  // real deck. Three lines of rule for the most common case in the lot.
+  if (
+    v11 &&
+    nHeads >= 4 &&
+    nHeads <= (LAYOUT_SECTIONS.grid?.max ?? 9) &&
+    nHeads === sections.length
+  )
+    return out('grid', gridShape(nHeads));
+
+  if (blocks.length === 1 && blocks[0].type === 'code') return out('code');
+  if (blocks.length === 1 && blocks[0].type === 'mermaid') return out('diagram');
+  if (blocks.length === 1 && blocks[0].type === 'chart') return out('chart');
+  return out('content');
+}
+
+/** The layout inferred for a slide (the name alone). */
+export function inferLayout(slide, index, rules = LATEST_INFERENCE) {
+  return inferLayoutFull(slide, index, rules).layout;
 }
 
 // ---------------------------------------------------------------------------
@@ -1425,6 +1912,187 @@ function stretchTrailingVisual(elements, region) {
 }
 
 /**
+ * The axes of a `matrix` (proposal §4): two rules with their names and their
+ * ends, drawn OUTSIDE the cells — the region handed in is SHRUNK in place so
+ * the mosaic is dealt in what is left.
+ *
+ * `priority-matrix` and `risk-map` draw the quadrants and never write "effort"
+ * or "impact" anywhere: the work was done by halves. The labels belong to the
+ * layout DEFINITION and not to the deck, exactly as a colour does — the intent
+ * of an Eisenhower box IS urgency × importance, whatever the four sections are
+ * called.
+ *
+ * Reuses `timeline-axis` rather than inventing a block: an axis is an axis,
+ * both renderers already draw it in both orientations, and a second block type
+ * for the same 2 px rule would be two places to keep in sync.
+ */
+function placeMatrixAxes(region, P) {
+  const els = [];
+  const labelH = Math.round(TYPE.small * PT_TO_PX * LINE_HEIGHT);
+  // the strips the axes and their names live in — reserved BEFORE anything is
+  // placed, so the mosaic never has to be nudged afterwards
+  const leftStrip = P.yEnds ? 76 : SPACE.md;
+  const topStrip = P.yLabel ? labelH + SPACE.xs : 0;
+  const botStrip =
+    (P.xEnds ? labelH : 0) + (P.xLabel ? labelH : 0) + (P.xEnds || P.xLabel ? SPACE.xs : 0);
+  const plot = {
+    x: region.x + leftStrip,
+    y: region.y + topStrip,
+    w: region.w - leftStrip,
+    h: region.h - topStrip - botStrip - SPACE.md,
+  };
+  const axisY = plot.y + plot.h + SPACE.xs;
+
+  const label = (text, box, align, strong) => {
+    if (!text) return;
+    els.push({
+      block: {
+        type: 'para',
+        runs: [{ text, ...(strong ? { bold: true } : {}) }],
+        size: TYPE.small,
+        color: strong ? COLORS.neutralPrimary : COLORS.neutralSecondary,
+        ...alignAttr(align),
+      },
+      region: box,
+    });
+  };
+
+  if (P.axes !== 'none') {
+    const arrow = P.axes === 'rules' ? { arrow: false } : {};
+    els.push({
+      block: { type: 'timeline-axis', ...arrow },
+      region: { x: plot.x, y: axisY, w: plot.w, h: 2 },
+    });
+    // the vertical axis points UP: on a matrix "more" is at the top, and an
+    // arrowhead sinking towards the origin would say the opposite
+    els.push({
+      block: { type: 'timeline-axis', vertical: true, up: true, ...arrow },
+      region: { x: plot.x - SPACE.xs, y: plot.y, w: 2, h: plot.h + SPACE.xs },
+    });
+  }
+  const yBase = axisY + SPACE.xs;
+  if (P.xEnds) {
+    label(P.xEnds[0], { x: plot.x, y: yBase, w: plot.w / 2 - SPACE.xs, h: labelH }, 'left');
+    label(P.xEnds[1], { x: plot.x + plot.w / 2, y: yBase, w: plot.w / 2, h: labelH }, 'right');
+  }
+  label(
+    P.xLabel,
+    { x: plot.x, y: yBase + (P.xEnds ? labelH : 0), w: plot.w, h: labelH },
+    'center',
+    true,
+  );
+  // the name of the vertical axis is set FLAT above it: a rotated label is a
+  // shape neither renderer can produce as real, selectable text
+  label(P.yLabel, { x: region.x, y: region.y, w: region.w, h: labelH }, 'left', true);
+  if (P.yEnds) {
+    const w = leftStrip - SPACE.md;
+    label(P.yEnds[1], { x: region.x, y: plot.y, w, h: labelH }, 'right');
+    label(P.yEnds[0], { x: region.x, y: plot.y + plot.h - labelH, w, h: labelH }, 'right');
+  }
+  // the cells give the axes their strips back
+  Object.assign(region, plot);
+  return els;
+}
+
+/**
+ * OPTIONAL REGIONS (proposal §3) — the transversal brick, implemented once.
+ *
+ * A hat above two columns is not a layout: it is a REGION, and the region
+ * composes with every generator that deals `##` sections side by side. Written
+ * here instead of six times, which is exactly the point — one family gained
+ * rather than one layout per combination.
+ *
+ * What is read, and where it comes from — nothing new in the syntax, only the
+ * place the author already wrote it:
+ *
+ *   - a paragraph BEFORE the first `##`  → a band ABOVE (the hat, the framing).
+ *     `two-columns` and `radial` already read that section; this generalises a
+ *     reading that existed;
+ *   - a `:::key` CLOSING the last section → a band BELOW. The block is already
+ *     called "Takeaway", and a takeaway belongs under what it concludes, not
+ *     inside the last column.
+ *
+ * Bounds (§3.2): ONE band of at most two blocks, capped at `leadRatio` of the
+ * height. Three paragraphs are no longer a hat but content — such a lead keeps
+ * its historical unbounded flow, and it is the columns that give way. Auto-fit
+ * applies to a band like to any bounded region, SLIDE_DENSIFIED included.
+ *
+ * MUTATES `secs`: the lead is shifted out, the takeaway popped off the last
+ * section — they have become regions and must not be dealt a column too.
+ *
+ * @returns {{head: any[], tail: any[], body: {x,y,w,h}, offset: number}}
+ */
+function takeBands(secs, area, P) {
+  const head = [];
+  const tail = [];
+  let top = area.y;
+  let bottom = area.y + area.h;
+  let offset = 0;
+  const cap = Math.max(0, Math.round(area.h * (P.leadRatio ?? 0.2)));
+  const variant = P.leadPanel && P.leadPanel !== 'none' ? P.leadPanel : null;
+  const pad = variant ? SPACE.sm : 0;
+
+  const place = (blocks, into, where, bounded) => {
+    const boxH = bounded ? cap : Math.max(0, bottom - top);
+    const box = { x: area.x, y: where === 'top' ? top : bottom - boxH, w: area.w, h: boxH };
+    const panel = variant
+      ? { type: 'panel', ...panelFrom(variant), ...(P.radius ? { radius: P.radius } : {}) }
+      : null;
+    const inner = { x: box.x + pad, y: box.y + pad, w: box.w - 2 * pad, h: box.h - 2 * pad };
+    const flowed = flowBlocks(
+      alignBlocks(panel ? inkBlocks(blocks, panel) : blocks, P.leadAlign),
+      inner,
+      { paginate: false, density: P.density },
+    )[0];
+    const used =
+      flowed.reduce((m, el) => Math.max(m, el.region.y + el.region.h), inner.y) - inner.y + 2 * pad;
+    // the band takes what it NEEDS, never more than the cap: a one-line hat
+    // that reserved a fifth of the slide would be a hole, not a region
+    const realH = bounded ? Math.min(boxH, used) : used;
+    if (where === 'bottom') {
+      const dy = box.h - realH;
+      for (const el of flowed) el.region.y += dy;
+      box.y += dy;
+    }
+    box.h = realH;
+    if (panel) into.push({ block: panel, region: { ...box } });
+    into.push(...flowed);
+    if (where === 'top') top = box.y + realH + SPACE.md;
+    else bottom = box.y - SPACE.md;
+  };
+
+  const titled = secs.some((s) => s.heading);
+  if (titled && secs.length && !secs[0].heading) {
+    const lead = secs.shift();
+    if (lead.blocks.length) {
+      place(lead.blocks, head, 'top', lead.blocks.length <= 2);
+      for (const el of head) el.group = 0;
+      offset = 1;
+    }
+  }
+
+  // the takeaway: a `:::key` at the very end of the last section, and only
+  // when there ARE columns to conclude — inside a single section it is just a
+  // callout, and lifting it would move a block nobody asked to move
+  const last = secs[secs.length - 1];
+  const closing = last?.blocks[last.blocks.length - 1];
+  if (secs.length >= 2 && closing?.type === 'alert' && closing.kind === 'key') {
+    // a COPY of the section, never the IR's own: `secs` is a filtered view of
+    // slide.sections, and emptying the author's block list there would leave
+    // the deck unusable for a second render (inspect, a re-export)
+    secs[secs.length - 1] = { ...last, blocks: last.blocks.slice(0, -1) };
+    place([closing], tail, 'bottom', true);
+  }
+
+  return {
+    head,
+    tail,
+    body: { x: area.x, y: top, w: area.w, h: Math.max(0, bottom - top) },
+    offset,
+  };
+}
+
+/**
  * Compiles the deck into scenes ready to render.
  * @returns {Array<{master:string, layout:string, title:string|null, titleRuns:any, notes:string[], elements:any[]}>}
  */
@@ -1460,16 +2128,21 @@ export function buildScenes(deck) {
     });
   }
 
+  const { rules } = inferenceRuleSet(meta);
+
   deck.slides.forEach((slide, idx) => {
-    const layout = inferLayout(slide, scenes.length === 0 ? 0 : idx + 1);
+    const inferred = inferLayoutFull(slide, scenes.length === 0 ? 0 : idx + 1, rules);
+    const layout = inferred.layout;
     // user layout (registry): the scene keeps its name, the placement is that
     // of the built-in `base` layout; the section bounds come from the registry
     // (a single source, shared with validation)
     const kind = REGISTRY.get(layout)?.base ?? layout;
     const bounds = LAYOUT_SECTIONS[layout] ?? null;
-    // effective generator parameters: the built-in layout's defaults,
-    // overridden by the def (official or user) — phase A of §3.3
-    const P = layoutParams(layout);
+    // effective generator parameters: the built-in layout's defaults, then
+    // what INFERENCE deduced (a 2 × 2 for four sections), then the def's own
+    // (official or user) — phase A of §3.3. The definition has the last word:
+    // a kit that fixed `cols` meant it.
+    const P = { ...layoutParams(layout), ...inferred.params, ...(layoutDef(layout)?.params ?? {}) };
     const area = contentArea();
     // `<!-- source: … -->` — the provenance line RESERVES its band before any
     // placement: pagination and auto-fit must never claim room the caption is
@@ -1635,37 +2308,22 @@ export function buildScenes(deck) {
       case 'two-columns':
       case 'three-columns': {
         const sections = slide.sections.filter((s) => s.heading || s.blocks.length);
-        // LEAD: what is written BEFORE the first "##" is not a column — it is
-        // an opening. It flows full width above, and the columns start again
-        // underneath it. Without this it consumed a column and the LAST
-        // titled section vanished without a word: the engine only drops
-        // content at the bounds the registry announces (LAYOUT_SECTIONS,
-        // which validation reports), never by an accident of writing. A slide
-        // forced into columns WITHOUT any "##" keeps its original placement:
-        // its single anonymous section stays a column.
-        const lead =
-          sections.length && !sections[0].heading && sections.some((s) => s.heading)
-            ? sections.shift()
-            : null;
+        // LEAD and TAKEAWAY: what is written BEFORE the first "##" is not a
+        // column — it is an opening; a `:::key` closing the last section is
+        // not a column either — it is a conclusion. Both become BANDS, and
+        // the columns are dealt in what is left (proposal §3). Without this
+        // the lead consumed a column and the LAST titled section vanished
+        // without a word: the engine only drops content at the bounds the
+        // registry announces (LAYOUT_SECTIONS, which validation reports),
+        // never by an accident of writing. A slide forced into columns
+        // WITHOUT any "##" keeps its original placement: its single anonymous
+        // section stays a column.
+        const { head, tail, body, offset } = takeBands(sections, area, P);
         const nCols = bounds?.max ?? (kind === 'two-columns' ? 2 : 3);
-        const colW = (area.w - (nCols - 1) * PAGE.gutter) / nCols;
-        const elements = [];
-        let top = area.y;
-        if (lead) {
-          const flowed = flowBlocks(lead.blocks, { ...area }, { paginate: false })[0];
-          flowed.forEach((el) => {
-            el.group = 0;
-          }); // animation: the lead = one step
-          elements.push(...flowed);
-          // the lead is NOT bounded in height: auto-fit will have tried the
-          // scale on it, and if it still eats the slide it is BLOCK_OVERFLOW
-          // (validate) that says so — the engine shrinks, it never trims what
-          // the author wrote
-          top = flowed.reduce((m, el) => Math.max(m, el.region.y + el.region.h), area.y) + SPACE.md;
-        }
-        const colH = Math.max(0, area.y + area.h - top);
+        const colW = (body.w - (nCols - 1) * PAGE.gutter) / nCols;
+        const elements = [...head];
         sections.slice(0, nCols).forEach((sec, k) => {
-          const col = { x: area.x + k * (colW + PAGE.gutter), y: top, w: colW, h: colH };
+          const col = { x: body.x + k * (colW + PAGE.gutter), y: body.y, w: colW, h: body.h };
           const colBlocks = sec.heading
             ? [{ type: 'heading', depth: 2, runs: sec.heading }, ...sec.blocks]
             : sec.blocks;
@@ -1673,10 +2331,12 @@ export function buildScenes(deck) {
           stretchTrailingVisual(flowed, col);
           // animation: one column = one step, after the lead's
           flowed.forEach((el) => {
-            el.group = lead ? k + 1 : k;
+            el.group = offset + k;
           });
           elements.push(...flowed);
         });
+        for (const el of tail) el.group = offset + nCols;
+        elements.push(...tail);
         push({ elements });
         break;
       }
@@ -1686,21 +2346,23 @@ export function buildScenes(deck) {
         // target highlighted) or pillars (architecture principles, accent on
         // top) — per-column variants configurable (`panels`, cycling)
         const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
+        const { head, tail, body, offset } = takeBands(secs, area, P);
         const nCols =
           kind === 'comparison'
             ? (bounds?.max ?? 2)
             : Math.min(Math.max(secs.length, bounds?.min ?? 2), bounds?.max ?? 4);
-        const colW = (area.w - (nCols - 1) * PAGE.gutter) / nCols;
+        const colW = (body.w - (nCols - 1) * PAGE.gutter) / nCols;
         const pad = P.pad ?? SPACE.sm;
         const panels = P.panels ?? (kind === 'comparison' ? ['muted', 'highlight'] : ['pillar']);
-        const elements = [];
+        const elements = [...head];
         secs.slice(0, nCols).forEach((sec, k) => {
           const col = {
-            x: area.x + k * (colW + PAGE.gutter),
-            y: area.y + SPACE.xs,
+            x: body.x + k * (colW + PAGE.gutter),
+            y: body.y + SPACE.xs,
             w: colW,
-            h: area.h - SPACE.xs,
+            h: body.h - SPACE.xs,
           };
+          const grp = offset + k;
           const panel = panelFrom(panels[k % panels.length]);
           const accented = panel.variant === 'pillar' && P.accent !== false;
           const block = {
@@ -1709,7 +2371,7 @@ export function buildScenes(deck) {
             ...(panel.variant === 'pillar' && P.accent === false ? { accent: false } : {}),
             ...(P.radius ? { radius: P.radius } : {}),
           };
-          elements.push({ block, region: { ...col }, group: k });
+          elements.push({ block, region: { ...col }, group: grp });
           const padTop = accented ? SPACE.md : pad; // room for the accent
           const inner = {
             x: col.x + pad,
@@ -1729,10 +2391,12 @@ export function buildScenes(deck) {
             density: P.density,
           })[0];
           flowed.forEach((el) => {
-            el.group = k;
+            el.group = grp;
           }); // animation: one panel = one step
           elements.push(...flowed);
         });
+        for (const el of tail) el.group = offset + nCols;
+        elements.push(...tail);
         push({ elements });
         break;
       }
@@ -1949,26 +2613,37 @@ export function buildScenes(deck) {
         push({ elements });
         break;
       }
+      case 'matrix':
       case 'grid': {
         // R × C mosaic of panels (review §3.3, phase B): a portfolio of
         // projects, offerings, a team, 2 × 2 matrices — one `##` section =
         // one cell; `kinds` (semantic) takes precedence over `panels`
+        //
+        // `matrix` is the same mosaic with REAL NAMED AXES (proposal §4): the
+        // labels come from the layout definition, never from the deck — the
+        // intent IS effort/impact, exactly as it is a colour the deck does not
+        // write. It reserves its gutters first, and the cells are dealt in
+        // what remains.
         const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
+        const { head, tail, body: outer, offset } = takeBands(secs, area, P);
+        const body = kind === 'matrix' ? { ...outer } : outer;
+        const elements = [...head];
+        if (kind === 'matrix') elements.push(...placeMatrixAxes(body, P));
         const maxCells = bounds?.max ?? 8;
         const n = Math.min(Math.max(secs.length, 1), maxCells);
         const cols = Math.min(P.cols ?? 2, n);
         const placed = packGrid(n, cols, P.spans);
         const rows = placed.rows;
-        const unitW = (area.w - (cols - 1) * PAGE.gutter) / cols;
-        const cellH = (area.h - SPACE.xs - (rows - 1) * PAGE.gutter) / rows;
+        const unitW = (body.w - (cols - 1) * PAGE.gutter) / cols;
+        const cellH = (body.h - SPACE.xs - (rows - 1) * PAGE.gutter) / rows;
         const headH = TYPE.sectionHeading * PT_TO_PX * LINE_HEIGHT;
         const panels = P.panels ?? ['muted'];
-        const elements = [];
         secs.slice(0, n).forEach((sec, k) => {
           const slot = placed.cells[k];
+          const grp = offset + k;
           const cell = {
-            x: area.x + slot.col * (unitW + PAGE.gutter),
-            y: area.y + SPACE.xs + slot.row * (cellH + PAGE.gutter),
+            x: body.x + slot.col * (unitW + PAGE.gutter),
+            y: body.y + SPACE.xs + slot.row * (cellH + PAGE.gutter),
             // a cell spanning s columns also swallows the s-1 gutters it covers
             w: unitW * slot.span + PAGE.gutter * (slot.span - 1),
             h: cellH,
@@ -1979,7 +2654,7 @@ export function buildScenes(deck) {
             ...panelFrom(spec),
             ...(P.radius ? { radius: P.radius } : {}),
           };
-          elements.push({ block, region: cell, group: k });
+          elements.push({ block, region: cell, group: grp });
           const inner = {
             x: cell.x + SPACE.sm,
             y: cell.y + SPACE.sm,
@@ -1997,12 +2672,12 @@ export function buildScenes(deck) {
             elements.push({
               block: alignBlocks([heading], P.align)[0],
               region: { ...inner, h: headH },
-              group: k,
+              group: grp,
             });
             elements.push({
               block: { type: 'timeline-axis', arrow: false },
               region: { x: inner.x, y: inner.y + headH + SPACE.xs, w: inner.w, h: 2 },
-              group: k,
+              group: grp,
             });
             const contentY = inner.y + headH + SPACE.xs + SPACE.sm;
             // height clamped at 0: a dense mosaic (cols: 1 × 8 rows) must
@@ -2040,7 +2715,7 @@ export function buildScenes(deck) {
                 alt: '',
               },
               region: { x: flowRegion.x, y: flowRegion.y, w: flowRegion.w, h: imgH },
-              group: k,
+              group: grp,
             });
             flowRegion = {
               x: flowRegion.x,
@@ -2055,10 +2730,12 @@ export function buildScenes(deck) {
             { paginate: false, density: P.density },
           )[0];
           flowed.forEach((el) => {
-            el.group = k;
+            el.group = grp;
           }); // animation: one cell = one step
           elements.push(...flowed);
         });
+        for (const el of tail) el.group = offset + n;
+        elements.push(...tail);
         push({ elements });
         break;
       }
@@ -2066,31 +2743,62 @@ export function buildScenes(deck) {
         // sequential process (review §3.3, phase B): step panels joined by
         // connectors (arrow, line or nothing) — a citizen journey, the path
         // of a request, a "how it works"
-        const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
+        const written = slide.sections.filter((s) => s.heading || s.blocks.length);
+        // A NUMBERED LIST is a sequence — the one place the syntax says so
+        // literally (proposal §2.2). `layers` has always read a bare list this
+        // way; `steps` now does too, so the inference rule has somewhere to
+        // land: item = step, its text = the step's title.
+        const listOnly =
+          !written.some((s) => s.heading) &&
+          blocks.length === 1 &&
+          blocks[0].type === 'bullets' &&
+          blocks[0].items.length;
+        const secs = listOnly
+          ? blocks[0].items
+              .filter((it) => !it.level)
+              .map((it) => ({ heading: it.runs, blocks: [] }))
+          : written;
+        const { head, tail, body, offset } = listOnly
+          ? { head: [], tail: [], body: area, offset: 0 }
+          : takeBands(secs, area, P);
         const n = Math.min(Math.max(secs.length, 1), bounds?.max ?? 6);
         const connector = P.connector ?? 'arrow';
         const gap = connector === 'none' ? PAGE.gutter : 40;
-        const stepW = (area.w - (n - 1) * gap) / n;
+        const stepW = (body.w - (n - 1) * gap) / n;
         const panels = P.panels ?? ['muted'];
-        const elements = [];
+        const elements = [...head];
+        const dotR = 28;
+        // Steps with no body are LABELS, and a full-height panel holding one
+        // line is a hole with a border. They take the height they need — the
+        // rank above the title, both centred in the band. Steps that carry
+        // content keep the full column: there, the height IS the content.
+        const bare = listOnly && secs.every((s) => !s.blocks.length);
+        const bandH = bare
+          ? Math.min(
+              body.h - SPACE.xs,
+              dotR + SPACE.sm + 3 * TYPE.sectionHeading * PT_TO_PX * LINE_HEIGHT + 2 * SPACE.sm,
+            )
+          : body.h - SPACE.xs;
+        const bandY = body.y + SPACE.xs + (bare ? Math.max(0, (body.h - SPACE.xs - bandH) / 2) : 0);
         secs.slice(0, n).forEach((sec, k) => {
+          const grp = offset + k;
           const col = {
-            x: area.x + k * (stepW + gap),
-            y: area.y + SPACE.xs,
+            x: body.x + k * (stepW + gap),
+            y: bandY,
             w: stepW,
-            h: area.h - SPACE.xs,
+            h: bandH,
           };
           if (k && connector !== 'none') {
             // the connector appears with the step it introduces (group k)
             elements.push({
               block: { type: 'timeline-axis', ...(connector === 'line' ? { arrow: false } : {}) },
               region: { x: col.x - gap + (gap - 28) / 2, y: col.y + col.h / 2 - 1, w: 28, h: 2 },
-              group: k,
+              group: grp,
             });
           }
           const panel = panelFrom(panels[k % panels.length]);
           const block = { type: 'panel', ...panel, ...(P.radius ? { radius: P.radius } : {}) };
-          elements.push({ block, region: { ...col }, group: k });
+          elements.push({ block, region: { ...col }, group: grp });
           const padTop = panel.variant === 'pillar' ? SPACE.md : SPACE.sm; // room for the accent
           const inner = {
             x: col.x + SPACE.sm,
@@ -2099,6 +2807,18 @@ export function buildScenes(deck) {
             h: col.h - padTop - SPACE.sm,
           };
           const ink = panelStyle(block).ink;
+          if (bare) {
+            // the rank, shown: the numbered list the author wrote SAID this is
+            // a sequence, and a sequence whose steps are not numbered has lost
+            // the one thing its syntax carried
+            elements.push({
+              block: { type: 'timeline-dot', index: k + 1 },
+              region: { x: inner.x, y: inner.y, w: dotR, h: dotR },
+              group: grp,
+            });
+            inner.y += dotR + SPACE.sm;
+            inner.h -= dotR + SPACE.sm;
+          }
           const stepBlocks = sec.heading
             ? [
                 { type: 'heading', depth: 2, runs: sec.heading, ...(ink ? { color: ink } : {}) },
@@ -2110,10 +2830,12 @@ export function buildScenes(deck) {
             density: P.density,
           })[0];
           flowed.forEach((el) => {
-            el.group = k;
+            el.group = grp;
           }); // animation: one step at a time
           elements.push(...flowed);
         });
+        for (const el of tail) el.group = offset + n;
+        elements.push(...tail);
         push({ elements });
         break;
       }
@@ -2274,6 +2996,334 @@ export function buildScenes(deck) {
         push({ elements });
         break;
       }
+      case 'checklist': {
+        // A task list, and the box is the point (proposal §2.2): the most
+        // explicit signal Markdown owns. The lines are dealt into `cols`
+        // columns and each gets a hairline under it — a checklist is READ ONE
+        // LINE AT A TIME, and the rule is what makes the eye land.
+        const written = slide.sections.flatMap((s) =>
+          s.heading ? [{ type: 'heading', depth: 2, runs: s.heading }, ...s.blocks] : s.blocks,
+        );
+        const lists = written.filter((b) => b.type === 'bullets');
+        const rest = written.filter((b) => b.type !== 'bullets');
+        const items = lists.flatMap((b) => b.items);
+        const cols = Math.min(P.cols ?? 1, Math.max(items.length, 1));
+        const elements = [];
+        let top = area.y;
+        if (rest.length) {
+          const flowed = flowBlocks(rest, { ...area }, { paginate: false })[0];
+          elements.push(...flowed);
+          top = flowed.reduce((m, el) => Math.max(m, el.region.y + el.region.h), area.y) + SPACE.sm;
+        }
+        const colW = (area.w - (cols - 1) * PAGE.gutter) / cols;
+        const colH = Math.max(0, area.y + area.h - top);
+        // dealt COLUMN BY COLUMN, not row by row: a checklist is a single
+        // ordered list that happens to be folded, and reading across would
+        // scramble the order the author wrote
+        const per = Math.ceil(items.length / cols);
+        for (let c = 0; c < cols; c++) {
+          const slice = items.slice(c * per, (c + 1) * per);
+          if (!slice.length) continue;
+          const col = { x: area.x + c * (colW + PAGE.gutter), y: top, w: colW, h: colH };
+          const rows = slice.map((it) => ({
+            type: 'bullets',
+            ordered: lists[0]?.ordered ?? false,
+            items: [it],
+          }));
+          const flowed = flowBlocks(rows, col, { paginate: false, density: P.density })[0];
+          // The lines take the WHOLE column when they leave slack: a checklist
+          // is read one line at a time, and five lines huddled under the title
+          // above two thirds of empty slide reads as a list that got cut off.
+          // Only the gaps grow — the lines keep the height they measured, so
+          // nothing is stretched and the ruling stays regular.
+          const used =
+            flowed.length &&
+            flowed[flowed.length - 1].region.y + flowed[flowed.length - 1].region.h - col.y;
+          const slack = Math.max(0, col.h - used);
+          // …but CAPPED: five short lines spread over a whole slide stop
+          // reading as one list and start reading as five slides that failed
+          // to break. Air, not a vacuum.
+          const lead = flowed.length > 1 ? Math.min(slack / (flowed.length - 1), SPACE.lg) : 0;
+          flowed.forEach((el, k) => {
+            el.region.y += lead * k;
+            el.group = c * per + k;
+          }); // animation: one line at a time
+          if (P.rule !== false) {
+            // BETWEEN the lines, never under the last one: a rule with nothing
+            // after it is an underline, and it is the only one that can land
+            // on the footer
+            for (const el of flowed.slice(0, -1)) {
+              elements.push({
+                block: { type: 'timeline-axis', arrow: false, hairline: true },
+                region: {
+                  x: col.x,
+                  y: el.region.y + el.region.h + (lead ? lead / 2 : SPACE.xs / 2),
+                  w: col.w,
+                  h: 1,
+                },
+                group: el.group,
+              });
+            }
+          }
+          elements.push(...flowed);
+        }
+        push({ elements });
+        break;
+      }
+      case 'columns': {
+        // The THIRD overflow behaviour (proposal §4): not pagination, not
+        // densification — the same flow, balanced over two or three columns.
+        // An agenda, a glossary, an appendix, a long list. Pagination still
+        // has the last word when even the columns overflow: a flow always has
+        // somewhere to put what is left, and shrinking instead would trade a
+        // legible second slide for a cramped single one.
+        const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
+        const withHeadings = secs.flatMap((s) =>
+          s.heading ? [{ type: 'heading', depth: 2, runs: s.heading }, ...s.blocks] : s.blocks,
+        );
+        const cols = P.cols ?? 2;
+        const colW = (area.w - (cols - 1) * PAGE.gutter) / cols;
+        const scaled = scaleBlocks(withHeadings, P.density);
+        // One measuring flow into a column of FULL height says what the
+        // material really asks for. The break points then come from that
+        // total — never from a guessed item count, and never from the number
+        // of blocks: a slide whose whole content is one twenty-item list is
+        // exactly the case this layout exists for, and it is ONE block.
+        const wanted =
+          area.h + flowOnce(scaled, { x: area.x, y: area.y, w: colW, h: area.h }, false).overflow;
+        // …and the columns are cut by the PAGINATOR, at the same points it
+        // would break a slide: it already knows how to split a list between
+        // two items and a table between two rows, which is the whole
+        // difficulty here. A column is a page that happens to be narrow.
+        const cut = (h) => flowOnce(scaled, { x: area.x, y: area.y, w: colW, h }, true).pages;
+        let target =
+          P.balance === 'sequential' ? area.h : Math.min(area.h, Math.max(1, wanted / cols));
+        let pages = cut(target);
+        // The ideal share is a LOWER BOUND, not an answer: break points are
+        // discrete, so a column short by one line of slack spills a whole item
+        // onto a third column and a continuation slide behind it. Relax the
+        // target until the material fits the columns it was measured for —
+        // pure measurement, no I/O, and it stops at the full height, where
+        // pagination legitimately takes over.
+        for (let guard = 0; pages.length > cols && target < area.h && guard < 12; guard++) {
+          target = Math.min(area.h, Math.ceil(target * 1.08) + SPACE.sm);
+          pages = cut(target);
+        }
+        const elements = [];
+        pages.slice(0, cols).forEach((page, c) => {
+          for (const el of page) {
+            el.region.x = area.x + c * (colW + PAGE.gutter);
+            el.group = c;
+            elements.push(el);
+          }
+        });
+        if (P.rule) {
+          for (let c = 1; c < cols; c++)
+            elements.push({
+              block: { type: 'timeline-axis', arrow: false, hairline: true, vertical: true },
+              region: {
+                x: area.x + c * (colW + PAGE.gutter) - PAGE.gutter / 2,
+                y: area.y,
+                w: 1,
+                h: area.h,
+              },
+            });
+        }
+        push({ elements });
+        // What did not fit in the last column goes to "(cont.)" slides — the
+        // third overflow behaviour is a THIRD one, not a replacement:
+        // pagination still has the last word, and a flow always has somewhere
+        // to put what is left.
+        const rest = pages.slice(cols).flatMap((page) => page.map((el) => el.block));
+        if (rest.length) {
+          flowBlocks(rest, area, { density: P.density }).forEach((els) => {
+            stretchTrailingVisual(els, area);
+            push({
+              elements: els,
+              title: slide.title ? `${slide.title} (cont.)` : null,
+              notes: [],
+              continued: true,
+              titleKey: slide.title || undefined,
+            });
+          });
+        }
+        break;
+      }
+      case 'pictogram': {
+        // A hundred dots, thirty-eight of them filled (proposal §4). The share
+        // is read from the slide's first `:::progress` — the block that
+        // already carries "a number out of a whole" — or from the first
+        // percentage written in a paragraph. Nothing new to write.
+        const prog = blocks.find((b) => b.type === 'progress');
+        const para = blocks.find((b) => b.type === 'para');
+        const fromText = para ? runsToText(para.runs).match(/(\d+(?:[.,]\d+)?)\s*%/) : null;
+        // `progress.value` is already a SHARE (0…1) — the same number the bar
+        // fills itself to. A percentage read out of a sentence is a percentage
+        // and has to be brought back to the same scale.
+        const share = prog
+          ? prog.value
+          : fromText
+            ? Number.parseFloat(fromText[1].replace(',', '.')) / 100
+            : null;
+        const total = P.total ?? 100;
+        const filled = share == null ? 0 : Math.min(total, Math.round(share * total));
+        // The caption is not decoration: a hundred dots say "roughly two in
+        // five" and nothing else — the figure and what it counts have to be
+        // written under them, or the picture is a mood. Built from the
+        // `:::progress` the share was read from, so nothing is written twice.
+        const caption = [];
+        if (prog?.label || share != null)
+          caption.push({
+            type: 'para',
+            runs: [
+              ...(share == null
+                ? []
+                : [{ text: `${Math.round(share * 100)} %`, bold: true }, { text: ' ' }]),
+              ...(prog?.label ? [{ text: prog.label }] : []),
+            ],
+            ...alignAttr('center'),
+          });
+        if (prog?.caption)
+          caption.push({
+            type: 'para',
+            runs: [{ text: prog.caption }],
+            size: TYPE.small,
+            color: COLORS.neutralSecondary,
+            ...alignAttr('center'),
+          });
+        const legend = [...caption, ...blocks.filter((b) => b !== prog)];
+        const chartH = Math.round(area.h * (legend.length ? 0.62 : 1));
+        const block = {
+          type: 'pictogram',
+          total,
+          filled,
+          cols: P.cols ?? 10,
+          shape: P.shape ?? 'disc',
+          kind: P.kind ?? 'brand',
+          ...(prog?.label ? { label: prog.label } : {}),
+        };
+        const elements = [{ block, region: { x: area.x, y: area.y, w: area.w, h: chartH } }];
+        if (legend.length) {
+          const below = {
+            x: area.x,
+            y: area.y + chartH + SPACE.md,
+            w: area.w,
+            h: Math.max(0, area.h - chartH - SPACE.md),
+          };
+          elements.push(...flowBlocks(legend, below, { paginate: false })[0]);
+        }
+        push({ elements });
+        break;
+      }
+      case 'annotated': {
+        // Priority n° 1 of the proposal: a visual with numbered callouts
+        // placed around it. Item *n* of the numbered list annotates marker
+        // *n* on the picture.
+        //
+        // Placement of the callouts is the whole cost of this base, and the
+        // rule that keeps the leaders from crossing is a rule about ORDER, not
+        // a solver: the callouts are dealt TOP TO BOTTOM down each side, in
+        // the order they are written — the first half down the left column,
+        // the rest down the right. Two lines that never cross because the
+        // sequence they are drawn in never goes back up.
+        const written = slide.sections.flatMap((s) =>
+          s.heading ? [{ type: 'heading', depth: 2, runs: s.heading }, ...s.blocks] : s.blocks,
+        );
+        const isVisual = (b) =>
+          b.type === 'mermaid' || b.type === 'chart' || b.type === 'image' || b.type === 'smartart';
+        const visual = written.find(isVisual);
+        const list = written.find((b) => b.type === 'bullets');
+        const notes = list ? list.items.filter((it) => !it.level) : [];
+        const dotR = 28;
+        const marker = (k) => ({
+          type: 'timeline-dot',
+          index: k + 1,
+          ...(P.markers === 'letters' ? { label: String.fromCharCode(65 + k) } : {}),
+          ...(P.markers === 'dots' ? { numbered: false } : {}),
+        });
+        // all on one side when asked, otherwise split — the left column takes
+        // the first half, in reading order
+        const nLeft =
+          P.side === 'left' ? notes.length : P.side === 'right' ? 0 : Math.ceil(notes.length / 2);
+        const visW = Math.round(area.w * (P.ratio ?? 0.46));
+        const sideW = notes.length
+          ? Math.max(
+              0,
+              (area.w - visW - 2 * PAGE.gutter) / (P.side === 'both' && notes.length > 1 ? 2 : 1),
+            )
+          : 0;
+        const visX =
+          P.side === 'left'
+            ? area.x + area.w - visW
+            : P.side === 'right'
+              ? area.x
+              : area.x + sideW + PAGE.gutter;
+        const elements = [];
+        if (visual)
+          elements.push({
+            block: visual,
+            region: { x: visX, y: area.y, w: visW, h: area.h },
+          });
+        const rowsOn = (n) => (n ? area.h / n : 0);
+        const put = (it, k, side, slot, count) => {
+          const rowH = rowsOn(count);
+          const y = area.y + slot * rowH;
+          const x = side === 'left' ? area.x : visX + visW + PAGE.gutter;
+          const grp = k;
+          elements.push({
+            block: marker(k),
+            region: {
+              x: side === 'left' ? x + sideW - dotR : x,
+              y: y + SPACE.xs,
+              w: dotR,
+              h: dotR,
+            },
+            group: grp,
+          });
+          const textW = Math.max(0, sideW - dotR - SPACE.sm);
+          elements.push(
+            ...flowBlocks(
+              [
+                {
+                  type: 'para',
+                  runs: it.runs,
+                  ...alignAttr(side === 'left' ? 'right' : 'left'),
+                },
+              ],
+              {
+                x: side === 'left' ? x : x + dotR + SPACE.sm,
+                y: y + SPACE.xs,
+                w: textW,
+                h: Math.max(0, rowH - SPACE.sm),
+              },
+              { paginate: false, density: P.density },
+            )[0].map((el) => ({ ...el, group: grp })),
+          );
+          if (P.leader !== 'none') {
+            // the leader runs from the marker to the edge of the visual, on
+            // the marker's own row: a straight rule, no elbow, nothing to
+            // route around
+            const from = side === 'left' ? x + sideW : x - PAGE.gutter;
+            elements.push({
+              block: { type: 'timeline-axis', arrow: false, hairline: true },
+              region: {
+                x: from,
+                y: y + SPACE.xs + dotR / 2,
+                w: PAGE.gutter,
+                h: 1,
+              },
+              group: grp,
+            });
+          }
+        };
+        notes.forEach((it, k) => {
+          const side = k < nLeft ? 'left' : 'right';
+          const slot = side === 'left' ? k : k - nLeft;
+          put(it, k, side, slot, side === 'left' ? nLeft : notes.length - nLeft);
+        });
+        push({ elements });
+        break;
+      }
       case 'table':
       case 'code':
       case 'diagram':
@@ -2290,7 +3340,25 @@ export function buildScenes(deck) {
             : s.blocks;
           return grouped ? blocks.map((b) => ({ ...b, group: si })) : blocks;
         });
-        const pages = flowBlocks(alignBlocks(withHeadings, P.align), area, { density: P.density });
+        // `table` as a PARAMETRABLE base (proposal §4): the whole table family
+        // a kit could want — zebra rows, a stub column set apart, a dense
+        // pricing grid — falls out of three settings stamped on the block the
+        // Markdown already produced. No second placement engine.
+        const styled =
+          kind === 'table'
+            ? withHeadings.map((b) =>
+                b.type === 'table'
+                  ? {
+                      ...b,
+                      // omitted at the natural value: a deck that asked for
+                      // nothing must produce a byte-identical scene
+                      ...(P.zebra ? { zebra: true } : {}),
+                      ...(P.emphasis && P.emphasis !== 'header' ? { emphasis: P.emphasis } : {}),
+                    }
+                  : b,
+              )
+            : withHeadings;
+        const pages = flowBlocks(alignBlocks(styled, P.align), area, { density: P.density });
         pages.forEach((elements, p) => {
           stretchTrailingVisual(elements, area);
           push({

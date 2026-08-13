@@ -679,6 +679,40 @@ export function panelRadius(block, region) {
 /** A progress row: label on the left, bar on the right, optional caption
  *  underneath. Heights are fixed — a bar is an object of known size, and the
  *  wrapping of a label that does not fit is the layout's problem. */
+/**
+ * An isotype chart (`pictogram`, proposal §4): `total` units laid out in a
+ * grid, `filled` of them inked. The most efficient picture of a proportion
+ * there is for a non-technical audience — no scale to read.
+ *
+ * Here, beside progressLayout() and badgeLayout(), for the same reason they
+ * are: BOTH renderers place the units, and geometry computed twice is geometry
+ * that drifts. The SVG the HTML inlines and the native shapes the .pptx draws
+ * come out of this one function.
+ *
+ * The cell is SQUARE and as large as both directions allow, the grid centred
+ * in what is left rather than stretched: a hundred discs on a wide slide,
+ * stretched, would read as a hundred ellipses.
+ */
+export function pictogramGeometry(block, w, h) {
+  const total = Math.max(1, block.total ?? 100);
+  const cols = Math.min(Math.max(2, block.cols ?? 10), total);
+  const rows = Math.ceil(total / cols);
+  const cell = Math.max(4, Math.min(w / cols, h / rows));
+  const unit = cell * 0.72;
+  const x0 = (w - cell * cols) / 2 + (cell - unit) / 2;
+  const y0 = (h - cell * rows) / 2 + (cell - unit) / 2;
+  const units = [];
+  for (let k = 0; k < total; k++) {
+    units.push({
+      x: x0 + (k % cols) * cell,
+      y: y0 + Math.floor(k / cols) * cell,
+      d: unit,
+      on: k < (block.filled ?? 0),
+    });
+  }
+  return { units, cell, unit, cols, rows };
+}
+
 const PROGRESS = { rowH: 28, captionH: 18, barH: 20, labelRatio: 0.34 };
 
 export function progressLayout(block, widthPx) {

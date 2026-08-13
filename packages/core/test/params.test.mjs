@@ -50,11 +50,16 @@ const TWO_SECTIONS = '## Before\n\n- slow\n\n## After\n\n- fast\n';
 
 test('layoutParams: generator defaults, overridden by the alias definition', (t) => {
   t.after(resetUserLayouts);
+  // the optional-region parameters (leadPanel/leadRatio/leadAlign) ride on
+  // every generator that deals sections side by side: the band is defined once
+  // and composes, rather than being duplicated as one layout per combination
+  const LEAD = { leadPanel: 'none', leadRatio: 0.2, leadAlign: 'left' };
   assert.deepEqual(layoutParams('comparison'), {
     panels: ['muted', 'highlight'],
     pad: 16,
     density: 'comfortable',
     radius: null,
+    ...LEAD,
   });
   registerLayout({ name: 'p-duel', base: 'comparison', pad: 32 });
   assert.deepEqual(layoutParams('p-duel'), {
@@ -62,6 +67,7 @@ test('layoutParams: generator defaults, overridden by the alias definition', (t)
     pad: 32,
     density: 'comfortable',
     radius: null,
+    ...LEAD,
   });
   assert.deepEqual(layoutParams('unknown'), {});
   assert.equal(layoutParamSchema('unknown'), null);
@@ -72,7 +78,7 @@ test('registerLayout refuses out-of-domain values, with precise messages', (t) =
   t.after(resetUserLayouts);
   assert.throws(
     () => registerLayout({ name: 'p-a', base: 'comparison', sidepanels: ['muted'] }),
-    /unknown parameter "sidepanels" for base "comparison" \(parameters: panels, pad, density, radius\)/,
+    /unknown parameter "sidepanels" for base "comparison" \(parameters: panels, pad, density, radius, leadPanel, leadRatio, leadAlign\)/,
   );
   assert.throws(
     () => registerLayout({ name: 'p-a2', base: 'comparison', panel: ['muted'] }),
@@ -147,6 +153,9 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
   resetUserLayouts();
   const caps = capabilities();
   assert.deepEqual(Object.keys(caps.layoutParams).sort(), [
+    'annotated',
+    'checklist',
+    'columns',
     'comparison',
     'content',
     'cycle',
@@ -154,13 +163,18 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
     'grid',
     'hero',
     'layers',
+    'matrix',
     'metrics',
+    'pictogram',
     'pillars',
     'section',
     'split',
     'steps',
     'swot',
+    'table',
+    'three-columns',
     'timeline',
+    'two-columns',
     'venn',
   ]);
   assert.equal(caps.layoutParams.comparison.pad.default, 16);

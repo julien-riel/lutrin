@@ -11,6 +11,66 @@ stated otherwise, an entry describes the compiler.
 
 ### Added
 
+- **Six new inference rules, and a rule set to version them.** The engine now
+  reads signals the Markdown already carried and the layout table ignored. Four
+  titled `##` sections become a 2 × 2 `grid`, five or six a row of three, seven
+  to nine a compact three — instead of all of them falling through to a
+  paginated vertical flow. A lone task list (`- [ ]`) becomes `checklist`, a
+  lone numbered list of three to six short items becomes `steps`, a lone nested
+  list with one root becomes `hierarchy`. Three or more `##` sections all
+  naming a date or a phase become `timeline` — the detection was already
+  shipping as a suggestion, only the promotion was missing. And sections that
+  repeat the same internal shape become a mosaic of cards, because the
+  regularity *is* the intent.
+
+  No new syntax anywhere: every one of those is something an author writes to
+  mean something. The bounds are deliberate — a numbered list past six items,
+  or with an item longer than about twelve words, is content and stays a flow;
+  a nested list with two roots is two trees and stays a flow.
+
+- **Inference rule sets (`inference:`), `LAYOUT_RULES_CHANGED`, and
+  `lutrin migrate`.** Promoting a rule changes how decks already written come
+  out, so every compilation now names the slides whose layout would have
+  differed under the previous rules (`LAYOUT_RULES_CHANGED`, info) — that is
+  the real safety net, and the pin is the undo button. A deck freezes its rules
+  with `inference: "1.0"` in the frontmatter; what is versioned is the RULE SET
+  and never the engine, because a `lutrin:` pin would freeze the rendering
+  fixes and the new blocks too and nobody would ever update. Three sets are
+  maintained, and `lutrin migrate deck.md` writes the pin and lists the slides
+  it protects.
+
+- **Optional regions: a lead band and a takeaway band.** A line of text above
+  two columns is not a layout — it is a region, and the region composes. A
+  paragraph before the first `##` becomes a band on top; a `:::key` closing the
+  last section becomes a band underneath (the block is already called
+  "Takeaway"). Defined once and shared by `two-columns`, `three-columns`,
+  `comparison`, `pillars`, `grid`, `matrix` and `steps`, with `leadPanel`,
+  `leadRatio` and `leadAlign` for kits to tune. One family gained instead of
+  one layout per combination.
+
+- **Five structured bases.** `matrix` — the mosaic of `grid` plus real named
+  axes, whose labels belong to the layout and not to the deck. `columns` — the
+  content flow balanced over two or three columns, a third overflow behaviour
+  between pagination and densification. `checklist` — a task list as ticked
+  lines, ruled, one or two columns. `pictogram` — the isotype chart, a hundred
+  units with the share that counts filled in, fed by a `:::progress` or a
+  percentage already written. `annotated` — a visual with numbered callouts
+  placed around it and joined by leaders, the callouts dealt top to bottom down
+  each side so no two leaders can cross.
+
+- **`table` as a parameterized base.** `zebra`, `emphasis`
+  (`header`/`first-column`/`both`/`none`) and `density` — the whole table
+  family a kit could want, without a second placement engine.
+
+- **Task lists.** `- [ ]` and `- [x]` are read as a state rather than as three
+  characters of prose: the box replaces the bullet marker in both outputs (a
+  real `☐`/`☑` bullet in the `.pptx`, so it stays editable and re-indentable),
+  and a ticked line steps back into the secondary ink.
+
+- **Eight official layouts** on the new bases, data only: `eisenhower`,
+  `effort-impact`, `gartner-quadrant`, `product-tour`, `architecture`,
+  `glossary`, `share-of`, `pricing`.
+
 - **The `kit-from-site` skill.** A second agent skill, beside `deck`: given a
   website's URL, it walks an agent through deriving the organization's brand
   kit — harvest the design system (CSS custom properties, action color, type
@@ -839,6 +899,12 @@ stated otherwise, an entry describes the compiler.
   period. The cached record is sealed against the account and machine it was
   activated on: copying it elsewhere makes it ignored, not honoured, and a
   hand-edited `expiresAt` is refused for the same reason.
+
+### Changed
+
+- `LAYOUT_SUGGESTION` is no longer emitted for an intent the engine has already
+  acted on: three dated headings are inferred as `timeline` since rule set 1.1,
+  so advising a directive that would change nothing is noise.
 
 ### Fixed
 

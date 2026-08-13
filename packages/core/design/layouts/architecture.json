@@ -1,0 +1,9 @@
+{
+  "name": "architecture",
+  "base": "annotated",
+  "markers": "letters",
+  "side": "right",
+  "ratio": 0.6,
+  "density": "compact",
+  "description": "A diagram with its parts called out down one side, lettered."
+}
