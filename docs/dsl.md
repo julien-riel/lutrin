@@ -65,6 +65,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
+| `inference` | the **inference rule set** the deck is written against (`inference: "1.0"`). Absent = the latest set, plus a `LAYOUT_RULES_CHANGED` notice on every slide the previous rules would have laid out differently. See [Rule sets](#rule-sets-and-decks-written-before-them) |
 | `smartart` | `true` exports the diagram layouts as real OOXML SmartArt (see [Diagrams](#diagrams-cycle-hierarchy-venn-radial-apex)) — ignored on the HTML path |
 | `marp` | `true` reads the deck as **Marp Markdown** instead of this DSL — see [docs/marp.md](marp.md) |
 
@@ -192,6 +193,12 @@ info  slide 7 — inferred layout: content → grid (rule set 1.1)
 ```
 
 That is the real safety net. The rest is the undo button.
+
+A deck that **declares** its rule set is not told: the notice exists to catch
+rules moving *under* a deck, and a deck that named the rules it was written
+against cannot have moved silently. That is also what makes the notice finite —
+`lutrin migrate` writes the pin, and the slides it just listed stop being
+listed on every build from then on.
 
 **2. The pin.** A deck can freeze the rules it was written against:
 

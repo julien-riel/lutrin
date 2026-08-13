@@ -7,6 +7,6 @@
   "yLabel": "Importance",
   "xEnds": ["Later", "Now"],
   "yEnds": ["Low", "High"],
-  "kinds": ["danger", "warning", "info", "success"],
-  "description": "The Eisenhower box: urgency against importance, the axes named by the layout."
+  "kinds": ["info", "danger", "success", "warning"],
+  "description": "The Eisenhower box: urgency against importance, the axes named by the layout. Cells read row-major against those axes — schedule, do now, drop, delegate."
 }

@@ -297,10 +297,18 @@ export function validateDeck(
   // only the undo button. Every slide whose layout would have differed under
   // the previous rule set is named here, at info level: the author sees what
   // moved, on the line it moved on, and decides.
+  //
+  // A deck that DECLARES its rule set is not told: the diagnostic exists to
+  // catch rules moving UNDER a deck, and a deck that named the rules it was
+  // written against cannot have moved silently. That is also what makes the
+  // notice finite — `lutrin migrate` writes the pin, and the slides it just
+  // listed stop being listed on every build from then on. (The pin is read
+  // before anything else: `lutrin migrate` computes this list from the
+  // unpinned source, so its own report is unaffected.)
   const { rules: activeRules, diag: rulesDiag } = inferenceRuleSet(deck.meta);
   if (rulesDiag) push('warning', rulesDiag.code, rulesDiag.message, metaLine('inference'));
   {
-    const before = previousInferenceRules(activeRules);
+    const before = deck.meta?.inference == null ? previousInferenceRules(activeRules) : null;
     if (before) {
       for (const slide of deck.slides) {
         if (slide.layout) continue; // an explicit directive never moved
