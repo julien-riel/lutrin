@@ -601,6 +601,23 @@ Or a single HTML file with presenter mode.
   - Layout engine
   - Renderers
 
+# …unless you ask for plain text
+
+<!-- layout: content -->
+
+The very same list, with \`<!-- layout: content -->\` on the slide. \`content\`
+is the plain vertical flow — the layout everything falls back to, and the one
+you name when a rule read your content right and you still want it read out.
+
+- Compiler
+  - Parser
+  - Layout engine
+  - Renderers
+
+Inference is a **default, never a verdict**: a directive always wins. Use it
+for the slide that is the exception — and the \`inference:\` pin when a whole
+deck should stop moving.
+
 # Dated headings are a timeline
 
 ## Q1 2026
