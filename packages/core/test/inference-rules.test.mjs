@@ -196,6 +196,19 @@ test('LAYOUT_RULES_CHANGED names the slides that moved — and only those', () =
   );
 });
 
+test('a deck that DECLARES its rule set is not told what moved', () => {
+  const body = `# Four\n\n${SECTION(4)}`;
+  const named = (fm) =>
+    validateDeck(fm + body).filter((d) => d.code === 'LAYOUT_RULES_CHANGED').length;
+  assert.equal(named(''), 1, 'an undeclared deck is told');
+  // …including a pin on the LATEST set: the deck says which rules it was
+  // written against, so nothing moved under it. This is what makes the notice
+  // finite — `lutrin migrate` writes the pin, and the slides it just listed
+  // stop being listed on every build from then on.
+  assert.equal(named(`---\ntitle: T\ninference: "${LATEST_INFERENCE}"\n---\n\n`), 0);
+  assert.equal(named('---\ntitle: T\ninference: "1.0"\n---\n\n'), 0);
+});
+
 // ---------------------------------------------------------------------------
 // 3. Placement (§3 and §4)
 // ---------------------------------------------------------------------------

@@ -454,6 +454,7 @@ title: The whole tour
 subtitle: Every layout and every block, one slide each
 author: Lutrin
 date: 2026
+inference: "1.1"
 ---
 
 # How to read this deck
@@ -464,6 +465,8 @@ date: 2026
   you **ask for** with \`<!-- layout: … -->\`, then the blocks
 - The photo layouts — \`hero\`, \`split\` with a brand image — live in the
   "Slides with images" example, under the Studio Amber kit
+- The frontmatter pins \`inference: "1.1"\` — the rule set this deck is written
+  against, so nothing here can move under it
 
 # Layouts by inference
 
@@ -492,6 +495,9 @@ Two equal columns, styled by the theme. Three headings give three.
 
 <!-- layout: three-columns -->
 
+Three sections of the same shape would become cards — see the next slide but
+one. The directive is how you insist on columns.
+
 ## Write
 
 ![](lucide:pen-line)
@@ -509,6 +515,116 @@ Fix every diagnostic it reports.
 ![](lucide:monitor)
 
 The same slides, in PowerPoint or a browser.
+
+# Four sections make a mosaic
+
+## Discovery
+
+Interviews, service journeys, the real cost of the paper form.
+
+## Build
+
+One repository, one pipeline, the brand applied by construction.
+
+## Pilot
+
+Two directorates, six weeks, one baseline.
+
+## Rollout
+
+Everyone else, once the pilot has nothing left to teach.
+
+# Six sections, three columns
+
+## Intake
+
+Where the request arrives.
+
+## Triage
+
+Who decides, and by when.
+
+## Work
+
+The team that owns it.
+
+## Review
+
+The second pair of eyes.
+
+## Answer
+
+What the citizen receives.
+
+## Archive
+
+What is kept, and for how long.
+
+# A repeated shape becomes cards
+
+## Written
+
+One Markdown file, in version control.
+
+Reviewed like code, because it is a file.
+
+## Validated
+
+Every diagnostic fixed before the build.
+
+Overflows measured, not eyeballed.
+
+## Delivered
+
+A .pptx anyone can open and retouch.
+
+Or a single HTML file with presenter mode.
+
+# A task list checks itself off
+
+- [x] Read the checkbox in the parser
+- [x] Draw the box in the .pptx and in the HTML
+- [ ] Explain the rule in the reference
+- [ ] Announce the rule set
+
+# A numbered list is a sequence
+
+1. Received at the counter
+2. Triaged within a day
+3. Assigned to an owner
+4. Answered and closed
+
+# A nested list is a tree
+
+- Compiler
+  - Parser
+  - Layout engine
+  - Renderers
+
+# Dated headings are a timeline
+
+## Q1 2026
+
+Discovery closes, the baseline is measured.
+
+## Q2 2026
+
+The pipeline runs in production for one team.
+
+## Q3 2026
+
+Two more directorates, the same pipeline.
+
+# Rules you can pin
+
+Inference rules are versioned. A deck that says nothing gets the latest set —
+and is told, slide by slide, what the previous rules would have laid out
+differently (\`LAYOUT_RULES_CHANGED\`, at info level).
+
+- \`inference: "1.0"\` in the frontmatter freezes a rule set — the rules, never
+  the engine, so the rendering fixes keep arriving
+- \`lutrin migrate deck.md\` writes that pin and names the slides it protects
+- \`<!-- layout: content -->\` stays the answer for one slide on its own
 
 # A dominant table
 
@@ -774,6 +890,67 @@ Compiler core
 ## Projects
 
 ## Daily work
+
+# Matrix
+
+<!-- layout: matrix -->
+
+The base draws the axes; it never names them. An official layout does — the
+intent *is* effort against impact, exactly as it is a colour the deck does
+not write either.
+
+## Quick wins
+
+Do these this quarter.
+
+## Big bets
+
+Fund one, not three.
+
+## Fill-ins
+
+When there is slack.
+
+## Money pits
+
+Say no, in writing.
+
+# Columns
+
+<!-- layout: columns -->
+
+- Deck — the Markdown source file
+- Kit — a brand, distributed as data
+- Base — a layout that is code
+- Official layout — a base plus its settings
+- Inference — the rule that picks a layout
+- Rule set — the version of those rules
+- Band — an optional region above or below
+- Auto-fit — one step down the text scale
+
+# Pictogram
+
+<!-- layout: pictogram -->
+
+:::progress
+38 %
+Teams on the new pipeline
+:::
+
+# Annotated
+
+<!-- layout: annotated -->
+
+\`\`\`chart
+type: line
+categories: Jan, Feb, Mar, Apr, May, Jun
+Requests answered: 120, 128, 96, 140, 176, 181
+\`\`\`
+
+1. The winter baseline
+2. The dip is the migration freeze
+3. The step is the second directorate
+4. The plateau is the cap we set
 
 # The official catalog
 
@@ -1074,6 +1251,131 @@ Incident-free weeks, 9 of 9
 Freeze holds to cut-over
 :::
 
+# Eisenhower
+
+<!-- layout: eisenhower -->
+
+## Decide
+
+Important, not urgent: the work that pays next quarter.
+
+## Do now
+
+Important and urgent: the outage, the deadline that is today.
+
+## Drop
+
+Neither: loud, and worth nothing.
+
+## Delegate
+
+Urgent, not important: someone else's expertise, on a clock.
+
+# Effort / impact
+
+<!-- layout: effort-impact -->
+
+## Quick wins
+
+Ship them this month.
+
+## Big bets
+
+One at a time.
+
+## Fill-ins
+
+Only when there is slack.
+
+## Money pits
+
+Say no, in writing.
+
+# Positioning quadrant
+
+<!-- layout: gartner-quadrant -->
+
+## Challenger
+
+Ships well, sees only today.
+
+## Leader
+
+Both, and it shows.
+
+## Niche
+
+Narrow, and honest about it.
+
+## Visionary
+
+The plan is right, the delivery is not there yet.
+
+# Product tour
+
+<!-- layout: product-tour -->
+
+\`\`\`mermaid
+flowchart TB
+  A[Search] --> B[Results]
+  B --> C[Filters]
+  B --> D[Export]
+\`\`\`
+
+1. The search bar reads the whole corpus
+2. Results are ranked by recency
+3. Filters persist across sessions
+4. Export writes the file you were going to rebuild
+
+# Architecture
+
+<!-- layout: architecture -->
+
+\`\`\`mermaid
+flowchart TB
+  I[Ingress] --> W[Workers]
+  W --> S[(Store)]
+\`\`\`
+
+1. Ingress terminates TLS and rate-limits
+2. Workers are stateless and scale sideways
+3. The store is the only thing with a backup
+
+# Glossary
+
+<!-- layout: glossary -->
+
+- **Deck** — the Markdown source file
+- **Kit** — a brand, distributed as data
+- **Base** — a layout that is code
+- **Official layout** — a base plus its settings
+- **Inference** — the rule that picks a layout
+- **Rule set** — the version of those rules
+- **Band** — an optional region above or below
+- **Auto-fit** — one step down the text scale
+- **Pagination** — the overflow that gets its own slide
+- **Scene** — the geometry a renderer draws
+
+# Share of
+
+<!-- layout: share-of -->
+
+:::progress
+62 %
+Requests answered within the day
+:::
+
+# Pricing
+
+<!-- layout: pricing -->
+
+| Plan | Seats | Price | Support |
+| --- | --- | --- | --- |
+| Free | 1 | 0 | Community |
+| Team | 10 | 12 | Next business day |
+| Business | 50 | 9 | Four hours |
+| Enterprise | — | Ask | Named engineer |
+
 # The blocks
 
 # Callout boxes
@@ -1102,6 +1404,36 @@ links, and a status word set off as a badge — ==Shipped==, ==!At risk==.
 :::key
 The one thing to remember from this slide — set in the brand tint by
 the \`:::key\` box.
+:::
+
+# Checkboxes are a state
+
+A list item that opens with \`[ ]\` or \`[x]\` is a task: the box replaces the
+bullet marker in both outputs — a real \`☐\` / \`☑\` bullet in the .pptx, so it
+stays editable — and a ticked line steps back into the secondary ink.
+
+- [x] Written in the parser
+- [x] Drawn in both renderers
+- [ ] Read out loud on this slide
+
+# A hat and a takeaway
+
+Everything written above the first \`##\` becomes a band across the top. No
+directive: the position is the instruction.
+
+## What it composes with
+
+Two and three columns, comparison, pillars, grid, matrix and steps — the band
+is defined once, and composes.
+
+## What it is not
+
+A layout of its own. One family gained, instead of one layout per
+combination.
+
+:::key
+And this very box, closing the last section, becomes the band underneath —
+it was already called Takeaway.
 :::
 
 # Progress and status

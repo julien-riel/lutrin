@@ -37,7 +37,11 @@ stated otherwise, an entry describes the compiler.
   and never the engine, because a `lutrin:` pin would freeze the rendering
   fixes and the new blocks too and nobody would ever update. Three sets are
   maintained, and `lutrin migrate deck.md` writes the pin and lists the slides
-  it protects.
+  it protects. A deck that *declares* its rule set is not told: the notice
+  catches rules moving under a deck, and a deck that named the rules it was
+  written against cannot have moved silently — which is also what makes the
+  notice finite, since the slides `migrate` just listed stop being listed on
+  every build from then on.
 
 - **Optional regions: a lead band and a takeaway band.** A line of text above
   two columns is not a layout — it is a region, and the region composes. A
@@ -70,6 +74,13 @@ stated otherwise, an entry describes the compiler.
 - **Eight official layouts** on the new bases, data only: `eisenhower`,
   `effort-impact`, `gartner-quadrant`, `product-tour`, `architecture`,
   `glossary`, `share-of`, `pricing`.
+
+- **The playground's full tour covers all of it.** "The whole tour" — the
+  reference deck that shows every layout and every block, one slide each —
+  gains twenty-three slides: the six new inference rules each on the signal it
+  reads, the five new bases, the eight official layouts, the two bands and the
+  checkbox. It declares `inference: "1.1"`, which is both the honest statement
+  of what it demonstrates and a working example of the pin.
 
 - **The `kit-from-site` skill.** A second agent skill, beside `deck`: given a
   website's URL, it walks an agent through deriving the organization's brand
