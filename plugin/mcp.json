@@ -4,7 +4,7 @@
     "lutrin": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@lutrin/mcp@1.2.0"]
+      "args": ["-y", "@lutrin/mcp@1.3.0"]
     }
   }
 }

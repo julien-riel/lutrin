@@ -7,7 +7,28 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
 stated otherwise, an entry describes the compiler.
 
-## [Unreleased]
+## [1.3.0] — 2026-08-14
+
+The engine reads signals the Markdown already carried and the layout table
+ignored: six new inference rules, gathered into a **rule set a deck can pin**,
+because promoting a rule changes how decks already written come out and the
+undo button had to exist before the rules moved. On top of them, the pieces a
+corporate deck kept assembling by hand — a generated agenda, a provenance
+line, task lists, a real matrix, an isotype chart, a visual with numbered
+callouts, twelve more official layouts (the catalog doubles, from twelve to
+twenty-four), and two bands (lead and takeaway) any of them can wear.
+
+The `.pptx` got more native, too: equations land as real OMML you can click
+into, five diagram layouts as shapes a presenter can select — or, with
+`--smartart`, as a genuine OOXML SmartArt object — and every figure carries
+its vector beside its raster. `--pdf` and `--png` write the PDF and the images
+from the same pipeline, without a second tool.
+
+And Lutrin became something one can reach without installing it — a playground
+on the site that is the real compiler running in the visitor's browser, an
+Agent Plugin with an MCP server ([`@lutrin/mcp`](https://www.npmjs.com/package/@lutrin/mcp),
+first published at this version), and a second agent skill that derives a
+brand kit from a website's URL.
 
 ### Added
 
@@ -911,12 +932,6 @@ stated otherwise, an entry describes the compiler.
   activated on: copying it elsewhere makes it ignored, not honoured, and a
   hand-edited `expiresAt` is refused for the same reason.
 
-### Changed
-
-- `LAYOUT_SUGGESTION` is no longer emitted for an intent the engine has already
-  acted on: three dated headings are inferred as `timeline` since rule set 1.1,
-  so advising a directive that would change nothing is noise.
-
 ### Fixed
 
 - **The `:::key` callout had no fill in the HTML.** The stylesheet emitted a
@@ -1076,6 +1091,10 @@ stated otherwise, an entry describes the compiler.
   charts, which are rasterised images in the `.pptx`. All three corrected.
 
 ### Changed
+
+- `LAYOUT_SUGGESTION` is no longer emitted for an intent the engine has already
+  acted on: three dated headings are inferred as `timeline` since rule set 1.1,
+  so advising a directive that would change nothing is noise.
 
 - **The `.pptx` no longer carries zip directory entries.** A package Office
   writes has none; ours had one per folder, an artefact of JSZip materialising
@@ -1626,7 +1645,7 @@ extracted it and made the engine generic.
 - Every organization brand shipped with the engine. Brand guidelines commit an
   organization's mark: they live in their own repository, as a kit.
 
-[Unreleased]: https://github.com/julien-riel/lutrin/compare/v1.2.0...HEAD
+[1.3.0]: https://github.com/julien-riel/lutrin/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/julien-riel/lutrin/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/julien-riel/lutrin/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/julien-riel/lutrin/compare/v1.0.0...v1.1.0

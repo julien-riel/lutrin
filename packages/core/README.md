@@ -1,14 +1,16 @@
 # @lutrin/core — the compiler
 
 The engine behind [Lutrin](../../README.md): enriched Markdown (a DSL) →
-PowerPoint `.pptx` or standalone HTML, with the page layout decided by the
-engine. It carries the CLI implementation and serves as a library for the
-editor host (the VS Code extension). The command itself is
+PowerPoint `.pptx`, standalone HTML, PDF or one image per slide, with the page
+layout decided by the engine. It carries the CLI implementation and serves as
+a library for the editor host (the VS Code extension). The command itself is
 published separately as [`lutrin`](https://www.npmjs.com/package/lutrin), a
 thin entry point that depends on this package.
 
-Neither output format is privileged: both renderers consume the **same**
-geometric **scene**, in pixels on a 1280 × 720 grid.
+Neither of the two renderers is privileged: both consume the **same**
+geometric **scene**, in pixels on a 1280 × 720 grid. The PDF and the images
+are that same standalone HTML printed by a browser, so an exported frame and
+its PDF page are one picture, not two renderings that agree today.
 
 ## Installation
 
@@ -34,22 +36,37 @@ build step.
 ## CLI
 
 ```bash
-lutrin build <deck.md> [-o output.pptx|output.html] [--kit <ref>] [--vendor-assets] [--force] [--verbose]
+lutrin new [<file.deck.md>] [--force]
+lutrin build <deck.md> [-o output.pptx|.html|.pdf|.png] [--html|--pdf|--png|--jpeg] [--kit <ref>] [--smartart] [--vendor-assets] [--force] [--verbose]
 lutrin preview <deck.md> [--port 4321] [--kit <ref>]
 lutrin edit [directory] [--port 4323]
 lutrin validate <deck.md> [--json] [--kit <ref>]
+lutrin migrate <deck.md> [--to <rule-set>] [--dry-run]
 lutrin vendor <deck.md> [--kit <ref>]
 lutrin inspect <deck.md> [--kit <ref>]
 lutrin config [--kit <ref>] [--unset]
 lutrin kit install <file.deckkit|https://…> [--force] [--name <name>]
 lutrin kit list | remove <name> | create <directory> [-o <file.deckkit>]
+lutrin kit import <brand.potx|brand.pptx> [-o <directory>] [--name <name>]
+lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]
 lutrin capabilities [<deck.md>] [--kit <ref>] [--json]
 lutrin license activate <key> | status [--json] | deactivate
+lutrin setup-mermaid [--yes]
 ```
 
 The output format is deduced from the extension of `-o`. `--kit` takes
 precedence over the deck's frontmatter; a bare name designates an installed
 kit, everything else is a path resolved against the current directory.
+
+**`--pdf`, `--png` and `--jpeg` need a browser**, and are the only outputs
+that do: there is no degraded PDF, so the build refuses before writing a byte
+and names the three ways to fix it (an installed Chromium, `lutrin
+setup-mermaid`, `LUTRIN_BROWSER`). Everywhere else a missing browser or
+rasterizer degrades and says so.
+
+`lutrin migrate` writes the `inference:` pin into a deck's frontmatter and
+names the slides a newer rule set would lay out differently — the escape hatch
+for the versioned layout-inference rules (`docs/dsl.md`).
 
 `lutrin edit` serves a local web editor for the `.deck.md` files of a
 directory (the current one by default): tree, live preview, and per-slide
@@ -139,22 +156,33 @@ Markdown → AST (markdown-it) → IR → layout engine → scene → renderer
 | `src/deck/tokens.mjs` | design tokens of the generic design (mirror of `design/themes/default.json`) |
 | `src/deck/chart.mjs` | `chart` blocks → SVG in the theme's style |
 | `src/deck/assets.mjs` | remote images, Lucide icons, LaTeX, Mermaid (cache `~/.cache/lutrin/`) |
+| `src/deck/browser.mjs` | finding a Chromium (Mermaid, PDF, images) — one resolution for all of them |
+| `src/deck/smartart.mjs` | the geometry of the five diagram layouts, read by both renderers |
 | `src/deck/highlight.mjs` | syntax highlighting of code blocks |
 | `src/deck/suggest.mjs` | did you mean…? (edit distance) |
 | `src/deck/anim.mjs` | the one entrance-effect table both renderers read |
 | `src/deck/svg.mjs` | sanitizing outside SVG, and fitness to become an XML part |
+| `src/deck/slice.mjs` | slide-level splicing — the editors rewrite one slide, never the file |
+| `src/deck/marp.mjs` | the Marp dialect (`marp: true`), and what it reports rather than loses |
 | `src/pptx/render.mjs` | scene → PptxGenJS |
 | `src/pptx/fonts.mjs` | embedding the theme's TTFs into the `.pptx` |
 | `src/pptx/anim.mjs` | native animations (`<p:timing>`, one effect per block type) |
 | `src/pptx/morph.mjs` | Morph transition between consecutive slides sharing a title |
 | `src/pptx/svg.mjs` | vector twin of a picture (`asvg:svgBlip`), the PNG kept as the fallback |
+| `src/pptx/equations.mjs`, `omml.mjs` | the picture turned into a native OMML equation; it stays as the fallback |
+| `src/pptx/smartart.mjs`, `diagram-parts.mjs` | the picture turned into a genuine SmartArt object (`--smartart`) |
+| `src/pptx/zip-tidy.mjs` | the package Office writes: no zip directory entries |
 | `src/kit/from-template.mjs` | kit derived from a `.potx`/`.pptx` — colours and type only, never geometry |
 | `src/html/render.mjs` | scene → standalone HTML document (+ fragment mode) |
+| `src/pdf/render.mjs` | the standalone HTML printed by a browser: PDF, PNG, JPEG |
 | `src/kit/archive.mjs` | `.deckkit` archives — package, download, install |
+| `src/kit/edit-server.mjs` | `lutrin kit edit` — the kit editor's local server |
+| `src/edit-server.mjs` | `lutrin edit` — the deck editor's local server |
+| `src/license/` | the seat licence: activation, cached record, the attribution |
 | `src/worker/worker.mjs` | IPC worker of the editor host (types in `protocol.d.ts`) |
 | `src/vendor.mjs` | `lutrin vendor` — freezing the deck's external dependencies |
 | `design/themes/default.json` | canonical mirror of the default theme, a template to copy |
-| `design/layouts/*.json` | the catalog of the twelve official layouts |
+| `design/layouts/*.json` | the catalog of the twenty-four official layouts |
 
 `src/deck/` is the core: it knows no output format and imports no backend
 library — `test/boundary.test.mjs` verifies it.

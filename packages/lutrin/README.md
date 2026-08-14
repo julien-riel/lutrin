@@ -24,7 +24,9 @@ rebuild: the deck relays itself.
 npx lutrin new deck.md                    # a starter deck that already compiles
 npx lutrin build deck.md -o deck.pptx     # PowerPoint
 npx lutrin build deck.md -o deck.html     # standalone HTML
+npx lutrin build deck.md -o handout.pdf   # PDF, one page per slide (needs a Chromium)
 npx lutrin preview deck.md                # local server, reloads on save
+npx lutrin edit                           # local web editor, one slide at a time
 npx lutrin validate deck.md               # positioned diagnostics
 ```
 
@@ -56,12 +58,15 @@ slides, recompiled on every push.
 ## Features
 
 - 🧠 **The engine decides the layout** — decks come out consistent because
-  nobody hand-placed anything.
+  nobody hand-placed anything. The rules that pick a layout are versioned: a
+  deck can pin the set it was written against (`inference: "1.0"`), and every
+  build names the slides a newer set would lay out differently.
 - 📤 **A genuinely editable `.pptx`** — native text, shapes and tables, fonts
-  embedded, animations as PowerPoint animations, LaTeX as real equations. Not
-  one image per slide.
-- 🖥️ **Single-file HTML with presenter mode** — speaker window, notes, timer;
-  printing gives a 16:9 PDF.
+  embedded, animations as PowerPoint animations, LaTeX as real OMML equations,
+  diagrams as shapes a presenter can select. Not one image per slide.
+- 🖥️ **Single-file HTML with presenter mode** — speaker window, notes, timer.
+- 📄 **PDF and images** — `--pdf` writes one page per slide with an outline of
+  the titles, `--png` / `--jpeg` one file per slide.
 - 🩺 **A deck doctor that measures** — overflows, under-resolved images,
   layout suggestions, as positioned JSON (`--json`) an agent or a CI can act
   on. `build` refuses to ship a deck with errors.
@@ -69,6 +74,11 @@ slides, recompiled on every push.
   start one from your designer's `.potx` with `lutrin kit import`.
 - 🔁 **Marp compatible** — `marp: true` compiles an existing
   [Marp](https://marp.app) deck as it is.
+- 🤖 **Built for agents** — an
+  [Agent Plugin](https://github.com/julien-riel/lutrin/tree/main/plugin) with
+  an MCP server ([`@lutrin/mcp`](https://www.npmjs.com/package/@lutrin/mcp)),
+  a `deck` skill and a `kit-from-site` skill: a write → validate → fix → build
+  loop an agent can actually close.
 
 The same engine also runs as a
 [VS Code extension](https://marketplace.visualstudio.com/items?itemName=lutrin.lutrin-vscode)

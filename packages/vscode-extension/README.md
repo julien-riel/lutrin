@@ -28,8 +28,16 @@ before installing anything.
   "did you mean…?" suggestions become **one-click quick fixes**.
 - 📤 **A genuinely editable `.pptx`.** Text stays text, tables stay tables,
   reveal animations become native PowerPoint animations, LaTeX becomes real
-  equations, Mermaid diagrams arrive as crisp high-resolution images. Nothing
-  is flattened into one picture per slide.
+  OMML equations you can click into, diagrams become shapes a presenter can
+  select, Mermaid arrives as crisp high-resolution images. Nothing is
+  flattened into one picture per slide.
+- 🧱 **The blocks a corporate deck kept redrawing by hand.** Charts, metrics,
+  progress tracks, status badges, task lists, a matrix, a heat map, a
+  scorecard, a generated agenda, a provenance line — twenty-four official
+  layouts, all from plain text. And because the rules that pick a layout are
+  versioned, a deck can pin the set it was written against (`inference:`)
+  while the problems panel names the slides a newer set would place
+  differently.
 - 🎨 **Brand kits.** Colors, fonts, logos and layouts come as installable
   kits; the same kit styles the CLI, the preview and the export. One deck,
   any brand, zero edits to the Markdown.
@@ -78,10 +86,11 @@ workspace.
 
 The extension hosts the compiler, it does not reimplement it. The same engine
 runs as a [CLI on npm](https://www.npmjs.com/package/lutrin)
-(`npx lutrin build deck.md -o deck.pptx`, `lutrin validate --json` for CI and
-agents), as an agent skill, and
-[in the browser](https://info.lutrin.app/playground.html) — what is green
-here is green everywhere.
+(`npx lutrin build deck.md -o deck.pptx`, `-o handout.pdf` for a PDF,
+`lutrin validate --json` for CI and agents), as an
+[Agent Plugin](https://github.com/julien-riel/lutrin/tree/main/plugin) with an
+MCP server, and [in the browser](https://info.lutrin.app/playground.html) —
+what is green here is green everywhere.
 
 ## Installing outside the Marketplace
 

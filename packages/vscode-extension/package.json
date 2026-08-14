@@ -2,7 +2,7 @@
   "name": "lutrin-vscode",
   "displayName": "Lutrin — Markdown Presentations",
   "description": "Write presentations in Markdown: live slide preview, deck diagnostics with quick fixes, brand kits, Marp compatibility and one-click PowerPoint (.pptx) export.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "publisher": "lutrin",
   "license": "MIT",
   "private": true,

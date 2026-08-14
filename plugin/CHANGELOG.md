@@ -5,7 +5,10 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the plugin
 version tracks the [`@lutrin/mcp`](https://www.npmjs.com/package/@lutrin/mcp)
 server it pins.
 
-## [Unreleased]
+## [1.3.0] — 2026-08-14
+
+First released version of the plugin, at the version of the `@lutrin/mcp`
+server it pins.
 
 ### Added
 

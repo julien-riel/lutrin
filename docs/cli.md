@@ -6,10 +6,11 @@ is the contract.
 
 ```bash
 npx lutrin new [file.deck.md] [--force]        # starter deck, already compiles
-npx lutrin build <deck.md> [-o output.pptx|output.html] [--kit <ref>] [--force] [--verbose]
+npx lutrin build <deck.md> [-o out.pptx|.html|.pdf|.png] [--kit <ref>] [--smartart] [--force] [--verbose]
 npx lutrin preview <deck.md> [--port 4321]     # local server + auto reload
 npx lutrin edit [directory] [--port 4323]      # local web editor, one slide at a time
 npx lutrin validate <deck.md> [--json]         # positioned diagnostics
+npx lutrin migrate <deck.md> [--to <set>] [--dry-run]   # pin the inference rule set
 npx lutrin inspect <deck.md>                   # IR and scenes as JSON
 npx lutrin vendor <deck.md>                    # freezes the deck's external dependencies
 npx lutrin capabilities [<deck.md>] [--kit <ref>]   # layouts, directives… as JSON
@@ -18,6 +19,7 @@ npx lutrin kit <install|list|remove|create|import|edit> …   # see docs/kits.md
 npx lutrin license activate <key>              # claims a seat; removes the attribution
 npx lutrin license status [--json]             # state of the licence on this machine
 npx lutrin license deactivate                  # frees the seat for another machine
+npx lutrin setup-mermaid [--yes]               # downloads a Chromium for diagrams/PDF
 ```
 
 The output format is deduced from the extension of `-o`. Every compilation
@@ -38,6 +40,40 @@ file tree of its `.deck.md` files, a live preview compiled by the real
 engine, and editing **one slide at a time**: the server rewrites only the
 lines of the slide being saved, so nothing an author wrote elsewhere in the
 file is ever reformatted. Like the kit editor, it serves 127.0.0.1 only.
+
+## `migrate`
+
+**`lutrin migrate deck.md` writes the `inference:` pin** into the frontmatter
+and names the slides that would have moved without it. The rules that pick a
+layout are versioned as a **rule set**, and promoting one changes how decks
+already written come out; a deck that pins the set it was written against goes
+on rendering exactly as it did. With no `--to`, it pins the set *before* the
+latest — the one the deck was almost certainly written under. `--dry-run`
+prints the rewritten file on standard output instead of touching the deck.
+
+A deck whose frontmatter already carries `inference:` is refused rather than
+rewritten (exit code 1): changing a pin is a one-line edit the author should
+make deliberately. The rule sets themselves, and what each one promoted, are
+in [docs/dsl.md](dsl.md#rule-sets-and-decks-written-before-them).
+
+## PDF and images
+
+`--pdf` writes one page per slide at 1280 × 720, no margin, every animation
+step open and the presenter notes left out, plus an outline of the slide
+titles. `--png` and `--jpeg` take a stem and write one file per slide beside
+it, at twice the slide size. The extension of `-o` is enough on its own:
+`-o handout.pdf` needs no flag.
+
+**These three require a browser**, and they are the only outputs that do:
+there is no degraded PDF, so the build refuses before writing a byte and names
+the three ways to fix it — an installed Chromium, `lutrin setup-mermaid`, or
+`LUTRIN_BROWSER` pointing at an executable. Everywhere else a missing browser
+degrades and says so.
+
+`--smartart` (or `smartart: true` in the frontmatter) is the other `build`
+flag worth knowing: the `.pptx` then carries the diagram layouts as genuine
+SmartArt objects rather than as native shapes. It is opt-in because it costs
+something — see [docs/dsl.md](dsl.md).
 
 ## `capabilities`
 

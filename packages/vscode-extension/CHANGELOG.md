@@ -5,6 +5,67 @@ This file covers the VS Code extension; the compiler's own changes are in the
 [repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
 The extension's version tracks the `@lutrin/core` compiler it embeds.
 
+## [1.3.0] — 2026-08-14
+
+The extension itself barely moved again; the compiler it embeds learned to
+read signals your Markdown already carried, and gained the pieces a corporate
+deck kept assembling by hand. Everything below shows up in the preview and the
+export with no new setting to find.
+
+### Added
+
+Everything below is compiler 1.3.0, described in full in the
+[repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
+
+- **Six new layouts inferred from what you already wrote.** Four `##` sections
+  become a 2 × 2 grid, five or six a row of three; a task list becomes a
+  checklist, a numbered list of three to six short items becomes steps, a
+  nested list becomes a hierarchy, three dated sections become a timeline. No
+  new syntax — the preview simply stops paginating a vertical flow where a
+  shape was meant.
+- **A rule set your deck can pin.** Because those rules change how a deck
+  already written comes out, every compilation names the slides whose layout
+  would have differed before (`LAYOUT_RULES_CHANGED`, in the problems panel),
+  and `inference: "1.0"` in the frontmatter freezes the old behaviour. The
+  CLI's `lutrin migrate deck.md` writes the pin for you.
+- **A generated agenda and a chapter rail.** `agenda: true` synthesizes the
+  agenda slide from the deck's own chapters, and every section divider shows
+  where you are in them.
+- **The provenance line** — `<!-- source: … -->` sets a small caption at the
+  foot of the content area, in room the engine reserves before placing
+  anything.
+- **Task lists, a real matrix, a checklist, an isotype chart, an annotated
+  visual**, `table` with `zebra`/`emphasis`/`density`, optional lead and
+  takeaway bands, `:::key` as a fifth semantic tint, the delivery-review
+  charts (`bullet`, `dumbbell`, milestones on a `gantt`), and twelve more
+  official layouts — the catalog doubles, from twelve to twenty-four:
+  `eisenhower`,
+  `effort-impact`, `gartner-quadrant`, `product-tour`, `architecture`,
+  `glossary`, `share-of`, `pricing`, `kanban`, `team`, `okr` and
+  `risk-map-3`.
+- **`- [ ]` boxes stay editable in PowerPoint** — the checkbox is a real
+  bullet character, not typed-in prose.
+- **Kits customize more than colour** — a display/title font distinct from the
+  body, themable surfaces (cover, section band, content page) and an accent
+  group, all of them honoured by the preview.
+- **Five diagram layouts the catalog could not express** — `cycle`,
+  `hierarchy`, `venn`, `radial` and `apex`, asked for by name, drawn as
+  native editable PowerPoint shapes and as an inline SVG in the preview from
+  the same coordinates. The CLI's `--smartart` swaps the `.pptx` object for a
+  genuine SmartArt graphic PowerPoint opens its own ribbon on.
+
+### Fixed
+
+- **Equations arrive as native OMML**, clickable and editable in PowerPoint,
+  with the rendered picture kept as the fallback when a formula is out of
+  OMML's reach.
+- **Figures carry their vector beside their raster**, so a chart or a diagram
+  stays crisp when a reader zooms in — and Mermaid diagrams no longer draw as
+  black boxes in LibreOffice.
+- **The `:::key` callout had no fill in the preview** — it rendered as bare
+  text on the page background while the `.pptx` painted the panel. Both
+  outputs now read the same tokens.
+
 ## [1.2.0] — 2026-07-29
 
 The extension itself barely moved; the compiler it embeds gained most of a

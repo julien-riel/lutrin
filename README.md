@@ -43,14 +43,19 @@ runs the real compiler in your browser — type on the left, download the
 - 🧠 **The engine decides the layout.** No coordinates, no CSS, no columns to
   wire up — the layout is inferred from the structure of what you wrote, and
   whatever doesn't fit is paginated. Your decks come out consistent because
-  nobody hand-placed anything.
+  nobody hand-placed anything. The rules that pick a layout are **versioned**:
+  a deck can pin the set it was written against (`inference: "1.0"`), and
+  every build names the slides a newer set would lay out differently.
 - 📤 **A genuinely editable `.pptx`, by default.** Native text boxes, shapes
   and tables, fonts embedded, reveal animations as native PowerPoint
-  animations, LaTeX as real OMML equations you can click into. Text stays
-  text — not one image per slide.
+  animations, LaTeX as real OMML equations you can click into, diagrams as
+  shapes a presenter can select (`--smartart` for a true SmartArt object).
+  Text stays text — not one image per slide.
 - 🖥️ **Single-file HTML with presenter mode.** Full screen, overview grid,
-  speaker window with notes, timer and wall clock — press `P`. Printing it
-  from the browser gives a correctly sized 16:9 PDF.
+  speaker window with notes, timer and wall clock — press `P`.
+- 📄 **PDF and images from the same source.** `--pdf` writes one page per
+  slide with an outline of the titles; `--png` / `--jpeg` write one file per
+  slide. (These three need a Chromium — the only outputs that do.)
 - 🩺 **A deck doctor that measures.** `lutrin validate` doesn't just parse: it
   measures overflows, flags under-resolved images, suggests better-suited
   layouts — as positioned JSON (`--json`), underlined in VS Code with
@@ -61,8 +66,9 @@ runs the real compiler in your browser — type on the left, download the
   [visual kit editor](https://info.lutrin.app/kit-editor.html).
   [Eight kits are published](https://info.lutrin.app/gallery.html) to try on.
 - 📊 **Charts, diagrams, icons, math.** ` ```chart ` charts, Mermaid, Lucide
-  icons, LaTeX, metrics, progress bars, status badges, a generated agenda —
-  all from plain text directives. [The full DSL →](docs/dsl.md)
+  icons, LaTeX, metrics, progress bars, status badges, task lists, a generated
+  agenda, a provenance line — all from plain text directives, on twenty-four
+  official layouts. [The full DSL →](docs/dsl.md)
 - 🔁 **Marp compatible.** `marp: true` in the frontmatter compiles an existing
   [Marp](https://marp.app) deck as it is; anything without a Lutrin
   equivalent is reported, never silently lost. [Details →](docs/marp.md)
@@ -107,7 +113,9 @@ on every push.
 npx lutrin new deck.md                    # a starter deck that already compiles
 npx lutrin build deck.md -o deck.pptx     # PowerPoint
 npx lutrin build deck.md -o deck.html     # standalone HTML
+npx lutrin build deck.md -o handout.pdf   # PDF, one page per slide
 npx lutrin preview deck.md                # local server, reloads on save
+npx lutrin edit                           # local web editor, one slide at a time
 ```
 
 Install it once if you use it often: `npm install -g lutrin`. To explore what

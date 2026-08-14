@@ -1,6 +1,6 @@
 {
   "name": "@lutrin/mcp",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Model Context Protocol server for Lutrin: exposes the Markdown → PowerPoint / HTML presentation compiler as validate/build/suggest tools. Launched by the Lutrin Agent Plugin via npx.",
   "type": "module",
   "bin": {
@@ -14,7 +14,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@lutrin/core": "1.2.0",
+    "@lutrin/core": "1.3.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^3.25.0"
   },

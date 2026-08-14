@@ -4,7 +4,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the package applies [semantic versioning](https://semver.org/). The version
 tracks the Lutrin Agent Plugin that pins it.
 
-## [Unreleased]
+## [1.3.0] — 2026-08-14
+
+First published version: the package did not exist at 1.2.0, and the version
+number joins the line the plugin pins rather than starting its own.
 
 ### Added
 

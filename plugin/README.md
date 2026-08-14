@@ -27,7 +27,7 @@ The MCP server is **not** bundled in this directory. `mcp.json` launches it with
 
 ```json
 "command": "npx",
-"args": ["-y", "@lutrin/mcp@1.2.0"]
+"args": ["-y", "@lutrin/mcp@1.3.0"]
 ```
 
 Consequences:
