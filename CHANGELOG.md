@@ -29,6 +29,20 @@ stated otherwise, an entry describes the compiler.
   default, the kit overrides it. An unsupported value compiles in English and
   says so, on its own line (`LANG_UNKNOWN`).
 
+### Fixed
+
+- **A Mermaid diagram that fails now says why.** The reason was reachable
+  (`lastMermaidError()`) and kept getting lost on the way out. Every build
+  renders each diagram twice — a PNG for the `.pptx`, an SVG for the HTML —
+  and the second render, on success, cleared the single error slot the first
+  had just written to: a diagram degraded to a code block, and nothing
+  anywhere said what went wrong. A failure is now only ever forgotten by a
+  success of its OWN. The mmdc renderer, whose `catch {}` recorded nothing at
+  all, records its reason like the browser one always did; and a child killed
+  on the 60-second bound is reported as a timeout rather than as
+  "Command failed: …", which read like a broken diagram on a machine that was
+  merely slow.
+
 ## [1.3.0] — 2026-08-14
 
 The engine reads signals the Markdown already carried and the layout table

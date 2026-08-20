@@ -25,6 +25,7 @@ import { findBrowser, resetBrowserCache, browserCacheDir } from '../src/deck/bro
 import {
   mermaidConfig,
   mermaidContentKey,
+  mermaidFailure,
   renderMermaidCached,
   lastMermaidError,
 } from '../src/deck/assets.mjs';
@@ -263,6 +264,77 @@ test(
     assert.ok(Date.now() - started < 1000, 'a cache hit must not launch a browser');
   },
 );
+
+/**
+ * The reason a diagram failed has to SURVIVE the diagrams that succeed after
+ * it, and this is not a hypothetical: it is how the Windows CI runner reported
+ * a real timeout as "renderer said: (nothing)".
+ *
+ * Every build renders each diagram TWICE — a PNG for the .pptx, then an SVG
+ * for the HTML. The PNG timed out (60 s, a slow runner), the SVG went through,
+ * and the successful render cleared the single error slot on its way out. What
+ * reached the test, and would have reached a user, was a diagram silently
+ * degraded to a code block with no reason attached anywhere.
+ */
+test(
+  'a diagram that renders does not erase the reason another one failed',
+  { timeout: 120_000 },
+  (t) => {
+    resetBrowserCache();
+    const browser = findBrowser();
+    if (!browser) return t.skip('no browser on this machine');
+
+    // HERMETIC, and it has to be: both caches answer WITHOUT touching the
+    // error slot, so a machine that had already rendered these two diagrams
+    // would run this test start to finish while proving nothing — which is
+    // exactly what the first draft did. A fresh LUTRIN_CACHE empties the disk
+    // cache; sources unique to this test empty the in-memory one, whose key
+    // carries the content and never the cache directory. `browser.path` is
+    // pinned into the environment because relocating the cache also relocates
+    // where a browser downloaded by `setup-mermaid` would be looked for.
+    const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-mmd-cache-'));
+    t.after(() => fs.rmSync(cache, { recursive: true, force: true }));
+
+    withEnv({ LUTRIN_CACHE: cache, LUTRIN_BROWSER: browser.path }, () => {
+      const broken = renderMermaidCached('flowchart LR\n  ZQERASED[[[[', { format: 'svg' });
+      assert.equal(broken, null, 'the fixture must fail for this test to mean anything');
+      const why = lastMermaidError();
+      assert.ok(why, 'the failure is recorded');
+
+      // …and now the OTHER diagram of the same build, which is fine
+      assert.ok(
+        renderMermaidCached('flowchart LR\n  ZQSound --> ZQDiagram\n', { format: 'svg' }),
+        'the valid diagram must render for this test to mean anything',
+      );
+      assert.equal(
+        lastMermaidError(),
+        why,
+        'the reason of the failure that DID happen is still there',
+      );
+    });
+  },
+);
+
+test('a killed renderer is reported as a timeout, not as a crash', () => {
+  // execFileSync reports a child it killed as "Command failed: <command line>"
+  // with an empty stderr — which reads like a broken diagram and sends the
+  // reader to fix a source that was never at fault.
+  const killed = mermaidFailure(
+    Object.assign(new Error('Command failed: node mermaid-render.mjs request.json'), {
+      killed: true,
+      signal: 'SIGTERM',
+      stderr: Buffer.from(''),
+    }),
+  );
+  assert.match(killed, /killed after 60 s/);
+  assert.doesNotMatch(killed, /Command failed/, 'the useless half is what it replaces');
+
+  // a real failure keeps saying what it says — first line only: a Mermaid
+  // parse error carries a caret diagram underneath that belongs in a log, not
+  // in a one-line diagnostic
+  const parse = mermaidFailure({ stderr: Buffer.from('Parse error on line 2:\n  ^^^^\n') });
+  assert.equal(parse, 'Parse error on line 2:');
+});
 
 /**
  * `mermaidContentKey` is the contract that lets a rendering be produced AHEAD
