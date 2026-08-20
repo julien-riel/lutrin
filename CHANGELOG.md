@@ -7,6 +7,28 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
 stated otherwise, an entry describes the compiler.
 
+## [Unreleased]
+
+### Added
+
+- **`lang:` in the frontmatter — the language of the words the ENGINE writes.**
+  A deck is made of two kinds of text: what the author typed, and what the
+  compiler adds around it. The second kind was English whatever the deck was
+  written in — a French sentence inside a chip that said "Caution", a `Titre
+  (cont.)`, an agenda slide titled "Agenda" — and the only way out was to ship
+  a kit for the sole purpose of renaming five labels. `lang: fr` (or `en`, the
+  default, optionally with a region: `fr-CA`) translates the five callout
+  labels, the continuation suffix of a paginated slide and the title of a
+  generated agenda. It also sets what the outputs DECLARE: `<html lang>` and
+  the per-slide labels screen readers read, the chrome of the HTML deck's
+  presentation mode (controls, help card, presenter window), and the
+  **proofing language** of every text run of the `.pptx` — a French deck now
+  opens in PowerPoint spell-checked in French instead of underlined in red
+  from end to end. A
+  kit's own `semantic.<kind>.label` still wins: the language supplies the
+  default, the kit overrides it. An unsupported value compiles in English and
+  says so, on its own line (`LANG_UNKNOWN`).
+
 ## [1.3.0] — 2026-08-14
 
 The engine reads signals the Markdown already carried and the layout table

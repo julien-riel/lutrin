@@ -51,6 +51,7 @@ import {
 import { chartDataDiagnostics } from './chart.mjs';
 import { KIT_IMAGES, LAYER_SHADES, PAGE, TEXT_DENSITY, contentArea } from './tokens.mjs';
 import { prepareDeckContext } from './context.mjs';
+import * as i18n from './i18n.mjs';
 import { THEME_KEYS } from './theme.mjs';
 import { isMarpDeck } from './marp.mjs';
 import { closest } from './suggest.mjs';
@@ -383,7 +384,11 @@ export function validateDeck(
   const kitLine = lineOfKit !== 1 ? lineOfKit : metaLine('theme');
   for (const d of prep.diagnostics) {
     const aboutKit = d.code.startsWith('THEME_') || d.code.startsWith('KIT_');
-    push(d.severity, d.code, d.message, aboutKit ? kitLine : 1, d.suggestion);
+    // LANG_UNKNOWN speaks of the `lang:` line for the same reason: sending an
+    // author to line 1 to fix a value they wrote on line 6 is sending them
+    // nowhere.
+    const at = aboutKit ? kitLine : d.code === 'LANG_UNKNOWN' ? metaLine('lang') : 1;
+    push(d.severity, d.code, d.message, at, d.suggestion);
   }
 
   for (const slide of deck.slides) {
@@ -938,6 +943,7 @@ export function validateDeck(
     const allScenes = scenes ?? buildScenes(deck);
 
     // pagination (density info)
+    const CONT = i18n.t('slide.continued');
     const paginated = new Set();
     for (const scene of allScenes) {
       if (scene.continued && !paginated.has(scene.sourceLine)) {
@@ -945,7 +951,13 @@ export function validateDeck(
         push(
           'info',
           'SLIDE_PAGINATED',
-          `The slide "${String(scene.title ?? '').replace(/ \(cont\.\)$/, '')}" overflows: its content is split into "(cont.)" slides.`,
+          // `titleKey` is the title the AUTHOR wrote — the continuation
+          // pages carry it beside the displayed one, which gained the
+          // language's continuation suffix ("(cont.)", "(suite)"). Reading it
+          // beats stripping the suffix back off: the string to strip depends
+          // on the deck's language, and a regex written for one of them would
+          // quietly stop matching in the other.
+          `The slide "${String(scene.titleKey ?? scene.title ?? '')}" overflows: its content is split into "${CONT}" slides.`,
           scene.sourceLine,
         );
       }
@@ -1146,9 +1158,16 @@ export function capabilities() {
       // keep arriving. Absent = the latest set.
       'inference',
       'kit',
+      // `lang: fr` sets the language of the words the ENGINE writes — the
+      // callout labels, "(cont.)", the title of a generated agenda — and the
+      // language the outputs declare (see `languages`). The author's own text
+      // is never touched, in any language.
+      'lang',
       'assets',
       'marp',
     ],
+    // what `lang:` may name (BCP-47; a region may be added: `fr-CA`)
+    languages: [...i18n.LANGS],
     // the versioned inference rule sets: what `inference:` may name, which of
     // them are still honoured, and which one an unpinned deck gets
     inferenceRules: {
@@ -1277,6 +1296,7 @@ export function capabilities() {
       'LAYOUT_DEF_INVALID',
       'LAYOUT_DEF_ADJUSTED',
       'MARP_DIRECTIVE_IGNORED',
+      'LANG_UNKNOWN',
     ],
   });
 }

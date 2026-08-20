@@ -558,8 +558,11 @@ test('presentation mode: progress bar, labelled controls and the overview grid r
     /setAttribute\('aria-label'/,
     'the controls are unnamed for a screen reader',
   );
+  // the labels come from the deck's language (i18n.mjs) and are embedded as
+  // JS string literals, quotes included — hence the match on the text, not on
+  // the quoting: a French deck names the same two controls in French
   for (const label of ['Previous slide', 'Next slide']) {
-    assert.ok(script.includes(`'${label}'`), `no ${label.toLowerCase()} control`);
+    assert.ok(script.includes(`"${label}"`), `no ${label.toLowerCase()} control`);
   }
 });
 

@@ -181,8 +181,19 @@ date: July 2026
 footer: Footer text            # default: title
 kit: my-kit                    # installed kit, JSON file, directory or none (see "Themes")
 agenda: true                   # generated agenda slide after the cover (see below)
+lang: fr                       # language of the words the ENGINE writes (en | fr)
 ---
 ```
+
+`lang:` names the language of what the ENGINE writes, never of what the author
+writes: the callout labels (`:::warning` → "Caution" / "Attention"), the
+"(cont.)" / "(suite)" suffix of a paginated slide, the title of a generated
+agenda ("Agenda" / "Sommaire"). It also sets the language the HTML declares
+and the **proofing language** of the `.pptx` — a French deck comes out
+spell-checked in French rather than underlined in red. `en` (default) or `fr`,
+optionally with a region (`fr-CA`); anything else warns (`LANG_UNKNOWN`) and
+compiles in English. **Write a French deck with `lang: fr`.** A kit's own
+`semantic.<kind>.label` still wins over the language.
 
 `agenda: true` synthesizes the **agenda slide** right after the cover, from
 the deck itself: it lists the chapters (the section slides) as a numbered

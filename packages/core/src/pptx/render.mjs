@@ -71,6 +71,7 @@ import { embedMorph } from './morph.mjs';
 import { embedVectorImages } from './svg.mjs';
 import { embedEquations } from './equations.mjs';
 import { dropDirectoryEntries } from './zip-tidy.mjs';
+import { stampProofingLanguage } from './proofing.mjs';
 import { ZIP_BYTES } from './bytes.mjs';
 import { ommlFromMathML } from './omml.mjs';
 import { sanitizeSvg, svgPartSafe } from '../deck/svg.mjs';
@@ -1838,6 +1839,11 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   // VS Code route, which passes `meta` and no options, would be dead code.
   const smartart = opts.smartart ?? (meta.smartart != null && animateFlag(meta.smartart));
   const pptx = new PptxGenJS();
+  // The deck's language, stamped on every run this export writes: PowerPoint
+  // spell-checks a .pptx against the `lang` of its runs, and PptxGenJS says
+  // "en-US" unless told otherwise (proofing.mjs). Before the first addSlide —
+  // that is the method it wraps.
+  stampProofingLanguage(pptx);
   pptx.layout = 'LAYOUT_WIDE'; // 13.33 × 7.5 in = 1280 × 720 px
   pptx.author = meta.author ?? '';
   pptx.title = meta.title ?? '';

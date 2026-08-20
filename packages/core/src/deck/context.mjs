@@ -1,5 +1,6 @@
 /**
- * Compilation context of a deck: theme + theme layouts + user layouts.
+ * Compilation context of a deck: language + theme + theme layouts + user
+ * layouts.
  *
  * The SINGLE insertion point, called after parseDeck and before buildScenes
  * by every entry point of the pipeline (CLI build/inspect/preview, worker,
@@ -7,7 +8,9 @@
  * state mutated in place, and hosts are warm processes shared between
  * decks — so every compilation starts again from a fresh state (user
  * layouts reset, theme re-applied from the default snapshot), then loads
- * what comes with THIS deck: the theme (frontmatter `theme: ./x.json` or
+ * what comes with THIS deck: the language (frontmatter `lang:`, which the
+ * words the engine writes are drawn from — see i18n.mjs), the theme
+ * (frontmatter `theme: ./x.json` or
  * `theme: @org/package`, CLI flag `--theme`, or the project default from
  * the nearest package.json — see theme.mjs), the `layouts/` of the resolved
  * theme package, and the deck's own `layouts/*.json`.
@@ -27,10 +30,13 @@ import {
   loadUserLayouts,
   resetUserLayouts,
 } from './layout.mjs';
+import { LANGS, setLang } from './i18n.mjs';
+import { editDistance } from './suggest.mjs';
 import { applyTheme, resolveTheme, themeContrastDiagnostics } from './theme.mjs';
 
 /**
- * @param {object} meta deck frontmatter (deck.meta)
+ * @param {object} meta deck frontmatter (deck.meta) — `lang` and `theme`/`kit`
+ *                 are read here
  * @param {object} [opts] { baseDir, themePath, defaultTheme, kitData } —
  *                 themePath (CLI --theme) takes precedence over meta.theme;
  *                 defaultTheme (host) applies only if nothing else names a
@@ -57,10 +63,28 @@ export function prepareDeckContext(
   meta = {},
   { baseDir = process.cwd(), themePath = null, defaultTheme = null, kitData = null } = {},
 ) {
+  // The language BEFORE the theme: the callout labels are derived from it
+  // (tokens.mjs, deriveTokens) and applyTheme is what re-derives them, so a
+  // language set afterwards would be read by nothing. Called unconditionally —
+  // a deck that names none restores English, which is what keeps a warm host
+  // from lending one deck's language to the next.
+  const { unknown: unknownLang } = setLang(meta.lang);
   resetUserLayouts();
   // official catalog (design/layouts/): loaded once at startup — a file that
   // could not be read would signal a broken installation, on every deck
   const diagnostics = [...OFFICIAL_LAYOUT_DIAGS];
+  if (unknownLang)
+    diagnostics.push({
+      severity: 'warning',
+      code: 'LANG_UNKNOWN',
+      message: `Unknown language "${unknownLang}" — the engine's words (callout labels, "(cont.)", the generated agenda title) stay in English. Supported: ${LANGS.join(', ')}.`,
+      // Distance 1, where the rest of the compiler uses `closest` (2): the
+      // codes are two letters long, so ANY unknown pair is within 2 of both —
+      // "de" would be answered "did you mean en?", which is not a typo
+      // correction, it is a shrug. At 1 the suggestion only fires on what a
+      // typo actually looks like: "eng", "fra", "ne".
+      suggestion: LANGS.find((l) => editDistance(unknownLang.trim().toLowerCase(), l) <= 1),
+    });
   const {
     theme,
     path: themeFile,

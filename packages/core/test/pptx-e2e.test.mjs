@@ -270,8 +270,11 @@ test('pptx: every slide carries a title in the OOXML sense, with unchanged geome
     w: toEmu(px(PAGE.width - 2 * PAGE.margin)),
     h: toEmu(px(PAGE.titleHeight - SPACE.lg - 8)),
   });
-  // and the theme still applies to it (bold, title size, ink)
-  assert.match(content, /<a:rPr lang="en-US" sz="2600" b="1"[\s\S]*?First slide/);
+  // and the theme still applies to it (bold, title size, ink). The run
+  // properties are matched around `lang`, not through it: the deck's language
+  // is stamped there (proofing.mjs) and PptxGenJS adds its own `altLang`
+  // beside it — neither has anything to do with what this asserts.
+  assert.match(content, /<a:rPr lang="[^"]+"[^>]* sz="2600" b="1"[\s\S]*?First slide/);
 });
 
 test('pptx: docProps/app.xml lists the real titles — that is where PowerPoint reads the outline', async (t) => {

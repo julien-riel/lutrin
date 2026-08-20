@@ -69,6 +69,12 @@ runs the real compiler in your browser — type on the left, download the
   icons, LaTeX, metrics, progress bars, status badges, task lists, a generated
   agenda, a provenance line — all from plain text directives, on twenty-four
   official layouts. [The full DSL →](docs/dsl.md)
+- 🌍 **The deck speaks your language.** `lang: fr` in the frontmatter puts the
+  words the *engine* writes into French — the callout labels, the "(suite)" of
+  a paginated slide, the title of a generated agenda — declares the language in
+  the HTML, and stamps it on every run of the `.pptx`, so PowerPoint
+  spell-checks the deck in French instead of underlining it end to end.
+  `en` and `fr` today. [Details →](docs/dsl.md#frontmatter)
 - 🔁 **Marp compatible.** `marp: true` in the frontmatter compiles an existing
   [Marp](https://marp.app) deck as it is; anything without a Lutrin
   equivalent is reported, never silently lost. [Details →](docs/marp.md)

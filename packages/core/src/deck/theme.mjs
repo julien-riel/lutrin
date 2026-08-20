@@ -69,9 +69,10 @@
  * shared between decks: applyTheme() ALWAYS restarts from the snapshot of the
  * default values taken at load time, then merges the theme, then re-runs
  * deriveTokens() so that the derived groups (LAYER_SHADES, SEMANTIC,
- * TREND_INK, PAGE margins) follow the palette, then re-merges the explicit
- * overrides of those groups. applyTheme(null) therefore restores exactly the
- * default theme — never a theme leak between requests.
+ * TREND_INK, PAGE margins) follow the palette — and the callout labels the
+ * deck's language — then re-merges the explicit overrides of those groups.
+ * applyTheme(null) therefore restores exactly the default theme, in the
+ * language in force — never a theme leak between requests.
  *
  * Validation (resolveTheme) NEVER throws: a theme that could not be read or an
  * invalid entry becomes a diagnostic and the entry is dropped — the deck
@@ -210,7 +211,16 @@ function restore(live, base) {
  */
 export function applyTheme(theme = null) {
   for (const [key, live] of Object.entries(ALL_LIVE)) restore(live, BASE[key]);
-  if (!theme) return;
+  if (!theme) {
+    // A deck with no kit still has a LANGUAGE, and the callout labels are
+    // derived from it (tokens.mjs). The snapshot restored above was taken in
+    // English at module load, so without this the generic theme would print
+    // "Caution" on a `lang: fr` deck. Re-deriving costs nothing else: every
+    // other derived value comes from the palette that was just restored, and
+    // BASE was itself snapshotted after a deriveTokens().
+    deriveTokens();
+    return;
+  }
 
   for (const [key, live] of Object.entries(BASE_GROUPS)) mergeInto(live, theme[key]);
   deriveTokens();
