@@ -59,7 +59,8 @@ wins, the others return to the content flow.
 |---|---|
 | `footer:` | mapped onto the deck footer (the last definition wins — lutrin's footer is deck-wide) |
 | `headingDivider:` | honoured (see above) |
-| `paginate:`, `class:` / `_class:`, `math:`, `lang:`, `title:`, `description:`… | accepted in silence: pagination, slide classes, math rendering and HTML metadata are already the engine's or the renderer's business |
+| `paginate:`, `class:` / `_class:`, `math:`, `title:`, `description:`… | accepted in silence: pagination, slide classes, math rendering and HTML metadata are already the engine's or the renderer's business |
+| `lang:` | **honoured** — the same key lutrin reads (`en`, `fr`): the words the engine writes, and the language the outputs declare. See [the DSL](dsl.md#frontmatter) |
 | `theme:` | **not** a lutrin kit: reported by `MARP_DIRECTIVE_IGNORED`, the generic theme applies. To brand the deck, use `kit:` — it works in a Marp deck too |
 | `style:`, `header:`, `size:` (other than `16:9`), `backgroundColor:`, `backgroundImage:`, `backgroundPosition:`, `backgroundRepeat:`, `backgroundSize:`, `color:` and their `_` spot variants | no lutrin equivalent — each occurrence reported by `MARP_DIRECTIVE_IGNORED` (info): the deck compiles, the engine decides these things itself |
 

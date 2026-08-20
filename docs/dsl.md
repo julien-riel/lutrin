@@ -50,6 +50,7 @@ date: July 2026
 footer: Footer text                # default: title
 notes: what to say over the cover  # presenter notes of the generated cover
 kit: my-kit                        # brand to apply (see below)
+lang: fr                           # language of the words the ENGINE writes
 animate: true                      # animates the whole deck
 assets: vendor                     # keeps remote images next to the .md
 ---
@@ -63,6 +64,7 @@ assets: vendor                     # keeps remote images next to the .md
 | `notes` | presenter notes of the **cover generated from `title:`** — the one slide no `<!-- notes: -->` can reach, since there is no line in the source to hang the comment on. A flat one-line value like every key here (the frontmatter reader is a one-line-per-key scanner: there is no block form to write). With no generated cover — no `title:`, or a Marp deck — the line is inert and says so: `COVER_NOTES_ORPHAN` |
 | `agenda` | `true` synthesizes the **agenda slide** right after the cover; any other value (`agenda: Sommaire`) also names it. See below |
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
+| `lang` | language of the words the **engine** writes — `en` (default) or `fr`. See below |
 | `animate` | `true` animates every slide (see [Animations](#animations)); an effect value (`fade`, `wipe`, `zoom`, `appear`) imposes it on the whole deck |
 | `assets` | `vendor` copies remote images into `assets/remote/` next to the `.md` |
 | `inference` | the **inference rule set** the deck is written against (`inference: "1.0"`). Absent = the latest set, plus a `LAYOUT_RULES_CHANGED` notice on every slide the previous rules would have laid out differently. See [Rule sets](#rule-sets-and-decks-written-before-them) |
@@ -80,6 +82,38 @@ view. Rename the key if it was never meant to be spoken.
 
 `theme:` is still accepted as a **deprecated alias** of `kit:` and produces
 the `KIT_DEPRECATED_KEY` diagnostic.
+
+**The language** (`lang:`) is the language of what the ENGINE writes, never of
+what you write: the label a callout wears, the suffix a paginated slide gains,
+the title of a generated agenda. Two values are supported — `en` (the default)
+and `fr` — and a region may be named (`lang: fr-CA`).
+
+| | `en` | `fr` |
+|---|---|---|
+| `:::info` | Info | Info |
+| `:::success` | Key point | Point clé |
+| `:::warning` | Caution | Attention |
+| `:::danger` | Important | Important |
+| `:::key` | Takeaway | À retenir |
+| a paginated slide | `Title (cont.)` | `Titre (suite)` |
+| `agenda: true` | Agenda | Sommaire |
+
+The language also travels into the outputs: the HTML declares it (`<html
+lang="fr-CA">`, which is what a screen reader picks its voice from, and what
+the per-slide labels it reads are written in), the chrome of its presentation
+mode speaks it (the on-screen controls, the `?` help card, the presenter
+window and its notes pane), and every text run of the `.pptx` carries it as
+its **proofing language** — a French deck opens in PowerPoint spell-checked in
+French instead of underlined in red from end to end. An unsupported value
+changes nothing and says so (`LANG_UNKNOWN`).
+
+What is never translated: the text **you** wrote, and the keyboard shortcuts
+(`P`, `N`, `O`) — they name keys, not words.
+
+A **kit still wins**: a `semantic.<kind>.label` in its `theme.json` keeps its
+own wording in every language — the language supplies the default, the kit
+overrides it. Renaming a single callout therefore no longer requires shipping a
+kit for it.
 
 **The generated agenda** (`agenda: true`) is built from the deck itself, which
 is the point: an agenda typed by hand lies the day a chapter is renamed, one
@@ -1328,6 +1362,7 @@ The main ones:
 | `LAYOUT_RULES_CHANGED` | info | this slide's inferred layout differs from what the previous rule set would have given |
 | `INFERENCE_RULES_RETIRED` | warning | the pinned rule set is no longer maintained — the oldest maintained one applies |
 | `INFERENCE_RULES_UNKNOWN` | warning | `inference:` names a set that does not exist — the latest applies |
+| `LANG_UNKNOWN` | warning | `lang:` names a language the engine does not have — English applies |
 | `SLIDE_PAGINATED` | info | the slide is split into "(cont.)" |
 | `SLIDE_DENSIFIED` | info | a region was re-flowed a step down the text scale to fit |
 | `IMAGE_UPSCALED` | info | local image stretched beyond its native size |

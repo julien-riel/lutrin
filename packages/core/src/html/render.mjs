@@ -64,6 +64,7 @@ import { sanitizeSvg } from '../deck/svg.mjs';
 import { presetFor } from '../deck/anim.mjs';
 import { buildScenes } from '../deck/layout.mjs';
 import { prepareDeckContext } from '../deck/context.mjs';
+import * as i18n from '../deck/i18n.mjs';
 import { chartSvg } from '../deck/chart.mjs';
 import { smartArtSvg } from '../deck/smartart.mjs';
 import { highlightLine } from '../deck/highlight.mjs';
@@ -431,7 +432,7 @@ function htmlPictogram(block, r) {
         : `<circle cx="${(u.x + u.d / 2).toFixed(1)}" cy="${(u.y + u.d / 2).toFixed(1)}" r="${(u.d / 2).toFixed(1)}" fill="#${u.on ? on : off}"/>`,
     )
     .join('');
-  return `<div class="figure el" style="${at(r, true)}"><svg width="${Math.round(r.w)}" height="${Math.round(r.h)}" viewBox="0 0 ${Math.round(r.w)} ${Math.round(r.h)}" role="img" aria-label="${esc(`${block.filled} out of ${block.total}${block.label ? ` — ${block.label}` : ''}`)}">${shapes}</svg></div>`;
+  return `<div class="figure el" style="${at(r, true)}"><svg width="${Math.round(r.w)}" height="${Math.round(r.h)}" viewBox="0 0 ${Math.round(r.w)} ${Math.round(r.h)}" role="img" aria-label="${esc(`${i18n.t('a11y.pictogram', { filled: block.filled, total: block.total })}${block.label ? ` — ${block.label}` : ''}`)}">${shapes}</svg></div>`;
 }
 
 /** A diagram: one inline SVG at the region's EXACT size, in one top-level
@@ -1128,14 +1129,14 @@ const presentScript = () => `
   document.body.appendChild(hint);
   var help = document.createElement('div');
   help.className = 'present-help';
-  help.innerHTML = '<b>Shortcuts</b>' +
-    '<div><kbd>P</kbd>enter / exit presentation mode</div>' +
-    '<div><kbd>→</kbd><kbd>Space</kbd><kbd>PgDn</kbd>next step or slide</div>' +
-    '<div><kbd>←</kbd><kbd>PgUp</kbd>previous step or slide</div>' +
-    '<div><kbd>Home</kbd><kbd>End</kbd>first / last slide</div>' +
-    '<div><kbd>N</kbd>presenter view (notes, timer)</div>' +
-    '<div><kbd>O</kbd>overview of every slide</div>' +
-    '<div><kbd>Esc</kbd>exit</div>';
+  help.innerHTML = '<b>' + ${i18n.tjs('viewer.shortcuts')} + '</b>' +
+    '<div><kbd>P</kbd>' + ${i18n.tjs('viewer.helpPresent')} + '</div>' +
+    '<div><kbd>→</kbd><kbd>Space</kbd><kbd>PgDn</kbd>' + ${i18n.tjs('viewer.helpNext')} + '</div>' +
+    '<div><kbd>←</kbd><kbd>PgUp</kbd>' + ${i18n.tjs('viewer.helpPrevious')} + '</div>' +
+    '<div><kbd>Home</kbd><kbd>End</kbd>' + ${i18n.tjs('viewer.helpEnds')} + '</div>' +
+    '<div><kbd>N</kbd>' + ${i18n.tjs('viewer.helpPresenter')} + '</div>' +
+    '<div><kbd>O</kbd>' + ${i18n.tjs('viewer.helpOverview')} + '</div>' +
+    '<div><kbd>Esc</kbd>' + ${i18n.tjs('viewer.helpExit')} + '</div>';
   document.body.appendChild(help);
   help.addEventListener('click', function(){ help.classList.remove('open'); });
 
@@ -1161,8 +1162,8 @@ const presentScript = () => `
     nav.appendChild(b);
     return b;
   }
-  var btnPrev = navButton('Previous slide', '&#8592;', function(){ prev(); });
-  var btnNext = navButton('Next slide', '&#8594;', function(){ next(); });
+  var btnPrev = navButton(${i18n.tjs('viewer.previousSlide')}, '&#8592;', function(){ prev(); });
+  var btnNext = navButton(${i18n.tjs('viewer.nextSlide')}, '&#8594;', function(){ next(); });
   document.body.appendChild(nav);
 
   /** The controls follow the pointer: shown while it moves, gone after a
@@ -1179,8 +1180,8 @@ const presentScript = () => `
 
   function updateHint(){
     hint.textContent = presenting
-      ? (current + 1) + ' / ' + frames.length + ' — N: notes · O: overview · Esc: exit · ?: help'
-      : 'P: presentation mode · ?: help';
+      ? (current + 1) + ' / ' + frames.length + ' — ' + ${i18n.tjs('viewer.hintPresenting')}
+      : ${i18n.tjs('viewer.hintIdle')};
     barFill.style.width = ((current + 1) / frames.length * 100) + '%';
     // a step still to reveal is a "next" even on the last slide, and a step
     // already revealed is a "previous" even on the first
@@ -1339,12 +1340,12 @@ const presentScript = () => `
     '#p-cur [data-step]{visibility:hidden}' +          // the current slide follows
     '#p-cur [data-step].step-shown{visibility:visible}'; // the step state; the next one shows everything
   var PRES_BODY = '<div class="p-top">' +
-    '<span id="t-timer" title="Start / pause">00:00</span>' +
-    '<button id="t-reset" type="button" title="Reset">reset</button>' +
+    '<span id="t-timer">00:00</span>' +
+    '<button id="t-reset" type="button">' + ${i18n.tjs('viewer.timerResetShort')} + '</button>' +
     '<span id="t-count"></span><span id="t-clock"></span></div>' +
     '<div class="p-cols"><div class="p-main"><div class="p-frame" id="p-cur"></div></div>' +
-    '<div class="p-side"><div class="p-label">Next slide</div><div class="p-frame" id="p-next"></div>' +
-    '<div class="p-label">Notes</div><div class="p-notes" id="p-notes"></div></div></div>';
+    '<div class="p-side"><div class="p-label">' + ${i18n.tjs('viewer.nextSlide')} + '</div><div class="p-frame" id="p-next"></div>' +
+    '<div class="p-label">' + ${i18n.tjs('viewer.notes')} + '</div><div class="p-notes" id="p-notes"></div></div></div>';
 
   var popupAt = 0; // timestamp of the last window.open (guards fullscreenchange)
   function presOpen(){ return notesWin && !notesWin.closed; }
@@ -1353,7 +1354,7 @@ const presentScript = () => `
     popupAt = Date.now();
     var w = window.open('', 'lutrinPresenter', 'width=1100,height=680');
     if (!w){ // window blocked: presentation mode stays usable, but say so
-      hint.textContent = 'Window blocked — allow pop-ups to get the presenter view';
+      hint.textContent = ${i18n.tjs('viewer.popupBlocked')};
       return;
     }
     notesWin = w;
@@ -1363,13 +1364,19 @@ const presentScript = () => `
     // NB: the body tags are split so that their closing literal stays unique
     // in the generated document — lutrin preview injects its SSE client
     // before the LAST occurrence (a contract tested by html.test)
-    doc.write('<!doctype html><html lang="en"><head><meta charset="utf-8">' +
-      '<title>Presenter view</title><style>' +
+    doc.write('<!doctype html><html lang="${i18n.htmlLang()}"><head><meta charset="utf-8">' +
+      '<title>' + ${i18n.tjs('viewer.presenterView')} + '</title><style>' +
       document.querySelector('style').textContent + PRES_CSS +
       '</style></head><bo' + 'dy>' + PRES_BODY + '</bo' + 'dy></html>');
     doc.close();
     doc.getElementById('t-timer').onclick = toggleTimer;
     doc.getElementById('t-reset').onclick = resetTimer;
+    // tooltips as DOM PROPERTIES, not as attributes inside PRES_BODY: an
+    // attribute would have to survive being spliced into an HTML string, and
+    // the day a translation carries a quote it would silently swallow the rest
+    // of the tag
+    doc.getElementById('t-timer').title = ${i18n.tjs('viewer.timerToggle')};
+    doc.getElementById('t-reset').title = ${i18n.tjs('viewer.timerReset')};
     doc.onkeydown = presenterKeys;
     w.addEventListener('resize', fitPanes);
     if (!tick) tick = setInterval(tickTimer, 500);
@@ -1411,7 +1418,7 @@ const presentScript = () => `
     var list = notes[current];
     doc.getElementById('p-notes').innerHTML = list.length
       ? '<p>' + list.join('</p><p>') + '</p>'
-      : '<p class="p-empty">No notes for this slide.</p>';
+      : '<p class="p-empty">' + ${i18n.tjs('viewer.noNotes')} + '</p>';
     fitPanes();
   }
 
@@ -1568,15 +1575,18 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
       body = contentHtml(scene, k + 1, footerText, ctx, brand);
     }
     const notes = scene.notes?.length
-      ? `<details class="notes"><summary>Notes</summary><p>${scene.notes.map(esc).join('</p><p>')}</p></details>`
+      ? `<details class="notes"><summary>${esc(i18n.t('viewer.notes'))}</summary><p>${scene.notes.map(esc).join('</p><p>')}</p></details>`
       : '';
     const anim = scene.animSteps ? ` data-anim-steps="${scene.animSteps}"` : '';
     // role="group" + aria-roledescription (APG carousel pattern): role="img"
     // would hide all the real content — links, tables — from screen readers
-    const label = `Slide ${k + 1} of ${scenes.length}${scene.title ? ` — ${scene.title}` : ''}`;
+    // in the deck's language, like every other word the engine writes: a
+    // French deck read aloud by a screen reader announced "Slide 3 of 12"
+    // between two French sentences, in an English voice
+    const label = `${i18n.t('a11y.slideLabel', { n: k + 1, total: scenes.length })}${scene.title ? ` — ${scene.title}` : ''}`;
     return (
       `<div class="slide-frame" id="slide-${k + 1}" data-slide="${k + 1}" data-layout="${esc(scene.layout)}"${anim}>` +
-      `<div class="slide ${masterCls}" role="group" aria-roledescription="slide" aria-label="${esc(label)}">\n${body}\n</div></div>${notes}`
+      `<div class="slide ${masterCls}" role="group" aria-roledescription="${esc(i18n.t('a11y.slideRole'))}" aria-label="${esc(label)}">\n${body}\n</div></div>${notes}`
     );
   });
 
@@ -1614,7 +1624,7 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
 export async function renderDeckHtml(scenes, meta, baseDir, opts = {}) {
   const { slides, stats } = await renderSlideFragments(scenes, meta, baseDir, opts);
   const html = `<!doctype html>
-<html lang="en">
+<html lang="${i18n.htmlLang()}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

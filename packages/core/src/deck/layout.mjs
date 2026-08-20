@@ -39,6 +39,7 @@ import {
   scaleTextToken,
   sourceLineBox,
 } from './tokens.mjs';
+import * as i18n from './i18n.mjs';
 import { isMarpDeck } from './marp.mjs';
 import { ALERT_BLOCK_TYPES, animateFlag, animatePreset, runsToText } from './parse.mjs';
 import { closest } from './suggest.mjs';
@@ -3140,7 +3141,7 @@ export function buildScenes(deck) {
             stretchTrailingVisual(els, area);
             push({
               elements: els,
-              title: slide.title ? `${slide.title} (cont.)` : null,
+              title: slide.title ? `${slide.title} ${i18n.t('slide.continued')}` : null,
               notes: [],
               continued: true,
               titleKey: slide.title || undefined,
@@ -3363,7 +3364,12 @@ export function buildScenes(deck) {
           stretchTrailingVisual(elements, area);
           push({
             elements,
-            title: p === 0 ? slide.title : slide.title ? `${slide.title} (cont.)` : null,
+            title:
+              p === 0
+                ? slide.title
+                : slide.title
+                  ? `${slide.title} ${i18n.t('slide.continued')}`
+                  : null,
             notes: p === 0 ? slide.notes : [],
             continued: p > 0 || undefined,
             // The title the AUTHOR wrote, kept on the continuation pages whose
@@ -3397,9 +3403,10 @@ export function buildScenes(deck) {
         ? chapters.map((s) => s.title)
         : scenes.filter((s) => s.master !== 'cover' && s.title && !s.continued).map((s) => s.title);
     if (items.length) {
-      // `agenda: Sommaire` names the slide; the bare flag keeps "Agenda",
-      // which reads in both of the engine's languages
-      const title = /^(true|1|yes|oui|on)$/i.test(agendaVal) ? 'Agenda' : agendaVal;
+      // `agenda: Sommaire` names the slide; the bare flag takes the title of
+      // the deck's language — "Agenda", "Sommaire" (i18n.mjs). A value always
+      // wins over the language: it is the author naming their own slide.
+      const title = /^(true|1|yes|oui|on)$/i.test(agendaVal) ? i18n.t('slide.agenda') : agendaVal;
       const list = {
         type: 'bullets',
         ordered: true,
@@ -3413,7 +3420,7 @@ export function buildScenes(deck) {
         scenes.splice(at + p, 0, {
           master: 'content',
           layout: 'agenda',
-          title: p === 0 ? title : `${title} (cont.)`,
+          title: p === 0 ? title : `${title} ${i18n.t('slide.continued')}`,
           notes: [],
           elements,
           continued: p > 0 || undefined,

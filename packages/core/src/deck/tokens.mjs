@@ -15,8 +15,10 @@
  * time, never copy them when the module loads. The derived groups
  * (PAGE.margin/gutter/footerHeight, LAYER_SHADES, TREND_INK,
  * SEMANTIC) are recomputed by `deriveTokens()` so they follow a theme's
- * palette.
+ * palette — and, for the callout labels, the deck's language (i18n.mjs).
  */
+
+import { t } from './i18n.mjs';
 
 export const COLORS = {
   primary: '1D4ED8',
@@ -417,7 +419,8 @@ export const SURFACE = {};
 export const ACCENT = {};
 
 /** Tints of the :::info/success/warning/danger callouts.
- *  fill/text derived from COLORS (deriveTokens); label localizable. */
+ *  fill/text derived from COLORS, label from the deck's language (i18n.mjs) —
+ *  both by deriveTokens(), both overridable by a theme's `semantic` group. */
 export const SEMANTIC = {};
 
 // ---------------------------------------------------------------------------
@@ -493,6 +496,11 @@ export function solidInk(fill, familyDark) {
  * LAYER_SHADES, SEMANTIC, TREND_INK and PAGE's margins follow the
  * palette — an explicit theme override on a derived group is then
  * re-merged on top (theme.mjs).
+ *
+ * The SEMANTIC labels are read from the deck's language here rather than
+ * written down, which is what puts them under the same rule as the tints: the
+ * language sets the default, a theme's `semantic.<kind>.label` overrides it —
+ * a kit that renamed a callout keeps its own wording in every language.
  */
 export function deriveTokens() {
   PAGE.margin = SPACE.xxl;
@@ -550,28 +558,28 @@ export function deriveTokens() {
       text: COLORS.informativeDark,
       solid: COLORS.informative,
       solidText: solidInk(COLORS.informative, COLORS.informativeDark),
-      label: 'Info',
+      label: t('callout.info'),
     },
     success: {
       fill: COLORS.positiveLight,
       text: COLORS.positiveDark,
       solid: COLORS.positive,
       solidText: solidInk(COLORS.positive, COLORS.positiveDark),
-      label: 'Key point',
+      label: t('callout.success'),
     },
     warning: {
       fill: COLORS.warningLight,
       text: COLORS.warningDark,
       solid: COLORS.warning,
       solidText: solidInk(COLORS.warning, COLORS.warningDark),
-      label: 'Caution',
+      label: t('callout.warning'),
     },
     danger: {
       fill: COLORS.negativeLight,
       text: COLORS.negativeDark,
       solid: COLORS.negative,
       solidText: solidInk(COLORS.negative, COLORS.negativeDark),
-      label: 'Important',
+      label: t('callout.danger'),
     },
     // The fifth tint judges nothing: it designates. The takeaway box of a
     // busy slide, in the brand's own hue — the pale pair is the one
@@ -582,7 +590,7 @@ export function deriveTokens() {
       text: COLORS.primaryDarker,
       solid: COLORS.primary,
       solidText: solidInk(COLORS.primary, COLORS.primaryDarker),
-      label: 'Takeaway',
+      label: t('callout.key'),
     },
   });
 }
