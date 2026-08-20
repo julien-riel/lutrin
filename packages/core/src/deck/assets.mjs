@@ -1007,6 +1007,45 @@ export function findMmdc() {
 }
 
 /**
+ * How long either renderer is given, in ms. One number for the two paths: the
+ * bound is the same question in both — "has this diagram rendered yet?" — and
+ * two constants drifting apart would make a timeout mean different things
+ * depending on which renderer happened to be installed.
+ */
+const MERMAID_TIMEOUT_MS = 60_000;
+
+/**
+ * What to write into `_mermaidError` when a renderer's child process throws.
+ *
+ * A TIMEOUT is named as such. `execFileSync` reports a killed child as
+ * "Command failed: <the whole command line>" with an empty stderr, which reads
+ * like a crash and sent a reader looking for a broken diagram — when the
+ * diagram was fine and the machine was slow. That distinction is the whole
+ * value of the message: one of the two says "retry on a less loaded machine",
+ * the other says "your source is wrong".
+ *
+ * Exported for the one test that pins those two shapes apart: reaching the
+ * timeout branch for real costs a minute of wall clock, and a message nobody
+ * can afford to exercise is a message that quietly rots.
+ */
+export function mermaidFailure(err) {
+  if (err?.killed || err?.signal)
+    return `the renderer was killed after ${MERMAID_TIMEOUT_MS / 1000} s — the diagram did not finish rendering`;
+  return (err?.stderr?.toString() || err?.message || String(err)).trim().split('\n')[0];
+}
+
+/** Last diagnosis from EITHER renderer, for the CLI to surface. A silent null
+ *  told nobody whether the browser was missing, the source invalid, or Chrome
+ *  unable to start — three fixes behind one symptom.
+ *
+ *  One slot for the whole process, and a build renders many diagrams in two
+ *  formats: whoever writes here must therefore ask not only "did I fail?" but
+ *  "am I about to erase somebody else's answer?" — see renderMermaidCached,
+ *  which is where that is arbitrated. */
+let _mermaidError = null;
+export const lastMermaidError = () => _mermaidError;
+
+/**
  * Renders a Mermaid diagram into `tmpDir` (PNG for the PPTX, SVG for the HTML)
  * and returns the path of the produced file — or null (mmdc absent, invalid
  * source…): the caller keeps its "source as a code block" fallback.
@@ -1023,9 +1062,17 @@ export function renderMermaid(sourceText, tmpDir, idx, mmdc, { format = 'png' } 
     fs.writeFileSync(src, sourceText);
     const args = ['-i', src, '-o', out, '-b', 'transparent', '-c', cfg];
     if (format === 'png') args.push('-s', String(MERMAID_PNG_SCALE));
-    execFileSync(mmdc, args, { stdio: 'pipe', timeout: 60_000 });
-    return fs.existsSync(out) ? out : null;
-  } catch {
+    execFileSync(mmdc, args, { stdio: 'pipe', timeout: MERMAID_TIMEOUT_MS });
+    if (fs.existsSync(out)) return out;
+    _mermaidError = 'mmdc produced no file';
+    return null;
+  } catch (err) {
+    // Recorded, where this branch used to swallow it whole. The browser path
+    // has always written its reason down; mmdc's `catch {}` meant that on a
+    // machine where mmdc is the renderer in use, every failure came back as
+    // "(nothing)" — a symptom with no diagnosis, and no way to tell a broken
+    // diagram from a Chromium that would not start.
+    _mermaidError = `mmdc: ${mermaidFailure(err)}`;
     return null;
   }
 }
@@ -1043,12 +1090,6 @@ const MERMAID_BUNDLE = path.join(ROOT, 'vendor', 'mermaid', 'mermaid.min.js');
 
 /** This file, spawned as a child process. */
 const MERMAID_CHILD = path.join(ROOT, 'src', 'deck', 'mermaid-render.mjs');
-
-/** Last diagnosis from the browser renderer, for the CLI to surface. A silent
- *  null told nobody whether the browser was missing, the source invalid, or
- *  Chrome unable to start — three fixes behind one symptom. */
-let _mermaidError = null;
-export const lastMermaidError = () => _mermaidError;
 
 /**
  * sha1 of `value`, or null if this Node refuses the digest.
@@ -1108,9 +1149,12 @@ export function renderMermaidBrowser(sourceText, tmpDir, idx, { format = 'png' }
         defaultFontFamily: FONTS.body,
       }),
     );
-    // 60 s, as for mmdc: a cold browser launch costs a few seconds, and a
-    // diagram that has not rendered by then never will.
-    execFileSync(process.execPath, [MERMAID_CHILD, request], { stdio: 'pipe', timeout: 60_000 });
+    // Bounded like mmdc, by the same constant: a cold browser launch costs a
+    // few seconds, and a diagram that has not rendered by then never will.
+    execFileSync(process.execPath, [MERMAID_CHILD, request], {
+      stdio: 'pipe',
+      timeout: MERMAID_TIMEOUT_MS,
+    });
     if (fs.existsSync(out)) {
       _mermaidError = null;
       return out;
@@ -1118,7 +1162,7 @@ export function renderMermaidBrowser(sourceText, tmpDir, idx, { format = 'png' }
     _mermaidError = 'the renderer produced no file';
     return null;
   } catch (err) {
-    _mermaidError = (err?.stderr?.toString() || err?.message || String(err)).trim().split('\n')[0];
+    _mermaidError = mermaidFailure(err);
     return null;
   }
 }
@@ -1255,6 +1299,15 @@ export function renderMermaidCached(sourceText, { format = 'png', baseDir = null
     browser ? (dir) => renderMermaidBrowser(sourceText, dir, 0, { format }) : null,
   ].filter(Boolean);
 
+  // The reason ANOTHER diagram — or the other format of this one — already
+  // failed with. `_mermaidError` is one slot for the whole process, and the
+  // renderers clear it when they succeed, so a run that renders the same
+  // diagram twice (PNG for the .pptx, then SVG for the HTML) used to lose the
+  // first failure the moment the second render worked: the build degraded a
+  // diagram to a code block and reported no reason at all. Held here rather
+  // than in the renderers because this is the only place that knows a render
+  // is one of many.
+  const failureSoFar = _mermaidError;
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lutrin-mmd-'));
   let result = null;
   try {
@@ -1274,6 +1327,11 @@ export function renderMermaidCached(sourceText, { format = 'png', baseDir = null
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+  // This diagram rendered, which says nothing about the one that did not: put
+  // the earlier reason back. A failure is only ever forgotten by a SUCCESS OF
+  // ITS OWN, and there is none — a source that failed is memoized negative and
+  // never re-rendered in this process.
+  if (result && failureSoFar) _mermaidError = failureSoFar;
   MERMAID_MEM.set(memKey, result);
   return result;
 }
