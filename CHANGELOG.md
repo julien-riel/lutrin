@@ -43,6 +43,39 @@ stated otherwise, an entry describes the compiler.
   "Command failed: …", which read like a broken diagram on a machine that was
   merely slow.
 
+## [Unreleased]
+
+### Fixed
+
+- **The lead and takeaway bands compose with every layout that deals sections
+  into slots**, where seven of them had it and eight silently mishandled the
+  paragraph written before the first `##`. `timeline` dealt it a milestone of
+  its own and pushed the real dates one rank down; `swot` made it the
+  "Strengths" quadrant and slid the four semantic tints along, so the real
+  strength came out in the red of a weakness; `layers`, `cycle`, `venn`,
+  `apex`, `hierarchy` and `annotated` dropped it from the slide, and
+  `lutrin validate` said nothing at all.
+
+  The cause was structural rather than eight oversights: each generator called
+  `takeBands()` itself, so a generator only had to forget. The bands are now
+  reserved in the compilation preamble, beside the `source:` line that already
+  worked that way — a layout added tomorrow inherits the band instead of
+  having to remember it, and a guard walks the registry's own list of
+  section-dealing layouts to fail on any that wears none. `radial` stays out on
+  purpose: it reads that paragraph as the hub of its wheel, which is the better
+  use for it.
+
+  `matrix` drew the band and published none of its parameters — a kit setting
+  `leadPanel` on it got "unknown key … ignored". Every banded layout now
+  publishes `leadPanel`, `leadRatio` and `leadAlign`, `apex` and `hierarchy`
+  gaining a parameter schema in the process.
+
+- **`lutrin validate` no longer counts an opening paragraph as a section.** The
+  same trap one layer down: the discount named two-columns, three-columns and
+  radial by hand while seven layouts drew the band, so `comparison` with a hat
+  was told "2 expected (3 found): the surplus will be ignored" about a slide
+  where nothing was dropped. The count reads the same list as the placement.
+
 ## [1.3.0] — 2026-08-14
 
 The engine reads signals the Markdown already carried and the layout table

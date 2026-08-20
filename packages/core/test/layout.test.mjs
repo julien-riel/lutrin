@@ -13,8 +13,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseDeck } from '../src/deck/parse.mjs';
 import {
+  BAND_BASES,
   buildScenes,
   blockHeight,
+  LAYOUT_SECTIONS,
+  layoutDef,
+  layoutParamSchema,
   packGrid,
   registerLayout,
   resetUserLayouts,
@@ -261,6 +265,174 @@ test('columns: the lead is one animation step, then one per column', () => {
   assert.equal(step(INTRO), 0, 'the lead appears first');
   assert.deepEqual([step('Track A'), step('Track B'), step('Track C')], [1, 2, 3]);
   assert.equal(step('one'), 1, "a column's content appears with its heading");
+});
+
+// ---------------------------------------------------------------------------
+// The bands are a REGION, not a feature of two layouts
+//
+// Each generator used to call takeBands() itself, so a generator only had to
+// forget — and eight did. Measured before the fix, on the same slide (an
+// opening paragraph, then titled sections):
+//
+//   - `timeline` dealt the paragraph a milestone of its own, anonymous, and
+//     pushed the real milestones one rank down;
+//   - `swot` made it the "Strengths" quadrant and slid the four semantic
+//     tints along, so the real strength came out red;
+//   - `layers`, `cycle`, `venn`, `apex`, `hierarchy` and `annotated` dropped
+//     it from the slide, and `validateDeck` said nothing at all.
+//
+// The bands are reserved centrally now (buildScenes, beside the `source:`
+// line). These tests pin the outcome per layout, because "it is centralised"
+// is not something a reader can check by looking at a slide.
+// ---------------------------------------------------------------------------
+
+/** The lead as the engine must place it: full width, flush with the top of
+ *  the content area. */
+const leadBandOf = (scene) => {
+  const area = contentArea();
+  return scene.elements.find(
+    (el) =>
+      el.block.type === 'para' &&
+      textOf(el.block) === INTRO &&
+      el.region.x === area.x &&
+      el.region.y === area.y &&
+      el.region.w === area.w,
+  );
+};
+
+/** The engine's own list, never a copy of it: a second list here would drift
+ *  from the first, and drift is the whole thing these tests exist to stop. */
+const BANDED = [...BAND_BASES];
+
+test('a layout that deals sections either wears the bands or is named as not', () => {
+  // ANTI-DRIFT. The bands are reserved centrally now, but "centrally" only
+  // means the call moved: the SET of layouts it applies to is still written by
+  // hand, and a generator added tomorrow that deals `##` sections into slots
+  // would go back to eating its slide's opening paragraph without anyone
+  // noticing. `LAYOUT_SECTIONS` is the registry's own answer to "does this
+  // layout deal sections?" — every name in it must therefore resolve to a
+  // banded base, or to the one base deliberately left out.
+  const bases = new Set(Object.keys(LAYOUT_SECTIONS).map((name) => layoutDef(name)?.base ?? name));
+  const orphans = [...bases].filter((b) => !BAND_BASES.has(b) && b !== 'radial');
+  assert.deepEqual(
+    orphans,
+    [],
+    `these layouts deal sections into slots but wear no band — add them to BAND_BASES (layout.mjs) and to BANDED here, or say in the comment why they are out, as \`radial\` does: ${orphans.join(', ')}`,
+  );
+});
+
+test('every banded layout is tunable by a kit', () => {
+  // `matrix` drew the band and declared none of its parameters: a kit that set
+  // `leadPanel` on it got "unknown key … ignored", and the band it could see
+  // on the slide stayed unstylable. A band drawn is a band a kit can style.
+  for (const layout of BANDED) {
+    const schema = layoutParamSchema(layout) ?? {};
+    for (const key of ['leadPanel', 'leadRatio', 'leadAlign']) {
+      assert.ok(key in schema, `${layout}: draws the band but does not publish ${key}`);
+    }
+  }
+});
+
+test('every section-dealing layout opens its slide with a band', () => {
+  for (const layout of BANDED) {
+    const [scene] = scenesFor(
+      `<!-- layout: ${layout} -->\n# T\n\n${INTRO}\n\n## Alpha\n\nA.\n\n## Beta\n\nB.\n`,
+    );
+    assert.ok(leadBandOf(scene), `${layout}: the opening paragraph is not a band`);
+  }
+});
+
+test('every section-dealing layout closes on the takeaway it was given', () => {
+  const area = contentArea();
+  for (const layout of BANDED) {
+    const [scene] = scenesFor(
+      `<!-- layout: ${layout} -->\n# T\n\n## Alpha\n\nA.\n\n## Beta\n\nB.\n\n:::key\nZQEND\n:::\n`,
+    );
+    const key = scene.elements.find((el) => el.block.type === 'alert');
+    assert.ok(key, `${layout}: the closing :::key is not placed`);
+    assert.equal(key.region.w, area.w, `${layout}: the takeaway does not span the slide`);
+    assert.ok(
+      key.region.y + key.region.h <= area.y + area.h + 1,
+      `${layout}: the takeaway band overflows the content area`,
+    );
+  }
+});
+
+test('timeline: the opening paragraph is not a milestone', () => {
+  const src = (lead) =>
+    `<!-- layout: timeline -->\n# Roadmap\n\n${lead}## Q1\n\nA.\n\n## Q2\n\nB.\n\n## Q3\n\nC.\n`;
+  const dots = (scene) => scene.elements.filter((el) => el.block.type === 'timeline-dot');
+  const [plain] = scenesFor(src(''));
+  const [withLead] = scenesFor(src(`${INTRO}\n\n`));
+  assert.equal(dots(plain).length, 3, 'three dates, three dots');
+  assert.equal(dots(withLead).length, 3, 'the hat added a fourth, anonymous milestone');
+  assert.deepEqual(headings(withLead), ['Q1', 'Q2', 'Q3']);
+  assert.ok(leadBandOf(withLead), 'and the hat is a band');
+});
+
+test('swot: the opening paragraph does not slide the four tints along', () => {
+  const [scene] = scenesFor(
+    `<!-- layout: swot -->\n# Review\n\n${INTRO}\n\n## Strengths\n\nA.\n\n## Weaknesses\n\nB.\n\n## Opportunities\n\nC.\n\n## Threats\n\nD.\n`,
+  );
+  // the panel of the first quadrant carries the FIRST tint, and the first
+  // quadrant is "Strengths" — not the framing sentence painted green while
+  // the real strength came out in the red of a weakness
+  const panels = scene.elements.filter((el) => el.block.type === 'panel');
+  assert.equal(panels[0].block.kind, 'success');
+  assert.deepEqual(
+    panels.map((el) => el.block.kind),
+    ['success', 'danger', 'info', 'warning'],
+    'four quadrants, four tints — the hat took none of them',
+  );
+  const first = scene.elements.find((el) => el.block.type === 'heading');
+  assert.equal(textOf(first.block), 'Strengths');
+  assert.ok(
+    first.region.x >= panels[0].region.x &&
+      first.region.x < panels[0].region.x + panels[0].region.w,
+    'it sits inside the first quadrant',
+  );
+});
+
+test('the diagram families and the stacked bands stop dropping their hat', () => {
+  // Six layouts lost it outright, and no diagnostic named the loss: the author
+  // had only the rendering to notice by.
+  for (const layout of ['layers', 'cycle', 'venn', 'apex', 'hierarchy', 'annotated']) {
+    const [scene] = scenesFor(
+      `<!-- layout: ${layout} -->\n# T\n\n${INTRO}\n\n## Alpha\n\nA.\n\n## Beta\n\nB.\n`,
+    );
+    assert.ok(leadBandOf(scene), `${layout}: the hat is still lost`);
+  }
+});
+
+test('radial keeps reading the lead as its hub, and grows no band', () => {
+  // The one section-dealing layout deliberately outside BAND_BASES: emptying
+  // the middle of a hub-and-spokes figure to gain a hat would be a downgrade.
+  const [scene] = scenesFor(
+    `<!-- layout: radial -->\n# T\n\n${INTRO}\n\n## Alpha\n\nA.\n\n## Beta\n\nB.\n`,
+  );
+  const art = scene.elements.find((el) => el.block.type === 'smartart');
+  assert.equal(art.block.hub, INTRO, 'the lead is the hub');
+  assert.equal(art.block.nodes.length, 2, 'and not a spoke');
+  assert.equal(art.region.y, contentArea().y, 'the figure keeps the whole area');
+  assert.equal(leadBandOf(scene), undefined, 'no band was carved out of it');
+});
+
+test('a band reveals as ONE step, whatever the generator numbers its slots', () => {
+  // The bands wear negative animation groups so they cannot collide with the
+  // `0..n` a generator deals to its own slots. With the opening band on group
+  // 0, as it used to be, any generator numbering its first slot 0 would have
+  // merged the hat into it — one step lost, silently.
+  const [scene] = scenesFor(
+    `<!-- layout: layers -->\n# T\n\n<!-- animate -->\n\n${INTRO}\n\n## Alpha\n\nA.\n\n## Beta\n\nB.\n\n:::key\nZQEND\n:::\n`,
+  );
+  const step = (t) => scene.elements.find((el) => textOf(el.block) === t)?.step;
+  assert.equal(step(INTRO), 0, 'the hat opens the slide');
+  assert.equal(step('Alpha'), 1, 'then the first band, on its own step');
+  assert.equal(step('Beta'), 2);
+  // the callout carries its text in nested blocks, not in runs — found by type
+  const takeaway = scene.elements.find((el) => el.block.type === 'alert');
+  assert.equal(takeaway.step, 3, 'and the takeaway closes it');
+  assert.equal(scene.animSteps, 4);
 });
 
 // ---------------------------------------------------------------------------

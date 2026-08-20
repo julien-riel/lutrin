@@ -152,8 +152,13 @@ test('loadUserLayouts: misspelled parameter → LAYOUT_DEF_ADJUSTED (suggestion)
 test('capabilities().layoutParams publishes the schemas of the parameterized generators', () => {
   resetUserLayouts();
   const caps = capabilities();
+  // `apex` and `hierarchy` publish a schema holding nothing but the three band
+  // parameters: they deal `##` sections into slots, so they wear the lead and
+  // takeaway bands (BAND_BASES), and a band a kit cannot style is the
+  // half-wiring `matrix` shipped with — the band drawn, `leadPanel` refused.
   assert.deepEqual(Object.keys(caps.layoutParams).sort(), [
     'annotated',
+    'apex',
     'checklist',
     'columns',
     'comparison',
@@ -162,6 +167,7 @@ test('capabilities().layoutParams publishes the schemas of the parameterized gen
     'focus',
     'grid',
     'hero',
+    'hierarchy',
     'layers',
     'matrix',
     'metrics',

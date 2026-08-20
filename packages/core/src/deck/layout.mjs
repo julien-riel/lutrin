@@ -237,19 +237,81 @@ const densityParam = () => ({
 });
 
 /**
+ * The layouts the bands compose with: every generator that DEALS `##` sections
+ * into slots — columns, cells, panels, quadrants, milestones, stacked bands,
+ * diagram nodes.
+ *
+ * The criterion is not a taste, it is the conflict the bands exist to resolve:
+ * where sections become slots, a lead paragraph has no slot of its own and the
+ * generator either gave it one that was never meant for it — a milestone on
+ * the axis, the "Strengths" quadrant — or dropped it without a word. Where the
+ * layout is a plain vertical FLOW (`content`, `columns`, `checklist`,
+ * `focus`, `metrics`, `split`, `pictogram`, a bare `quote`/`table`/`code`),
+ * the lead is already the top of that flow: a band would add a cap and a gap
+ * and change the rendering of every deck already written, for nothing.
+ *
+ * `radial` is the ONE section-dealing layout deliberately left out: it already
+ * reads the paragraph before the first `##` as the HUB of the diagram. That
+ * reading predates the bands, it is the better one for a hub-and-spokes
+ * figure, and lifting the paragraph into a band would empty the middle of the
+ * wheel.
+ *
+ * Whoever adds a generator that deals sections adds it here. Exported for the
+ * guard that makes that sentence true rather than pious: the test walks
+ * `LAYOUT_SECTIONS` — the registry's own answer to "does this layout deal
+ * sections?" — and fails on any base this set does not hold, in either
+ * direction.
+ */
+export const BAND_BASES = new Set([
+  'two-columns',
+  'three-columns',
+  'comparison',
+  'pillars',
+  'grid',
+  'matrix',
+  'steps',
+  'swot',
+  'timeline',
+  'layers',
+  'cycle',
+  'venn',
+  'apex',
+  'hierarchy',
+  'annotated',
+]);
+
+/**
+ * The animation groups the two bands wear.
+ *
+ * NEGATIVE on purpose, and that is the whole trick: `assignAnimSteps` reacts
+ * to a CHANGE of group and never to the number itself, so a band whose group
+ * cannot collide with the `0..n` a generator deals to its own slots reveals as
+ * exactly one step — wherever it sits, under any generator, with no generator
+ * having to shift its numbering to make room. The bands opened with group 0
+ * before, which forced every banded generator to number its slots `offset + k`
+ * and would have silently MERGED the opening band with the first slot of any
+ * generator that had not been told to.
+ */
+const HEAD_GROUP = -2;
+const TAIL_GROUP = -1;
+
+/**
  * OPTIONAL REGIONS (proposal §3) — the transversal brick.
  *
  * A line of text above two or three columns is NOT a layout of its own:
  * `two-columns` with a lead is still `two-columns`. The band is defined ONCE,
- * here, and composes with every generator that places sections side by side —
- * two-columns, three-columns, grid, pillars, steps, comparison, columns,
- * matrix. One family gained instead of one layout per combination.
+ * here, RESERVED once (buildScenes, beside the `source:` line) and composes
+ * with every generator that deals sections into slots — the fifteen of
+ * BAND_BASES. One family gained instead of one layout per combination.
  *
  * Its POSITION comes from the source, never from a parameter: a paragraph
  * before the first `##` is a lead band on top, a `:::key` closing the last
  * section is a takeaway band underneath (the block is already called
  * "Takeaway"). These parameters only decide how the band LOOKS — which is a
- * kit's business, exactly like a panel variant.
+ * kit's business, exactly like a panel variant. Every layout of BAND_BASES
+ * declares them: a band drawn and a `leadPanel` refused as an unknown key is
+ * the half-wiring `matrix` shipped with, and the anti-drift test
+ * `every banded layout is tunable by a kit` is what keeps the two lists equal.
  */
 const leadParams = () => ({
   leadPanel: {
@@ -813,6 +875,7 @@ export function registerLayout(def) {
         default: 'horizontal',
         description: 'horizontal axis, or vertical on the left (roadmap in a column)',
       },
+      ...leadParams(),
     },
   },
   {
@@ -844,6 +907,7 @@ export function registerLayout(def) {
         description: 'full-width bands (stack), a funnel (narrowing) or a pyramid (widening)',
       },
       density: densityParam(),
+      ...leadParams(),
     },
   },
   {
@@ -858,6 +922,7 @@ export function registerLayout(def) {
         description: 'semantic tint per quadrant (cycling)',
       },
       density: densityParam(),
+      ...leadParams(),
     },
   },
   {
@@ -946,11 +1011,13 @@ export function registerLayout(def) {
         default: true,
         description: 'number the stages in reading order',
       },
+      ...leadParams(),
     },
   },
   {
     name: 'hierarchy',
     description: 'a tree of boxes joined by elbows — an org chart, a breakdown',
+    paramSchema: { ...leadParams() },
   },
   {
     name: 'venn',
@@ -964,6 +1031,7 @@ export function registerLayout(def) {
         default: 0.32,
         description: 'share of a disc covered by its neighbour',
       },
+      ...leadParams(),
     },
   },
   {
@@ -981,6 +1049,7 @@ export function registerLayout(def) {
     name: 'apex',
     description: 'levels stacked into a triangle — proportions, priorities',
     sections: { min: 2, max: 6 },
+    paramSchema: { ...leadParams() },
   },
   {
     name: 'focus',
@@ -1140,6 +1209,10 @@ export function registerLayout(def) {
       },
       density: densityParam(),
       radius: radiusParam(),
+      // the mosaic has always DRAWN the bands (it deals sections into cells
+      // like `grid`); without these it was the one banded layout a kit could
+      // not style — `leadPanel` came back "unknown key … ignored"
+      ...leadParams(),
     },
   },
   {
@@ -1214,6 +1287,7 @@ export function registerLayout(def) {
         description: 'share of the width taken by the visual',
       },
       density: densityParam(),
+      ...leadParams(),
     },
   },
   { name: 'code', description: 'a syntax-highlighted code block on its own slide' },
@@ -1999,9 +2073,11 @@ function placeMatrixAxes(region, P) {
  * OPTIONAL REGIONS (proposal §3) — the transversal brick, implemented once.
  *
  * A hat above two columns is not a layout: it is a REGION, and the region
- * composes with every generator that deals `##` sections side by side. Written
- * here instead of six times, which is exactly the point — one family gained
- * rather than one layout per combination.
+ * composes with every generator that deals `##` sections into slots
+ * (BAND_BASES). Written here instead of fifteen times — and CALLED once, from
+ * the compilation preamble, which is the other half of the same point: a
+ * generator that has to remember the call is a generator that can forget it,
+ * and eight of them did.
  *
  * What is read, and where it comes from — nothing new in the syntax, only the
  * place the author already wrote it:
@@ -2021,14 +2097,13 @@ function placeMatrixAxes(region, P) {
  * MUTATES `secs`: the lead is shifted out, the takeaway popped off the last
  * section — they have become regions and must not be dealt a column too.
  *
- * @returns {{head: any[], tail: any[], body: {x,y,w,h}, offset: number}}
+ * @returns {{head: any[], tail: any[], body: {x,y,w,h}}}
  */
 function takeBands(secs, area, P) {
   const head = [];
   const tail = [];
   let top = area.y;
   let bottom = area.y + area.h;
-  let offset = 0;
   const cap = Math.max(0, Math.round(area.h * (P.leadRatio ?? 0.2)));
   const variant = P.leadPanel && P.leadPanel !== 'none' ? P.leadPanel : null;
   const pad = variant ? SPACE.sm : 0;
@@ -2067,8 +2142,7 @@ function takeBands(secs, area, P) {
     const lead = secs.shift();
     if (lead.blocks.length) {
       place(lead.blocks, head, 'top', lead.blocks.length <= 2);
-      for (const el of head) el.group = 0;
-      offset = 1;
+      for (const el of head) el.group = HEAD_GROUP;
     }
   }
 
@@ -2083,14 +2157,10 @@ function takeBands(secs, area, P) {
     // the deck unusable for a second render (inspect, a re-export)
     secs[secs.length - 1] = { ...last, blocks: last.blocks.slice(0, -1) };
     place([closing], tail, 'bottom', true);
+    for (const el of tail) el.group = TAIL_GROUP;
   }
 
-  return {
-    head,
-    tail,
-    body: { x: area.x, y: top, w: area.w, h: Math.max(0, bottom - top) },
-    offset,
-  };
+  return { head, tail, body: { x: area.x, y: top, w: area.w, h: Math.max(0, bottom - top) } };
 }
 
 /**
@@ -2131,8 +2201,8 @@ export function buildScenes(deck) {
 
   const { rules } = inferenceRuleSet(meta);
 
-  deck.slides.forEach((slide, idx) => {
-    const inferred = inferLayoutFull(slide, scenes.length === 0 ? 0 : idx + 1, rules);
+  deck.slides.forEach((srcSlide, idx) => {
+    const inferred = inferLayoutFull(srcSlide, scenes.length === 0 ? 0 : idx + 1, rules);
     const layout = inferred.layout;
     // user layout (registry): the scene keeps its name, the placement is that
     // of the built-in `base` layout; the section bounds come from the registry
@@ -2149,8 +2219,35 @@ export function buildScenes(deck) {
     // placement: pagination and auto-fit must never claim room the caption is
     // about to occupy. The scene carries the joined text; both renderers draw
     // it inside sourceLineBox(), which the shrunken area stops just above.
-    const sourceText = slide.source?.length ? slide.source.join(' · ') : null;
+    const sourceText = srcSlide.source?.length ? srcSlide.source.join(' · ') : null;
     if (sourceText) area.h -= sourceLineBox().h + SPACE.xs;
+    // LEAD and TAKEAWAY bands, reserved HERE and not inside the generators —
+    // the same treatment as the source line just above, and for the same
+    // reason: a region every layout must respect is reserved once, before any
+    // placement. Each generator used to call takeBands() itself, so a
+    // generator simply had to forget, and eight of them did: `timeline` dealt
+    // the opening paragraph a milestone of its own, `swot` made it the
+    // "Strengths" quadrant and slid the four tints along, `layers`, the four
+    // diagram families and `annotated` dropped it from the slide without a
+    // single diagnostic. Reserving centrally inverts the default: a layout
+    // added tomorrow inherits the band instead of having to remember it.
+    //
+    // AFTER the inference, never before: the lead is part of what the engine
+    // reads to CHOOSE a layout, and amputating the slide first would change
+    // the choice, not just the placement.
+    const secs = BAND_BASES.has(kind)
+      ? srcSlide.sections.filter((s) => s.heading || s.blocks.length)
+      : null;
+    // takeBands MUTATES `secs` — the lead shifted out, the takeaway popped off
+    // the last section — and the generators read the sections through the
+    // slide. Hence a VIEW of the slide carrying the amputated list: the deck's
+    // own IR is never touched, so a second render (inspect, a re-export) still
+    // sees what the author wrote.
+    const bands = secs ? takeBands(secs, area, P) : null;
+    const slide = bands ? { ...srcSlide, sections: secs } : srcSlide;
+    // the band is subtracted from the area exactly like the source line: the
+    // generators go on placing into `area` and know nothing about any of it
+    if (bands) Object.assign(area, bands.body);
     const blocks = flat(slide);
     const base = {
       layout,
@@ -2163,8 +2260,16 @@ export function buildScenes(deck) {
     const animate = slide.animate ?? deckAnimate;
     // effect imposed for the slide (otherwise anim.mjs picks by block type)
     const preset = slide.animatePreset ?? deckPreset;
+    // The bands belong to the FIRST scene: a layout that paginates would
+    // otherwise repeat its opening band on every page, which is not a hat any
+    // more, it is a header nobody asked for.
+    let bandsPlaced = false;
     const push = (extra) => {
       const scene = { master: 'content', ...base, ...extra };
+      if (bands && !bandsPlaced && Array.isArray(scene.elements)) {
+        scene.elements = [...bands.head, ...scene.elements, ...bands.tail];
+        bandsPlaced = true;
+      }
       if (animate) {
         assignAnimSteps(scene);
         if (scene.animSteps && preset) scene.animPreset = preset;
@@ -2308,23 +2413,22 @@ export function buildScenes(deck) {
       }
       case 'two-columns':
       case 'three-columns': {
-        const sections = slide.sections.filter((s) => s.heading || s.blocks.length);
         // LEAD and TAKEAWAY: what is written BEFORE the first "##" is not a
         // column — it is an opening; a `:::key` closing the last section is
-        // not a column either — it is a conclusion. Both become BANDS, and
-        // the columns are dealt in what is left (proposal §3). Without this
-        // the lead consumed a column and the LAST titled section vanished
-        // without a word: the engine only drops content at the bounds the
-        // registry announces (LAYOUT_SECTIONS, which validation reports),
-        // never by an accident of writing. A slide forced into columns
-        // WITHOUT any "##" keeps its original placement: its single anonymous
-        // section stays a column.
-        const { head, tail, body, offset } = takeBands(sections, area, P);
+        // not a column either — it is a conclusion. Both became BANDS before
+        // this switch (the preamble's takeBands), `area` is what they left,
+        // and the columns are dealt in it. Without that the lead consumed a
+        // column and the LAST titled section vanished without a word: the
+        // engine only drops content at the bounds the registry announces
+        // (LAYOUT_SECTIONS, which validation reports), never by an accident of
+        // writing. A slide forced into columns WITHOUT any "##" keeps its
+        // original placement: its single anonymous section stays a column.
+        const sections = slide.sections.filter((s) => s.heading || s.blocks.length);
         const nCols = bounds?.max ?? (kind === 'two-columns' ? 2 : 3);
-        const colW = (body.w - (nCols - 1) * PAGE.gutter) / nCols;
-        const elements = [...head];
+        const colW = (area.w - (nCols - 1) * PAGE.gutter) / nCols;
+        const elements = [];
         sections.slice(0, nCols).forEach((sec, k) => {
-          const col = { x: body.x + k * (colW + PAGE.gutter), y: body.y, w: colW, h: body.h };
+          const col = { x: area.x + k * (colW + PAGE.gutter), y: area.y, w: colW, h: area.h };
           const colBlocks = sec.heading
             ? [{ type: 'heading', depth: 2, runs: sec.heading }, ...sec.blocks]
             : sec.blocks;
@@ -2332,12 +2436,10 @@ export function buildScenes(deck) {
           stretchTrailingVisual(flowed, col);
           // animation: one column = one step, after the lead's
           flowed.forEach((el) => {
-            el.group = offset + k;
+            el.group = k;
           });
           elements.push(...flowed);
         });
-        for (const el of tail) el.group = offset + nCols;
-        elements.push(...tail);
         push({ elements });
         break;
       }
@@ -2347,23 +2449,22 @@ export function buildScenes(deck) {
         // target highlighted) or pillars (architecture principles, accent on
         // top) — per-column variants configurable (`panels`, cycling)
         const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
-        const { head, tail, body, offset } = takeBands(secs, area, P);
         const nCols =
           kind === 'comparison'
             ? (bounds?.max ?? 2)
             : Math.min(Math.max(secs.length, bounds?.min ?? 2), bounds?.max ?? 4);
-        const colW = (body.w - (nCols - 1) * PAGE.gutter) / nCols;
+        const colW = (area.w - (nCols - 1) * PAGE.gutter) / nCols;
         const pad = P.pad ?? SPACE.sm;
         const panels = P.panels ?? (kind === 'comparison' ? ['muted', 'highlight'] : ['pillar']);
-        const elements = [...head];
+        const elements = [];
         secs.slice(0, nCols).forEach((sec, k) => {
           const col = {
-            x: body.x + k * (colW + PAGE.gutter),
-            y: body.y + SPACE.xs,
+            x: area.x + k * (colW + PAGE.gutter),
+            y: area.y + SPACE.xs,
             w: colW,
-            h: body.h - SPACE.xs,
+            h: area.h - SPACE.xs,
           };
-          const grp = offset + k;
+          const grp = k;
           const panel = panelFrom(panels[k % panels.length]);
           const accented = panel.variant === 'pillar' && P.accent !== false;
           const block = {
@@ -2396,8 +2497,6 @@ export function buildScenes(deck) {
           }); // animation: one panel = one step
           elements.push(...flowed);
         });
-        for (const el of tail) el.group = offset + nCols;
-        elements.push(...tail);
         push({ elements });
         break;
       }
@@ -2626,9 +2725,11 @@ export function buildScenes(deck) {
         // write. It reserves its gutters first, and the cells are dealt in
         // what remains.
         const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
-        const { head, tail, body: outer, offset } = takeBands(secs, area, P);
-        const body = kind === 'matrix' ? { ...outer } : outer;
-        const elements = [...head];
+        // a COPY for `matrix`: placeMatrixAxes SHRINKS the region in place to
+        // reserve its two rules, and `area` is shared with the bands already
+        // subtracted from it
+        const body = kind === 'matrix' ? { ...area } : area;
+        const elements = [];
         if (kind === 'matrix') elements.push(...placeMatrixAxes(body, P));
         const maxCells = bounds?.max ?? 8;
         const n = Math.min(Math.max(secs.length, 1), maxCells);
@@ -2641,7 +2742,7 @@ export function buildScenes(deck) {
         const panels = P.panels ?? ['muted'];
         secs.slice(0, n).forEach((sec, k) => {
           const slot = placed.cells[k];
-          const grp = offset + k;
+          const grp = k;
           const cell = {
             x: body.x + slot.col * (unitW + PAGE.gutter),
             y: body.y + SPACE.xs + slot.row * (cellH + PAGE.gutter),
@@ -2735,8 +2836,6 @@ export function buildScenes(deck) {
           }); // animation: one cell = one step
           elements.push(...flowed);
         });
-        for (const el of tail) el.group = offset + n;
-        elements.push(...tail);
         push({ elements });
         break;
       }
@@ -2759,15 +2858,15 @@ export function buildScenes(deck) {
               .filter((it) => !it.level)
               .map((it) => ({ heading: it.runs, blocks: [] }))
           : written;
-        const { head, tail, body, offset } = listOnly
-          ? { head: [], tail: [], body: area, offset: 0 }
-          : takeBands(secs, area, P);
+        // no explicit band handling for `listOnly`: a bare numbered list has
+        // no `##` at all, and the preamble's takeBands only ever fires when
+        // some section carries a heading
         const n = Math.min(Math.max(secs.length, 1), bounds?.max ?? 6);
         const connector = P.connector ?? 'arrow';
         const gap = connector === 'none' ? PAGE.gutter : 40;
-        const stepW = (body.w - (n - 1) * gap) / n;
+        const stepW = (area.w - (n - 1) * gap) / n;
         const panels = P.panels ?? ['muted'];
-        const elements = [...head];
+        const elements = [];
         const dotR = 28;
         // Steps with no body are LABELS, and a full-height panel holding one
         // line is a hole with a border. They take the height they need — the
@@ -2776,15 +2875,15 @@ export function buildScenes(deck) {
         const bare = listOnly && secs.every((s) => !s.blocks.length);
         const bandH = bare
           ? Math.min(
-              body.h - SPACE.xs,
+              area.h - SPACE.xs,
               dotR + SPACE.sm + 3 * TYPE.sectionHeading * PT_TO_PX * LINE_HEIGHT + 2 * SPACE.sm,
             )
-          : body.h - SPACE.xs;
-        const bandY = body.y + SPACE.xs + (bare ? Math.max(0, (body.h - SPACE.xs - bandH) / 2) : 0);
+          : area.h - SPACE.xs;
+        const bandY = area.y + SPACE.xs + (bare ? Math.max(0, (area.h - SPACE.xs - bandH) / 2) : 0);
         secs.slice(0, n).forEach((sec, k) => {
-          const grp = offset + k;
+          const grp = k;
           const col = {
-            x: body.x + k * (stepW + gap),
+            x: area.x + k * (stepW + gap),
             y: bandY,
             w: stepW,
             h: bandH,
@@ -2835,8 +2934,6 @@ export function buildScenes(deck) {
           }); // animation: one step at a time
           elements.push(...flowed);
         });
-        for (const el of tail) el.group = offset + n;
-        elements.push(...tail);
         push({ elements });
         break;
       }

@@ -31,6 +31,7 @@ import {
   INFERENCE_RULES,
   LATEST_INFERENCE,
   LAYOUTS,
+  BAND_BASES,
   LAYOUT_SECTIONS,
   OVERFLOW_TOLERANCE,
   layoutDef,
@@ -415,19 +416,19 @@ export function validateDeck(
     const layoutBase = slide.layout ? (layoutDef(slide.layout)?.base ?? slide.layout) : null;
     if (expect) {
       const secs = slide.sections.filter((s) => s.heading || s.blocks.length);
-      // LEAD: in columns, what precedes the first "##" does not occupy a
-      // column — layout.mjs flows it full width above (see the `lead` of
-      // two-columns/three-columns, SAME condition here). Counting it made us
-      // announce "4 sections found: the surplus will be ignored" where nothing
-      // is ignored: a lying warning, worse than none.
-      // `radial` joins them for the same reason with a different meaning: the
-      // paragraph before the first "##" is the HUB, not a spoke. Counting it
-      // made a slide with a hub and eight spokes report nine sections and be
-      // told its ninth would be dropped, when the layout had used all of them.
+      // LEAD: what precedes the first "##" occupies no slot — layout.mjs
+      // flows it full width above, as a band (BAND_BASES), and `radial` makes
+      // it the HUB of its wheel. Counting it made us announce "4 sections
+      // found: the surplus will be ignored" where nothing is ignored: a lying
+      // warning, worse than none.
+      //
+      // Read from BAND_BASES rather than listed again here, and that is the
+      // point: this test used to name two-columns, three-columns and radial by
+      // hand, so `comparison` with a hat reported "3 found" about a layout
+      // that had used both its sections — the band was drawn and the warning
+      // fired anyway. One list, held where the placement is decided.
       const lead =
-        (layoutBase === 'two-columns' ||
-          layoutBase === 'three-columns' ||
-          layoutBase === 'radial') &&
+        (BAND_BASES.has(layoutBase) || layoutBase === 'radial') &&
         secs.length &&
         !secs[0].heading &&
         secs.some((s) => s.heading);

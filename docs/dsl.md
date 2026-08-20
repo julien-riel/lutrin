@@ -311,9 +311,20 @@ will leave gaps).
 
 A line of text above two or three columns is **not a layout of its own**:
 `two-columns` with a hat is still `two-columns`. It is a **region**, defined
-once and composed with every layout that deals sections side by side —
-`two-columns`, `three-columns`, `comparison`, `pillars`, `grid`, `matrix` and
-`steps`.
+once, reserved once, and composed with **every layout that deals `##` sections
+into slots** — columns, cells, panels, quadrants, milestones, stacked bands,
+diagram nodes:
+
+`two-columns`, `three-columns`, `comparison`, `pillars`, `grid`, `matrix`,
+`steps`, `swot`, `timeline`, `layers`, `cycle`, `venn`, `apex`, `hierarchy`,
+`annotated`.
+
+Two families stay out, and for opposite reasons. Where the layout is a plain
+vertical **flow** — `content`, `columns`, `checklist`, `focus`, `metrics`,
+`split`, `pictogram`, a bare `quote` / `table` / `code` — the opening
+paragraph is already the top of that flow, and a band would only add a cap and
+a gap. And `radial` reads that paragraph as the **hub** of its wheel: a better
+use for it than a hat, so it keeps it.
 
 Nothing new to write: the position comes from where you already put it.
 

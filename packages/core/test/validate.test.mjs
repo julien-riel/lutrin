@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateDeck, capabilities } from '../src/deck/validate.mjs';
 import { parseDeck, ANIM_PRESETS } from '../src/deck/parse.mjs';
-import { buildScenes, LAYOUTS } from '../src/deck/layout.mjs';
+import { BAND_BASES, buildScenes, LAYOUTS, LAYOUT_SECTIONS } from '../src/deck/layout.mjs';
 import { readDemo } from './helpers.mjs';
 
 const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
@@ -539,6 +539,27 @@ test('explicit two-columns with 4 sections → LAYOUT_SECTIONS (surplus dropped)
     '# D\n\n<!-- layout: two-columns -->\n\n## A\n\n- a\n\n## B\n\n- b\n\n## C\n\n- c\n\n## D\n\n- d\n';
   const d = validateDeck(source).find((x) => x.code === 'LAYOUT_SECTIONS');
   assert.ok(d, 'LAYOUT_SECTIONS expected');
+});
+
+test('no banded layout counts its lead as a section', () => {
+  // The discount used to name two-columns, three-columns and radial BY HAND,
+  // while seven layouts drew the band — so `comparison` with a hat was told
+  // "2 expected (3 found): the surplus will be ignored" about a slide where
+  // both its sections were used and nothing was dropped. The condition reads
+  // BAND_BASES now, so the warning and the placement can no longer disagree.
+  for (const layout of [...BAND_BASES, 'radial']) {
+    // exactly the number of sections the layout asks for, so that the ONLY
+    // thing that could fire the warning is the hat being miscounted
+    const n = LAYOUT_SECTIONS[layout]?.min ?? 2;
+    const secs = Array.from({ length: n }, (_, k) => `## S${k}\n\n- item ${k}\n`).join('\n');
+    const source = `# D\n\n<!-- layout: ${layout} -->\n\nA full-width opener.\n\n${secs}`;
+    const d = validateDeck(source).find((x) => x.code === 'LAYOUT_SECTIONS');
+    assert.equal(
+      d?.message,
+      undefined,
+      `${layout}: the hat was counted as a slot — ${d?.message ?? ''}`,
+    );
+  }
 });
 
 test('columns: the lead does not count as a section (no lying LAYOUT_SECTIONS)', () => {

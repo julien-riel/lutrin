@@ -242,10 +242,13 @@ before them lists the slides that moved (`LAYOUT_RULES_CHANGED`, info);
 one slide, `<!-- layout: … -->` is still the answer.
 
 **Optional bands.** A paragraph **before** the first `##` becomes a band above
-the columns; a `:::key` **closing** the last section becomes a band below.
-Works on `two-columns`, `three-columns`, `comparison`, `pillars`, `grid`,
-`matrix` and `steps` — no directive, just where you write it. Keep the band to
-one or two blocks.
+the slots; a `:::key` **closing** the last section becomes a band below. Works
+on every layout that deals `##` sections into slots — `two-columns`,
+`three-columns`, `comparison`, `pillars`, `grid`, `matrix`, `steps`, `swot`,
+`timeline`, `layers`, `cycle`, `venn`, `apex`, `hierarchy`, `annotated` — no
+directive, just where you write it. Keep the band to one or two blocks. On a
+plain flow (`content`, `columns`, `checklist`, `focus`…) the paragraph is
+already the top of the flow, and on `radial` it is the hub of the wheel.
 
 ### Structured layouts (always on request, never inferred)
 
