@@ -72,6 +72,10 @@ slides, recompiled on every push.
   on. `build` refuses to ship a deck with errors.
 - 🎨 **Brand kits** — colors, fonts, logos and layouts as an installable kit;
   start one from your designer's `.potx` with `lutrin kit import`.
+- 🌍 **The deck speaks your language** — `lang: fr` puts the words the *engine*
+  writes into French (callout labels, the "(suite)" of a paginated slide, a
+  generated agenda), declares the language in the HTML and stamps it on every
+  run of the `.pptx`, so PowerPoint spell-checks the deck in its own language.
 - 🔁 **Marp compatible** — `marp: true` compiles an existing
   [Marp](https://marp.app) deck as it is.
 - 🤖 **Built for agents** — an

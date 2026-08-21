@@ -154,6 +154,7 @@ Markdown → AST (markdown-it) → IR → layout engine → scene → renderer
 | `src/deck/theme.mjs` | resolution and validation of a theme, WCAG contrast |
 | `src/deck/kit.mjs` | the `kit.json` manifest — reading, validation, internal paths |
 | `src/deck/tokens.mjs` | design tokens of the generic design (mirror of `design/themes/default.json`) |
+| `src/deck/i18n.mjs` | the words the ENGINE writes, in the deck's language (`lang:`) — a leaf module tokens.mjs reads |
 | `src/deck/chart.mjs` | `chart` blocks → SVG in the theme's style |
 | `src/deck/assets.mjs` | remote images, Lucide icons, LaTeX, Mermaid (cache `~/.cache/lutrin/`) |
 | `src/deck/browser.mjs` | finding a Chromium (Mermaid, PDF, images) — one resolution for all of them |
@@ -172,6 +173,7 @@ Markdown → AST (markdown-it) → IR → layout engine → scene → renderer
 | `src/pptx/equations.mjs`, `omml.mjs` | the picture turned into a native OMML equation; it stays as the fallback |
 | `src/pptx/smartart.mjs`, `diagram-parts.mjs` | the picture turned into a genuine SmartArt object (`--smartart`) |
 | `src/pptx/zip-tidy.mjs` | the package Office writes: no zip directory entries |
+| `src/pptx/proofing.mjs` | the deck's language stamped on every run — what PowerPoint spell-checks against |
 | `src/kit/from-template.mjs` | kit derived from a `.potx`/`.pptx` — colours and type only, never geometry |
 | `src/html/render.mjs` | scene → standalone HTML document (+ fragment mode) |
 | `src/pdf/render.mjs` | the standalone HTML printed by a browser: PDF, PNG, JPEG |

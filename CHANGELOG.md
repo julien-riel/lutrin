@@ -7,43 +7,44 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
 stated otherwise, an entry describes the compiler.
 
-## [Unreleased]
+## [1.4.0] — 2026-08-21
+
+Two kinds of text live on a slide: the one the author wrote, and the one the
+engine writes around it. This release is about the second kind — and about
+noticing that "the engine writes it" had quietly come to mean "in English, and
+only on the layouts that remembered to ask".
+
+`lang:` names the language of the words the compiler adds. A French deck stops
+coming out with "Caution" printed over a French sentence, declares its language
+where a screen reader and PowerPoint both read it, and opens spell-checked in
+French rather than underlined in red from end to end.
+
+The lead and takeaway bands stop being a privilege of seven layouts. They were
+a REGION, defined once — but CALLED once per generator, so a generator only
+had to forget, and eight of them did: a framing paragraph became a milestone
+on a timeline, the "Strengths" quadrant of a SWOT, or nothing at all on six
+others, with no diagnostic to say so. Reserved centrally now, beside the
+`source:` line that already worked that way, with a guard that fails on the
+next layout to be added without one.
 
 ### Added
 
-- **`lang:` in the frontmatter — the language of the words the ENGINE writes.**
-  A deck is made of two kinds of text: what the author typed, and what the
-  compiler adds around it. The second kind was English whatever the deck was
-  written in — a French sentence inside a chip that said "Caution", a `Titre
-  (cont.)`, an agenda slide titled "Agenda" — and the only way out was to ship
-  a kit for the sole purpose of renaming five labels. `lang: fr` (or `en`, the
-  default, optionally with a region: `fr-CA`) translates the five callout
-  labels, the continuation suffix of a paginated slide and the title of a
-  generated agenda. It also sets what the outputs DECLARE: `<html lang>` and
-  the per-slide labels screen readers read, the chrome of the HTML deck's
+- **`lang:` in the frontmatter — the language of the words the ENGINE
+  writes.** A deck is made of two kinds of text: what the author typed, and
+  what the compiler adds around it. The second kind was English whatever the
+  deck was written in — a French sentence inside a chip that said "Caution", a
+  `Titre (cont.)`, an agenda slide titled "Agenda" — and the only way out was
+  to ship a kit for the sole purpose of renaming five labels. `lang: fr` (or
+  `en`, the default, optionally with a region: `fr-CA`) translates the five
+  callout labels, the continuation suffix of a paginated slide and the title
+  of a generated agenda. It also sets what the outputs DECLARE: `<html lang>`
+  and the per-slide labels screen readers read, the chrome of the HTML deck's
   presentation mode (controls, help card, presenter window), and the
   **proofing language** of every text run of the `.pptx` — a French deck now
   opens in PowerPoint spell-checked in French instead of underlined in red
-  from end to end. A
-  kit's own `semantic.<kind>.label` still wins: the language supplies the
-  default, the kit overrides it. An unsupported value compiles in English and
-  says so, on its own line (`LANG_UNKNOWN`).
-
-### Fixed
-
-- **A Mermaid diagram that fails now says why.** The reason was reachable
-  (`lastMermaidError()`) and kept getting lost on the way out. Every build
-  renders each diagram twice — a PNG for the `.pptx`, an SVG for the HTML —
-  and the second render, on success, cleared the single error slot the first
-  had just written to: a diagram degraded to a code block, and nothing
-  anywhere said what went wrong. A failure is now only ever forgotten by a
-  success of its OWN. The mmdc renderer, whose `catch {}` recorded nothing at
-  all, records its reason like the browser one always did; and a child killed
-  on the 60-second bound is reported as a timeout rather than as
-  "Command failed: …", which read like a broken diagram on a machine that was
-  merely slow.
-
-## [Unreleased]
+  from end to end. A kit's own `semantic.<kind>.label` still wins: the
+  language supplies the default, the kit overrides it. An unsupported value
+  compiles in English and says so, on its own line (`LANG_UNKNOWN`).
 
 ### Fixed
 
@@ -70,6 +71,24 @@ stated otherwise, an entry describes the compiler.
   publishes `leadPanel`, `leadRatio` and `leadAlign`, `apex` and `hierarchy`
   gaining a parameter schema in the process.
 
+- **`lutrin validate` no longer counts an opening paragraph as a section.** The
+  same trap one layer down: the discount named two-columns, three-columns and
+  radial by hand while seven layouts drew the band, so `comparison` with a hat
+  was told "2 expected (3 found): the surplus will be ignored" about a slide
+  where nothing was dropped. The count reads the same list as the placement.
+
+- **A Mermaid diagram that fails now says why.** The reason was reachable
+  (`lastMermaidError()`) and kept getting lost on the way out. Every build
+  renders each diagram twice — a PNG for the `.pptx`, an SVG for the HTML —
+  and the second render, on success, cleared the single error slot the first
+  had just written to: a diagram degraded to a code block, and nothing
+  anywhere said what went wrong. A failure is now only ever forgotten by a
+  success of its OWN. The mmdc renderer, whose `catch {}` recorded nothing at
+  all, records its reason like the browser one always did; and a child killed
+  on the 60-second bound is reported as a timeout rather than as
+  "Command failed: …", which read like a broken diagram on a machine that was
+  merely slow.
+
 - **The Mermaid renderer stops abandoning a browser that was starting.** The
   child launches Chrome through Puppeteer, which bounds that launch by a
   deadline of its own — 30 s, spent waiting for the WebSocket endpoint — nested
@@ -78,12 +97,6 @@ stated otherwise, an entry describes the compiler.
   budget that was still left. The launch now gets the caller's budget, carried
   in the request like the fonts, so one deadline answers "has this diagram
   rendered yet?".
-
-- **`lutrin validate` no longer counts an opening paragraph as a section.** The
-  same trap one layer down: the discount named two-columns, three-columns and
-  radial by hand while seven layouts drew the band, so `comparison` with a hat
-  was told "2 expected (3 found): the surplus will be ignored" about a slide
-  where nothing was dropped. The count reads the same list as the placement.
 
 ## [1.3.0] — 2026-08-14
 

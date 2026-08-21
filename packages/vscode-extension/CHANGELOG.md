@@ -5,6 +5,27 @@ This file covers the VS Code extension; the compiler's own changes are in the
 [repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
 The extension's version tracks the `@lutrin/core` compiler it embeds.
 
+## [1.4.0] — 2026-08-21
+
+The extension itself did not move. The compiler it embeds learned the language
+of a deck, and stopped losing the paragraph written above a slide's sections —
+both show up in the preview, in the export and in the underlines, with no new
+setting to find.
+
+### Changed
+
+- `lang: fr` in the frontmatter puts the words the ENGINE writes into French —
+  the callout labels, the "(suite)" of a paginated slide, the title of a
+  generated agenda — declares the language in the HTML preview, and stamps it
+  on every text run of the `.pptx`, so an exported deck opens spell-checked in
+  its own language.
+- The opening paragraph of a slide becomes a band on every layout that deals
+  `##` sections into slots. On a timeline it used to become an anonymous
+  milestone, on a SWOT the "Strengths" quadrant, and on six others it vanished
+  from the preview with nothing underlined to say so.
+- One diagnostic fewer to chase: a slide whose opening paragraph is a band no
+  longer gets a `LAYOUT_SECTIONS` warning counting it as a section.
+
 ## [1.3.0] — 2026-08-14
 
 The extension itself barely moved again; the compiler it embeds learned to

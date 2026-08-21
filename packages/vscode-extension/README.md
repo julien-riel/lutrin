@@ -41,6 +41,11 @@ before installing anything.
 - 🎨 **Brand kits.** Colors, fonts, logos and layouts come as installable
   kits; the same kit styles the CLI, the preview and the export. One deck,
   any brand, zero edits to the Markdown.
+- 🌍 **The deck speaks your language.** `lang: fr` in the frontmatter puts the
+  words the *engine* writes into French — the callout labels, the "(suite)" of
+  a paginated slide, the title of a generated agenda — in the preview and in
+  the export alike, and the exported `.pptx` opens spell-checked in French
+  rather than underlined in red from end to end.
 - 🔁 **Marp compatible.** A deck written for [Marp](https://marp.app)
   compiles as it is — `marp: true` in the frontmatter switches the parser to
   the Marp dialect, and every directive without a Lutrin equivalent is

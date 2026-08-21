@@ -78,6 +78,44 @@ target: 165
 `,
   },
 
+  // The one example whose POINT is a frontmatter line. `lang: fr` sets the
+  // language of the words the ENGINE writes, and the slide shows all three
+  // at once: the hat that stayed a hat instead of becoming a fourth,
+  // anonymous milestone, the closing `:::key` lifted into a band and
+  // labelled "À retenir" rather than "Takeaway", and — invisible here, but
+  // the reason a French deck stops being underlined in red — the proofing
+  // language stamped on every run of the .pptx the download button writes.
+  // No `title:`, so no cover: one slide, and the frontmatter is there for
+  // the language alone.
+  french: {
+    source: `---
+lang: fr
+---
+
+# Feuille de route
+
+<!-- layout: timeline -->
+
+Le trimestre tient en trois dates, et rien d'autre.
+
+## T1
+
+Cadrage et budget.
+
+## T2
+
+Livraison de la première tranche.
+
+## T3
+
+Bilan et reconduction.
+
+:::key
+Rien ne glisse après T2 : la fenêtre budgétaire ferme.
+:::
+`,
+  },
+
   // The corporate decks: several slides each, the shape a reader actually
   // ships — a quarterly review for a leadership room, a project update for a
   // steering committee. Same rule as every example: content only, zero
