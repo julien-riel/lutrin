@@ -70,6 +70,15 @@ stated otherwise, an entry describes the compiler.
   publishes `leadPanel`, `leadRatio` and `leadAlign`, `apex` and `hierarchy`
   gaining a parameter schema in the process.
 
+- **The Mermaid renderer stops abandoning a browser that was starting.** The
+  child launches Chrome through Puppeteer, which bounds that launch by a
+  deadline of its own — 30 s, spent waiting for the WebSocket endpoint — nested
+  inside the 60 s the caller already grants. On a loaded CI runner the inner
+  one fired on a Chrome that was coming up, and threw away the half of the
+  budget that was still left. The launch now gets the caller's budget, carried
+  in the request like the fonts, so one deadline answers "has this diagram
+  rendered yet?".
+
 - **`lutrin validate` no longer counts an opening paragraph as a section.** The
   same trap one layer down: the discount named two-columns, three-columns and
   radial by hand while seven layouts drew the band, so `comparison` with a hat

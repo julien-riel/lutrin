@@ -1147,6 +1147,16 @@ export function renderMermaidBrowser(sourceText, tmpDir, idx, { format = 'png' }
         scale: MERMAID_PNG_SCALE,
         fontFiles: [FONT_FILES.regular, FONT_FILES.bold, FONT_FILES.italic].filter(Boolean),
         defaultFontFamily: FONTS.body,
+        // The child launches a browser, and Puppeteer bounds that launch by a
+        // deadline of its own — 30 s by default, spent waiting for Chrome to
+        // print its WebSocket endpoint. That sub-deadline is nobody's choice:
+        // it fired on a loaded CI runner where Chrome WAS coming up, gave back
+        // "Timed out after 30000 ms while waiting for the WS endpoint URL",
+        // and threw away the 30 s of the budget that were still left. The
+        // budget travels with the request — like the fonts, and for the same
+        // reason: the child imports nothing of ours — so that ONE deadline
+        // answers "has this diagram rendered yet?", the one written here.
+        timeout: MERMAID_TIMEOUT_MS,
       }),
     );
     // Bounded like mmdc, by the same constant: a cold browser launch costs a

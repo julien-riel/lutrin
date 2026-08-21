@@ -43,6 +43,7 @@ const {
   scale = 3,
   fontFiles = [],
   defaultFontFamily,
+  timeout,
 } = JSON.parse(fs.readFileSync(requestFile, 'utf8'));
 
 /** Intrinsic width of the produced SVG, in px — the base the PNG scale
@@ -94,6 +95,13 @@ try {
   browser = await puppeteer.launch({
     executablePath,
     headless: true,
+    // The parent's budget, not Puppeteer's own (30 s): the caller already
+    // bounds this child with execFileSync's timeout, and a second, shorter
+    // deadline nested inside the first can only fire early — which is what it
+    // did on a loaded Windows runner, abandoning a Chrome that was starting
+    // and leaving half the budget unspent. `timeout` is what the request
+    // carries; without one Puppeteer's default applies, as before.
+    ...(timeout ? { timeout } : {}),
     // --no-sandbox: the child renders a diagram from the deck being compiled,
     // on the author's own machine, in a browser that loads no remote origin —
     // and without it every containerised or root run (CI images, devcontainers)
