@@ -1987,6 +1987,39 @@ function stretchTrailingVisual(elements, region) {
 }
 
 /**
+ * Centres between the top and the bottom of the region what a generator dealt
+ * from its top down.
+ *
+ * A generator that flows its content downwards stops where the content stops:
+ * a `metrics` row of four cards with two lines under it, a `timeline` whose
+ * milestones each hold one sentence, sat pinned under the title with the whole
+ * bottom of the slide left blank — an alignment nobody chose, only inherited
+ * from the direction the flow runs in.
+ *
+ * The elements are TRANSLATED and nothing else: widths, heights and the flow
+ * that produced them are untouched, so no block is re-measured and none
+ * changes size — the content moves as one piece by half of what it left free.
+ * Which also means it must run AFTER everything a case places, on the complete
+ * element list: centring half a scene would tear it apart.
+ *
+ * A scene at least as tall as its region does not move at all. Lifting it
+ * would push its first line into the title, and the overflow it already has is
+ * BLOCK_OVERFLOW's to report, not this function's to hide.
+ */
+function centerElements(elements, region) {
+  if (!elements.length) return elements;
+  let top = Number.POSITIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+  for (const el of elements) {
+    top = Math.min(top, el.region.y);
+    bottom = Math.max(bottom, el.region.y + el.region.h);
+  }
+  const dy = Math.round(region.y + (region.h - (bottom - top)) / 2 - top);
+  if (dy > 0) for (const el of elements) el.region.y += dy;
+  return elements;
+}
+
+/**
  * The axes of a `matrix` (proposal §4): two rules with their names and their
  * ends, drawn OUTSIDE the cells — the region handed in is SHRUNK in place so
  * the mosaic is dealt in what is left.
@@ -2360,7 +2393,10 @@ export function buildScenes(deck) {
         const belowY = area.y + cardH + SPACE.lg + SPACE.sm;
         const below = { x: area.x, y: belowY, w: area.w, h: Math.max(0, area.y + area.h - belowY) };
         elements.push(...flowBlocks(alignBlocks(rest, P.align), below, { paginate: false })[0]);
-        push({ elements });
+        // the cards and what they carry are one block of content, centred
+        // between the title and the footer: dealt from the top of the area,
+        // a short row sat high with the bottom third of the slide empty
+        push({ elements: centerElements(elements, area) });
         break;
       }
       case 'split': {
@@ -2551,7 +2587,7 @@ export function buildScenes(deck) {
             }); // animation: one milestone = one step
             elements.push(...grp);
           });
-          push({ elements });
+          push({ elements: centerElements(elements, area) });
           break;
         }
         const colW = (area.w - (n - 1) * PAGE.gutter) / n;
@@ -2574,7 +2610,9 @@ export function buildScenes(deck) {
           }); // animation: one milestone = one step
           elements.push(...grp);
         });
-        push({ elements });
+        // axis, dots and milestones move together: the figure is centred
+        // between the top and the bottom of the area, not hung from its top
+        push({ elements: centerElements(elements, area) });
         break;
       }
       case 'layers': {
