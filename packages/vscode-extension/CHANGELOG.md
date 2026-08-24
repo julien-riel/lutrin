@@ -5,6 +5,19 @@ This file covers the VS Code extension; the compiler's own changes are in the
 [repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
 The extension's version tracks the `@lutrin/core` compiler it embeds.
 
+## [1.5.0] — 2026-08-24
+
+The extension is unchanged; one thing looks different in the preview and in
+the export.
+
+### Changed
+
+- A slide of `:::metric` cards, and a `timeline`, are **centred between the top
+  and the bottom** of the content area instead of hanging from the title with
+  the bottom third left blank. Nothing is resized — the figure moves as one
+  piece — and a slide already too tall does not move, so an overflow is still
+  underlined rather than pushed under the title.
+
 ## [1.4.0] — 2026-08-21
 
 The extension itself did not move. The compiler it embeds learned the language

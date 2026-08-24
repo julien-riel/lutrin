@@ -4,6 +4,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the package applies [semantic versioning](https://semver.org/). The version
 tracks the Lutrin Agent Plugin that pins it.
 
+## [1.5.0] — 2026-08-24
+
+The server is unchanged, and the version tracks the plugin that pins it. What
+moved is under `build_deck`: a `metrics` or `timeline` slide comes back centred
+between the top and the bottom of its frame rather than hung from the title.
+
 ## [1.4.0] — 2026-08-21
 
 The server itself is unchanged; the compiler behind it moved, and two of its

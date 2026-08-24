@@ -7,7 +7,18 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
 stated otherwise, an entry describes the compiler.
 
-## [Unreleased]
+## [1.5.0] — 2026-08-24
+
+A release with one change in it, and it is a change to what a slide LOOKS
+like: `metrics` and `timeline` no longer hang from the title with the bottom
+third of the frame empty. Both dealt their scene downwards from the top of the
+content area and stopped where the content stopped — an alignment nobody chose,
+inherited from the direction a flow runs in. The figure is centred now, moved
+as one piece, with nothing re-measured and nothing resized.
+
+Minor rather than patch on purpose: no interface moved, but every deck holding
+a row of cards or a run of milestones comes out differently, and that is not
+what a patch number promises.
 
 ### Changed
 
