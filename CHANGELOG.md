@@ -7,6 +7,21 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
 stated otherwise, an entry describes the compiler.
 
+## [Unreleased]
+
+### Changed
+
+- **`metrics` and `timeline` are centred between the top and the bottom of the
+  content area.** Both generators dealt their scene from the top of the area
+  downwards and stopped where the content stopped — a row of three cards with
+  one line under it, three milestones holding a sentence each — leaving the
+  bottom third of the slide blank under a figure hung from the title. That
+  alignment was never chosen: it was inherited from the direction the flow
+  runs in. The elements are now translated as one piece, half of the free
+  height down; nothing is re-measured, no block changes size, and a scene at
+  least as tall as its area does not move at all, so an overflow is still
+  reported rather than lifted into the title.
+
 ## [1.4.0] — 2026-08-21
 
 Two kinds of text live on a slide: the one the author wrote, and the one the

@@ -929,6 +929,50 @@ test('metrics: the content below the cards does not overflow the content area', 
 });
 
 // ---------------------------------------------------------------------------
+// metrics and timeline: centred between the top and the bottom of the area
+// ---------------------------------------------------------------------------
+
+/** Top and bottom of what a scene actually occupies. */
+const extent = (elements) => ({
+  top: Math.min(...elements.map((el) => el.region.y)),
+  bottom: Math.max(...elements.map((el) => el.region.y + el.region.h)),
+});
+
+test('metrics and timeline centre their content vertically in the area', () => {
+  const area = contentArea();
+  const decks = {
+    metrics:
+      '# Metrics\n\n:::metric 12 | twelve\n:::\n\n:::metric 34 | thirty-four\n:::\n\nOne line under the cards.\n',
+    timeline:
+      '# Roadmap\n\n<!-- layout: timeline -->\n\n## Q1\n\nFraming.\n\n## Q2\n\nPilot.\n\n## Q3\n\nRollout.\n',
+  };
+  for (const [name, source] of Object.entries(decks)) {
+    const [scene] = scenesFor(source);
+    assert.equal(scene.layout, name);
+    const { top, bottom } = extent(scene.elements);
+    assert.ok(bottom - top < area.h, `${name}: the fixture must leave room to centre`);
+    // the slack above and the slack below match, to the pixel the rounding
+    // of an odd remainder costs
+    assert.ok(
+      Math.abs(top - area.y - (area.y + area.h - bottom)) <= 1,
+      `${name}: ${top - area.y} px above, ${area.y + area.h - bottom} px below`,
+    );
+  }
+});
+
+test('a scene that fills its area is not lifted into the title', () => {
+  // centring must never move content UP: an overflow is BLOCK_OVERFLOW's to
+  // report, not the layout's to hide under the title
+  const area = contentArea();
+  const bullets = Array.from({ length: 30 }, (_, k) => `- item number ${k + 1}`).join('\n');
+  const [scene] = scenesFor(
+    `# Metrics\n\n:::metric 12 | twelve\n:::\n\n:::metric 34 | thirty-four\n:::\n\n${bullets}\n`,
+  );
+  assert.equal(scene.layout, 'metrics');
+  assert.ok(extent(scene.elements).top >= area.y, 'nothing may sit above the content area');
+});
+
+// ---------------------------------------------------------------------------
 // grid `spans`: cells that occupy several columns
 // ---------------------------------------------------------------------------
 
