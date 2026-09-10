@@ -277,6 +277,27 @@ export const CHROME = {
     bylineBottom: 80, // distance byline → bottom of page
     bylineH: 32,
     logoH: 44,
+    // Share of the page width given to the image on the `image-right` and
+    // `image-left` title layouts. The band is FULL-BLEED — flush to the top,
+    // bottom and outer edge — so the cover reads as two halves rather than as
+    // a photo pasted into a margin, and the text column takes what is left
+    // minus the page margin on both of its sides.
+    splitRatio: 0.5,
+    // Opacity of the cover surface laid OVER the photo on `image-full`. Same
+    // device as the section divider below, and DELIBERATELY WEAKER than it.
+    //
+    // The divider sits at 0.85 because it is a band of brand colour that a
+    // photo merely tints; a cover is the opposite errand — the photo is the
+    // reason the layout was asked for, and 0.85 of a light `coverBg` erases it.
+    // 0.45 is where the photograph still reads and a dark `coverInk` still
+    // carries over a mid-tone.
+    //
+    // KNOWN LIMIT, and the reason this is a token. `coverInk` had its contrast
+    // validated against `coverBg` and against nothing else, so a dark or busy
+    // photograph can take the pair below the threshold with nothing to say so:
+    // the engine measures colours, never pixels. A kit shipping dark cover
+    // photography raises this, or picks the ink for them.
+    scrimAlpha: 0.45,
   },
   section: {
     titleY: 288,
@@ -300,6 +321,56 @@ export const CHROME = {
 };
 
 export const px = (v) => v / 96; // px → inches
+
+/** The title layouts a deck may name in `titleLayout:`. `default` is the
+ *  composition that has always shipped; the other three place an image. */
+export const TITLE_LAYOUTS = ['default', 'image-right', 'image-left', 'image-full'];
+
+/**
+ * Geometry of a cover, per title layout: where its text column stands, and
+ * where the image goes.
+ *
+ * ONE function for both renderers, like `contentArea()` beside it. The cover's
+ * vertical rhythm never moves — the bar, the title, the subtitle and the byline
+ * keep the ordinates of `CHROME.cover` whatever the layout — so what a variant
+ * decides is horizontal only: the column the text is confined to, and the band
+ * the photo takes. That is also why the default answer is the full width and
+ * a null image: a deck that names no layout must come out byte for byte as it
+ * did before this existed.
+ *
+ * `x`/`w` govern the logo and the accent bar as well as the three text boxes.
+ * On `image-left` the logo would otherwise sit on the photo, which is the one
+ * arrangement no kit could correct.
+ *
+ * @param {string} [variant] one of TITLE_LAYOUTS; anything else reads as
+ *                           `default` — the validator is what names the fault
+ * @returns {{x: number, w: number, image: {x,y,w,h}|null, scrim: boolean}} px
+ */
+export function coverBoxes(variant = 'default') {
+  const full = PAGE.width - 2 * PAGE.margin;
+  const plain = { x: PAGE.margin, w: full, image: null, scrim: false };
+  if (variant === 'image-full')
+    return {
+      ...plain,
+      image: { x: 0, y: 0, w: PAGE.width, h: PAGE.height },
+      scrim: true,
+    };
+  if (variant !== 'image-right' && variant !== 'image-left') return plain;
+  const band = Math.round(PAGE.width * CHROME.cover.splitRatio);
+  const textW = PAGE.width - band - 2 * PAGE.margin;
+  const image = {
+    x: variant === 'image-right' ? PAGE.width - band : 0,
+    y: 0,
+    w: band,
+    h: PAGE.height,
+  };
+  return {
+    x: variant === 'image-right' ? PAGE.margin : band + PAGE.margin,
+    w: textW,
+    image,
+    scrim: false,
+  };
+}
 
 /** Usable content area of a content slide (below the title, above the footer). */
 export function contentArea() {

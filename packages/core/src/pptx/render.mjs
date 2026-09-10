@@ -19,6 +19,7 @@ import PptxGenJS from 'pptxgenjs';
 import {
   CHROME,
   COLORS,
+  coverBoxes,
   FONTS,
   displayFace,
   LOGOS,
@@ -1367,10 +1368,13 @@ const contentTitleBox = () => ({
   h: px(PAGE.titleHeight - SPACE.lg - 8),
 });
 
-const coverTitleBox = () => ({
-  x: px(PAGE.margin),
+/** `box` is a `coverBoxes()` answer; omitted, it is the plain full-width cover
+ *  — which is what the MASTER declares, since a master carries one geometry and
+ *  a slide that needs another overrides it with its own xfrm. */
+const coverTitleBox = (box = coverBoxes()) => ({
+  x: px(box.x),
   y: px(CHROME.cover.titleY),
-  w: px(PAGE.width - 2 * PAGE.margin),
+  w: px(box.w),
   h: px(CHROME.cover.titleH),
 });
 
@@ -1390,7 +1394,23 @@ const titlePlaceholder = (box) => ({
   placeholder: { options: { name: 'title', type: 'title', objectName: 'Title', ...box }, text: '' },
 });
 
-function defineMasters(pptx, meta) {
+/**
+ * Master carrying the title box of a given title layout.
+ *
+ * A cover whose text column is not the full width CANNOT simply pass its own
+ * box: `titlePlaceholder` above says why — in PptxGenJS the master's
+ * placeholder options override the caller's, so the geometry has to be
+ * declared on a master or it is not honoured at all. `image-full` keeps the
+ * full width and therefore keeps the ordinary cover master; only the two
+ * half-and-half layouts need one of their own.
+ */
+const COVER_MASTERS = {
+  'image-right': 'DECK_COVER_TEXT_LEFT',
+  'image-left': 'DECK_COVER_TEXT_RIGHT',
+};
+const coverMaster = (variant) => COVER_MASTERS[variant] ?? 'DECK_COVER';
+
+function defineMasters(pptx, meta, scenes = []) {
   const footerText = meta.footer ?? meta.title ?? '';
   pptx.defineSlideMaster({
     title: 'DECK_CONTENT',
@@ -1453,20 +1473,61 @@ function defineMasters(pptx, meta) {
     background: { color: SURFACE.sectionBg },
     objects: [titlePlaceholder(sectionTitleBox())],
   });
+  // …and one extra cover master per half-and-half layout the deck ACTUALLY
+  // uses. Declared on demand rather than always: an unused master still ships
+  // as a slideLayout part, and a deck that names no title layout has no reason
+  // to carry two.
+  const variants = new Set(
+    scenes.filter((sc) => sc.master === 'cover').map((sc) => sc.titleLayout),
+  );
+  for (const variant of variants) {
+    const title = COVER_MASTERS[variant];
+    if (!title) continue;
+    pptx.defineSlideMaster({
+      title,
+      background: { color: SURFACE.coverBg },
+      objects: [titlePlaceholder(coverTitleBox(coverBoxes(variant)))],
+    });
+  }
 }
 
-function renderCover(pptx, scene) {
-  const s = pptx.addSlide({ masterName: 'DECK_COVER' });
+function renderCover(pptx, scene, ctx) {
+  const s = pptx.addSlide({ masterName: coverMaster(scene.titleLayout) });
   const c = CHROME.cover;
-  // The title is written FIRST, as on any other slide: the order of the
-  // spTree is the reading order of screen readers (and the one assumed by the
-  // `!!title-N` renaming in morph.mjs, which renames the first shape). The
+  // Where the text stands and where the photo goes — `titleLayout:`, resolved
+  // once and shared with the HTML renderer (tokens.mjs). `default` answers the
+  // full width and a null image, so everything below this line is the code
+  // that has always run.
+  const box = coverBoxes(scene.titleLayout);
+  // The image comes BEFORE the title, and has to: slide shapes are painted in
+  // spTree order, so a photo written afterwards would cover the words it is
+  // supposed to sit beside. That is also why the reading order argument below
+  // is about the TEXT shapes among themselves.
+  if (scene.image && box.image) {
+    addImage(s, scene.image, box.image, ctx);
+    if (box.scrim)
+      s.addShape('rect', {
+        x: 0,
+        y: 0,
+        w: px(PAGE.width),
+        h: px(PAGE.height),
+        fill: {
+          color: SURFACE.coverBg,
+          transparency: Math.round((1 - c.scrimAlpha) * 100),
+        },
+        line: { type: 'none' },
+        objectName: 'Cover scrim',
+      });
+  }
+  // The title is written FIRST of the text, as on any other slide: the order of
+  // the spTree is the reading order of screen readers (and the one assumed by
+  // the `!!title-N` renaming in morph.mjs, which renames the first shape). The
   // logo and the rule, decorative, come afterwards; neither of them covers the
   // title (rule at 280..286, title from 304 on), so the z rank changes nothing
   // in the image.
   s.addText(scene.title ?? '', {
     placeholder: 'title',
-    ...coverTitleBox(),
+    ...coverTitleBox(box),
     fontSize: TYPE.coverTitle,
     bold: true,
     color: SURFACE.coverInk,
@@ -1477,11 +1538,11 @@ function renderCover(pptx, scene) {
     valign: 'top',
   });
   if (LOGOS.cover && fs.existsSync(LOGOS.cover)) {
-    const img = logoImage(LOGOS.cover, c.logoH, PAGE.margin, PAGE.margin);
+    const img = logoImage(LOGOS.cover, c.logoH, box.x, PAGE.margin);
     if (img) s.addImage(img);
   }
   s.addShape('rect', {
-    x: px(PAGE.margin),
+    x: px(box.x),
     y: px(c.barY),
     w: px(c.barW),
     h: px(c.barH),
@@ -1492,9 +1553,9 @@ function renderCover(pptx, scene) {
   });
   if (scene.subtitle) {
     s.addText(scene.subtitle, {
-      x: px(PAGE.margin),
+      x: px(box.x),
       y: px(c.subtitleY),
-      w: px(PAGE.width - 2 * PAGE.margin),
+      w: px(box.w),
       h: px(c.subtitleH),
       fontSize: TYPE.coverSubtitle,
       color: SURFACE.coverMutedInk,
@@ -1505,9 +1566,9 @@ function renderCover(pptx, scene) {
   }
   if (scene.byline) {
     s.addText(scene.byline, {
-      x: px(PAGE.margin),
+      x: px(box.x),
       y: px(PAGE.height - c.bylineBottom),
-      w: px(PAGE.width - 2 * PAGE.margin),
+      w: px(box.w),
       h: px(c.bylineH),
       fontSize: TYPE.small,
       color: SURFACE.coverMutedInk,
@@ -1788,7 +1849,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   pptx.author = meta.author ?? '';
   pptx.title = meta.title ?? '';
   pptx.theme = { headFontFace: FONTS.body, bodyFontFace: FONTS.body };
-  defineMasters(pptx, meta);
+  defineMasters(pptx, meta, scenes);
 
   // ------ pre-pass: everything that requires asynchronous work --------------
   // (Mermaid, downloading the remote images, Lucide icons, equations)
@@ -2021,7 +2082,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const slideEquations = new Map(); // slide no. (1-based) → [{ name, omml }]
   scenes.forEach((scene, sceneIdx) => {
     let slide;
-    if (scene.master === 'cover') slide = renderCover(pptx, scene);
+    if (scene.master === 'cover') slide = renderCover(pptx, scene, ctx);
     else if (scene.master === 'section') slide = renderSection(pptx, scene, ctx);
     else {
       slide = pptx.addSlide({ masterName: 'DECK_CONTENT' });

@@ -178,12 +178,26 @@ title: Presentation title
 subtitle: Subtitle
 author: Author name
 date: July 2026
-footer: Footer text            # default: title
+footer: Footer text            # default: title; "" leaves the band empty
+titleLayout: image-right       # cover composition (see below)
+titleImage: cover.jpg          # its photo — path, URL or kit:<alias>
 kit: my-kit                    # installed kit, JSON file, directory or none (see "Themes")
 agenda: true                   # generated agenda slide after the cover (see below)
 lang: fr                       # language of the words the ENGINE writes (en | fr)
 ---
 ```
+
+`titleLayout:` gives the cover a composition other than the plain one:
+`default`, `image-right` (photo on the right half, text on the left),
+`image-left` (mirrored) or `image-full` (photo full-page under a scrim, text
+over it). `titleImage:` supplies the photo. Naming an image and no layout
+reads as `image-right`; naming a layout and no image falls back to the plain
+cover and warns (`TITLE_IMAGE_MISSING`). These two are the only way to reach
+the generated cover, which no `<!-- layout: -->` can address.
+
+`footer: ""` empties the footer band. The fallback on `title:` applies to an
+ABSENT key, so the two quotes are what distinguishes "no footer" from "the
+default footer" — written bare, `footer:` is not read at all.
 
 `lang:` names the language of what the ENGINE writes, never of what the author
 writes: the callout labels (`:::warning` → "Caution" / "Attention"), the

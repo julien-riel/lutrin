@@ -19,6 +19,51 @@ This is a **breaking change to the CLI** — `lutrin license` no longer exists �
 and it changes what every unlicensed build produces, which until now was every
 build on a machine that had not activated a key.
 
+The release also gives the cover a say in how it looks. `titleLayout:` and
+`titleImage:` put a photograph on the title slide, in one half of the page or
+across all of it, on the one slide the deck could not address until now.
+
+### Added
+
+- **`titleLayout:` and `titleImage:` — the cover can be something other than
+  the cover.** Four compositions: `default` is the one that has always shipped,
+  `image-right` and `image-left` give the photo half the page full-bleed and
+  keep the text on the other half, and `image-full` runs the photo across the
+  page under a scrim with the text over it. The image is a path, an `https://`
+  URL or a `kit:<alias>`, and it is held to the same rules as an image written
+  in the body: `MISSING_IMAGE`, `IMAGE_PATH_ESCAPE`, `KIT_IMAGE_UNKNOWN`.
+
+  Both keys live in the frontmatter because the cover generated from `title:`
+  is the one slide no `<!-- layout: -->` can reach — the same reason `notes:`
+  is there. A cover written by hand reads them too, and an image on that slide
+  wins over `titleImage:`.
+
+  Two readings are lenient on purpose, since the alternative is a deck that
+  compiles into something its author did not ask for: an image with no layout
+  reads as `image-right`, and a layout with no image falls back to the plain
+  cover rather than reserving an empty band. `TITLE_IMAGE_MISSING`,
+  `TITLE_LAYOUT_UNKNOWN` and `TITLE_IMAGE_UNUSED` say which happened.
+
+  A deck naming no title layout is untouched, and that is asserted rather than
+  hoped for: the scene stamps no new key, the HTML carries no inline geometry,
+  and the package grows no master. The two half-and-half layouts need one of
+  their own, because PptxGenJS lets a master's placeholder options override the
+  caller's — a narrowed title box passed from the slide is silently ignored —
+  and it is declared only for the decks that use it.
+
+  Geometry: `chrome.cover.splitRatio` (0.5) and `chrome.cover.scrimAlpha`
+  (0.45), both theme tokens. The scrim is weaker than a section divider's on
+  purpose; the trade-off is written down in `docs/dsl.md`.
+
+### Fixed
+
+- **`titleImage:` aside, an image source is now checked in one place.** The
+  three faults a source can carry — an unknown `kit:` alias, a path climbing
+  out of the deck's directory, a file that is not there — were inline in the
+  block walk, so the cover's frontmatter image escaped all three. A path that
+  escaped was refused at render time and reported nowhere, which is the
+  hardest version of that failure to act on.
+
 ### Removed
 
 - **The "Made with Lutrin" attribution.** Neither the `.pptx` nor the HTML

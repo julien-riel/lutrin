@@ -47,7 +47,9 @@ title: Presentation title
 subtitle: Subtitle
 author: Author
 date: July 2026
-footer: Footer text                # default: title
+footer: Footer text                # default: title; "" leaves it empty
+titleLayout: image-right           # composition of the cover (default: default)
+titleImage: cover.jpg              # its photo — a path, a URL or kit:<alias>
 notes: what to say over the cover  # presenter notes of the generated cover
 kit: my-kit                        # brand to apply (see below)
 lang: fr                           # language of the words the ENGINE writes
@@ -60,7 +62,9 @@ assets: vendor                     # keeps remote images next to the .md
 |---|---|
 | `title` | cover title, and default footer |
 | `subtitle`, `author`, `date` | secondary lines of the cover |
-| `footer` | footer text, when it must differ from the title |
+| `footer` | footer text, when it must differ from the title. **`footer: ""` empties it** — the fallback on `title` applies to an ABSENT key, not to an empty one, so a deck that wants no footer band writes the two quotes. Written bare (`footer:` with nothing after it) the line is not read at all and the title comes back: the frontmatter reader takes a key as written only when something follows the colon |
+| `titleLayout` | composition of the cover — `default`, `image-right`, `image-left` or `image-full`. See [Cover layouts](#cover-layouts) |
+| `titleImage` | the cover's image: a path relative to the deck, an `https://` URL, or a `kit:<alias>`. Held to the same rules as an image written in the body — `MISSING_IMAGE`, `IMAGE_PATH_ESCAPE`, `KIT_IMAGE_UNKNOWN` |
 | `notes` | presenter notes of the **cover generated from `title:`** — the one slide no `<!-- notes: -->` can reach, since there is no line in the source to hang the comment on. A flat one-line value like every key here (the frontmatter reader is a one-line-per-key scanner: there is no block form to write). With no generated cover — no `title:`, or a Marp deck — the line is inert and says so: `COVER_NOTES_ORPHAN` |
 | `agenda` | `true` synthesizes the **agenda slide** right after the cover; any other value (`agenda: Sommaire`) also names it. See below |
 | `kit` | name of an installed kit, path to a kit directory, path to a `.json` file, or `none` to force the generic theme |
@@ -142,6 +146,61 @@ list, or a Marp deck (where no slide is synthesized), is told so by
 The number of `##` sections is the main signal given to the engine: two
 sections make two columns, three make three, and the structured layouts turn
 them into panels.
+
+---
+
+## Cover layouts
+
+The cover generated from `title:` is the one slide no `<!-- layout: -->` can
+reach: there is no line in the source to hang the comment on. `titleLayout:`
+is that missing line, and `titleImage:` gives it a photo.
+
+```yaml
+---
+title: Strategic plan
+subtitle: Executive committee
+author: Julien Riel
+date: March 2026
+titleLayout: image-right
+titleImage: skyline.jpg
+---
+```
+
+| `titleLayout` | What it draws |
+|---|---|
+| `default` | the plain cover: logo, accent bar, title, subtitle and byline across the full width. What a deck naming nothing gets, unchanged |
+| `image-right` | the photo takes the right half, full-bleed to the top, bottom and edge; the text keeps the left |
+| `image-left` | the mirror — the photo on the left, the text on the right. The logo and the accent bar move with the text |
+| `image-full` | the photo fills the page under a scrim of the cover surface, and the text keeps the full width |
+
+The share of the page the photo takes is `chrome.cover.splitRatio` (default
+`0.5`) and the scrim's opacity is `chrome.cover.scrimAlpha` (default `0.45`):
+both are theme tokens, so a kit tunes them once for every deck it dresses.
+
+**The scrim of `image-full` is a compromise, and worth knowing about.** It is
+deliberately weaker than the one a section divider uses (`0.85`), because
+there the photo only tints a band of brand colour, while here the photo is the
+point. The consequence is that `coverInk` — whose contrast was checked against
+`coverBg` and against nothing else — can be taken below the threshold by a
+dark or busy photograph, and the engine will not say so: it measures colours,
+never pixels. Raise `chrome.cover.scrimAlpha` in the kit, or choose the
+photograph for the ink.
+
+**Two readings are deliberately lenient**, because the alternative is a deck
+that compiles into something its author did not ask for:
+
+- `titleImage:` with no `titleLayout:` reads as `image-right`. Naming a photo
+  for the cover and getting no photo is not a defensible answer.
+- an `image-*` layout with no image falls back to the plain cover rather than
+  reserving an empty band. `TITLE_IMAGE_MISSING` says so, and the fallback is
+  a rendering, not a verdict. An unknown name behaves the same way, under
+  `TITLE_LAYOUT_UNKNOWN`.
+
+Both keys are read by a cover you write yourself as well (`<!-- layout: cover
+-->`), so the frontmatter means the same thing whichever cover is on screen.
+There, an image written on the slide **wins** over `titleImage:` — the same
+precedence the `hero` base gives a deck's own visual — and the one that was
+displaced is reported by `TITLE_IMAGE_UNUSED`.
 
 ---
 

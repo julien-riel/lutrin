@@ -26,6 +26,7 @@ import {
   PAGE,
   SPACE,
   TEXT_DENSITY,
+  TITLE_LAYOUTS,
   TYPE,
   LINE_HEIGHT,
   PT_TO_PX,
@@ -2200,6 +2201,43 @@ function takeBands(secs, area, P) {
  * Compiles the deck into scenes ready to render.
  * @returns {Array<{master:string, layout:string, title:string|null, titleRuns:any, notes:string[], elements:any[]}>}
  */
+/**
+ * The title layout a cover is built on, and the image it carries.
+ *
+ * Shared by the two covers a deck can hold — the one `buildScenes` generates
+ * from `title:` and the one an author writes with `<!-- layout: cover -->` —
+ * so the frontmatter means the same thing whichever of the two is on screen.
+ *
+ * Two lenient readings, both deliberate, because the alternative is a deck that
+ * compiles into something the author did not ask for:
+ *   • `titleImage:` with no `titleLayout:` reads as `image-right`. Naming a
+ *     photo for the cover and getting no photo is not a defensible answer, and
+ *     the right half is where the engine already puts a visual beside text.
+ *   • an `image-*` layout with no image at all falls back to the plain
+ *     composition rather than reserving an empty band. `TITLE_IMAGE_MISSING`
+ *     is what says so — the fallback is a rendering, not a verdict.
+ * An unrecognised value falls back the same way, and `TITLE_LAYOUT_UNKNOWN`
+ * names it.
+ *
+ * @param {object} meta the deck's frontmatter
+ * @param {object|null} [own] an image block written on the slide itself, which
+ *                            WINS over `titleImage:` — the same precedence the
+ *                            `hero` base gives a deck's own visual
+ */
+function coverVariant(meta, own = null) {
+  const src = own ? null : (meta.titleImage ?? null);
+  const image = own ?? (src ? { type: 'image', src: String(src), role: 'cover', alt: '' } : null);
+  let variant = meta.titleLayout ? String(meta.titleLayout) : null;
+  if (!TITLE_LAYOUTS.includes(variant)) variant = image ? 'image-right' : 'default';
+  if (variant !== 'default' && !image) variant = 'default';
+  // The plain cover sets NO key, as a diagram sets no parameter the deck did
+  // not ask for: a deck that names no title layout must produce the scene it
+  // produced before this existed, field for field. The renderers read an
+  // absent `titleLayout` as `default` (coverBoxes), so nothing downstream has
+  // to know the difference.
+  return variant === 'default' ? {} : { titleLayout: variant, image };
+}
+
 export function buildScenes(deck) {
   const scenes = [];
   const meta = deck.meta ?? {};
@@ -2229,6 +2267,9 @@ export function buildScenes(deck) {
       notes: meta.notes ? [String(meta.notes)] : [],
       elements: [],
       sourceLine: 1,
+      // `titleLayout:` / `titleImage:` — the frontmatter is the only place this
+      // cover can be addressed from, since it has no slide in the source
+      ...coverVariant(meta),
     });
   }
 
@@ -2324,6 +2365,9 @@ export function buildScenes(deck) {
           notes: slide.notes,
           elements: [],
           sourceLine: slide.line,
+          // a written cover reads the same frontmatter as the generated one,
+          // and an image written on the slide outranks `titleImage:`
+          ...coverVariant(meta, blocks.find((b) => b.type === 'image') ?? null),
         });
         break;
       }

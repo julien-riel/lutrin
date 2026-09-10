@@ -33,6 +33,7 @@ import path from 'node:path';
 import {
   CHROME,
   COLORS,
+  coverBoxes,
   FONTS,
   FONT_FILES,
   DISPLAY_FONT_FILES,
@@ -543,7 +544,9 @@ export const BLOCK_RENDERERS = {
 // ---------------------------------------------------------------------------
 
 const logoSvgCache = new Map(); // key: file digest — safe across themes AND after a hot edit
-function logoHtml(file, heightPx, cls = '') {
+/** `leftPx` moves the signature off the page margin, which only the cover's
+ *  `image-left` layout needs: there the margin is under the photo. */
+function logoHtml(file, heightPx, cls = '', leftPx = null) {
   if (!file) return ''; // theme without a signature (generic default)
   const key = fileCacheKey(file);
   let inner = logoSvgCache.get(key);
@@ -560,17 +563,35 @@ function logoHtml(file, heightPx, cls = '') {
   }
   // decorative: the signature repeats on every slide, no point having screen
   // readers announce it
+  const left = leftPx == null || leftPx === PAGE.margin ? '' : `left:${leftPx}px;`;
   return inner
-    ? `<div class="logo ${cls}" aria-hidden="true" style="height:${heightPx}px">${inner}</div>`
+    ? `<div class="logo ${cls}" aria-hidden="true" style="${left}height:${heightPx}px">${inner}</div>`
     : '';
 }
 
-function coverHtml(scene) {
-  const parts = [logoHtml(LOGOS.coverSvg, CHROME.cover.logoH, 'logo-cover')];
-  parts.push('<div class="cover-bar"></div>');
-  parts.push(`<h1 class="cover-title">${esc(scene.title ?? '')}</h1>`);
-  if (scene.subtitle) parts.push(`<p class="cover-subtitle">${esc(scene.subtitle)}</p>`);
-  if (scene.byline) parts.push(`<p class="cover-byline">${esc(scene.byline)}</p>`);
+function coverHtml(scene, ctx) {
+  // `titleLayout:` — the same answer the .pptx renderer places its shapes from
+  // (tokens.mjs). On `default` the column is the full width and the image is
+  // null, so `col` is empty and every box keeps the geometry its class carries:
+  // a deck naming no layout produces exactly the markup it produced before.
+  const box = coverBoxes(scene.titleLayout);
+  const col =
+    scene.titleLayout && scene.titleLayout !== 'default'
+      ? ` style="left:${box.x}px;width:${box.w}px"`
+      : '';
+  const parts = [];
+  // First in the DOM, as in the spTree of the .pptx and for the same reason:
+  // absolutely positioned siblings paint in source order, so a photo written
+  // after the words would sit on top of them.
+  if (scene.image && box.image) {
+    parts.push(htmlImage(scene.image, box.image, ctx, { fullBleed: true }));
+    if (box.scrim) parts.push('<div class="cover-scrim"></div>');
+  }
+  parts.push(logoHtml(LOGOS.coverSvg, CHROME.cover.logoH, 'logo-cover', box.x));
+  parts.push(`<div class="cover-bar"${col ? ` style="left:${box.x}px"` : ''}></div>`);
+  parts.push(`<h1 class="cover-title"${col}>${esc(scene.title ?? '')}</h1>`);
+  if (scene.subtitle) parts.push(`<p class="cover-subtitle"${col}>${esc(scene.subtitle)}</p>`);
+  if (scene.byline) parts.push(`<p class="cover-byline"${col}>${esc(scene.byline)}</p>`);
   return parts.join('\n');
 }
 
@@ -760,6 +781,7 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 /* section (accent background) */
 .slide.master-section{background:#${S.sectionBg}}${coverBgCss}
 .section-scrim{position:absolute;left:0;top:0;width:100%;height:100%;background:#${S.sectionBg};opacity:${CH.section.scrimAlpha}}
+.cover-scrim{position:absolute;left:0;top:0;width:100%;height:100%;background:#${S.coverBg};opacity:${CH.cover.scrimAlpha}}
 .section-agenda{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY + CH.section.titleH + SPACE.md}px;width:${PAGE.width - 2 * PAGE.margin}px;margin:0;padding-left:1.4em;color:#${composite(S.sectionInk, S.sectionBg, 0.55)}}
 .section-agenda li.current{color:#${S.sectionInk};font-weight:700}
 .section-title{position:absolute;left:${PAGE.margin}px;top:${CH.section.titleY}px;width:${PAGE.width - 2 * PAGE.margin}px;height:${CH.section.titleH}px;display:flex;align-items:center;margin:0;font-size:${TYPE.sectionTitle}pt;font-weight:700;color:#${S.sectionInk};line-height:1.2;${DTF}}
@@ -1541,7 +1563,7 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
     let masterCls;
     if (scene.master === 'cover') {
       masterCls = 'master-cover';
-      body = coverHtml(scene);
+      body = coverHtml(scene, ctx);
     } else if (scene.master === 'section') {
       masterCls = 'master-section';
       body = sectionHtml(scene, ctx);

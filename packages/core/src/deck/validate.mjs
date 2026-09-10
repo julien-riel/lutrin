@@ -50,7 +50,14 @@ import {
   resolveLocalImage,
 } from './assets.mjs';
 import { chartDataDiagnostics } from './chart.mjs';
-import { KIT_IMAGES, LAYER_SHADES, PAGE, TEXT_DENSITY, contentArea } from './tokens.mjs';
+import {
+  KIT_IMAGES,
+  LAYER_SHADES,
+  PAGE,
+  TEXT_DENSITY,
+  TITLE_LAYOUTS,
+  contentArea,
+} from './tokens.mjs';
 import { prepareDeckContext } from './context.mjs';
 import * as i18n from './i18n.mjs';
 import { THEME_KEYS } from './theme.mjs';
@@ -225,6 +232,50 @@ export function validateDeck(
       if (new RegExp(`^${key}\\s*:`).test(lines[k])) return k + 1;
     }
     return 1;
+  };
+
+  /**
+   * The three things that can be wrong with an image SOURCE, anchored on the
+   * line the reader has to go to.
+   *
+   * Extracted so the cover's `titleImage:` is held to the same rules as an
+   * image written in the body. It is not a block and never appears in
+   * `walkBlocks`, so before this it escaped all three checks: a path climbing
+   * out of the deck's directory was refused at render time and reported
+   * nowhere, which is the failure that is hardest to act on.
+   *
+   *   • a `kit:` alias no active theme declares — the alias either names a
+   *     declared image (nothing to say, theme.mjs already vouched for the
+   *     file) or it does not. A deck compiled without a kit reports it too:
+   *     the default theme declares no images;
+   *   • a path escaping the deck's directory, refused and an ERROR;
+   *   • a file that is simply not there.
+   * A remote source is left alone: whether it answers is not a question this
+   * command can put without the network.
+   */
+  const checkImageSrc = (src, line) => {
+    if (kitImageAlias(src) !== null) {
+      const d = kitImageDiagnostic(src);
+      if (d) push(d.severity, d.code, d.message, line, d.suggestion);
+      return;
+    }
+    if (/^https?:/.test(src)) return;
+    const file = resolveImagePath(baseDir, src);
+    if (!imageWithinRoots(file, imageTrustRoots)) {
+      push(
+        'error',
+        'IMAGE_PATH_ESCAPE',
+        `Image outside the deck's directory: ${src} — refused (it will not be embedded). An image must sit under the deck's directory or under a project directory allowed by the editor.`,
+        line,
+      );
+    } else if (!fs.existsSync(file)) {
+      push(
+        'warning',
+        'MISSING_IMAGE',
+        `Image not found: ${src} (a placeholder will be displayed).`,
+        line,
+      );
+    }
   };
 
   // Directives the parser could not attach to any slide (end of file, or `---`
@@ -626,32 +677,7 @@ export function validateDeck(
       }
     }
     for (const b of walkBlocks(slide)) {
-      // `kit:` images: the alias either names a declared image (nothing to
-      // say — theme.mjs already vouched for the file) or it does not, and the
-      // dedicated diagnostic lands on the image's line like MISSING_IMAGE.
-      // A deck compiled without a kit reports the alias too: the default
-      // theme declares no images.
-      if (b.type === 'image' && kitImageAlias(b.src) !== null) {
-        const d = kitImageDiagnostic(b.src);
-        if (d) push(d.severity, d.code, d.message, b.line, d.suggestion);
-      } else if (b.type === 'image' && !/^https?:/.test(b.src)) {
-        const file = resolveImagePath(baseDir, b.src);
-        if (!imageWithinRoots(file, imageTrustRoots)) {
-          push(
-            'error',
-            'IMAGE_PATH_ESCAPE',
-            `Image outside the deck's directory: ${b.src} — refused (it will not be embedded). An image must sit under the deck's directory or under a project directory allowed by the editor.`,
-            b.line,
-          );
-        } else if (!fs.existsSync(file)) {
-          push(
-            'warning',
-            'MISSING_IMAGE',
-            `Image not found: ${b.src} (a placeholder will be displayed).`,
-            b.line,
-          );
-        }
-      }
+      if (b.type === 'image') checkImageSrc(b.src, b.line);
       if (b.type === 'icon' && hasLucideIcon(b.name) === false) {
         push(
           'warning',
@@ -943,6 +969,53 @@ export function validateDeck(
   try {
     const allScenes = scenes ?? buildScenes(deck);
 
+    // `titleLayout:` / `titleImage:` — checked against the covers that were
+    // actually BUILT rather than against the frontmatter alone. The resolver
+    // in layout.mjs is lenient by design (an unusable pair falls back to the
+    // plain composition instead of refusing to compile), so the only way to
+    // tell the author that their photo is not on the slide is to look at the
+    // slide. A written cover can also supply an image of its own, which the
+    // frontmatter cannot know about and this walk can see.
+    // iterated rather than filtered: `scenes` may be any iterable a host hands
+    // over, and this is the first pass to touch it — reaching for an Array
+    // method here is what turns "the layout pass threw" into a TypeError about
+    // this line (test/validate.test.mjs pins it)
+    const covers = [];
+    for (const sc of allScenes) if (sc.master === 'cover') covers.push(sc);
+    const wanted = deck.meta.titleLayout != null ? String(deck.meta.titleLayout) : null;
+    if (wanted != null && !TITLE_LAYOUTS.includes(wanted)) {
+      const near = closest(wanted, TITLE_LAYOUTS);
+      push(
+        'warning',
+        'TITLE_LAYOUT_UNKNOWN',
+        `Frontmatter \`titleLayout: ${wanted}\` names no title layout. Expected ${TITLE_LAYOUTS.join(', ')}. The cover keeps its plain composition.`,
+        metaLine('titleLayout'),
+        near,
+      );
+    } else if (wanted != null && wanted !== 'default' && covers.some((sc) => !sc.image)) {
+      push(
+        'warning',
+        'TITLE_IMAGE_MISSING',
+        `Frontmatter \`titleLayout: ${wanted}\` reserves half the cover for an image, and no image is given. Add \`titleImage:\`, or drop the line. The cover keeps its plain composition.`,
+        metaLine('titleLayout'),
+      );
+    }
+    if (deck.meta.titleImage != null)
+      checkImageSrc(String(deck.meta.titleImage), metaLine('titleImage'));
+    if (
+      deck.meta.titleImage != null &&
+      !covers.some((sc) => sc.image?.src === String(deck.meta.titleImage))
+    ) {
+      push(
+        covers.length ? 'info' : 'warning',
+        'TITLE_IMAGE_UNUSED',
+        covers.length
+          ? `Frontmatter \`titleImage: ${deck.meta.titleImage}\` is not placed: the cover is on the plain composition, or it brings a visual of its own, which wins.`
+          : 'Frontmatter `titleImage:` applies to the cover, and this deck has none — add a `title:`, or write a cover slide.',
+        metaLine('titleImage'),
+      );
+    }
+
     // pagination (density info)
     const CONT = i18n.t('slide.continued');
     const paginated = new Set();
@@ -1146,6 +1219,12 @@ export function capabilities() {
       'author',
       'date',
       'footer',
+      // `titleLayout:` picks the cover's composition and `titleImage:` gives it
+      // its photo — a path, a URL or a `kit:<alias>`. The generated cover is the
+      // one slide no `<!-- layout: -->` can reach, so the frontmatter is where
+      // it is addressed from. Allowed values: `titleLayouts` below.
+      'titleLayout',
+      'titleImage',
       // presenter notes of the cover generated from `title:` — the one slide
       // no <!-- notes: --> can reach; inert without a title (COVER_NOTES_ORPHAN)
       'notes',
@@ -1167,6 +1246,8 @@ export function capabilities() {
       'assets',
       'marp',
     ],
+    // what `titleLayout:` may name — the compositions the cover can take
+    titleLayouts: [...TITLE_LAYOUTS],
     // what `lang:` may name (BCP-47; a region may be added: `fr-CA`)
     languages: [...i18n.LANGS],
     // the versioned inference rule sets: what `inference:` may name, which of
@@ -1250,6 +1331,9 @@ export function capabilities() {
       'SMARTART_TEXT',
       'UNKNOWN_ANIMATE',
       'COVER_NOTES_ORPHAN',
+      'TITLE_LAYOUT_UNKNOWN',
+      'TITLE_IMAGE_MISSING',
+      'TITLE_IMAGE_UNUSED',
       'METRICS_DROPPED',
       'MISSING_IMAGE',
       'KIT_IMAGE_UNKNOWN',
