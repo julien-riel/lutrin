@@ -472,7 +472,7 @@ test('HTML: grid cells lead with the kit images, cycling — and validation name
   assert.ok(!/Marie/.test(d.message), 'the cell taking the layout image is not');
 });
 
-test('PPTX: a section divider embeds the kit background and keeps the attribution above it', async (t) => {
+test('PPTX: a section divider embeds the kit background under its scrim', async (t) => {
   freshStateAfter(t);
   const kit = tmpKitWithLayouts(t, HERO_THEME, [
     { name: 'brand-section', base: 'section', image: 'kit:hero-photo' },

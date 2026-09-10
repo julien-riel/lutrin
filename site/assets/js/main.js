@@ -119,34 +119,14 @@
       window.umami.track(name, props);
   };
 
-  const CHECKOUT = 'https://buy.polar.sh/';
-
-  // All four events. Delegated from the document rather than bound per link,
-  // because the gallery cards, the two hero buttons, the pricing table and the
-  // footer all point at the same handful of targets and the list grows every
-  // time a page is added.
+  // Delegated from the document rather than bound per link, because the gallery
+  // cards, the two hero buttons and the footer all point at the same handful of
+  // targets and the list grows every time a page is added.
   document.addEventListener('click', (e) => {
     const a = e.target instanceof Element ? e.target.closest('a[href]') : null;
     if (!a) return;
     const href = a.getAttribute('href') || '';
-    if (href.indexOf(CHECKOUT) === 0) {
-      // The props are read out of the link's OWN UTM parameters rather than
-      // from a list kept here. A second list is a list that drifts; this way
-      // the act that makes a new checkout link attributable in Polar is the
-      // same act that instruments it. One carrying no UTM reports `untagged`
-      // rather than nothing at all, so the drift is visible in the report
-      // instead of silently looking like a link nobody clicked.
-      const utm = new URL(href).searchParams;
-      track('checkout clicked', {
-        placement: utm.get('utm_medium') || 'untagged',
-        tier: utm.get('utm_campaign') || 'untagged',
-      });
-      // Nothing here defers the navigation, and nothing needs to: the Umami
-      // tracker posts with `fetch(…, { keepalive: true })` — read out of the
-      // script it actually serves — which the browser is required to let
-      // outlive the document. A preventDefault() and a timeout would buy a
-      // datum at the price of a slower checkout, which is the wrong trade.
-    } else if (href.endsWith('.pptx')) track('pptx downloaded');
+    if (href.endsWith('.pptx')) track('pptx downloaded');
     else if (href === 'demo.html' || href.indexOf('demo.html#') === 0)
       track('deck opened', { slide: href.split('#')[1] || 'first' });
   });

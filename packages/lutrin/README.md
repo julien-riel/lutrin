@@ -110,9 +110,7 @@ only dependency. Depend on `@lutrin/core` directly if you want the library.
 
 ## Free forever
 
-No watermark limit, no slide limit, no locked feature. A deck compiled
-without a licence carries a discreet "Made with Lutrin" on every slide; a
-[licence](https://info.lutrin.app/pricing.html) removes it — that is the
-entire difference.
+MIT, with no watermark, no slide limit, no locked feature and no paid tier.
+The decks you compile carry your brand and nothing of ours.
 
 MIT © Julien Riel

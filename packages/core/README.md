@@ -50,7 +50,6 @@ lutrin kit list | remove <name> | create <directory> [-o <file.deckkit>]
 lutrin kit import <brand.potx|brand.pptx> [-o <directory>] [--name <name>]
 lutrin kit edit <name|directory> [--port 4322] [--create] [--name <name>]
 lutrin capabilities [<deck.md>] [--kit <ref>] [--json]
-lutrin license activate <key> | status [--json] | deactivate
 lutrin setup-mermaid [--yes]
 ```
 
@@ -180,7 +179,6 @@ Markdown → AST (markdown-it) → IR → layout engine → scene → renderer
 | `src/kit/archive.mjs` | `.deckkit` archives — package, download, install |
 | `src/kit/edit-server.mjs` | `lutrin kit edit` — the kit editor's local server |
 | `src/edit-server.mjs` | `lutrin edit` — the deck editor's local server |
-| `src/license/` | the seat licence: activation, cached record, the attribution |
 | `src/worker/worker.mjs` | IPC worker of the editor host (types in `protocol.d.ts`) |
 | `src/vendor.mjs` | `lutrin vendor` — freezing the deck's external dependencies |
 | `design/themes/default.json` | canonical mirror of the default theme, a template to copy |
@@ -199,30 +197,11 @@ UPDATE_GOLDEN=1 npm test    # from the root, after an intended engine change
 A `node:test` harness, with no test dependency. See
 [CONTRIBUTING.md](https://github.com/julien-riel/lutrin/blob/main/CONTRIBUTING.md).
 
-## Licence and attribution
-
-A deck compiled without a licence carries a discreet "Made with Lutrin" at the
-bottom right of every slide, in the `.pptx` as in the HTML. A licence removes it
-— $59 USD a year for one person, $449 for a team of ten, up to $2,990 for an
-organisation. See the [pricing](https://info.lutrin.app/#pricing).
-A seat is a **person**, and each one gets a key usable on every machine they
-work on.
-
-```bash
-lutrin license activate <key>   # activates this machine on the key
-lutrin license status           # state, last check with Polar
-lutrin license deactivate       # releases this machine
-```
-
-Activation is the only step that needs the network. The state is cached in
-`~/.config/lutrin/license.json`, no compilation ever waits on Polar, and a
-licence keeps working for 30 days without a successful re-check. Programmatic
-callers may force the mention on or off with the `branding` option of the
-renderers, which is what the test suite does.
-
 ## License
 
-MIT — the code, including the licensing check. Third-party dependencies:
+MIT — all of it. No paid tier, no attribution painted on your slides, and
+nothing on the compilation path that reaches the network. Third-party
+dependencies:
 [THIRD-PARTY-NOTICES.md](https://github.com/julien-riel/lutrin/blob/main/THIRD-PARTY-NOTICES.md).
 
 "Lutrin" is a trademark of Julien Riel: the MIT licence covers the code, not the

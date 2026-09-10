@@ -890,15 +890,15 @@ title: Morph
 ![cover](photo.png)
 `;
 
-// THE LATENT BUG THIS CHANGE UNCOVERED. The renaming used to take the FIRST
-// `<p:sp>` of the slide. On a content slide that is indeed the title — but the
-// `hero` layout writes the Lutrin attribution first, over the full-frame
-// image, and the title only after it. Morph would then have paired two
-// watermarks (which sit at the same place on both slides, so nothing visible
-// would move) while the titles blinked. `hero` was unreachable as long as only
-// pagination built chains, and became reachable the moment two consecutive
-// author slides could morph.
-test('pptx: on a hero slide the renamed shape is the title placeholder, not the attribution', async (t) => {
+// THE LATENT BUG THIS CASE WAS WRITTEN FOR. The renaming used to take the
+// FIRST `<p:sp>` of the slide, which on a content slide is indeed the title.
+// The `hero` layout is the one that writes shapes ahead of its title — the
+// full-frame image comes first, and back when the engine still painted an
+// attribution that came first too, morph paired the two watermarks (identically
+// placed on both slides, so nothing visible moved) while the titles blinked.
+// The attribution is gone, but `hero` remains the layout where the title is not
+// the opening shape of the spTree, so it stays the case that pins the rule.
+test('pptx: on a hero slide the renamed shape is the title placeholder', async (t) => {
   const { scenes, stats, zip } = await compilePptx(t, MORPH_HERO, {
     files: { 'photo.png': PNG_2PX },
   });
@@ -922,11 +922,14 @@ test('pptx: on a hero slide the renamed shape is the title placeholder, not the 
       /<p:ph\b[^>]*\stype="title"/,
       `slide ${n}: the chain name landed on a shape that is NOT the title`,
     );
-    // …and the shape it would have landed on before is still called what it
-    // is. Without this line the assertion above would stay green on a deck
-    // that simply stopped writing an attribution, and the regression would go
-    // unnoticed.
-    assert.match(xml, /name="Lutrin attribution"/, `slide ${n}: the attribution was renamed`);
+    // …and the fixture really is the awkward shape: the hero image is written
+    // BEFORE the title. Without this line the assertion above would stay green
+    // on a slide whose title happened to open the spTree, where picking the
+    // first shape is right by accident and the rule is never exercised.
+    assert.ok(
+      xml.indexOf('<p:pic>') < xml.indexOf('name="!!title-'),
+      `slide ${n}: the hero image no longer precedes the title — this case tests nothing`,
+    );
   }
 });
 

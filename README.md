@@ -213,30 +213,12 @@ you no. The four dated, sourced comparison pages:
 [vs reveal.js](https://info.lutrin.app/lutrin-vs-revealjs.html) ·
 [vs Pandoc](https://info.lutrin.app/lutrin-vs-pandoc.html)
 
-## Free forever — and the one thing a licence buys
+## Free forever
 
-Everything above is free, MIT-licensed, with **no watermark limit, no slide
-limit, no locked feature**. A deck compiled without a licence carries a
-discreet "Made with Lutrin" at the bottom right of every slide; a licence
-removes it — that is the entire difference.
-
-| Tier | Covers | USD / year |
-| --- | --- | --- |
-| [Solo](https://buy.polar.sh/polar_cl_iejyJbWg2Lfbyp8iPgcG9lj1y85LOqnUZmebJ0OkEcV) | one person | $59 |
-| [**Team**](https://buy.polar.sh/polar_cl_XgFavyTBtWMJFMOgpLU5Dx8oL1fHSBLFho0YH1MuC0T) | up to 10 people | **$449** |
-| [Studio](https://buy.polar.sh/polar_cl_PGeTLcaEKYJsJAJarSg0UkW5smAL1SidX18pm3xM9Bj) | up to 30 people, CI included | $990 |
-| [Organisation](https://buy.polar.sh/polar_cl_hsMt5mxtEmNoCgGMGCOdZyS2ne33ryyuVY6w50VktGC) | one legal entity, unlimited | $2,990 |
-| [Solo, lifetime](https://buy.polar.sh/polar_cl_6ab8UxGtae4pRC2PKJQbVkV1lkmmIwmQJI9nE1RwuIG) | one person, current major line | $149 once |
-
-A seat is a **person**, not a machine — use your key on every machine you work
-on. Activate once (`lutrin license activate <key>`), then compile offline: no
-build ever waits on the network. Full prices in USD and CAD, and how the
-licence behaves offline: [pricing](https://info.lutrin.app/pricing.html) and
-[docs/cli.md](docs/cli.md#license).
-
-And since the code is MIT, removing the attribution by hand is both easy and
-permitted. The licence is not a lock — it is what makes your commercial use
-defensible, and what keeps the project alive.
+Everything above is free and MIT-licensed, with **no watermark, no slide
+limit, no locked feature and no paid tier**. What you compile is yours: the
+decks carry your brand and nothing of ours, and no build ever waits on the
+network.
 
 ## Contributing
 
@@ -262,14 +244,11 @@ public issue: [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT — the code, including the licensing check itself. Third-party
-dependencies: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+MIT — all of it. Third-party dependencies:
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 **"Lutrin" is a trademark of Julien Riel**, and the MIT licence covers the
-code, not the name. You may fork, modify and redistribute this software —
-including with the attribution removed — but not under the name "Lutrin", nor
-with its logo or branding, in a way that suggests it is this project or
-endorsed by it. Rename your fork and it is entirely yours.
-
-Removing the attribution from your own decks is what a seat buys; patching it
-out of a redistributed build named "Lutrin" is what the trademark forbids.
+code, not the name. You may fork, modify and redistribute this software, but
+not under the name "Lutrin", nor with its logo or branding, in a way that
+suggests it is this project or endorsed by it. Rename your fork and it is
+entirely yours.

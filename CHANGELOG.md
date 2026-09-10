@@ -7,6 +7,46 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
 stated otherwise, an entry describes the compiler.
 
+## [Unreleased]
+
+Lutrin no longer has a paid tier. The discreet "Made with Lutrin" that every
+deck compiled without a licence carried at the bottom right of each slide is
+gone from both renderers, and the seat licence that existed to remove it is
+gone with it. There is nothing left to buy: the project is MIT, free, and free
+without a footnote.
+
+This is a **breaking change to the CLI** — `lutrin license` no longer exists —
+and it changes what every unlicensed build produces, which until now was every
+build on a machine that had not activated a key.
+
+### Removed
+
+- **The "Made with Lutrin" attribution.** Neither the `.pptx` nor the HTML
+  paints it any more, on any master. The `chrome.brand` geometry it was placed
+  by is gone from the design tokens and from `design/themes/default.json`, and
+  the `.footer-brand` / `.brand-cover` / `.brand-section` rules are gone from
+  the stylesheet. A kit that never declared `chrome.brand` — that is, every
+  kit — is unaffected.
+- **`lutrin license activate | status | deactivate`,** and the whole
+  `src/license/` module behind them: the Polar client, the sealed local record
+  in `~/.config/lutrin/license.json`, the weekly revalidation the CLI ran after
+  a build, and the 30-day offline grace period. Nothing reads that file any
+  more; it can be deleted, and leaving it in place changes nothing.
+- **The `branding` option of the renderers.** It existed to force the mention
+  on or off ahead of the licence, and there is no longer a mention to force.
+  A programmatic caller passing it is not an error, it is simply ignored.
+- **The offer printed at the end of a successful `build`,** which named the
+  attribution and the page where a key was sold.
+- **The price list, the checkout links and the buying FAQ** on the site, along
+  with `site/pricing.html` itself and the `checkout clicked` analytics event
+  that measured them.
+
+### Note
+
+Removing the network from the compilation path was already the rule; it is now
+a property of the code rather than a promise about it. No command in the tool
+reaches Polar, because there is no longer any Polar to reach.
+
 ## [1.5.0] — 2026-08-24
 
 A release with one change in it, and it is a change to what a slide LOOKS

@@ -8,9 +8,8 @@ by the engine at `HEAD`, and deploys the result to GitHub Pages.
 
 | File | What it is |
 | --- | --- |
-| `index.html` | the landing page, including the tiers and the FAQ |
+| `index.html` | the landing page, including the FAQ |
 | `playground.html` | the compiler, running in the visitor's browser — see below; `?embed=1` is the same page stripped for the landing page's card |
-| `pricing.html` | all five purchase options, in USD and CAD |
 | `gallery.html` | eight kits, one deck — see below |
 | `kit-editor.html` | a tour of `lutrin kit edit`, from committed screenshots |
 | `lutrin-vs-*.html` | four comparison pages, one template, each dated |
@@ -406,7 +405,7 @@ for `window.umami` directly would turn the next provider change from one line
 into a hunt.
 
 `packages/core/test/site-analytics.test.mjs` holds the pages to all of this —
-the tag, the ids, and the UTM on the checkout links.
+the tag, the ids, and the sitemap that has to list the same set.
 
 ```html
 <script defer src="https://cloud.umami.is/script.js"
@@ -483,14 +482,6 @@ Three things in that table are worth spelling out:
 
 Host is `gateway-us.umami.is` for a US account, `gateway-eu` for an EU one.
 
-**What happens past the click is not an Umami question**, and it is worth being
-clear about it: the `utm_source`/`utm_medium`/`utm_campaign` on each
-`buy.polar.sh` link leave with the visitor and are read by **Polar**. Umami now
-sees the click itself — `checkout clicked` carries the placement and the tier —
-and nothing after it. The order, the amount and whether it was refunded are
-read on the other side, and **the two halves are not reconciled here**: one
-answers *which link is persuasive*, the other *what was actually paid*.
-
 **The trade-off, and it is a real one: a Share URL is public.** Anyone holding
 the link reads the site's traffic — no password, no expiry. For a marketing
 site that is a mild disclosure rather than a leak, but it is a choice rather
@@ -506,7 +497,7 @@ where a "public enough" link stops being a considered choice:
 { "provider": "umami", "websiteId": "…", "shareId": "…", "region": "us" }
 ```
 
-### The six custom events
+### The five custom events
 
 | Event | Fires when | Props | Why it is worth a name |
 | --- | --- | --- | --- |
@@ -515,7 +506,6 @@ where a "public enough" link stops being a considered choice:
 | `playground exported` | either download button in the playground | `format`, `mode` | one step past editing: a visitor **leaving with a file they made** |
 | `pptx downloaded` | any link ending in `.pptx` | — | proof that the "real PowerPoint, not an image" claim landed |
 | `deck opened` | `demo.html`, from the buttons or a gallery card | `slide` | which slide pulled them in, which is what the gallery is for |
-| `checkout clicked` | any `https://buy.polar.sh/` link, anywhere on the site | `placement`, `tier` | the last thing this site can see a buyer do — past it, only Polar knows |
 
 `playground exported` is deliberately **not** folded into `pptx downloaded`.
 That one counts the demo deck coming off a link and answers *did the "real
@@ -535,57 +525,10 @@ them.
 `command copied` fires on the click, not on the clipboard promise: a browser
 that denies clipboard access still tells us the reader wanted the command.
 
-`checkout clicked` reads its two props **out of the link's own UTM parameters**
-— `utm_medium` → `placement`, `utm_campaign` → `tier` — rather than from a list
-in the JavaScript. A second list is a list that drifts; this way the act that
-makes a new checkout link attributable in Polar is the same act that
-instruments it here. A link carrying no UTM reports `untagged` instead of
-nothing, so the omission shows up in the report rather than looking like a link
-nobody clicked.
-
-**It fires on the click and does not delay it.** The visitor leaves for
-`buy.polar.sh` immediately, and the event still lands: the tracker served at
-`cloud.umami.is/script.js` posts with `fetch(…, { keepalive: true })` — read out
-of the shipped script itself on 2026-08-01, not assumed — and `keepalive` is
-precisely the browser's undertaking to let a request outlive the document that
-started it. So there is no `preventDefault()` and no timeout in that branch,
-and there must not be: a slower checkout would cost more than the datum is
-worth. If that ever stops being true of the tracker, the symptom is silent —
-an event that is dropped this way is dropped without a trace — so it is the
-first thing to re-read if the `checkout clicked` count starts looking thin
-against the orders on Polar's side.
-
-### UTM going out — the checkout links
-
-Every `buy.polar.sh` link carries
-`?utm_source=site&utm_medium=<placement>&utm_campaign=<tier>`. Without the
-placement, three links to the same product are indistinguishable in the report,
-and knowing *which one converts* is the whole reason to measure.
-
-| `utm_medium` | Where |
-| --- | --- |
-| `card` | a tier card on the landing page |
-| `card-secondary` | the quiet "or buy it by card" under Organisation's *Contact us* |
-| `footer-cta` | the closing call to action on the landing page |
-| `pricing-table` | a row of the table on `pricing.html` |
-| `pricing-cta` | the closing call to action on `pricing.html` |
-
-`utm_campaign` is the tier: `solo`, `team`, `studio`, `organisation`,
-`solo-lifetime`.
-
-**When adding a checkout link, give it a UTM.** One that carries none is
-invisible in the report and looks exactly like direct traffic. That sentence
-used to be the only thing enforcing it;
-`packages/core/test/site-analytics.test.mjs` now reads the two lists **out of
-this file** and holds every `buy.polar.sh` href in `site/*.html` to them, so a
-link with no UTM — or with a placement invented on the spot — fails the build
-instead of the report. Add the row here first; the test is what makes that
-order the cheap one.
-
 ### UTM coming in — the announcements
 
-The site tags what goes **out** to Polar and, until this section, tagged
-nothing coming **in**. The consequence is not theoretical: measured on
+Until this section the site tagged nothing coming **in**. The consequence is
+not theoretical: measured on
 2026-08-01, `channel` returned exactly one row — `direct`, 3 — and `referrer`
 returned none at all. Every announcement, wherever it was posted, is landing in
 the same undifferentiated bucket, and *"what did the launch actually bring"*
@@ -656,16 +599,15 @@ Three things this convention has to survive, and they shape it:
   the tag goes on every link, including the ones that would have sent a
   referrer anyway.
 
-Point the link at the page that answers the post — `pricing.html`,
-`playground.html`, a `lutrin-vs-*` page — rather than always at `/`. `entry`
+Point the link at the page that answers the post — `playground.html`,
+`gallery.html`, a `lutrin-vs-*` page — rather than always at `/`. `entry`
 is then the metric that says which one people actually arrived on, and `path`
 is the one that cannot tell you.
 
 **`utm_source=site` is reserved** and never appears on an inbound link: it is
-the word this site speaks to Polar on the way out. Inbound sources name the
-place the visitor came *from*, outbound ones name this site as the place they
-came from — same parameter, opposite ends of the visit, and mixing them makes
-both unreadable.
+the word this site would speak on the way out. Inbound sources name the place
+the visitor came *from*, and letting this site's own name in among them would
+make both ends of the visit unreadable.
 
 ## Rules this directory is held to
 

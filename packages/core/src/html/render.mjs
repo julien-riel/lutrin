@@ -77,7 +77,6 @@ import {
   resolveLocalImage,
   vendorRemoteAssets,
 } from '../deck/assets.mjs';
-import { brandMention } from '../license/index.mjs';
 
 /** @font-face variants of the FONTS.body family — the .woff2 paths are
  *  derived from the .ttf of FONT_FILES (same names, .woff2 extension), so a
@@ -566,22 +565,21 @@ function logoHtml(file, heightPx, cls = '') {
     : '';
 }
 
-function coverHtml(scene, brand) {
+function coverHtml(scene) {
   const parts = [logoHtml(LOGOS.coverSvg, CHROME.cover.logoH, 'logo-cover')];
   parts.push('<div class="cover-bar"></div>');
   parts.push(`<h1 class="cover-title">${esc(scene.title ?? '')}</h1>`);
   if (scene.subtitle) parts.push(`<p class="cover-subtitle">${esc(scene.subtitle)}</p>`);
   if (scene.byline) parts.push(`<p class="cover-byline">${esc(scene.byline)}</p>`);
-  if (brand) parts.push(brandHtml(brand, 'brand-cover'));
   return parts.join('\n');
 }
 
-function sectionHtml(scene, brand, ctx) {
+function sectionHtml(scene, ctx) {
   // layout-declared kit image (`image` parameter of the section base): drawn
   // full-bleed UNDER a scrim of the section surface, so the divider stays the
   // brand's colour and the validated sectionInk pair keeps roughly its
-  // contrast whatever the photo. Title, logo and attribution come after in
-  // the DOM, hence above.
+  // contrast whatever the photo. Title and logo come after in the DOM, hence
+  // above.
   const bg = scene.image
     ? `${htmlImage(scene.image, { x: 0, y: 0, w: PAGE.width, h: PAGE.height }, ctx, { fullBleed: true })}\n<div class="section-scrim"></div>\n`
     : '';
@@ -593,16 +591,10 @@ function sectionHtml(scene, brand, ctx) {
         .map((it) => `<li${it.current ? ' class="current"' : ''}>${esc(it.title)}</li>`)
         .join('')}</ol>`
     : '';
-  return `${bg}<h2 class="section-title">${esc(scene.title ?? '')}</h2>${rail}\n${logoHtml(LOGOS.sectionSvg, CHROME.section.logoH, 'logo-section')}${brand ? `\n${brandHtml(brand, 'brand-section')}` : ''}`;
+  return `${bg}<h2 class="section-title">${esc(scene.title ?? '')}</h2>${rail}\n${logoHtml(LOGOS.sectionSvg, CHROME.section.logoH, 'logo-section')}`;
 }
 
-/** The attribution. `aria-hidden` is NOT set: it is a statement about the
- *  document, and a screen reader has as much business reading it as the footer
- *  it sits beside. */
-const brandHtml = (brand, extraClass = '') =>
-  `<div class="footer-brand${extraClass ? ` ${extraClass}` : ''}">${esc(brand)}</div>`;
-
-function contentHtml(scene, num, footerText, ctx, brand) {
+function contentHtml(scene, num, footerText, ctx) {
   const parts = [];
   const hero = scene.master === 'hero' && Boolean(scene.image);
   if (hero) {
@@ -647,9 +639,6 @@ function contentHtml(scene, num, footerText, ctx, brand) {
   if (scene.source) parts.push(`<div class="source-line">${esc(scene.source)}</div>`);
   if (!hero) parts.push(`<div class="footer-text">${esc(footerText)}</div>`);
   parts.push(`<div class="footer-num">${num}</div>`);
-  // written AFTER the image like the page number, for the same reason: on a hero
-  // the full-frame image would cover a mention painted before it
-  if (brand) parts.push(brandHtml(brand));
   return parts.join('\n');
 }
 
@@ -758,16 +747,6 @@ code{font-family:"${FONTS.mono}",monospace;color:#${C.primaryDarker};background:
 .footer-text{position:absolute;left:${PAGE.margin}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.footer.textW}px;height:${CH.footer.h}px;display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 .footer-num{position:absolute;left:${PAGE.width - PAGE.margin - CH.footer.numW}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.footer.numW}px;height:${CH.footer.h}px;display:flex;align-items:center;justify-content:flex-end;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
 .source-line{position:absolute;left:${sourceLineBox().x}px;top:${sourceLineBox().y}px;width:${sourceLineBox().w}px;height:${sourceLineBox().h}px;display:flex;align-items:center;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
-
-/* Lutrin attribution — right-aligned, at the caption size and the secondary
-   ink: present on every deck compiled without a licence, and deliberately quiet
-   enough not to compete with the author's own footer. The .brand-cover and
-   .brand-section modifiers reposition the same mention on the two layouts that
-   have no footer band. (No backticks in these comments: we are inside a JS
-   template literal.) */
-.footer-brand{position:absolute;left:${PAGE.width - PAGE.margin - CH.footer.numW - CH.brand.w}px;top:${PAGE.height - PAGE.footerHeight}px;width:${CH.brand.w}px;height:${CH.brand.h}px;display:flex;align-items:center;justify-content:flex-end;font-size:${TYPE.caption}pt;color:#${C.neutralSecondary}}
-.brand-cover{left:${PAGE.width - PAGE.margin - CH.brand.w}px;top:${PAGE.height - CH.cover.bylineBottom}px;height:${CH.cover.bylineH}px}
-.brand-section{left:${PAGE.width - PAGE.margin - CH.brand.w}px;top:${PAGE.height - PAGE.margin - CH.brand.h}px;color:#${S.sectionInk}}
 
 /* cover */
 .logo{position:absolute;left:${PAGE.margin}px;top:${PAGE.margin}px}
@@ -1556,23 +1535,19 @@ async function renderSlideFragments(scenes, meta, baseDir, opts = {}) {
   const imageRoots = [baseDir, ...(opts.imageRoots ?? [])];
   const ctx = { baseDir, imageRoots, mermaid, remote, icons, math };
   const footerText = meta.footer ?? meta.title ?? '';
-  // resolved ONCE per deck, not per slide: reading the licence is cheap, but the
-  // mention must be identical on all the slides of one compilation — a licence
-  // expiring mid-render would otherwise brand half the deck
-  const brand = brandMention(opts);
 
   const slides = scenes.map((scene, k) => {
     let body;
     let masterCls;
     if (scene.master === 'cover') {
       masterCls = 'master-cover';
-      body = coverHtml(scene, brand);
+      body = coverHtml(scene);
     } else if (scene.master === 'section') {
       masterCls = 'master-section';
-      body = sectionHtml(scene, brand, ctx);
+      body = sectionHtml(scene, ctx);
     } else {
       masterCls = scene.master === 'hero' ? 'master-hero' : 'master-content';
-      body = contentHtml(scene, k + 1, footerText, ctx, brand);
+      body = contentHtml(scene, k + 1, footerText, ctx);
     }
     const notes = scene.notes?.length
       ? `<details class="notes"><summary>${esc(i18n.t('viewer.notes'))}</summary><p>${scene.notes.map(esc).join('</p><p>')}</p></details>`

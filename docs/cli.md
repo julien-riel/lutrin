@@ -16,9 +16,6 @@ npx lutrin vendor <deck.md>                    # freezes the deck's external dep
 npx lutrin capabilities [<deck.md>] [--kit <ref>]   # layouts, directives… as JSON
 npx lutrin config [--kit <ref>|--unset]        # user default kit (see docs/kits.md)
 npx lutrin kit <install|list|remove|create|import|edit> …   # see docs/kits.md
-npx lutrin license activate <key>              # claims a seat; removes the attribution
-npx lutrin license status [--json]             # state of the licence on this machine
-npx lutrin license deactivate                  # frees the seat for another machine
 npx lutrin setup-mermaid [--yes]               # downloads a Chromium for diagrams/PDF
 ```
 
@@ -102,25 +99,3 @@ frontmatter) that does not resolve is an error, and therefore blocks `build`.
 A kit coming from an **implicit** default — project, user, editor host —
 and not found returns only a warning: a stale user default must not block
 the compilation of a project that asked for nothing.
-
-## `license`
-
-**Activate once, then compile offline.** The activation is the only step that
-needs the network: the state is cached in `~/.config/lutrin/license.json`
-(mode 0600, beside `config.json`) and no compilation ever waits on Polar.
-Lutrin re-checks with Polar at most once a week, *after* a deck has been
-written, and a licence keeps working for **30 days** without a successful
-check — a plane, a VPN or a Polar outage never brings the attribution back.
-Past those 30 days, `lutrin license status` while online is what restores it.
-
-The record is sealed against the machine it was activated on: copying
-`license.json` to another machine does not license that machine, it just makes
-the file be ignored. Run `activate` on each of your machines instead — it costs
-nothing.
-
-**A seat is a person, not a machine**, and the count is *declarative*: nothing
-in the tool counts your colleagues. You buy a tier and invite people by email;
-Polar grants the benefit to each member individually, so everyone receives
-**their own licence key**, usable on **as many machines as they work on** —
-laptop, desktop, the build server, a CI runner. Tiers and prices:
-[info.lutrin.app/pricing.html](https://info.lutrin.app/pricing.html).

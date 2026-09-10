@@ -1,32 +1,25 @@
 /**
- * The site's instrumentation — the tag, the ids, and the UTM on the checkout
- * links.
+ * The site's instrumentation — the tag and the ids.
  *
- * `site/README.md` was the only thing holding this together, in a sentence:
- * *"When adding a checkout link, give it a UTM."* A sentence fails silently,
- * and every failure below is invisible from a dashboard — which is the whole
- * problem, because no visitors and no tracker look exactly alike from there.
+ * Every failure below is invisible from a dashboard, which is the whole
+ * problem: no visitors and no tracker look exactly alike from there.
  *
- *   1. A CHECKOUT LINK WITH NO UTM. It converts, Polar records the order, and
- *      this site's report files the click under direct traffic —
- *      indistinguishable from the two other links pointing at the same
- *      product. Knowing WHICH ONE persuades is the entire reason the
- *      parameters are on the link.
- *   2. A PLACEMENT INVENTED ON THE SPOT. `utm_medium=pricing_table` instead of
- *      `pricing-table` does not fail anywhere: it opens a second row in the
- *      report, splits the count between them, and both look small.
- *   3. A PAGE THAT SHIPS BLIND. A page added without the tag records nothing
+ *   1. A PAGE THAT SHIPS BLIND. A page added without the tag records nothing
  *      at all, and a page recording nothing reads exactly like a page nobody
  *      visits. The pages that legitimately carry no tracker are therefore an
  *      explicit list here, so the absence is a decision on the record.
- *   4. A SITEMAP THAT FELL BEHIND. The set of pages worth measuring and the
+ *   2. A SITEMAP THAT FELL BEHIND. The set of pages worth measuring and the
  *      set worth indexing are the same set, and they drifted apart the moment
  *      one of them was maintained by hand alone.
  *
- * The placement and tier lists are READ OUT OF `site/README.md` rather than
- * copied here. A second list is a list that drifts, and this way the file that
- * documents a placement is the file that authorizes it: add the row there
- * first, and this test is what makes that order the cheap one.
+ * The site id and the domain are READ OUT OF `site/README.md` rather than
+ * copied here: a second copy is a copy that drifts, and this way the file that
+ * documents the tag is the file that authorizes it.
+ *
+ * This file used to guard a third thing — the UTM parameters on the checkout
+ * links that sold a licence. There is no paid tier and no checkout any more,
+ * so those checks went with them rather than being kept alive over an empty
+ * set.
  */
 
 import { test } from 'node:test';
@@ -59,40 +52,6 @@ const UNTRACKED = new Map([
   ],
 ]);
 
-/**
- * The body of a `###` section of `site/README.md`, up to the next heading of
- * that level.
- *
- * Not a convenience: the file carries TWO `utm_medium` tables — one for the
- * links going OUT to Polar, one for the announcements coming IN — and only the
- * first authorizes a checkout placement. Reading the whole file would quietly
- * admit `hn-comment` as a placement.
- */
-function section(title) {
-  const from = README.indexOf(`### ${title}`);
-  assert.notEqual(
-    from,
-    -1,
-    `site/README.md no longer has a "### ${title}" section — this test reads its lists from it`,
-  );
-  const rest = README.slice(from + 4);
-  const to = rest.indexOf('\n### ');
-  return to === -1 ? rest : rest.slice(0, to);
-}
-
-const OUTGOING = section('UTM going out — the checkout links');
-
-/** `| \`card\` | a tier card on the landing page |` → `card` */
-const PLACEMENTS = [...OUTGOING.matchAll(/^\|\s*`([a-z][a-z-]*)`\s*\|/gm)].map((m) => m[1]);
-
-/** "`utm_campaign` is the tier: `solo`, `team`, …" — one sentence, wrapped
- *  across lines by the formatter, hence the lazy scan up to the full stop. */
-const TIERS = (() => {
-  const m = /`utm_campaign` is the tier:([\s\S]*?)\./.exec(OUTGOING);
-  assert.ok(m, 'site/README.md no longer names the tiers — this test reads them from it');
-  return [...m[1].matchAll(/`([a-z][a-z-]*)`/g)].map((x) => x[1]);
-})();
-
 /** The tag as `site/README.md` publishes it: the id and the domain come from
  *  the document, so the document and the pages cannot disagree. */
 const TAG = (() => {
@@ -111,21 +70,13 @@ const PAGES = fs
 const TRACKED = PAGES.filter((f) => !UNTRACKED.has(f));
 
 // ---------------------------------------------------------------------------
-// 0. the lists this file reads really were read
+// 0. the pages this file reads really were read
 // ---------------------------------------------------------------------------
 
-test('the placement and tier lists come out of site/README.md, and are not empty', () => {
-  // A parse that silently returned nothing would make every check below pass
+test('there really are pages under site/ to hold to the rules below', () => {
+  // A glob that silently returned nothing would make every check below pass
   // over an empty set — a green suite guarding nothing, which is the exact
   // shape of the failure this file was written against.
-  assert.ok(
-    PLACEMENTS.length >= 2,
-    `only ${PLACEMENTS.length} placement(s) parsed out of site/README.md — the table's shape changed`,
-  );
-  assert.ok(
-    TIERS.length >= 2,
-    `only ${TIERS.length} tier(s) parsed out of site/README.md — the sentence's shape changed`,
-  );
   assert.ok(
     TRACKED.length > 0,
     'no page found under site/ — this whole file would pass on nothing',
@@ -133,43 +84,7 @@ test('the placement and tier lists come out of site/README.md, and are not empty
 });
 
 // ---------------------------------------------------------------------------
-// 1. the UTM going out
-// ---------------------------------------------------------------------------
-
-test('every checkout link carries a UTM, and one site/README.md authorizes', () => {
-  const faults = [];
-  let seen = 0;
-  for (const page of PAGES) {
-    const html = fs.readFileSync(path.join(SITE, page), 'utf8');
-    for (const [, raw] of html.matchAll(/href="(https:\/\/buy\.polar\.sh\/[^"]*)"/g)) {
-      seen++;
-      // an href is HTML: the separators are written `&amp;`
-      const url = new URL(raw.replaceAll('&amp;', '&'));
-      const q = url.searchParams;
-      const where = `${page}: …${url.pathname.slice(-12)}`;
-      const got = (k) => q.get(k) ?? 'absent';
-      if (q.get('utm_source') !== 'site')
-        faults.push(`${where} — utm_source is "${got('utm_source')}", expected "site"`);
-      if (!PLACEMENTS.includes(q.get('utm_medium')))
-        faults.push(
-          `${where} — utm_medium "${got('utm_medium')}" is no placement of site/README.md (${PLACEMENTS.join(', ')})`,
-        );
-      if (!TIERS.includes(q.get('utm_campaign')))
-        faults.push(
-          `${where} — utm_campaign "${got('utm_campaign')}" is no tier of site/README.md (${TIERS.join(', ')})`,
-        );
-    }
-  }
-  assert.deepEqual(
-    faults,
-    [],
-    'checkout links the report cannot tell apart — add the row to site/README.md first, then the link',
-  );
-  assert.ok(seen > 0, 'no buy.polar.sh link found under site/ — this check would pass on nothing');
-});
-
-// ---------------------------------------------------------------------------
-// 2. the tag itself
+// 1. the tag itself
 // ---------------------------------------------------------------------------
 
 test('every page carries the tracker, with the site id and the domain of site/README.md', () => {
@@ -211,7 +126,7 @@ test('a page carrying no tracker is a decision on the record', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. the same set of pages, indexed
+// 2. the same set of pages, indexed
 // ---------------------------------------------------------------------------
 
 test('the sitemap lists exactly the pages that are instrumented', () => {

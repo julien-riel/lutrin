@@ -948,11 +948,10 @@ h3 {
 }
 
 /* --------------------------------------------------------------- privacy */
-/* A washed band between "three doors" and "the price". It carries a background
-   of its own on purpose: the promise about where a deck goes is the last thing
-   read before the price, and a reader has to see it is a statement and not a
-   footnote to the section above. Same band as .cost and .refuse — the page has
-   two grounds, not five. */
+/* A washed band between "three doors" and the section on money. It carries a
+   background of its own on purpose: the promise about where a deck goes has to
+   read as a statement and not as a footnote to the section above. Same band as
+   .cost and .refuse — the page has two grounds, not five. */
 .privacy {
   background: var(--wash);
   border-top: 1px solid var(--line);
@@ -962,133 +961,27 @@ h3 {
   margin-bottom: 0;
 }
 
-/* --------------------------------------------------------------- pricing */
+/* ------------------------------------------------------------------ free */
 /* The washed privacy band above and the plain "what it will refuse" below: the
-   rule on top is what keeps "your words" and "the price" from running into each
-   other where the two grounds meet. The tier cards reuse .grid3/.panel, and the
-   buttons .refuse-ctas — a price list is not a reason to invent a third card
-   shape. */
-.pricing {
+   rule on top is what keeps "your words" and the answer about money from
+   running into each other where the two grounds meet. There used to be tier
+   cards here; what is left is prose, the proof strip and the FAQ. */
+.free {
   border-top: 1px solid var(--line);
   padding: clamp(3.5rem, 8vw, 6.5rem) 0;
 }
-.pricing .aside {
-  margin-bottom: 2.6rem;
-}
-/* The figure carries the tier; the unit is deliberately small and never a
-   per-person rate — "$449 for ten" reads as a budget, "$45 each" reopens the
-   negotiation one person at a time. */
-.price {
-  font-size: clamp(1.9rem, 3.2vw, 2.4rem);
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 0.6rem 0 0.8rem;
-}
-.price span {
-  font-size: 0.9rem;
-  font-weight: 400;
-  color: var(--muted-strong);
-  white-space: nowrap;
-}
-/* One tier is the recommendation, not three equal options. It is SOLO, and
-   deliberately not the most expensive one the page can plausibly push: a first
-   visit that lands on a $449 button abandons the cart, and the Solo customer
-   who comes back for a team in six months is worth more than that cart was. */
-.panel-featured {
-  border-top-color: var(--accent);
-}
-/* Sits ABOVE the tier name — the recommendation has to be readable before the
-   price is, or it is just decoration on a card already read. */
-.tier-flag {
-  font-family: var(--f-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin: 0 0 0.35rem;
-}
-.panel-cta {
-  margin-top: 1rem;
-  font-weight: 500;
-}
-/* The card that is a conversation still lets whoever is already decided pay by
-   card — quieter than the mail link, and never instead of it. */
-.cta-second {
-  display: block;
-  margin-top: 0.35rem;
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: var(--muted-strong);
-}
-.tier-more {
-  margin: 2rem 0 0;
-  font-size: 0.95rem;
-  color: var(--muted-strong);
-}
 
-/* ----------------------------------------------------- the full price list */
-/* A five-row table rather than five more cards: the reason to leave the
-   landing page is to compare, and comparison is what a table is for. */
+/* ------------------------------------------------------------ wide tables */
+/* The comparison pages carry tables wider than a phone. The page itself must
+   never scroll sideways — only this box does. */
 .table-scroll {
   overflow-x: auto;
   margin-top: 2.5rem;
-  /* the page itself must never scroll sideways — only this box does */
   max-width: 100%;
 }
-.price-table {
-  border-collapse: collapse;
-  width: 100%;
-  min-width: 40rem;
-  font-size: 0.96rem;
-}
-.price-table caption {
-  caption-side: bottom;
-  text-align: left;
-  padding-top: 0.9rem;
-  font-size: 0.85rem;
-  color: var(--muted-strong);
-}
-.price-table th,
-.price-table td {
-  text-align: left;
-  padding: 0.85rem 1rem 0.85rem 0;
-  border-bottom: 1px solid var(--line);
-  vertical-align: top;
-}
-.price-table thead th {
-  font-family: var(--f-mono);
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted-strong);
-  border-bottom-color: var(--ink);
-}
-.price-table tbody th {
-  font-weight: 600;
-  white-space: nowrap;
-}
-/* Tabular figures so the money column reads as a column and not as five
-   unrelated strings — the same reason the engine gives a right-aligned table
-   column its tabular numerals. */
-.price-table .num {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.price-table .is-recommended {
-  background: var(--wash);
-}
-.row-flag {
-  display: block;
-  font-family: var(--f-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-weight: 400;
-  color: var(--accent);
-  white-space: normal;
-}
-/* Visible to a screen reader, to nothing else: the buy column's header has no
-   word worth showing, and an empty <th> is a hole in the table's structure. */
+
+/* Visible to a screen reader, to nothing else: a header cell with no word worth
+   showing, where an empty <th> would be a hole in the table's structure. */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1240,8 +1133,8 @@ h3 {
   margin-bottom: 0.85rem;
   max-width: 70ch;
 }
-/* Same shape as the price table: a comparison is a table, and inventing a
-   second table style for it would only make the site look bigger. */
+/* One table style for the whole site: inventing a second would only make the
+   site look bigger than it is. */
 .cmp-table {
   border-collapse: collapse;
   width: 100%;

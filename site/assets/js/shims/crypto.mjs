@@ -8,15 +8,14 @@
  * throwing stub turns any deck containing a ```mermaid block into an uncaught
  * exception out of `compileHtml`. Hence a real SHA-1 here.
  *
- * SHA-256 is implemented alongside it because the licence store hashes with it,
- * and a shim that is right for one algorithm and wrong for the other is worse
- * than one that is right for both. Both are verified against the standard
- * "abc" test vectors by `packages/core/test/playground.test.mjs`.
+ * SHA-256 is implemented alongside it because `kit/archive.mjs` digests a
+ * `.deckkit` with it, and a shim that is right for one algorithm and wrong for
+ * the other is worse than one that is right for both. Both are verified against
+ * the standard "abc" test vectors by `packages/core/test/playground.test.mjs`.
  *
- * `createHmac` and `timingSafeEqual` are NOT implemented. They are reached only
- * when a licence record exists on disk, which cannot happen here — and a
- * hand-rolled constant-time comparison in a page is a worse idea than a clear
- * error nobody will ever see.
+ * `createHmac` and `timingSafeEqual` are NOT implemented: nothing the playground
+ * can reach calls them, and a hand-rolled constant-time comparison in a page is
+ * a worse idea than a clear error nobody will ever see.
  */
 
 const enc = new TextEncoder();

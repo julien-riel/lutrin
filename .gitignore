@@ -45,9 +45,8 @@ site/gallery/
 # internal review report — do not publish
 REVUE-*.md
 
-# Polar administration credentials — LOCAL ONLY. The shipped CLI needs no secret
-# (it talks to the customer-portal endpoints, authenticated by the licence key
-# itself); this token is for provisioning products and discounts from here.
+# local environment — never versioned. Nothing shipped needs a secret; this is
+# for whatever a maintainer's own machine happens to hold.
 .env
 .env.*
-!.env.example
+

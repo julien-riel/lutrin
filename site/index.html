@@ -43,7 +43,7 @@
     <a href="#file">The whole file</a>
     <a href="#slides">Slides</a>
     <a href="#where">Where it runs</a>
-    <a href="#pricing">Pricing</a>
+    <a href="#free">The price</a>
     <a href="gallery.html">Kits</a>
     <a href="kit-editor.html">Kit editor</a>
     <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Docs</a>
@@ -357,15 +357,15 @@ target: 165
 </section>
 
 <!-- ============================================================= privacy -->
-<!-- Placed immediately before the price, and deliberately: the deck somebody
-     is about to compile is the reorganisation, the quarterly numbers or the
-     client that is leaving, and "where does this text go?" is the objection
-     that stops an evaluation dead. It is answered here with what is verifiable
-     in this repository — the playground is the compiler running in the reader's
-     own browser (site/playground.html, an import map over packages/core), and
-     licence/index.mjs states the compilation path never touches the network.
-     The last paragraph names what IS counted, because a privacy promise that
-     admits nothing is the kind nobody believes. -->
+<!-- Placed immediately before the section on money, and deliberately: the deck
+     somebody is about to compile is the reorganisation, the quarterly numbers
+     or the client that is leaving, and "where does this text go?" is the
+     objection that stops an evaluation dead. It is answered here with what is
+     verifiable in this repository — the playground is the compiler running in
+     the reader's own browser (site/playground.html, an import map over
+     packages/core), and the CLI reaches the network for nothing but the assets
+     a deck itself asks for. The last paragraph names what IS counted, because a
+     privacy promise that admits nothing is the kind nobody believes. -->
 <section class="privacy" id="privacy">
   <div class="wrap">
     <p class="eyebrow">your words</p>
@@ -384,63 +384,31 @@ target: 165
     <p class="lead">What this site does count, so that you can weigh it: page
       views without cookies, and the fact that somebody started typing in the
       playground — a yes or a no, never a character of what was typed.
-      Activating a licence sends the key and a name for the machine, and
-      nothing else. All of it is in the open:
+      That is the whole list. All of it is in the open:
       <a href="https://github.com/julien-riel/lutrin">read the code</a>, or
       cut the network and watch the compiler carry on.</p>
   </div>
 </section>
 
-<!-- ============================================================= pricing -->
-<section class="pricing" id="pricing">
+<!-- ================================================================ free -->
+<!-- This section used to sell a seat that removed a "Made with Lutrin" line
+     from every slide. The line is gone from the engine and so is the tier: a
+     reader arriving here now needs the question answered, not deflected, so
+     the section stays where the price used to be and says plainly that there
+     is nothing to buy. The proof strip below is what a paid page had to argue
+     for and a free one can simply show. -->
+<section class="free" id="free">
   <div class="wrap">
     <p class="eyebrow">the price</p>
-    <h2>Free to use. Paid to go&nbsp;unsigned.</h2>
-    <p class="lead">Everything works without a licence — every layout, every
-      kit, every export. A deck compiled without one carries a discreet
-      <em>Made with Lutrin</em> at the bottom right of each slide. A licence
-      removes it. That is the entire difference: no watermark, no slide cap, no
-      feature held back.</p>
-    <!-- Three cards, and one conversation. Solo is the marked recommendation
-         and the closing CTA below: sending a first-time, anonymous visitor to
-         the second most expensive plan is how a cart is abandoned, and a Solo
-         customer who brings their team six months later is worth more than
-         that. The two remaining options — Studio, and the lifetime licence —
-         are on pricing.html rather than buried in the paragraph they used to
-         live in: a buyer who has to read prose to discover a lifetime option
-         does not buy, they postpone. -->
-    <div class="grid3">
-      <article class="panel panel-featured reveal">
-        <p class="tier-flag">where most people start</p>
-        <h3>Solo</h3>
-        <p class="price">$59<span> USD / year</span></p>
-        <p>One person. Every machine you work on.</p>
-        <p class="panel-cta"><a href="https://buy.polar.sh/polar_cl_iejyJbWg2Lfbyp8iPgcG9lj1y85LOqnUZmebJ0OkEcV?utm_source=site&amp;utm_medium=card&amp;utm_campaign=solo">Buy Solo →</a></p>
-      </article>
-      <article class="panel reveal">
-        <h3>Team</h3>
-        <p class="price">$449<span> USD / year</span></p>
-        <p>Up to ten people, one organisation.</p>
-        <p class="panel-cta"><a href="https://buy.polar.sh/polar_cl_XgFavyTBtWMJFMOgpLU5Dx8oL1fHSBLFho0YH1MuC0T?utm_source=site&amp;utm_medium=card&amp;utm_campaign=team">Buy Team →</a></p>
-      </article>
-      <article class="panel reveal">
-        <h3>Organisation</h3>
-        <p class="price">$2,990<span> USD / year</span></p>
-        <p>One legal entity, unlimited people.</p>
-        <p class="panel-cta"><a href="mailto:contact@lutrin.app?subject=Lutrin%20Organisation%20licence">Contact us →</a>
-          <a class="cta-second" href="https://buy.polar.sh/polar_cl_hsMt5mxtEmNoCgGMGCOdZyS2ne33ryyuVY6w50VktGC?utm_source=site&amp;utm_medium=card-secondary&amp;utm_campaign=organisation">or buy it by card</a></p>
-      </article>
-    </div>
-    <p class="tier-more">Thirty people rather than ten, or a licence bought once
-      rather than every year? <a href="pricing.html">The full price list</a> has
-      all five options side by side, in USD and in CAD.</p>
-
-    <p class="aside">A seat is a <strong>person</strong>, not a machine: install
-      Lutrin on your laptop, your desktop and the build server, they all run on
-      the same key. Buy, invite people by email, and Polar does the rest — it
-      issues the keys, hosts the customer portal and emails everyone their link.
-      Activate once, then compile offline: a licence keeps working for 30 days
-      without reaching the network, and forever without leaving your machine.</p>
+    <h2>There isn&rsquo;t&nbsp;one.</h2>
+    <p class="lead">Lutrin is MIT, free, and free in the way that needs no
+      footnote: no watermark on your slides, no slide cap, no export limit, no
+      feature held back for a paid tier and no account to create. Every layout,
+      every chart, every kit and both export formats are what you get on the
+      first run.</p>
+    <p class="lead">What you compile carries your organization&rsquo;s brand and
+      nothing of ours. Install a kit, build the deck, hand it to the client —
+      there is no line in the corner announcing the tool it came out of.</p>
 
     <!-- ------------------------------------------------------------ proof -->
     <!-- Counters, not claims. Each one is fetched live from npm and from
@@ -451,8 +419,9 @@ target: 165
          out. It ships the day two or three people with a REAL name, a REAL
          role and a REAL organisation have each cleared their own quote — and
          not one day earlier. Nothing plausible-sounding goes in it, and no
-         "a consultant at a large organisation" either: an invented quote on a
-         page asking for $449 is fraud, and it is the kind that gets noticed. -->
+         "a consultant at a large organisation" either: an invented quote is a
+         fabrication whether or not money changes hands, and it is the kind
+         that gets noticed. -->
     <div class="proof">
       <p class="proof-lead">What can be checked, at the source, right now:</p>
       <p class="proof-badges">
@@ -478,104 +447,37 @@ target: 165
     </div>
 
     <!-- -------------------------------------------------------------- faq -->
-    <!-- Eight questions, no JavaScript: <details> is the whole mechanism.
-         Every answer below is traceable — to a line of the compiler, or to
-         Polar, which is named as such where the code cannot answer. Nothing
-         here is a promise the engine does not already keep. -->
+    <!-- No JavaScript: <details> is the whole mechanism. Every answer below is
+         traceable to a line of the compiler. Nothing here is a promise the
+         engine does not already keep. -->
     <div class="faq">
-      <h3 class="faq-title">Before you buy</h3>
-
-      <details>
-        <summary>If my licence lapses, do the decks I already shipped change?</summary>
-        <p>No. The attribution is decided once, while the deck is being
-          compiled, and written into the file itself; nothing ever reopens a
-          <code>.pptx</code> you have already exported. A deck built while
-          licensed stays clean forever, whatever happens afterwards. The reverse
-          holds too: buying a licence does not clean up old files — you rebuild
-          them.</p>
-      </details>
-
-      <details>
-        <summary>What does a licence actually remove?</summary>
-        <p>One line of text, and nothing else. Every layout, every chart, every
-          kit and both export formats are there either way; there is no slide
-          cap, no export limit and no feature behind the licence. The compiler
-          asks the licence exactly one question — whether to paint the
-          attribution — and it asks it in the editor previews too, so what you
-          look at while writing is what you will hand over.</p>
-      </details>
-
-      <details>
-        <summary>How many machines can I install on?</summary>
-        <p>A seat is a <strong>person</strong>; the machine count is a property
-          of the key, and the keys sold today set no limit. Your laptop, your
-          desktop and a build server all run on the same one. If a key ever does
-          carry a limit, <code>lutrin license status</code> prints it, and
-          re-activating on a machine that already holds an activation releases
-          the old one first — a reinstall never costs you a second.</p>
-      </details>
-
-      <details>
-        <summary>What if I am offline, or on a plane?</summary>
-        <p>You compile. Reading the licence is a read of one small local file —
-          there is deliberately no network on the compilation path, so a build
-          never waits on anything and never fails because the connection is
-          down. A licence keeps applying for <strong>30 days</strong> without a
-          successful check; past that, run <code>lutrin license status</code>
-          once while online and the clock resets. Only the very first activation
-          truly needs the network.</p>
-      </details>
-
-      <details>
-        <summary>Can I move my licence to a new machine?</summary>
-        <p>Yes. <code>lutrin license deactivate</code> on the old one frees it,
-          <code>lutrin license activate &lt;key&gt;</code> on the new one takes
-          it. If the old machine is gone or offline, activate on the new one
-          anyway and free the stale activation from the Polar customer portal.
-          Copying the licence file across by hand is the one thing that does not
-          work: it is sealed to the account and machine it was activated on, and
-          a copied file is ignored rather than honoured.</p>
-      </details>
+      <h3 class="faq-title">The questions that remain</h3>
 
       <details>
         <summary>Does anything about my deck leave my machine?</summary>
-        <p>Nothing. There is no telemetry in Lutrin. The only network a build
-          makes is for content your own deck asks for — an image you referenced
-          by URL, an icon not yet in the local cache. Separately, and at most
-          once a week, the CLI checks your licence with Polar <em>after</em> the
-          deck has been written; that request carries your key, an activation id
-          and the organisation id. No file names, no deck content, no counts.</p>
+        <p>Nothing. There is no telemetry in Lutrin, no account, and nothing to
+          check with anybody: the compilation path does not touch the network at
+          all. The only requests a build makes are for content your own deck
+          asks for — an image you referenced by URL, an icon not yet in the
+          local cache. Cut the connection and it keeps compiling.</p>
       </details>
 
       <details>
         <summary>Can I run it in CI?</summary>
         <p>Yes, and nothing in the tool treats a build server differently from
-          your laptop: <code>lutrin license activate &lt;key&gt;</code>, and it
-          compiles. One practical note for ephemeral runners — a fresh container
-          has no local record to release, so each run takes a new activation.
-          That is harmless on today's keys, which set no activation cap; if you
-          would rather not, cache the config directory between runs and point
-          <code>LUTRIN_CONFIG</code> at it — which works as long as the runner
-          image stays the same one, since the record is sealed to the account
-          and platform that activated it.</p>
+          your laptop. <code>npx lutrin build deck.md</code> in a runner is the
+          same command with the same result. Install your kit in the image, or
+          point <code>--kit</code> at a directory in the repository, and the
+          decks come out branded.</p>
       </details>
 
       <details>
-        <summary>Invoices, taxes, refunds, cancelling — how is that handled?</summary>
-        <p>Through <a href="https://polar.sh">Polar</a>, which sells the licences
-          and is the merchant of record: the receipt, the invoice and the
-          cancellation all live in the customer portal it emails you a link to,
-          and the tax treatment shown at checkout is the one that applies to your
-          country. For anything your finance team needs in a particular form — a
-          purchase order, a framework agreement, an invoice raised before payment
-          — write to <a href="mailto:contact@lutrin.app">contact@lutrin.app</a>
-          and it gets handled by a person.</p>
+        <summary>Can I use it at work, in client deliverables, commercially?</summary>
+        <p>Yes, all three, with nothing to sign. The MIT licence covers the
+          code and the decks are yours outright. The one limit is the name:
+          &ldquo;Lutrin&rdquo; is a trademark, so a fork you redistribute needs
+          a name of its own.</p>
       </details>
-    </div>
-
-    <div class="refuse-ctas">
-      <a class="btn btn-primary" href="https://buy.polar.sh/polar_cl_iejyJbWg2Lfbyp8iPgcG9lj1y85LOqnUZmebJ0OkEcV?utm_source=site&amp;utm_medium=footer-cta&amp;utm_campaign=solo">Buy Solo — $59 a year</a>
-      <a class="btn btn-ghost" href="pricing.html">All five options</a>
     </div>
   </div>
 </section>
@@ -624,20 +526,18 @@ target: 165
       <a href="https://www.npmjs.com/package/@lutrin/core">npm · @lutrin/core</a>
       <a href="https://github.com/julien-riel/lutrin/blob/main/docs/dsl.md">Syntax reference</a>
       <a href="kit-editor.html">The kit editor</a>
-      <a href="pricing.html">Prices, in full</a>
       <a href="#privacy">Where your deck goes</a>
-      <a href="https://github.com/julien-riel/lutrin#licence--the-attribution-and-how-to-remove-it">How licensing works</a>
       <a href="demo.html" target="_blank" rel="noopener">The demo deck</a>
       <a href="demo.pptx" download>The demo .pptx</a>
     </nav>
-    <!-- A way to reach a person. Nobody spends $2,990 by card without first
-         asking about invoicing, a framework agreement or where the kits are
-         hosted, and until this line existed there was nowhere to ask. -->
+    <!-- A way to reach a person. Nobody adopts a tool across an organization
+         without first asking where the kits are hosted or who maintains this,
+         and until this line existed there was nowhere to ask. -->
     <div class="footer-contact">
       <p class="footer-contact-h">Talk to a human</p>
       <p><a href="mailto:contact@lutrin.app">contact@lutrin.app</a></p>
-      <p class="footer-contact-note">Licensing, invoicing, a kit built to your
-        brand guidelines, or a question the docs did not answer.</p>
+      <p class="footer-contact-note">A kit built to your brand guidelines, or a
+        question the docs did not answer.</p>
     </div>
   </div>
   <div class="wrap footer-fine">

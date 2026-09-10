@@ -130,7 +130,7 @@ test('images: one file per slide, at twice the slide size', async (t) => {
 
   // The export reads the PRINT stylesheet, which is what keeps the on-screen
   // chrome out of it: the first version shipped images with "P: presentation
-  // mode · ?: help" sitting over the attribution, because a screenshot is not
+  // mode · ?: help" sitting over the footer band, because a screenshot is not
   // an impression. Asserted through the stylesheet rather than the pixels —
   // comparing images would fail on a font hint.
   assert.ok(html.includes('present-hint'), 'the fixture must really contain the chrome');
