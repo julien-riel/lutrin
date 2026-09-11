@@ -5,6 +5,27 @@ This file covers the VS Code extension; the compiler's own changes are in the
 [repository changelog](https://github.com/julien-riel/lutrin/blob/main/CHANGELOG.md).
 The extension's version tracks the `@lutrin/core` compiler it embeds.
 
+## [2.0.0] — 2026-09-10
+
+The extension itself did not move. The compiler it embeds lost a line and
+gained a cover, and both show up in the preview and in the export.
+
+### Removed
+
+- **The "Made with Lutrin" attribution.** Decks previewed and exported from the
+  extension no longer carry it, and there is no longer a licence to buy that
+  removed it. Lutrin is MIT and free, with nothing held back.
+
+### Added
+
+- **A title slide that can hold a photograph.** `titleLayout:` in the deck's
+  frontmatter takes `image-right`, `image-left` or `image-full`, and
+  `titleImage:` names the picture — a path, a URL or a `kit:<alias>`. The
+  preview shows what the `.pptx` will carry, as it does for everything else.
+- **A kit settles the cover's style** under `chrome.cover` in its `theme.json`:
+  the share of the page the photograph takes, its opacity, how far it is inset
+  from the edges, its corner radius and the veil over it.
+
 ## [1.5.0] — 2026-08-24
 
 The extension is unchanged; one thing looks different in the preview and in

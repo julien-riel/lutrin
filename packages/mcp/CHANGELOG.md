@@ -4,6 +4,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the package applies [semantic versioning](https://semver.org/). The version
 tracks the Lutrin Agent Plugin that pins it.
 
+## [2.0.0] — 2026-09-10
+
+The server is unchanged, and the version tracks the plugin that pins it. What
+moved is the compiler behind it, in two ways an agent driving the tools can
+see.
+
+### Removed
+
+- **The "Made with Lutrin" attribution**, and the seat licence that removed it.
+  A deck built through `build_deck` now comes out unmarked whatever the machine
+  it was built on. `capabilities` no longer publishes the `license` command.
+
+### Added
+
+- **`capabilities` publishes `titleLayouts`**, and the frontmatter keys
+  `titleLayout` and `titleImage` beside them — an agent writing a deck can give
+  its cover a photograph in one half of the page, in the other, or across all
+  of it. The diagnostics `TITLE_LAYOUT_UNKNOWN`, `TITLE_IMAGE_MISSING` and
+  `TITLE_IMAGE_UNUSED` are published with them, and reported by
+  `validate_deck`.
+
 ## [1.5.0] — 2026-08-24
 
 The server is unchanged, and the version tracks the plugin that pins it. What

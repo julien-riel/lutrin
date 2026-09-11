@@ -7,7 +7,7 @@ The packages in this repository carry their own version numbers: `@lutrin/core`
 carries the compiler's version, `lutrin-vscode` that of the editor host. Unless
 stated otherwise, an entry describes the compiler.
 
-## [Unreleased]
+## [2.0.0] — 2026-09-10
 
 Lutrin no longer has a paid tier. The discreet "Made with Lutrin" that every
 deck compiled without a licence carried at the bottom right of each slide is
@@ -15,9 +15,9 @@ gone from both renderers, and the seat licence that existed to remove it is
 gone with it. There is nothing left to buy: the project is MIT, free, and free
 without a footnote.
 
-This is a **breaking change to the CLI** — `lutrin license` no longer exists —
-and it changes what every unlicensed build produces, which until now was every
-build on a machine that had not activated a key.
+MAJOR, and the CLI is why: `lutrin license` no longer exists. It also changes
+what every unlicensed build produces, which until now was every build on a
+machine that had not activated a key.
 
 The release also gives the cover a say in how it looks. `titleLayout:` and
 `titleImage:` put a photograph on the title slide, in one half of the page or
