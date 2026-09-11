@@ -17,6 +17,15 @@ no compiler logic lives here.
 | `validate_deck` | Positioned JSON diagnostics for a deck (the `--json` deck doctor). A deck full of errors is a normal result — check `valid`. |
 | `build_deck` | Compile to `.pptx` or `.html` and write the file. Validates first: a deck in error is not written unless `force`. |
 | `suggest_layout` | Per-slide inferred layouts plus structured-intent suggestions (SWOT, before/after, dated milestones…). Read-only. |
+| `dsl_reference` | The one-screen primer of the deck syntax — the same text the server sends as `instructions`. |
+
+The server's `instructions` (sent at `initialize`) carry a short primer of the
+Lutrin DSL: how `#` and `##` split a deck, the `:::` components, the visual
+fences, the layout names, the validate → build loop. A client that surfaces
+instructions hands it to its model before any tool call — that is what keeps an
+agent from writing plain Markdown and getting one slide per `##`. It is capped
+at 3 600 characters (`src/primer.mjs`); the full reference stays in
+[`docs/dsl.md`](../../docs/dsl.md).
 
 Each tool accepts a deck **inline** (`deck`) or by **path** (`path`), with
 optional `baseDir` and `kit`. Errors are structured results, never a transport

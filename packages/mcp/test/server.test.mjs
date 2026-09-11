@@ -49,10 +49,10 @@ after(() => {
   if (outDir) fs.rmSync(outDir, { recursive: true, force: true });
 });
 
-test('the server advertises the three deck tools', async () => {
+test('the server advertises the three deck tools and the primer', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['build_deck', 'suggest_layout', 'validate_deck']);
+  assert.deepEqual(names, ['build_deck', 'dsl_reference', 'suggest_layout', 'validate_deck']);
   // the input schema is exposed so a client can form calls
   const build = tools.find((t) => t.name === 'build_deck');
   assert.ok(build.inputSchema, 'build_deck must publish an input schema');

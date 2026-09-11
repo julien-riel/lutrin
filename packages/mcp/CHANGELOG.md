@@ -4,6 +4,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the package applies [semantic versioning](https://semver.org/). The version
 tracks the Lutrin Agent Plugin that pins it.
 
+## [Unreleased]
+
+### Added
+
+- **The server teaches the DSL before a slide is written.** The `initialize`
+  handshake now carries `instructions`: a one-screen primer of the deck
+  syntax — `#` splits slides and `##` is a column, the `:::` components, the
+  visual fences, the layout names, the validate → build loop. A client that
+  surfaces server instructions (Claude Code, Claude Desktop) puts it in its
+  model's context, so an agent that only knew Markdown stops handing the
+  compiler one slide per `##` and a table where a `:::progress` was due. The
+  primer is capped at 3 600 characters, and a test checks every layout,
+  directive, fence, comment and chart type it names against `capabilities()`,
+  so it cannot drift from the engine.
+- **`dsl_reference`**, a fourth tool returning that same primer — for a client
+  that ignores server instructions, or a session whose context was summarized
+  past them.
+
 ## [2.0.0] — 2026-09-10
 
 The server is unchanged, and the version tracks the plugin that pins it. What

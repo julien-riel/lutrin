@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { UsageError, buildDeckTool, suggestLayoutTool, validateDeckTool } from './adapter.mjs';
+import { DSL_PRIMER } from './primer.mjs';
 
 /** The server version tracks the package: the same version the plugin's
  *  mcp.json pins, so `npx @lutrin/mcp@<v>` and the reported version agree. */
@@ -72,7 +73,14 @@ async function runTool(fn) {
 /** Build a configured McpServer with every tool registered. Exported so tests
  *  can drive it over an in-memory transport, exactly as a real client would. */
 export function createServer() {
-  const server = new McpServer({ name: 'lutrin', version: pkg.version });
+  // The primer rides on `instructions`: the one field a client hands its
+  // model at initialization, before any tool is called. That is where an
+  // agent learns the deck is a DSL and not free Markdown — a deck written
+  // without it validates, builds, and comes out as one slide per `##`.
+  const server = new McpServer(
+    { name: 'lutrin', version: pkg.version },
+    { instructions: DSL_PRIMER },
+  );
 
   server.registerTool(
     'validate_deck',
@@ -121,6 +129,20 @@ export function createServer() {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     (args) => runTool(() => suggestLayoutTool(args)),
+  );
+
+  // The same primer as a tool, for a client that does not surface server
+  // instructions (or a session whose context was summarized past them).
+  server.registerTool(
+    'dsl_reference',
+    {
+      title: 'Lutrin DSL primer',
+      description:
+        'Return the one-screen primer of the Lutrin deck syntax (slide splitting, components, visuals, layouts). Call it before writing a deck if the server instructions are not in your context.',
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    () => ({ content: [{ type: 'text', text: DSL_PRIMER }] }),
   );
 
   return server;
