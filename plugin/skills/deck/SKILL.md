@@ -195,6 +195,16 @@ reads as `image-right`; naming a layout and no image falls back to the plain
 cover and warns (`TITLE_IMAGE_MISSING`). These two are the only way to reach
 the generated cover, which no `<!-- layout: -->` can address.
 
+A kit settles the cover's style once for all its decks, under `chrome.cover` in
+its `theme.json`: `splitRatio` (0.2–0.8, the share of the page the photograph
+takes), `imageOpacity` (0–1, the photograph's own opacity, on every layout that
+places one), `scrimAlpha` (0–1, the veil painted over it, on `image-full` only),
+`imageInset` (px pulled back from the edges of its band — above 0 the picture
+becomes a panel rather than a bleed) and `imageRadius` (px, the panel's corner
+radius, which only shows alongside an inset). The three fractions are fractions
+of 1, never percentages — `imageOpacity: 40` is refused with a
+`THEME_BAD_VALUE` rather than clamped in silence.
+
 `footer: ""` empties the footer band. The fallback on `title:` applies to an
 ABSENT key, so the two quotes are what distinguishes "no footer" from "the
 default footer" — written bare, `footer:` is not read at all.

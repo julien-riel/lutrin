@@ -1,0 +1,11 @@
+{
+  "chrome": {
+    "cover": {
+      "splitRatio": 0.45,
+      "imageInset": 40,
+      "imageRadius": 24,
+      "imageOpacity": 0.9,
+      "scrimAlpha": 0.55
+    }
+  }
+}

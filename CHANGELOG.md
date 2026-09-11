@@ -51,11 +51,54 @@ across all of it, on the one slide the deck could not address until now.
   caller's — a narrowed title box passed from the slide is silently ignored —
   and it is declared only for the decks that use it.
 
-  Geometry: `chrome.cover.splitRatio` (0.5) and `chrome.cover.scrimAlpha`
-  (0.45), both theme tokens. The scrim is weaker than a section divider's on
-  purpose; the trade-off is written down in `docs/dsl.md`.
+- **A kit settles the cover's style**, under `chrome.cover` in its
+  `theme.json`, so the look is decided once for every deck it dresses:
+  `splitRatio` (0.2–0.8, the share of the page the photograph takes),
+  `imageOpacity` (0–1, the photograph's own opacity, on every layout that
+  places one), `scrimAlpha` (0–1, the veil painted over it, on `image-full`
+  only), `imageInset` (pixels pulled back from the edges of its band) and
+  `imageRadius` (pixels, that panel's corner radius).
+
+  `imageInset` is what turns a full-bleed photograph into a panel sitting on
+  the cover surface — the other house style, and the reason it is a token
+  rather than a decision. `imageRadius` only shows alongside it: with no inset
+  three of the four corners are off the page.
+
+  The veil now follows the PHOTOGRAPH rather than the page. On an inset
+  `image-full` the two are no longer the same rectangle, and a full-page veil
+  took the margin around the panel pale with it.
+
+  A corner radius reaches the `.pptx` through a new post-pass (`rounded.mjs`).
+  PptxGenJS offers a picture no geometry but a rectangle or an ellipse, so it
+  cannot be asked for at `addImage` time at all — and leaving it out of the
+  `.pptx` was the one alternative this engine will not take, since a kit that
+  rounds its cover must round it in both outputs or the two have drifted. The
+  surgery is one `prstGeom` per picture, found by name; anything unexpected is
+  left alone and reported rather than risking a package PowerPoint calls
+  corrupt.
+
+  `imageOpacity` and `scrimAlpha` are not two spellings of one idea. The scrim
+  is a layer painted on top and exists only where the words sit over the
+  picture; `imageOpacity` fades the picture itself and is the only one that
+  reaches the half-and-half layouts, where there is no veil and nothing else
+  could quiet a photograph that shouts. In the `.pptx` it is written as
+  `alphaModFix`, which is what PowerPoint honours on a picture fill.
+
+  The scrim's 0.6 is weaker than a section divider's 0.85 on purpose, and was
+  chosen on renderings: at 0.45 the title held but the subtitle and byline
+  failed over the dark half of a mountain. The trade-off is written down in
+  `docs/dsl.md`.
 
 ### Fixed
+
+- **A theme fraction written as a percentage is now named.** The sanitizer's
+  only numeric rule was "a finite number, zero or more", which `scrimAlpha: 5`
+  and `imageOpacity: 40` both satisfy — a kit author typing percentages got the
+  value clamped at render time and was told nothing, which is a cover coming
+  out opaque for no visible reason. The four fraction-valued chrome tokens
+  carry their band beside their default now, and an out-of-band value keeps the
+  default under a `THEME_BAD_VALUE` that says which unit was expected.
+  `chrome.section.scrimAlpha` had the same hole and gains the same guard.
 
 - **`titleImage:` aside, an image source is now checked in one place.** The
   three faults a source can carry — an unknown `kit:` alias, a path climbing

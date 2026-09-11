@@ -20,6 +20,8 @@ import {
   CHROME,
   COLORS,
   coverBoxes,
+  coverImageOpacity,
+  roundRectAdj,
   FONTS,
   displayFace,
   LOGOS,
@@ -70,6 +72,7 @@ import { embedAnimations } from './anim.mjs';
 import { embedMorph } from './morph.mjs';
 import { embedVectorImages } from './svg.mjs';
 import { embedEquations } from './equations.mjs';
+import { roundPictures } from './rounded.mjs';
 import { dropDirectoryEntries } from './zip-tidy.mjs';
 import { stampProofingLanguage } from './proofing.mjs';
 import { ZIP_BYTES } from './bytes.mjs';
@@ -1033,7 +1036,17 @@ function addQuote(slide, block, r) {
   }
 }
 
-function addImage(slide, block, r, ctx) {
+/**
+ * `opacity` (0–1) fades the picture into the slide behind it. PptxGenJS spells
+ * it as a TRANSPARENCY in percent and writes `<a:alphaModFix>`, which is the
+ * one PowerPoint honours on a picture fill — so the conversion happens here,
+ * once, rather than at each caller in the units of a library.
+ *
+ * Left off entirely at 1: `transparency: 0` and no key at all produce the same
+ * slide, and the absent key is the one that keeps every deck's package the
+ * bytes it was before this parameter existed.
+ */
+function addImage(slide, block, r, ctx, { opacity = 1, objectName } = {}) {
   const src = /^https?:/.test(block.src)
     ? (ctx.remote.get(block.src) ?? null) // local copy downloaded in the pre-pass
     : resolveLocalImage(ctx.imageRoots, block.src);
@@ -1048,6 +1061,8 @@ function addImage(slide, block, r, ctx) {
       y: px(fit.y),
       w: px(fit.w),
       h: px(fit.h),
+      ...(opacity < 1 ? { transparency: Math.round((1 - opacity) * 100) } : {}),
+      ...(objectName ? { objectName } : {}),
     });
     return;
   }
@@ -1404,6 +1419,10 @@ const titlePlaceholder = (box) => ({
  * full width and therefore keeps the ordinary cover master; only the two
  * half-and-half layouts need one of their own.
  */
+/** The `objectName` the cover photograph is written under, so `rounded.mjs`
+ *  can address that one picture and no other. */
+const COVER_PICTURE = 'Cover image';
+
 const COVER_MASTERS = {
   'image-right': 'DECK_COVER_TEXT_LEFT',
   'image-left': 'DECK_COVER_TEXT_RIGHT',
@@ -1504,18 +1523,28 @@ function renderCover(pptx, scene, ctx) {
   // supposed to sit beside. That is also why the reading order argument below
   // is about the TEXT shapes among themselves.
   if (scene.image && box.image) {
-    addImage(s, scene.image, box.image, ctx);
+    // named so the rounding pass can find this exact picture — see rounded.mjs,
+    // which is the only way a corner radius reaches a .pptx at all
+    addImage(s, scene.image, box.image, ctx, {
+      opacity: coverImageOpacity(),
+      objectName: COVER_PICTURE,
+    });
     if (box.scrim)
-      s.addShape('rect', {
-        x: 0,
-        y: 0,
-        w: px(PAGE.width),
-        h: px(PAGE.height),
+      // over the PHOTOGRAPH, not over the page: on an inset cover the two are
+      // no longer the same rectangle, and a full-page veil would wash the
+      // margin around the panel as well. A shape takes its radius natively —
+      // it is the picture, not this, that needed rounded.mjs.
+      s.addShape(box.image.radius > 0 ? 'roundRect' : 'rect', {
+        x: px(box.image.x),
+        y: px(box.image.y),
+        w: px(box.image.w),
+        h: px(box.image.h),
         fill: {
           color: SURFACE.coverBg,
           transparency: Math.round((1 - c.scrimAlpha) * 100),
         },
         line: { type: 'none' },
+        ...(box.image.radius > 0 ? { rectRadius: px(box.image.radius) } : {}),
         objectName: 'Cover scrim',
       });
   }
@@ -2080,10 +2109,17 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const slideVectors = new Map(); // slide no. (1-based) → [{ name, svg }]
   const slideDiagrams = new Map(); // slide no. (1-based) → [{ name, payload }]
   const slideEquations = new Map(); // slide no. (1-based) → [{ name, omml }]
+  const roundedPictures = new Map(); // slide no. (1-based) → [{ name, adj }]
   scenes.forEach((scene, sceneIdx) => {
     let slide;
-    if (scene.master === 'cover') slide = renderCover(pptx, scene, ctx);
-    else if (scene.master === 'section') slide = renderSection(pptx, scene, ctx);
+    if (scene.master === 'cover') {
+      slide = renderCover(pptx, scene, ctx);
+      // corners are rounded after the package is written: PptxGenJS offers a
+      // picture no geometry but a rectangle or an ellipse (rounded.mjs)
+      const box = coverBoxes(scene.titleLayout);
+      const adj = box.image ? roundRectAdj(box.image.radius ?? 0, box.image.w, box.image.h) : 0;
+      if (scene.image && adj > 0) roundedPictures.set(sceneIdx + 1, [{ name: COVER_PICTURE, adj }]);
+    } else if (scene.master === 'section') slide = renderSection(pptx, scene, ctx);
     else {
       slide = pptx.addSlide({ masterName: 'DECK_CONTENT' });
       // animated slide: log every shape written (chrome included, as null)
@@ -2230,6 +2266,10 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
   const morph = await embedMorph(outPath, chains);
   const anims = await embedAnimations(outPath, slideAnims);
   const vectors = await embedVectorImages(outPath, slideVectors);
+  // before the two shape-replacing passes below, and after the vector twins:
+  // this one edits a picture's geometry in place and wants the picture it was
+  // told about, still a picture and still under its own name
+  const corners = await roundPictures(outPath, roundedPictures);
   // The last two REPLACE shapes: every pass above addresses the slide XML by
   // shape name or by order, and swapping a `<p:pic>` for something else is the
   // one edit that changes what those passes would have found. Equations run
@@ -2269,6 +2309,7 @@ async function renderDeckTo(scenes, meta, baseDir, outPath, tmp, opts = {}) {
       ...morph.warnings,
       ...anims.warnings,
       ...vectors.warnings,
+      ...corners.warnings,
       ...equations.warnings,
       ...smartArt.warnings,
     ],

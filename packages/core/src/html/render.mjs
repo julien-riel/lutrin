@@ -34,6 +34,7 @@ import {
   CHROME,
   COLORS,
   coverBoxes,
+  coverImageOpacity,
   FONTS,
   FONT_FILES,
   DISPLAY_FONT_FILES,
@@ -459,14 +460,19 @@ function htmlQuote(block, r) {
   );
 }
 
-function htmlImage(block, r, ctx, { fullBleed = false } = {}) {
+/** `opacity` (0–1) fades the picture into the slide behind it — the twin of the
+ *  `transparency` the .pptx renderer writes. Emitted only below 1, so an
+ *  ordinary image keeps exactly the markup it had. */
+function htmlImage(block, r, ctx, { fullBleed = false, opacity = 1, radius = 0 } = {}) {
   const file = /^https?:/.test(block.src)
     ? (ctx.remote.get(block.src) ?? null)
     : resolveLocalImage(ctx.imageRoots, block.src);
   const uri = file && fs.existsSync(file) ? fileToDataUri(file) : null;
   if (uri) {
     const cover = fullBleed || block.role === 'background' || block.role === 'cover';
-    return `<img class="el ${cover ? 'img-cover' : 'img-contain'}" style="${at(r, true)}" src="${uri}" alt="${esc(block.alt ?? '')}">`;
+    const fade = opacity < 1 ? `opacity:${opacity};` : '';
+    const round = radius > 0 ? `border-radius:${radius}px;` : '';
+    return `<img class="el ${cover ? 'img-cover' : 'img-contain'}" style="${at(r, true)}${fade}${round}" src="${uri}" alt="${esc(block.alt ?? '')}">`;
   }
   return (
     `<div class="placeholder el" style="${at(r, true)}">` +
@@ -584,8 +590,22 @@ function coverHtml(scene, ctx) {
   // absolutely positioned siblings paint in source order, so a photo written
   // after the words would sit on top of them.
   if (scene.image && box.image) {
-    parts.push(htmlImage(scene.image, box.image, ctx, { fullBleed: true }));
-    if (box.scrim) parts.push('<div class="cover-scrim"></div>');
+    parts.push(
+      htmlImage(scene.image, box.image, ctx, {
+        fullBleed: true,
+        opacity: coverImageOpacity(),
+        radius: box.image.radius ?? 0,
+      }),
+    );
+    // the scrim covers the PHOTOGRAPH, not the page: on an inset cover the two
+    // are no longer the same rectangle, and a full-page veil would wash the
+    // margin around the panel as well
+    if (box.scrim)
+      parts.push(
+        `<div class="cover-scrim" style="${at(box.image, true)}${
+          box.image.radius > 0 ? `border-radius:${box.image.radius}px;` : ''
+        }"></div>`,
+      );
   }
   parts.push(logoHtml(LOGOS.coverSvg, CHROME.cover.logoH, 'logo-cover', box.x));
   parts.push(`<div class="cover-bar"${col ? ` style="left:${box.x}px"` : ''}></div>`);

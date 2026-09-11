@@ -84,7 +84,10 @@
       "bylineH": 32,
       "logoH": 44,
       "splitRatio": 0.5,
-      "scrimAlpha": 0.45
+      "scrimAlpha": 0.6,
+      "imageOpacity": 1,
+      "imageInset": 0,
+      "imageRadius": 0
     },
     "section": {
       "titleY": 288,

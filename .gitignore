@@ -12,7 +12,17 @@ packages/vscode-extension/THIRD-PARTY-NOTICES.md
 *.pptx
 *.html
 *.deckkit
-examples/assets/remote/
+# `assets: vendor` writes the deck's downloaded images HERE, beside the .md, and
+# they are downloads rather than sources. The rule is a GLOB over examples/
+# rather than the one literal path it used to be: a second example directory
+# vendored the same CC BY-SA photographs into its own assets/remote/, escaped
+# the literal path, and would have committed them — which is exactly what
+# THIRD-PARTY-NOTICES.md says this repository does not do.
+examples/**/assets/remote/
+# rendered pages of the example decks (PNG/JPEG, ~3 MB each). The .pptx and the
+# .html beside them are already caught above; without this line only the images
+# would be versioned, which is the confusing half.
+examples/**/out/
 
 # the site's pages are source, not artifacts. A NEGATION PER PAGE was how this
 # was written, and it swallowed the next page silently every time: `git add

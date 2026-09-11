@@ -173,9 +173,42 @@ titleImage: skyline.jpg
 | `image-left` | the mirror — the photo on the left, the text on the right. The logo and the accent bar move with the text |
 | `image-full` | the photo fills the page under a scrim of the cover surface, and the text keeps the full width |
 
-The share of the page the photo takes is `chrome.cover.splitRatio` (default
-`0.5`) and the scrim's opacity is `chrome.cover.scrimAlpha` (default `0.45`):
-both are theme tokens, so a kit tunes them once for every deck it dresses.
+### What a kit settles
+
+Five tokens under `chrome.cover` in a kit's `theme.json`, so the look is
+decided once for every deck the kit dresses rather than deck by deck:
+
+| Token | Default | What it does |
+|---|---|---|
+| `splitRatio` | `0.5` | share of the page width the photograph takes on `image-right` and `image-left`. Between `0.2` and `0.8` — past either end one of the two halves has no room for what it holds |
+| `imageOpacity` | `1` | opacity of the **photograph itself**, on every layout that places one. `0.35` fades it into the cover surface; `1` is the picture as it was taken |
+| `imageInset` | `0` | pixels the photograph is pulled back from the edges of its band. `0` is full-bleed; anything above turns the same picture into a **panel** on the cover surface |
+| `imageRadius` | `0` | corner radius of that panel, in pixels |
+| `scrimAlpha` | `0.6` | opacity of the veil painted **over** the photograph, on `image-full` only |
+
+```json
+{ "chrome": { "cover": { "splitRatio": 0.45, "imageInset": 40, "imageRadius": 24 } } }
+```
+
+**`imageRadius` only earns its keep alongside an inset.** At `imageInset: 0`
+three of the photograph's four corners are off the page, so rounding them
+rounds nothing anybody sees. It is left to the kit rather than derived from the
+inset because "inset, square corners" is a house style of its own.
+
+The veil follows the **photograph**, not the page: on an inset `image-full` the
+two are no longer the same rectangle, and a full-page veil would take the
+margin around the panel pale with it.
+
+`imageOpacity` and `scrimAlpha` are not two spellings of one idea. The scrim is
+a layer the engine paints on top, and it exists only where the words sit over
+the picture; `imageOpacity` fades the picture itself, and is the only one that
+reaches the half-and-half layouts, where there is no veil and nothing else
+could quiet a photograph that shouts. On `image-full` the two compose — a
+picture at `0.5` under a scrim at `0.6` is very nearly gone — so a kit normally
+reaches for one of them, not both.
+
+All three are **fractions of 1, never percentages**. `imageOpacity: 40` is
+refused with a `THEME_BAD_VALUE` saying so, rather than clamped in silence.
 
 **The scrim of `image-full` is a compromise, and worth knowing about.** It is
 deliberately weaker than the one a section divider uses (`0.85`), because

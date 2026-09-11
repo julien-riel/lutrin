@@ -289,15 +289,42 @@ export const CHROME = {
     // The divider sits at 0.85 because it is a band of brand colour that a
     // photo merely tints; a cover is the opposite errand — the photo is the
     // reason the layout was asked for, and 0.85 of a light `coverBg` erases it.
-    // 0.45 is where the photograph still reads and a dark `coverInk` still
-    // carries over a mid-tone.
+    // 0.6 was chosen on renderings rather than on taste: at 0.45 the title held
+    // but the subtitle and byline, written in `coverMutedInk`, failed over the
+    // dark half of a mountain; at 0.6 all three carry and the photograph still
+    // reads as a photograph.
     //
     // KNOWN LIMIT, and the reason this is a token. `coverInk` had its contrast
     // validated against `coverBg` and against nothing else, so a dark or busy
     // photograph can take the pair below the threshold with nothing to say so:
     // the engine measures colours, never pixels. A kit shipping dark cover
     // photography raises this, or picks the ink for them.
-    scrimAlpha: 0.45,
+    scrimAlpha: 0.6,
+    // Opacity of the cover photograph ITSELF, on every title layout that
+    // places one. Distinct from the scrim above, and not a second spelling of
+    // it: the scrim is a veil the engine paints OVER the picture and only on
+    // `image-full`, while this fades the picture into `coverBg` and applies to
+    // the half-and-half layouts too, where there is no veil at all and nothing
+    // else could soften a photograph that shouts.
+    //
+    // 1 is the photograph as it was taken, which is the only defensible
+    // default: a kit that wants a quieter cover says so. On `image-full` the
+    // two compose — a picture at 0.5 under a scrim at 0.6 is very nearly gone —
+    // so a kit normally reaches for one of them, not both.
+    imageOpacity: 1,
+    // Pixels the photograph is pulled back from the edges of the band it was
+    // given. 0 is full-bleed — flush to the page on three sides — and is the
+    // default because it is what makes a cover read as one composition rather
+    // than as a slide with a picture on it. Anything above 0 turns the same
+    // photograph into a PANEL sitting on the cover surface, which is the other
+    // house style and the reason this is a token rather than a decision.
+    imageInset: 0,
+    // Corner radius of that panel, in pixels. Only meaningful alongside an
+    // inset: with none, three of the four corners are off the page and
+    // rounding them rounds nothing anybody sees. Left to the kit rather than
+    // derived from `imageInset`, because "inset, square corners" is a house
+    // style too.
+    imageRadius: 0,
   },
   section: {
     titleY: 288,
@@ -321,6 +348,37 @@ export const CHROME = {
 };
 
 export const px = (v) => v / 96; // px → inches
+
+/**
+ * Chrome tokens that are FRACTIONS rather than counts of pixels, with the band
+ * each one means anything in. Keyed by the dotted path a theme writes them at.
+ *
+ * The theme sanitizer's numeric rule is "a finite number, zero or more", which
+ * `scrimAlpha: 5` and `imageOpacity: 40` both satisfy — the kit author typing a
+ * percentage sailed straight through it, and the renderers clamped the value
+ * with nothing said. The clamp stays; this is what lets the validator say why
+ * the cover came out opaque.
+ *
+ * Declared HERE, beside the tokens themselves, so the band and the default it
+ * has to contain cannot drift into disagreeing. `splitRatio` gets the narrower
+ * one on purpose: it is a share of the page, and the `split` base already
+ * refuses anything outside 0.2–0.8 for the same reason — past either end one
+ * of the two halves has no room for what it holds.
+ */
+export const CHROME_FRACTIONS = new Map([
+  ['chrome.cover.scrimAlpha', [0, 1]],
+  ['chrome.cover.imageOpacity', [0, 1]],
+  ['chrome.section.scrimAlpha', [0, 1]],
+  ['chrome.cover.splitRatio', [0.2, 0.8]],
+]);
+
+/** A fraction token, held to its band whatever a caller put in the theme. The
+ *  validator is what NAMES an out-of-band value; this is what keeps the
+ *  renderers drawing something either way. */
+const fraction = (path, value) => {
+  const [min, max] = CHROME_FRACTIONS.get(path);
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min;
+};
 
 /** The title layouts a deck may name in `titleLayout:`. `default` is the
  *  composition that has always shipped; the other three place an image. */
@@ -346,24 +404,66 @@ export const TITLE_LAYOUTS = ['default', 'image-right', 'image-left', 'image-ful
  *                           `default` — the validator is what names the fault
  * @returns {{x: number, w: number, image: {x,y,w,h}|null, scrim: boolean}} px
  */
+/** Opacity of a cover photograph, held to [0, 1]. A kit setting 0 gets an
+ *  invisible picture, which is a strange thing to ask for but a coherent one. */
+export const coverImageOpacity = () =>
+  fraction('chrome.cover.imageOpacity', CHROME.cover.imageOpacity ?? 1);
+
+/**
+ * The band a photograph was given, turned into the rectangle actually drawn:
+ * pulled back by `imageInset` on all four sides, and carrying the corner
+ * `radius` that goes with it.
+ *
+ * Both are clamped rather than trusted. An inset of half the band would leave
+ * nothing to draw, and a radius above half the shorter side is not a rounder
+ * corner but an invalid one — OOXML caps it, browsers cap it, and they cap it
+ * differently, which is exactly the drift this shared geometry exists to stop.
+ */
+function framed(rect) {
+  const room = Math.min(rect.w, rect.h) / 2 - 1;
+  const inset = Math.max(0, Math.min(CHROME.cover.imageInset ?? 0, room));
+  const box = {
+    x: rect.x + inset,
+    y: rect.y + inset,
+    w: rect.w - 2 * inset,
+    h: rect.h - 2 * inset,
+  };
+  const radius = Math.max(0, Math.min(CHROME.cover.imageRadius ?? 0, Math.min(box.w, box.h) / 2));
+  return { ...box, radius };
+}
+
+/**
+ * A corner radius in pixels, as the `adj` an OOXML `roundRect` wants: 1/100000
+ * of HALF THE SHORTER SIDE, capped at 50000 where the short ends become
+ * semicircles. It lives beside the geometry rather than in the renderer because
+ * the unit is a property of the shape, not of the library writing it out.
+ */
+export const roundRectAdj = (radius, w, h) => {
+  const half = Math.min(w, h) / 2;
+  if (!(half > 0) || !(radius > 0)) return 0;
+  return Math.min(50000, Math.round((radius / half) * 50000));
+};
+
 export function coverBoxes(variant = 'default') {
   const full = PAGE.width - 2 * PAGE.margin;
   const plain = { x: PAGE.margin, w: full, image: null, scrim: false };
   if (variant === 'image-full')
     return {
       ...plain,
-      image: { x: 0, y: 0, w: PAGE.width, h: PAGE.height },
+      image: framed({ x: 0, y: 0, w: PAGE.width, h: PAGE.height }),
       scrim: true,
     };
   if (variant !== 'image-right' && variant !== 'image-left') return plain;
-  const band = Math.round(PAGE.width * CHROME.cover.splitRatio);
+  const band = Math.round(
+    PAGE.width * fraction('chrome.cover.splitRatio', CHROME.cover.splitRatio),
+  );
   const textW = PAGE.width - band - 2 * PAGE.margin;
-  const image = {
+  const image = framed({
     x: variant === 'image-right' ? PAGE.width - band : 0,
     y: 0,
     w: band,
     h: PAGE.height,
-  };
+  });
   return {
     x: variant === 'image-right' ? PAGE.margin : band + PAGE.margin,
     w: textW,

@@ -103,6 +103,7 @@ import {
   deriveTokens,
   luminance,
   contrastRatio,
+  CHROME_FRACTIONS,
 } from './tokens.mjs';
 import { closest } from './suggest.mjs';
 import { readKit, insideKit, KIT_MANIFEST, KIT_NAME_RE } from './kit.mjs';
@@ -1058,13 +1059,29 @@ export function resolveTheme(
         continue;
       }
       if (typeof ref2 === 'number') {
-        if (typeof val === 'number' && Number.isFinite(val) && val >= 0) out[key] = val;
-        else
+        if (!(typeof val === 'number' && Number.isFinite(val) && val >= 0)) {
           push(
             'warning',
             'THEME_BAD_VALUE',
             `Theme: ${where}.${key} must be a positive number — ignored.`,
           );
+          continue;
+        }
+        // Fractions get their band on top of that (tokens.mjs). "a positive
+        // number" is satisfied by `scrimAlpha: 5` and `imageOpacity: 40`, which
+        // is a kit author typing percentages — the value was clamped at render
+        // time and the author was told nothing, which is the cover coming out
+        // opaque for no visible reason.
+        const band = CHROME_FRACTIONS.get(`${where}.${key}`);
+        if (band && (val < band[0] || val > band[1])) {
+          push(
+            'warning',
+            'THEME_BAD_VALUE',
+            `Theme: ${where}.${key} must be between ${band[0]} and ${band[1]} — ignored. It is a fraction of 1, never a percentage: write 0.4, not 40.`,
+          );
+          continue;
+        }
+        out[key] = val;
         continue;
       }
       // strings: a hex color where the default is a color, text otherwise
